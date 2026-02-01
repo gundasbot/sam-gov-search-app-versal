@@ -1,0 +1,271 @@
+﻿          setBillingInterval(data.interval === 'year' ? 'annual' : 'monthly')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load plan:', error)
+    } finally {
+      setPlanLoading(false)
+    }
+  }
+
+  const loadUsage = async () => {
+    try {
+      setUsageLoading(true)
+      const res = await fetch('/api/account/usage')
+      if (res.ok) {
+        const data = await res.json()
+        if (plan && plan.tier !== 'NONE') {
+          data.limits = PLAN_FEATURES[plan.tier]?.limits
+        }
+        setUsage(data)
+      }
+    } catch (error) {
+      console.error('Failed to load usage:', error)
+    } finally {
+      setUsageLoading(false)
+    }
+  }
+
+  const loadInvoices = async () => {
+    try {
+      setInvoicesLoading(true)
+      const res = await fetch('/api/stripe/invoices')
+      if (res.ok) {
+        const data = await res.json()
+        setInvoices(data.invoices || [])
+      }
+    } catch (error) {
+      console.error('Failed to load invoices:', error)
+    } finally {
+      setInvoicesLoading(false)
+    }
+  }
+
+// Update the handlePlanChange function in your account page:
+
+const handlePlanChange = async (newTier: PlanTier) => {
+  if (!plan || !session) return
+  
+  const isCurrentPlan = plan.tier === newTier && 
+                       plan.interval === (billingInterval === 'annual' ? 'year' : 'month')
+  
+  if (isCurrentPlan) {
+    setMessage({ type: 'error', text: 'This is already your current plan' })
+    setTimeout(() => setMessage(null), 3000)
+    return
+  }
+
+  try {
+    setLoadingPlanChange(newTier)
+    setMessage(null)
+
+    // Check if user is in trial - use the same API as pricing page
+    if (plan.subscriptionId && plan.status?.toLowerCase() === 'trialing') {
+      // User is in trial - use update-subscription API
+      console.log('User in trial, using update-subscription API for:', newTier, billingInterval)
+      
+      const res = await fetch('/api/stripe/update-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: newTier,
+          interval: billingInterval,
+          isDowngrade: false, // Assume upgrade for account page
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to update subscription')
+      }
+
+      const updateData = await res.json()
+      
+      setMessage({ 
+        type: 'success', 
+        text: updateData.message || `Plan changed to ${PLAN_FEATURES[newTier].name}!` 
+      })
+      
+      // Reload plan data
+      await loadPlan()
+      await loadUsage()
+      
+      setTimeout(() => setMessage(null), 5000)
+    }
+    else if (!plan.subscriptionId || plan.tier === 'NONE') {
+      // NEW USER or NO SUBSCRIPTION - Create checkout
+      console.log('Creating new checkout for:', newTier, billingInterval)
+      
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: newTier.toLowerCase(),
+          billing: billingInterval,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+
+      const { url } = await res.json()
+      if (url) {
+        // Redirect to Stripe Checkout
+        window.location.href = url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } else {
+      // EXISTING USER WITH ACTIVE SUBSCRIPTION - Use change-plan API
+      console.log('Changing existing subscription:', newTier, billingInterval)
+      
+      const res = await fetch('/api/stripe/change-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: newTier.toLowerCase(),
+          billing: billingInterval,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to change subscription')
+      }
+
+      setMessage({ 
+        type: 'success', 
+        text: `Plan changed to ${PLAN_FEATURES[newTier].name}. Changes will take effect immediately.` 
+      })
+      
+      // Reload plan data
+      await loadPlan()
+      await loadUsage()
+      
+      setTimeout(() => setMessage(null), 5000)
+    }
+  } catch (error: any) {
+    console.error('Plan change error:', error)
+    setMessage({ 
+      type: 'error', 
+      text: error.message || 'Failed to change plan. Please try again.' 
+    })
+    setTimeout(() => setMessage(null), 5000)
+  } finally {
+    setLoadingPlanChange(null)
+  }
+}
+
+  const handleCancelSubscription = async () => {
+    if (!plan?.subscriptionId) return
+    
+    if (!confirm('Are you sure you want to cancel your subscription? You will have access until the end of your billing period.')) {
+      return
+    }
+
+    try {
+      setSaving(true)
+      setMessage(null)
+
+      const res = await fetch('/api/stripe/subscription/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ atPeriodEnd: true }), // Cancel at period end
+      })
+
+      if (res.ok) {
+        setMessage({ 
+          type: 'success', 
+          text: 'Subscription cancelled. You will have access until the end of your billing period.' 
+        })
+        
+        // Reload plan data
+        await loadPlan()
+        setTimeout(() => setMessage(null), 5000)
+      } else {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to cancel subscription')
+      }
+    } catch (error: any) {
+      console.error('Cancel subscription error:', error)
+      setMessage({ 
+        type: 'error', 
+        text: error.message || 'Failed to cancel subscription. Please try again.' 
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openStripePortal = async () => {
+    try {
+      setSaving(true)
+      const res = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (res.ok) {
+        const { url } = await res.json()
+        window.open(url, '_blank', 'noopener,noreferrer')
+      } else {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to open billing portal')
+      }
+    } catch (error: any) {
+      console.error('Stripe portal error:', error)
+      setMessage({ 
+        type: 'error', 
+        text: error.message || 'Failed to open billing portal. Please try again.' 
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveProfile = async () => {
+    try {
+      setSaving(true)
+      setMessage(null)
+
+      const res = await fetch('/api/account/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: profile.firstName,
+          last_name: profile.lastName,
+          phone: profile.phone,
+          company: profile.company,
+          title: profile.title,
+          address_line1: profile.addressLine1,
+          address_line2: profile.addressLine2,
+          city: profile.city,
+          state: profile.state,
+          zip: profile.postalCode,
+          country: profile.country,
+        }),
+      })
+
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Profile updated successfully!' })
+        setEditMode(null)
+        setTimeout(() => setMessage(null), 3000)
+      } else {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to update profile')
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Failed to update profile.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const getUsagePercentage = (current: number, limit: number) => {
+    if (limit === -1) return 0
+    return Math.min((current / limit) * 100, 100)
+  }
+
+  const getButtonText = (tier: PlanTier) => {
