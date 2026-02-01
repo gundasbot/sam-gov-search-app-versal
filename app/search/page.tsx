@@ -1433,7 +1433,8 @@ function SearchPageContent() {
     try {
       const from = searchParams?.get('from')
       if (from !== 'cta') return
-      if (hasValidAccess) return // ✅ FIXED: Use hasValidAccess
+      // ✅ CRITICAL FIX: Don't show modal if user has valid access OR is in browsing window
+      if (hasValidAccess || canBrowse) return
 
       const shown = sessionStorage.getItem('govcon_gate_shown')
       if (shown) return
@@ -1469,7 +1470,7 @@ function SearchPageContent() {
    * Gate a premium action - if user doesn't have access, show modal
    * @param featureName - The name of the feature being accessed (shown in modal)
    * @returns true if user has access, false if gated (modal shown)
-   * ✅ FIXED: Now uses hasValidAccess from useBrowsingSession
+   * ✅ FIXED: Now checks both hasValidAccess AND canBrowse
    */
   const requireAccess = useCallback((featureName: string): boolean => {
     // ✅ CRITICAL: Don't show modal while still loading
@@ -1478,9 +1479,10 @@ function SearchPageContent() {
       return false // Block action but don't show modal
     }
     
-    // ✅ Use the centralized hasValidAccess instead of broken checkAccess
-    if (!hasValidAccess) {
-      // User doesn't have access - show modal
+    // ✅ CRITICAL FIX: Check BOTH hasValidAccess (authenticated with subscription)
+    // AND canBrowse (within 15-minute free browsing window)
+    if (!hasValidAccess && !canBrowse) {
+      // User doesn't have access and not in browsing window - show modal
       setBlockedFeature(featureName)
       setShowAccessModal(true)
       
@@ -1493,7 +1495,7 @@ function SearchPageContent() {
     }
     
     return true
-  }, [hasValidAccess, planLoading, status])
+  }, [hasValidAccess, canBrowse, planLoading, status])
 
 
 
@@ -1677,7 +1679,8 @@ function SearchPageContent() {
         console.error('API request failed:', { status: res.status, errorText })
         
         // Handle payment required (trial ended)
-        if (res.status === 402) {
+        // ✅ CRITICAL FIX: Only show modal if user is NOT in free browsing window
+        if (res.status === 402 && !canBrowse) {
           setBlockedFeature('Search Federal Opportunities')
           setShowAccessModal(true)
           throw new Error('Your trial has ended. Please upgrade to continue searching.')

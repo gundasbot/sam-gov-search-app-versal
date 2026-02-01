@@ -1,4 +1,4 @@
-// app/api/auth/[...nextauth]/route.ts - COMPLETE WITH AUTO-LOGIN
+// app/api/auth/[...nextauth]/route.ts - COMPLETE WITH AUTO-LOGIN + SEARCH DEFAULT
 
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
@@ -60,11 +60,11 @@ async function ensureUserRow(params: {
   // If user doesn't exist, create one with BASIC tier and 7-day trial
   if (!existing) {
     const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
-    
+
     const user = await prisma.user.create({
       data: {
         email,
-        firstName: first || email.split('@')[0],
+        firstName: first || email.split("@")[0],
         lastName: last || "",
         role: "user",
         plan: "BASIC",
@@ -75,7 +75,10 @@ async function ensureUserRow(params: {
         trialExpiresAt: trialExpires,
         trialEndsAt: trialExpires,
         emailVerified: params.provider === "google" ? now : null,
-        name: params.name || `${first || ""} ${last || ""}`.trim() || email.split('@')[0],
+        name:
+          params.name ||
+          `${first || ""} ${last || ""}`.trim() ||
+          email.split("@")[0],
         image: params.image || undefined,
       },
     })
@@ -124,7 +127,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const email = credentials.email.toLowerCase().trim()
-        
+
         const user = await prisma.user.findUnique({
           where: { email },
           select: {
@@ -153,11 +156,13 @@ export const authOptions: NextAuthOptions = {
         }
 
         // ✅ AUTO-LOGIN FLOW CHECK
-        if (credentials.autoLoginUserId && credentials.autoLoginUserId === user.id) {
+        if (
+          credentials.autoLoginUserId &&
+          credentials.autoLoginUserId === user.id
+        ) {
           // Auto-login flow - token already validated by /api/auth/auto-login
           console.log(`✅ Auto-login authorize for ${user.email}`)
-          
-          // Skip password check - continue to user return below
+          // Skip password check - continue
         } else {
           // REGULAR PASSWORD LOGIN
           if (!credentials.password) {
@@ -180,40 +185,46 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email not verified. Please check your inbox.")
         }
 
-        // ✅ Normalize tier to one of three paid tiers only
+        // ✅ Normalize tier to one of three tiers
         let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
-        const rawTier = (user.planTier || user.plan || 'BASIC').toUpperCase()
+        const rawTier = (user.planTier || user.plan || "BASIC").toUpperCase()
 
-        if (rawTier === 'PROFESSIONAL' || rawTier === 'PRO') {
-          tier = 'PROFESSIONAL'
-        } else if (rawTier === 'ENTERPRISE') {
-          tier = 'ENTERPRISE'
+        if (rawTier === "PROFESSIONAL" || rawTier === "PRO") {
+          tier = "PROFESSIONAL"
+        } else if (rawTier === "ENTERPRISE") {
+          tier = "ENTERPRISE"
         } else {
-          tier = 'BASIC'
+          tier = "BASIC"
         }
 
         // ✅ Normalize interval
         const rawInterval = user.billingInterval || null
-        let interval: 'month' | 'year' | null = null
+        let interval: "month" | "year" | null = null
         if (rawInterval) {
           const lower = String(rawInterval).toLowerCase()
-          if (lower === 'monthly' || lower === 'month') interval = 'month'
-          if (lower === 'annual' || lower === 'year') interval = 'year'
+          if (lower === "monthly" || lower === "month") interval = "month"
+          if (lower === "annual" || lower === "year") interval = "year"
         }
 
         // ✅ Use subscriptionStatus as primary, fallback to planStatus
-        const status = user.subscriptionStatus || user.planStatus || 'trialing'
-        
+        const status = user.subscriptionStatus || user.planStatus || "trialing"
+
         // ✅ Check if user has active subscription
         const hasSubscription = Boolean(
           user.stripeSubscriptionId &&
-          (status === 'active' || status === 'trialing' || status === 'trial' || status === 'past_due')
+            (status === "active" ||
+              status === "trialing" ||
+              status === "trial" ||
+              status === "past_due")
         )
 
         return {
           id: user.id,
           email: user.email,
-          name: user.name || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || email.split('@')[0],
+          name:
+            user.name ||
+            `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+            email.split("@")[0],
           role: user.role ?? "user",
           tier,
           interval,
@@ -242,6 +253,36 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
+    // ✅ Force sane post-login landing
+    async redirect({ url, baseUrl }) {
+      try {
+        const u = new URL(url, baseUrl)
+
+        // If NextAuth is trying to send you to /account (or back to /login), override to /dashboard
+        if (u.pathname === "/account" || u.pathname === "/login") {
+          return `${baseUrl}/dashboard`
+        }
+
+        // If callbackUrl is present and points to /account, override it
+        const cb = u.searchParams.get("callbackUrl")
+        if (cb) {
+          const cbUrl = new URL(cb, baseUrl)
+          if (cbUrl.pathname === "/account") {
+            return `${baseUrl}/dashboard`
+          }
+        }
+
+        // Allow same-origin safe redirects, otherwise default to /dashboard
+        if (u.origin === new URL(baseUrl).origin) {
+          return u.toString()
+        }
+
+        return `${baseUrl}/dashboard`
+      } catch {
+        return `${baseUrl}/dashboard`
+      }
+    },
+
     async jwt({ token, user, trigger }) {
       // On sign in, add user data to token
       if (user) {
@@ -282,42 +323,48 @@ export const authOptions: NextAuthOptions = {
 
           if (dbUser) {
             token.id = dbUser.id
-            token.name = dbUser.name || `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim() || (token.email as string).split('@')[0]
+            token.name =
+              dbUser.name ||
+              `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim() ||
+              (token.email as string).split("@")[0]
             token.role = dbUser.role ?? "user"
 
             // Normalize tier
             let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
-            const rawTier = (dbUser.planTier || dbUser.plan || 'BASIC').toUpperCase()
+            const rawTier = (dbUser.planTier || dbUser.plan || "BASIC").toUpperCase()
 
-            if (rawTier === 'PROFESSIONAL' || rawTier === 'PRO') {
-              tier = 'PROFESSIONAL'
-            } else if (rawTier === 'ENTERPRISE') {
-              tier = 'ENTERPRISE'
+            if (rawTier === "PROFESSIONAL" || rawTier === "PRO") {
+              tier = "PROFESSIONAL"
+            } else if (rawTier === "ENTERPRISE") {
+              tier = "ENTERPRISE"
             } else {
-              tier = 'BASIC'
+              tier = "BASIC"
             }
 
             token.tier = tier
 
             // Normalize interval
             const rawInterval = dbUser.billingInterval || null
-            let interval: 'month' | 'year' | null = null
+            let interval: "month" | "year" | null = null
             if (rawInterval) {
               const lower = String(rawInterval).toLowerCase()
-              if (lower === 'monthly' || lower === 'month') interval = 'month'
-              if (lower === 'annual' || lower === 'year') interval = 'year'
+              if (lower === "monthly" || lower === "month") interval = "month"
+              if (lower === "annual" || lower === "year") interval = "year"
             }
 
             token.interval = interval
 
             // Use subscriptionStatus as primary
-            const status = dbUser.subscriptionStatus || dbUser.planStatus || 'trialing'
+            const status = dbUser.subscriptionStatus || dbUser.planStatus || "trialing"
             token.status = status
 
             // Check if user has active subscription
             const hasSubscription = Boolean(
               dbUser.stripeSubscriptionId &&
-              (status === 'active' || status === 'trialing' || status === 'trial' || status === 'past_due')
+                (status === "active" ||
+                  status === "trialing" ||
+                  status === "trial" ||
+                  status === "past_due")
             )
 
             token.hasSubscription = hasSubscription

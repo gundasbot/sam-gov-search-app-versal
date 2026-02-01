@@ -75,3 +75,6 @@ Thumbs.db
 
 # local maintenance scripts (dev only)
 scripts/
+
+.vercel
+.env*.local
