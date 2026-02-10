@@ -1,4 +1,4 @@
-// app/api/auth/auto-login/route.ts
+﻿// app/api/auth/auto-login/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const tokenHash = sha256Hex(token)
     const now = new Date()
 
-    // ✅ FIX: changed `user` → `users` to match the actual Prisma relation
+    // âœ… FIX: changed `user` â†’ `users` to match the actual Prisma relation
     const autoLoginToken = await prisma.auto_login_tokens.findFirst({
       where: {
         token_hash: tokenHash,
@@ -46,21 +46,20 @@ export async function POST(req: NextRequest) {
 
     const user = autoLoginToken.users
 
-    console.log(`✅ Auto-login token validated for ${user.email}`)
+    console.log(`âœ… Auto-login token validated for ${user.email}`)
 
     return NextResponse.json({
-      ok: true,
-      user: {
+      ok: true, users: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         name: user.name,
       },
     })
 
   } catch (error: any) {
-    console.error('❌ Auto-login POST error:', error)
+    console.error('âŒ Auto-login POST error:', error)
     return NextResponse.json({
       ok: false,
       error: 'Auto-login failed'
@@ -84,7 +83,7 @@ export async function GET(request: NextRequest) {
     const tokenHash = sha256Hex(token)
     const now = new Date()
 
-    // ✅ FIX: changed `user` → `users` to match the actual Prisma relation
+    // âœ… FIX: changed `user` â†’ `users` to match the actual Prisma relation
     const autoLoginToken = await prisma.auto_login_tokens.findFirst({
       where: {
         token_hash: tokenHash,
@@ -124,14 +123,14 @@ export async function GET(request: NextRequest) {
       data: { used_at: now }
     })
 
-    console.log(`🔐 Auto-login GET successful for: ${user.email}`)
+    console.log(`ðŸ” Auto-login GET successful for: ${user.email}`)
 
     // Build display name
     let displayName = ''
-    if (user.firstName && user.lastName) {
-      displayName = `${user.firstName} ${user.lastName}`
-    } else if (user.firstName) {
-      displayName = user.firstName
+    if (user.first_name && user.last_name) {
+      displayName = `${user.first_name} ${user.last_name}`
+    } else if (user.first_name) {
+      displayName = user.first_name
     } else if (user.name) {
       displayName = user.name
     } else {
@@ -139,8 +138,8 @@ export async function GET(request: NextRequest) {
     }
 
     const heading = isWelcome
-      ? `Welcome ${displayName}! 🎉`
-      : 'Email Verified! 🎉'
+      ? `Welcome ${displayName}! ðŸŽ‰`
+      : 'Email Verified! ðŸŽ‰'
 
     const subtext = isWelcome
       ? 'Your 7-day free trial has started'
@@ -227,7 +226,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Auto-login GET error:', error)
+    console.error('âŒ Auto-login GET error:', error)
     return NextResponse.redirect(
       new URL('/login?error=auto-login-failed', request.url)
     )

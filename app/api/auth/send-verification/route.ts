@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import crypto from 'crypto'
 import { Resend } from 'resend'
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       subject: 'Verify your email for Precise GovCon',
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.6">
-          <h2>Hello ${name} 👋</h2>
+          <h2>Hello ${name} ðŸ‘‹</h2>
           <p>Please verify your email to activate your account:</p>
           <p>
             <a href="${verifyUrl}"

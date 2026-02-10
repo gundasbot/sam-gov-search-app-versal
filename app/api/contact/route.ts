@@ -1,4 +1,4 @@
-// app/api/contact/route.ts
+﻿// app/api/contact/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
@@ -215,7 +215,7 @@ Submitted: ${new Date().toLocaleString()}
                     ` : ''}
                     ${preferredDate && preferredTime ? `
                     <p style="margin: 12px 0 0 0; padding: 12px; background-color: #fef9c3; border-radius: 4px; color: #854d0e; font-size: 13px;">
-                      <strong>📅 Calendar invite attached</strong> - Add this meeting to your calendar!
+                      <strong>ðŸ“… Calendar invite attached</strong> - Add this meeting to your calendar!
                     </p>
                     ` : ''}
                   </td>
@@ -256,7 +256,7 @@ Submitted: ${new Date().toLocaleString()}
           <tr>
             <td style="background-color: #065f46; padding: 20px; text-align: center;">
               <p style="margin: 0; color: #d1fae5; font-size: 13px;">
-                © ${new Date().getFullYear()} Precise GovCon. All rights reserved.
+                Â© ${new Date().getFullYear()} Precise GovCon. All rights reserved.
               </p>
             </td>
           </tr>
@@ -302,7 +302,7 @@ Submitted: ${new Date().toLocaleString()}
             <td style="padding: 40px;">
               <div style="text-align: center; margin-bottom: 30px;">
                 <div style="width: 80px; height: 80px; background-color: #d1fae5; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-                  <span style="font-size: 40px;">✅</span>
+                  <span style="font-size: 40px;">âœ…</span>
                 </div>
                 <h2 style="margin: 0 0 12px 0; color: #065f46; font-size: 32px; font-weight: 900;">
                   Request Received!
@@ -317,14 +317,14 @@ Submitted: ${new Date().toLocaleString()}
                 <tr>
                   <td style="padding: 24px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 8px;">
                     <h3 style="margin: 0 0 16px 0; color: #065f46; font-size: 18px; font-weight: 700;">
-                      📧 Confirmation sent to: ${email}
+                      ðŸ“§ Confirmation sent to: ${email}
                     </h3>
                     <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
                       We've received your inquiry about <strong>${certifications || 'set-aside certifications'}</strong> and will contact you within 24 hours.
                     </p>
                     ${preferredDate && preferredTime ? `
                     <p style="margin: 12px 0 0 0; padding: 16px; background-color: #fef3c7; border-radius: 6px; color: #92400e; font-size: 14px; font-weight: 600;">
-                      📅 <strong>Meeting Request:</strong><br/>
+                      ðŸ“… <strong>Meeting Request:</strong><br/>
                       ${new Date(preferredDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${preferredTime}<br/>
                       <span style="font-size: 13px; color: #78350f;">Calendar invite attached - add this to your calendar!</span>
                     </p>
@@ -394,7 +394,7 @@ Submitted: ${new Date().toLocaleString()}
           <tr>
             <td style="background-color: #065f46; padding: 24px; text-align: center;">
               <p style="margin: 0 0 8px 0; color: #d1fae5; font-size: 13px; font-weight: 600;">
-                © ${new Date().getFullYear()} Precise GovCon. All rights reserved.
+                Â© ${new Date().getFullYear()} Precise GovCon. All rights reserved.
               </p>
               <p style="margin: 0; color: #a7f3d0; font-size: 12px;">
                 Helping businesses unlock federal contracting opportunities
@@ -419,7 +419,7 @@ Submitted: ${new Date().toLocaleString()}
     let icsContent: string | null = null
     if (preferredDate && preferredTime) {
       icsContent = generateICS(name, email, preferredDate, preferredTime, certifications || 'Set-aside certifications')
-      console.log('📅 Calendar invite generated')
+      console.log('ðŸ“… Calendar invite generated')
     }
 
     // Send email using Resend
@@ -445,7 +445,7 @@ Submitted: ${new Date().toLocaleString()}
         }
 
         const teamResult = await resend.emails.send(teamEmailData)
-        console.log('✅ Team notification sent:', teamResult)
+        console.log('âœ… Team notification sent:', teamResult)
 
         // 2. Send confirmation to customer
         const customerEmailData: any = {
@@ -467,14 +467,14 @@ Submitted: ${new Date().toLocaleString()}
         }
 
         const customerResult = await resend.emails.send(customerEmailData)
-        console.log('✅ Customer confirmation sent:', customerResult)
+        console.log('âœ… Customer confirmation sent:', customerResult)
 
       } catch (emailError) {
-        console.error('❌ Email sending failed:', emailError)
+        console.error('âŒ Email sending failed:', emailError)
         // Don't fail the request if email fails - still return success to user
       }
     } else {
-      console.warn('⚠️ RESEND_API_KEY not found - email not sent (only logged to console)')
+      console.warn('âš ï¸ RESEND_API_KEY not found - email not sent (only logged to console)')
       console.warn('Add RESEND_API_KEY to .env.local to enable email sending')
     }
 
@@ -503,7 +503,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
       select: {
         phone: true,
@@ -556,7 +556,7 @@ export async function PUT(req: NextRequest) {
     console.log('Contact PUT - Update data:', JSON.stringify(updateData, null, 2))
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email },
       select: { id: true }
     })
@@ -565,7 +565,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const updated = await prisma.user.update({
+    const updated = await prisma.users.update({
       where: { email },
       data: updateData,
       select: {

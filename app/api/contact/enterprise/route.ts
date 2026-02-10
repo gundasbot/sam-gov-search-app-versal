@@ -1,7 +1,6 @@
-// app/api/contact/enterprise/route.ts
+﻿// app/api/contact/enterprise/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { generateEnterpriseInquiryEmail, generateCustomerConfirmationEmail } from '@/lib/email-templates/enterprise-inquiry'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -22,13 +21,19 @@ export async function POST(request: NextRequest) {
       from: process.env.RESEND_FROM_EMAIL || 'Precise GovCon <noreply@precisegovcon.com>',
       to: process.env.SALES_EMAIL || 'sales@precisegovcon.com',
       subject: `New Enterprise Inquiry from ${name}`,
-      html: generateEnterpriseInquiryEmail({
-        customerName: name,
-        customerEmail: email,
-        companyName: company,
-        phoneNumber: phone,
-        message,
-      }),
+      html: `
+        <html>
+          <body>
+            <h2>New Enterprise Inquiry</h2>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Company:</strong> ${company || 'Not provided'}</p>
+            <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+            <p><strong>Message:</strong></p>
+            <p>${message || 'No message provided'}</p>
+          </body>
+        </html>
+      `,
     })
 
     // Send confirmation email to customer
@@ -36,10 +41,18 @@ export async function POST(request: NextRequest) {
       from: process.env.RESEND_FROM_EMAIL || 'Precise GovCon <noreply@precisegovcon.com>',
       to: email,
       subject: 'Thank you for your enterprise inquiry',
-      html: generateCustomerConfirmationEmail(name),
+      html: `
+        <html>
+          <body>
+            <h2>Thank you for your inquiry, ${name}!</h2>
+            <p>We have received your enterprise inquiry and our team will contact you shortly.</p>
+            <p>If you have any urgent questions, please contact us at support@precisegovcon.com</p>
+          </body>
+        </html>
+      `,
     })
 
-    console.log('✅ Enterprise inquiry emails sent:', {
+    console.log('âœ… Enterprise inquiry emails sent:', {
       salesEmailId: salesEmail.data?.id,
       customerEmailId: customerEmail.data?.id,
     })

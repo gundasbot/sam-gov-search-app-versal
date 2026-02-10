@@ -1,4 +1,4 @@
-// app/api/ai/test/route.ts
+﻿// app/api/ai/test/route.ts
 import { NextResponse } from 'next/server'
 
 export async function GET() {

@@ -1,4 +1,4 @@
-// app/api/notify-submission/route.ts - Email Notifications for Form Submissions
+﻿// app/api/notify-submission/route.ts - Email Notifications for Form Submissions
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     await resend.emails.send({
       from: 'Precise GovCon Forms <noreply@precisegovcon.com>',
       to: ['contact@precisegovcon.com', 'team@precisegovcon.com'],
-      subject: `🚨 New ${formType} Submission`,
+      subject: `ðŸš¨ New ${formType} Submission`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🚨 New ${formType} Submission</h1>
+              <h1>ðŸš¨ New ${formType} Submission</h1>
             </div>
             <div class="content">
               <p><strong>Submitted by:</strong> ${userName || 'Anonymous'}</p>
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     await resend.emails.send({
       from: 'Precise GovCon <noreply@precisegovcon.com>',
       to: userEmail,
-      subject: `✅ Your ${formType} Submission Received`,
+      subject: `âœ… Your ${formType} Submission Received`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
         <body>
           <div class="container">
             <div class="header">
-              <h1>✅ Submission Received!</h1>
+              <h1>âœ… Submission Received!</h1>
             </div>
             <div class="content">
               <div class="checkmark">
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       `,
     });
 
-    console.log(`✅ Email sent for ${formType} submission from ${userEmail}`);
+    console.log(`âœ… Email sent for ${formType} submission from ${userEmail}`);
 
     return NextResponse.json({ 
       success: true,
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('❌ Email notification error:', error);
+    console.error('âŒ Email notification error:', error);
     
     return NextResponse.json({ 
       success: false,

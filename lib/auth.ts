@@ -28,7 +28,7 @@ const userSelect = {
   phone: true,
   company: true,
   plan: true,
-  trialEndsAt: true,
+  trial_ends_at: true,
   image: true,
 } as const
 
@@ -36,7 +36,7 @@ export async function findUserByEmail(email: string): Promise<User | null> {
   const e = email.toLowerCase().trim()
   if (!e) return null
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { email: e },
     select: userSelect,
   })
@@ -69,7 +69,7 @@ export async function createUser(userData: {
   const trialEndsAt = new Date()
   trialEndsAt.setDate(trialEndsAt.getDate() + 7)
 
-  const user = await prisma.user.create({
+  const user = await prisma.users.create({
     data: {
       email: e,
       firstName,
@@ -106,7 +106,7 @@ export async function createGoogleUser(googleData: {
   const trialEndsAt = new Date()
   trialEndsAt.setDate(trialEndsAt.getDate() + 7)
 
-  const user = await prisma.user.create({
+  const user = await prisma.users.create({
     data: {
       email: e,
       firstName,
@@ -160,7 +160,7 @@ export async function linkGoogleAccount(
   }
 
   if (profileImage && !user.image) {
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: { image: profileImage },
       select: { id: true },
@@ -169,24 +169,24 @@ export async function linkGoogleAccount(
 }
 
 export async function isTrialActive(userId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { id: userId },
-    select: { trialEndsAt: true },
+    select: { trial_ends_at: true },
   })
 
-  if (!user?.trialEndsAt) return false
-  return new Date(user.trialEndsAt) > new Date()
+  if (!user?.trial_ends_at) return false
+  return new Date(user.trial_ends_at) > new Date()
 }
 
 export async function getTrialDaysRemaining(userId: string): Promise<number> {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { id: userId },
-    select: { trialEndsAt: true },
+    select: { trial_ends_at: true },
   })
 
-  if (!user?.trialEndsAt) return 0
+  if (!user?.trial_ends_at) return 0
 
-  const end = new Date(user.trialEndsAt).getTime()
+  const end = new Date(user.trial_ends_at).getTime()
   const now = Date.now()
   const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24))
   return Math.max(0, diffDays)

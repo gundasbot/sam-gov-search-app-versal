@@ -1,4 +1,4 @@
-// app/api/stripe/change-subscription/route.ts - SECURE VERSION
+﻿// app/api/stripe/change-subscription/route.ts - SECURE VERSION
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -46,20 +46,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user's current subscription
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
       select: { 
-        stripeSubscriptionId: true,
-        planTier: true,
+        stripe_subscription_id: true,
+        plan_tier: true,
       },
     })
 
-    if (!user?.stripeSubscriptionId) {
+    if (!user?.stripe_subscription_id) {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
     }
 
     // Get current subscription from Stripe
-    const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId)
+    const subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id)
     
     // Get current price
     const currentPriceId = subscription.items.data[0]?.price?.id
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     const currentInterval = currentPrice.recurring?.interval
     const newInterval = newPrice.recurring?.interval
     
-    // Check if interval is changing (monthly ↔ annual)
+    // Check if interval is changing (monthly â†” annual)
     const isIntervalChange = currentInterval !== newInterval
     
     // Prepare update parameters
@@ -130,16 +130,16 @@ export async function POST(req: NextRequest) {
     const updatedSubscription = await stripe.subscriptions.update(subscription.id, updateParams)
 
     // Update user in database
-    await prisma.user.update({
+    await prisma.users.update({
       where: { email },
       data: {
-        billingInterval: requestedInterval.toUpperCase(),
+        billing_interval: requestedInterval.toUpperCase(),
       },
     })
 
     // Extract current_period_end safely
     const periodEnd = (updatedSubscription as any).current_period_end
-    const currentPeriodEnd = typeof periodEnd === 'number' 
+    const current_period_end = typeof periodEnd === 'number' 
       ? new Date(periodEnd * 1000).toISOString()
       : new Date().toISOString()
 
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       subscription: {
         id: updatedSubscription.id,
         status: updatedSubscription.status,
-        currentPeriodEnd,
+        current_period_end,
       },
     })
   } catch (error: any) {

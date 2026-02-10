@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { Pool } from 'pg'
@@ -22,27 +22,27 @@ function safeIdent(name: string) {
 }
 
 export async function POST(req: NextRequest) {
-  console.log('🔐 === RESET PASSWORD API CALLED ===')
-  console.log('📡 Request URL:', req.url)
-  console.log('📡 Request method:', req.method)
-  console.log('📡 Request headers:', Object.fromEntries(req.headers.entries()))
+  console.log('ðŸ” === RESET PASSWORD API CALLED ===')
+  console.log('ðŸ“¡ Request URL:', req.url)
+  console.log('ðŸ“¡ Request method:', req.method)
+  console.log('ðŸ“¡ Request headers:', Object.fromEntries(req.headers.entries()))
   
   try {
     // Read and log raw body
     const text = await req.text()
-    console.log('📦 Raw body:', text)
+    console.log('ðŸ“¦ Raw body:', text)
     
     let body
     try {
       body = JSON.parse(text)
-      console.log('✅ Parsed body:', {
+      console.log('âœ… Parsed body:', {
         tokenLength: body?.token?.length || 0,
         tokenPreview: body?.token ? body.token.substring(0, 10) + '...' : 'none',
         passwordLength: body?.password?.length || 0,
         passwordPreview: body?.password ? '*** (hidden)' : 'none'
       })
     } catch (parseError) {
-      console.error('❌ JSON parse error:', parseError)
+      console.error('âŒ JSON parse error:', parseError)
       return NextResponse.json({ error: 'Invalid JSON format' }, { status: 400 })
     }
     
@@ -50,14 +50,14 @@ export async function POST(req: NextRequest) {
     const password = String(body?.password || '')
     
     if (!token || token.length < 20) {
-      console.log('❌ Invalid token (too short):', token.length)
-      console.log('❌ Token value:', token)
+      console.log('âŒ Invalid token (too short):', token.length)
+      console.log('âŒ Token value:', token)
       return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
     }
     
     // Calculate and log token hash
     const tokenHash = sha256(token)
-    console.log('🔢 Token hash calculated:', {
+    console.log('ðŸ”¢ Token hash calculated:', {
       token: token.substring(0, 20) + '...',
       hash: tokenHash,
       hashPreview: tokenHash.substring(0, 20) + '...',
@@ -65,16 +65,16 @@ export async function POST(req: NextRequest) {
     })
     
     if (!isStrongEnough(password)) {
-      console.log('❌ Password too weak:', {
+      console.log('âŒ Password too weak:', {
         length: password.length,
         meetsRequirement: password.length >= 10
       })
       return NextResponse.json({ error: 'Password must be at least 10 characters' }, { status: 400 })
     }
     
-    console.log('🔍 Querying database for token hash...')
-    console.log('🔍 SQL Query: SELECT id, email, expires_at, used_at FROM password_reset_tokens WHERE token_hash = $1')
-    console.log('🔍 Query parameter (hash):', tokenHash)
+    console.log('ðŸ” Querying database for token hash...')
+    console.log('ðŸ” SQL Query: SELECT id, email, expires_at, used_at FROM password_reset_tokens WHERE token_hash = $1')
+    console.log('ðŸ” Query parameter (hash):', tokenHash)
     
     const r = await pool.query(
       `select id, email, expires_at, used_at
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       [tokenHash]
     )
     
-    console.log('📊 Database query result:', {
+    console.log('ðŸ“Š Database query result:', {
       rowsFound: r.rows?.length || 0,
       rowCount: r.rowCount,
       row: r.rows?.[0] ? {
@@ -98,19 +98,19 @@ export async function POST(req: NextRequest) {
     })
     
     if (!r.rows?.length) {
-      console.log('❌ Token not found in database. Possible issues:')
+      console.log('âŒ Token not found in database. Possible issues:')
       console.log('   1. Hash mismatch between Node.js and DB insertion')
       console.log('   2. Token was deleted')
       console.log('   3. Different hash algorithm used')
-      console.log('⚠️  Recommended: Check if the hash in DB matches:', tokenHash)
+      console.log('âš ï¸  Recommended: Check if the hash in DB matches:', tokenHash)
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 })
     }
     
     const row = r.rows[0]
-    console.log('✅ Token found. Checking validity...')
+    console.log('âœ… Token found. Checking validity...')
     
     if (row.used_at) {
-      console.log('❌ Token already used:', {
+      console.log('âŒ Token already used:', {
         used_at: row.used_at,
         used_at_iso: row.used_at?.toISOString(),
         current_time: new Date().toISOString()
@@ -118,10 +118,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Token already used' }, { status: 400 })
     }
     
-    console.log('✅ Token not yet used. Checking expiration...')
+    console.log('âœ… Token not yet used. Checking expiration...')
     const exp = new Date(row.expires_at)
     const now = new Date()
-    console.log('⏰ Time check:', {
+    console.log('â° Time check:', {
       expires_at: row.expires_at,
       expires_at_iso: exp.toISOString(),
       current_time_iso: now.toISOString(),
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     })
     
     if (Date.now() > exp.getTime()) {
-      console.log('❌ Token expired:', {
+      console.log('âŒ Token expired:', {
         expired_at: exp.toISOString(),
         current_time: now.toISOString(),
         minutes_expired: (now.getTime() - exp.getTime()) / (1000 * 60)
@@ -140,17 +140,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Token expired' }, { status: 400 })
     }
     
-    console.log('✅ Token is valid. Hashing new password...')
+    console.log('âœ… Token is valid. Hashing new password...')
     
     // hash new password
     const passwordHash = await bcrypt.hash(password, 12)
-    console.log('🔐 Password hashed with bcrypt (cost 12)')
+    console.log('ðŸ” Password hashed with bcrypt (cost 12)')
     
     // update user password
     const usersTable = safeIdent(process.env.AUTH_USERS_TABLE || 'users')
     const passwordColumn = safeIdent(process.env.AUTH_PASSWORD_COLUMN || 'password_hash')
     
-    console.log('🏗️ Environment variables:', {
+    console.log('ðŸ—ï¸ Environment variables:', {
       AUTH_USERS_TABLE: process.env.AUTH_USERS_TABLE || 'users (default)',
       AUTH_PASSWORD_COLUMN: process.env.AUTH_PASSWORD_COLUMN || 'password_hash (default)',
       sanitized_table: usersTable,
@@ -159,15 +159,15 @@ export async function POST(req: NextRequest) {
     
     // NOTE: column/table are identifiers, not parameterized; safeIdent() restricts format
     const updateSql = `update ${usersTable} set ${passwordColumn} = $1 where email = $2`
-    console.log('📝 Update SQL:', updateSql)
-    console.log('📝 Update parameters:', [
+    console.log('ðŸ“ Update SQL:', updateSql)
+    console.log('ðŸ“ Update parameters:', [
       passwordHash.substring(0, 20) + '...',
       row.email
     ])
     
-    console.log('🚀 Executing user update...')
+    console.log('ðŸš€ Executing user update...')
     const updated = await pool.query(updateSql, [passwordHash, row.email])
-    console.log('📊 User update result:', {
+    console.log('ðŸ“Š User update result:', {
       rowCount: updated.rowCount || 0,
       command: updated.command,
       oid: updated.oid
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     
     // If no rows updated, still mark token used? Usually NO. Return helpful error.
     if ((updated.rowCount || 0) < 1) {
-      console.log('❌ No user found to update:', {
+      console.log('âŒ No user found to update:', {
         email: row.email,
         table: usersTable,
         column: passwordColumn,
@@ -191,17 +191,17 @@ export async function POST(req: NextRequest) {
       )
     }
     
-    console.log('✅ User password updated successfully')
+    console.log('âœ… User password updated successfully')
     
     // mark token as used
-    console.log('🏷️ Marking token as used...')
+    console.log('ðŸ·ï¸ Marking token as used...')
     await pool.query(`update password_reset_tokens set used_at = now() where id = $1`, [row.id])
-    console.log('✅ Token marked as used')
+    console.log('âœ… Token marked as used')
     
-    console.log('🎉 Password reset completed successfully for:', row.email)
+    console.log('ðŸŽ‰ Password reset completed successfully for:', row.email)
     return NextResponse.json({ ok: true }, { status: 200 })
   } catch (e) {
-    console.error('💥 Unhandled error in password reset:', e)
+    console.error('ðŸ’¥ Unhandled error in password reset:', e)
     const msg = e instanceof Error ? e.message : 'Reset failed'
     return NextResponse.json({ error: msg }, { status: 500 })
   }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { sendAccessRequestConfirmation } from "@/lib/email";
 import { dbQuery } from "@/lib/db";
 

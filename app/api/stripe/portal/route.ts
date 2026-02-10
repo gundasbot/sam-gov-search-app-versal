@@ -1,4 +1,4 @@
-// app/api/stripe/portal/route.ts
+﻿// app/api/stripe/portal/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getServerSession } from 'next-auth'
@@ -18,15 +18,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user + Stripe customer
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
-        stripeCustomerId: true,
+        stripe_customer_id: true,
       },
     })
 
-    if (!user?.stripeCustomerId) {
+    if (!user?.stripe_customer_id) {
       return NextResponse.json(
         { error: 'No Stripe customer found' },
         { status: 400 }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     // Create Stripe Billing Portal session
     const portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
+      customer: user.stripe_customer_id,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account`,
     })
 

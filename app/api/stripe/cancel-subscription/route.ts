@@ -1,4 +1,4 @@
-// app/api/stripe/change-subscription/route.ts
+﻿// app/api/stripe/change-subscription/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -57,17 +57,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
-      select: { stripeSubscriptionId: true },
+      select: { stripe_subscription_id: true },
     })
 
-    if (!user?.stripeSubscriptionId) {
+    if (!user?.stripe_subscription_id) {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
     }
 
     // Retrieve current subscription (unwrap if needed)
-    const subscriptionResp = await stripe.subscriptions.retrieve(user.stripeSubscriptionId)
+    const subscriptionResp = await stripe.subscriptions.retrieve(user.stripe_subscription_id)
     const subscription = unwrapStripe(subscriptionResp)
 
     if (!subscription || subscription.status === 'canceled') {
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       subscription: {
         id: updated.id,
         status: updated.status,
-        currentPeriodEnd: updated.current_period_end ?? null,
+        current_period_end: updated.current_period_end ?? null,
       },
     })
   } catch (error: any) {

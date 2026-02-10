@@ -41,7 +41,7 @@ export async function generateTwoFactorSecret(userId: string, email: string) {
   const qrCodeDataUrl = await QRCode.toDataURL(otpauth)
 
   // Store secret temporarily (not enabled until verified)
-  await prisma.user.update({
+  await prisma.users.update({
     where: { id: userId },
     data: { twoFactorSecret: secret },
   })
@@ -66,7 +66,7 @@ export async function verifyTwoFactorToken(secret: string, token: string): Promi
 }
 
 export async function enableTwoFactor(userId: string, token: string) {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { id: userId },
     select: { twoFactorSecret: true },
   })
@@ -84,7 +84,7 @@ export async function enableTwoFactor(userId: string, token: string) {
   const backupCodes = generateBackupCodes()
 
   await prisma.$transaction([
-    prisma.user.update({
+    prisma.users.update({
       where: { id: userId },
       data: { twoFactorEnabled: true },
     }),
@@ -107,7 +107,7 @@ export async function disableTwoFactor(userId: string, password: string) {
   // ...
 
   await prisma.$transaction([
-    prisma.user.update({
+    prisma.users.update({
       where: { id: userId },
       data: {
         twoFactorEnabled: false,

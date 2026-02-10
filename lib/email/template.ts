@@ -141,7 +141,7 @@ export function brandedEmail(args: {
                 © ${new Date().getFullYear()} Precise Analytics LLC
               </p>
               <p style="margin:0;color:#475569;font-size:11px;">
-                Service-Disabled Veteran-Owned Small Business · Richmond, Virginia
+                VETERAN-OWNED Small Business · Richmond, Virginia
               </p>
             </td>
           </tr>
@@ -167,7 +167,7 @@ Support: ${getBrand().supportEmail}
 
 ---
 © ${new Date().getFullYear()} Precise Analytics LLC
-Service-Disabled Veteran-Owned Small Business
+Veteran-Owned Small Business
 Richmond, Virginia
 `
 

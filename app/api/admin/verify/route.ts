@@ -1,4 +1,4 @@
-//app/api/admin/verify/route.ts
+﻿//app/api/admin/verify/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ isAdmin: false })
     }
     
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
       select: { role: true }
     })

@@ -6,7 +6,7 @@ import { prisma } from './prisma'
  */
 export async function isUserAdmin(userId: string): Promise<boolean> {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: { role: true }
     })
@@ -23,7 +23,7 @@ export async function isUserAdmin(userId: string): Promise<boolean> {
  */
 export async function isEmailAdmin(email: string): Promise<boolean> {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email: email.toLowerCase() },
       select: { role: true }
     })
@@ -40,7 +40,7 @@ export async function isEmailAdmin(email: string): Promise<boolean> {
  */
 export async function hasAccess(userId: string): Promise<boolean> {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: {
         role: true,

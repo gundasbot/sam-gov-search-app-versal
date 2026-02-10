@@ -1,455 +1,732 @@
-// lib/email.ts
+// lib/email.ts - ENHANCED WITH PRECISE GOVCON BRANDING
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Brand config (email-safe)
+const BRAND_NAME = process.env.BRAND_NAME || 'Precise GovCon'
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@precisegovcon.com'
+
+function normalizeBaseUrl(url: string) {
+  return url.replace(/\/$/, '')
+}
+
+function resolveAppUrl() {
+  // Prefer explicit app URL, then Vercel, then production domain fallback
+  const explicit =
+    process.env.APP_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    ''
+
+  if (explicit) return normalizeBaseUrl(explicit)
+
+  const vercel = process.env.VERCEL_URL
+  if (vercel) return normalizeBaseUrl(`https://${vercel}`)
+
+  return 'https://precisegovcon.com'
+}
+
+function resolveBrandLogoUrl(appUrl: string) {
+  const raw = process.env.BRAND_LOGO_URL || process.env.COMPANY_LOGO_URL || ''
+
+  // Email clients require absolute URLs. Convert relative paths to absolute.
+  if (raw) {
+    if (/^https?:\/\//i.test(raw)) return raw
+    if (raw.startsWith('/')) return `${appUrl}${raw}`
+    return `${appUrl}/${raw}`
+  }
+
+  // Sensible fallback that should exist in most deployments
+  return `${appUrl}/logo.png`
+}
+
+const APP_URL = resolveAppUrl()
+const BRAND_LOGO_URL = resolveBrandLogoUrl(APP_URL)
+
+// PRECISE GOVCON BRAND COLORS
+const BRAND_COLORS = {
+  navy: '#1e3a4c', // Dark navy from logo
+  green: '#7cb342', // Bright green from logo globe
+  orange: '#ff9800', // Orange from "GOVCON"
+  lightGray: '#f5f5f5',
+  white: '#ffffff',
+  textDark: '#2c3e50',
+  textLight: '#6b7280',
+}
+
 interface AlertEmailData {
   to: string[]
   searchName: string
-  resultCount: number
-  opportunities: any[]
-  searchParams: {
-    keywords?: string | null
-    naics?: string | null
-    agency?: string | null
-    setAside?: string | null
-    stateOfPerformance?: string | null
-    postedAfter?: Date | string | null
-    postedBefore?: Date | string | null
-    procurementType?: string | null
+  totalResults: number
+  searchCriteria: Array<{ label: string; value: string }>
+  topResults: Array<{
+    title: string
+    agency: string
+    solicitationNumber?: string
+    naics?: string
+    responseDeadline?: string
+    url: string
+  }>
+  csvAttachment?: {
+    filename: string
+    content: string
   }
-  runDate?: Date
+  date?: string
 }
 
-// Format date helper
-const formatDate = (date: Date | string | null) => {
-  if (!date) return 'Not specified'
+/**
+ * Send enhanced alert email with Precise GovCon branding
+ */
+export async function sendAlertEmail({
+  to,
+  searchName,
+  totalResults,
+  searchCriteria,
+  topResults,
+  csvAttachment,
+  date,
+}: AlertEmailData) {
   try {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    const emailHtml = generateAlertEmailHtml({
+      searchName,
+      totalResults,
+      searchCriteria,
+      topResults,
+      date,
     })
-  } catch {
-    return 'Invalid date'
-  }
-}
 
-// Generate CSV content from opportunities
-function generateCSV(opportunities: any[], searchParams: any, runDate: Date): string {
-  // CSV Headers
-  const headers = [
-    'Notice ID',
-    'Title',
-    'Solicitation Number',
-    'Department/Agency',
-    'Office',
-    'Type',
-    'Set-Aside',
-    'NAICS Code',
-    'Posted Date',
-    'Response Deadline',
-    'Place of Performance (City)',
-    'Place of Performance (State)',
-    'Place of Performance (Zip)',
-    'Description',
-    'Link to SAM.gov',
-    'Active Status',
-    'Base Type',
-    'Point of Contact Name',
-    'Point of Contact Email',
-    'Point of Contact Phone',
-  ]
+    const attachments = csvAttachment
+      ? [
+          {
+            filename: csvAttachment.filename,
+            content: csvAttachment.content,
+          },
+        ]
+      : []
 
-  // Escape CSV value
-  const escapeCSV = (value: any): string => {
-    if (value === null || value === undefined) return ''
-    const str = String(value).replace(/"/g, '""') // Escape quotes
-    // Wrap in quotes if contains comma, newline, or quote
-    if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-      return `"${str}"`
-    }
-    return str
-  }
-
-  // Build CSV rows
-  const rows = opportunities.map(opp => [
-    escapeCSV(opp.noticeId),
-    escapeCSV(opp.title),
-    escapeCSV(opp.solicitationNumber),
-    escapeCSV(opp.department || opp.fullParentPathName),
-    escapeCSV(opp.office),
-    escapeCSV(opp.type),
-    escapeCSV(opp.setAside),
-    escapeCSV(opp.naicsCode),
-    escapeCSV(opp.postedDate ? formatDate(opp.postedDate) : ''),
-    escapeCSV(opp.responseDeadLine ? formatDate(opp.responseDeadLine) : ''),
-    escapeCSV(opp.placeOfPerformance?.city?.name),
-    escapeCSV(opp.placeOfPerformance?.state?.code),
-    escapeCSV(opp.placeOfPerformance?.zip),
-    escapeCSV(opp.description?.substring(0, 500)), // Limit description length
-    escapeCSV(opp.uiLink),
-    escapeCSV(opp.active),
-    escapeCSV(opp.baseType),
-    escapeCSV(opp.pointOfContact?.fullName),
-    escapeCSV(opp.pointOfContact?.email),
-    escapeCSV(opp.pointOfContact?.phone),
-  ].join(','))
-
-  // Add metadata header rows
-  const metadata = [
-    `"Search Run Date","${formatDate(runDate)}"`,
-    `"Total Results","${opportunities.length}"`,
-    searchParams.keywords ? `"Keywords","${escapeCSV(searchParams.keywords)}"` : null,
-    searchParams.naics ? `"NAICS Code","${escapeCSV(searchParams.naics)}"` : null,
-    searchParams.agency ? `"Agency","${escapeCSV(searchParams.agency)}"` : null,
-    searchParams.setAside ? `"Set-Aside","${escapeCSV(searchParams.setAside)}"` : null,
-    searchParams.stateOfPerformance ? `"State","${escapeCSV(searchParams.stateOfPerformance)}"` : null,
-    searchParams.postedAfter ? `"Posted After","${formatDate(searchParams.postedAfter)}"` : null,
-    searchParams.postedBefore ? `"Posted Before","${formatDate(searchParams.postedBefore)}"` : null,
-    '', // Empty row separator
-  ].filter(Boolean)
-
-  // Combine: metadata + headers + data rows
-  return [
-    ...metadata,
-    headers.join(','),
-    ...rows
-  ].join('\n')
-}
-
-export async function sendAlertEmail(data: AlertEmailData) {
-  const {
-    to,
-    searchName,
-    resultCount,
-    opportunities,
-    searchParams,
-    runDate = new Date()
-  } = data
-
-  // Build search criteria summary
-  const criteria: string[] = []
-  if (searchParams.keywords) criteria.push(`Keywords: ${searchParams.keywords}`)
-  if (searchParams.naics) criteria.push(`NAICS: ${searchParams.naics}`)
-  if (searchParams.agency) criteria.push(`Agency: ${searchParams.agency}`)
-  if (searchParams.setAside) criteria.push(`Set-Aside: ${searchParams.setAside}`)
-  if (searchParams.stateOfPerformance) criteria.push(`State: ${searchParams.stateOfPerformance}`)
-
-  // Generate CSV attachment
-  const csvContent = generateCSV(opportunities, searchParams, runDate)
-  const csvBuffer = Buffer.from(csvContent, 'utf-8')
-  const filename = `${searchName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.csv`
-
-  // Build opportunities HTML (show first 10)
-  const opportunitiesHtml = opportunities.slice(0, 10).map((opp, idx) => `
-    <div style="background: #f8f9fa; padding: 16px; margin-bottom: 16px; border-radius: 8px; border-left: 4px solid #2563eb;">
-      <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #1e293b;">
-        ${idx + 1}. ${opp.title || 'Untitled'}
-      </h3>
-      <p style="margin: 4px 0; font-size: 14px; color: #475569;">
-        <strong>Agency:</strong> ${opp.department || opp.fullParentPathName || 'N/A'}<br/>
-        <strong>Type:</strong> ${opp.type || 'N/A'} | <strong>Set-Aside:</strong> ${opp.setAside || 'None'}<br/>
-        <strong>Posted:</strong> ${formatDate(opp.postedDate)} | <strong>Deadline:</strong> ${formatDate(opp.responseDeadLine)}<br/>
-        <strong>Location:</strong> ${opp.placeOfPerformance?.city?.name || ''} ${opp.placeOfPerformance?.state?.code || 'N/A'}
-      </p>
-      ${opp.uiLink ? `<a href="${opp.uiLink}" style="color: #2563eb; text-decoration: none;">View on SAM.gov →</a>` : ''}
-    </div>
-  `).join('')
-
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
-      
-      <div style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
-        <h1 style="margin: 0; color: white; font-size: 24px;">🎯 New Contract Opportunities</h1>
-        <p style="margin: 8px 0 0 0; color: #dbeafe; font-size: 16px;">${searchName}</p>
-      </div>
-
-      ${resultCount > 0 ? `
-        <div style="background: #dcfce7; border: 1px solid #86efac; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #166534; font-size: 16px; font-weight: 600;">
-            ✅ ${resultCount} new federal contract${resultCount !== 1 ? 's' : ''} matching your criteria
-          </p>
-        </div>
-
-        <div style="background: #eff6ff; border: 1px solid #93c5fd; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 0 0 8px 0; color: #1e40af; font-weight: 600;">📎 CSV Export Available</p>
-          <p style="margin: 0; color: #1e40af; font-size: 14px;">
-            Download the attached CSV file for the full dataset with all ${resultCount} opportunities<br/>
-            <strong>${filename}</strong>
-          </p>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 18px; color: #1e293b; margin-bottom: 16px;">📋 Preview (First 10 Results)</h2>
-          ${opportunitiesHtml}
-        </div>
-      ` : `
-        <div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #92400e;">
-            No opportunities matched your search criteria this time.
-          </p>
-        </div>
-      `}
-
-      ${resultCount > 10 ? `
-        <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #475569; font-size: 14px;">
-            ℹ️ <strong>Note:</strong> This email shows a preview of 10 results.<br/>
-            The attached CSV file contains all ${resultCount} opportunities with complete details.
-          </p>
-        </div>
-      ` : ''}
-
-      <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #e2e8f0;">
-        <p style="margin: 0 0 16px 0; color: #64748b; font-size: 14px;">
-          You're receiving this because you subscribed to alerts for "<strong>${searchName}</strong>"
-        </p>
-        <p style="margin: 0; color: #94a3b8; font-size: 12px;">
-          Powered by <strong>Precise GovCon</strong>
-        </p>
-      </div>
-    </body>
-    </html>
-  `
-
-  try {
     const result = await resend.emails.send({
-      from: 'Precise GovCon <alerts@precisegovcon.com>',
+      from: `${BRAND_NAME} <alerts@precisegovcon.com>`,
       to,
-      subject: `${resultCount > 0 ? '🎯' : '📭'} ${searchName} - ${resultCount} New Opportunities`,
-      html: htmlContent,
-      attachments: resultCount > 0 ? [{
-        filename,
-        content: csvBuffer,
-      }] : undefined,
+      subject: `${totalResults} New Opportunities: ${searchName}`,
+      html: emailHtml,
+      attachments,
     })
 
-    console.log('✅ Alert email sent:', result)
-    return result
+    return { success: true, result }
   } catch (error) {
-    console.error('❌ Failed to send alert email:', error)
-    throw error
+    console.error('Error sending alert email:', error)
+    return { success: false, error }
   }
 }
 
-// Access request confirmation (user receives this)
-export async function sendAccessRequestConfirmation(email: string, requestId: string) {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
-        <h1 style="margin: 0; color: white; font-size: 24px;">Access Request Received</h1>
-      </div>
-      <p>Hi there,</p>
-      <p>We've received your access request for Precise GovCon and will review it shortly.</p>
-      <p>Our team typically responds within 1-2 business days.</p>
-      <p style="margin-top: 32px; color: #64748b; font-size: 14px;">
-        Reference ID: <code>${requestId}</code>
-      </p>
-      <p style="color: #64748b; font-size: 14px;">
-        Best regards,<br/>
-        <strong>Precise GovCon Team</strong>
-      </p>
-    </body>
-    </html>
-  `
-
-  return resend.emails.send({
-    from: 'Precise GovCon <noreply@precisegovcon.com>',
-    to: email,
-    subject: 'Access Request Received - Precise GovCon',
-    html,
-  })
-}
-
-// Notify support of new access request (admin receives this)
-export async function notifySupportNewAccessRequest(data: {
-  requestId: string
-  name: string
-  email: string
-  org: string
-  message: string
+function generateAlertEmailHtml({
+  searchName,
+  totalResults,
+  searchCriteria,
+  topResults,
+  date,
+}: {
+  searchName: string
+  totalResults: number
+  searchCriteria: Array<{ label: string; value: string }>
+  topResults: Array<{
+    title: string
+    agency: string
+    solicitationNumber?: string
+    naics?: string
+    responseDeadline?: string
+    url: string
+  }>
+  date?: string
 }) {
-  const { requestId, name, email, org, message } = data
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: #fbbf24; padding: 24px; border-radius: 12px; margin-bottom: 24px;">
-        <h1 style="margin: 0; color: #78350f; font-size: 20px;">🔔 New Access Request</h1>
-      </div>
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-        <p style="margin: 8px 0;"><strong>Request ID:</strong> ${requestId}</p>
-        <p style="margin: 8px 0;"><strong>Name:</strong> ${name || 'N/A'}</p>
-        <p style="margin: 8px 0;"><strong>Email:</strong> ${email}</p>
-        <p style="margin: 8px 0;"><strong>Organization:</strong> ${org || 'N/A'}</p>
-        <p style="margin: 8px 0;"><strong>Message:</strong></p>
-        <p style="margin: 8px 0; padding: 12px; background: white; border-radius: 4px;">${message || 'No message provided'}</p>
-      </div>
-    </body>
-    </html>
-  `
+  const formattedDate =
+    date || new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
-  return resend.emails.send({
-    from: 'Precise GovCon <system@precisegovcon.com>',
-    to: 'support@precisegovcon.com',
-    subject: `New Access Request from ${name || email}`,
-    html,
-  })
-}
+  // Generate criteria pills
+  const criteriaPills = searchCriteria
+    .filter((c) => c.value && c.value.trim().length > 0)
+    .slice(0, 6)
+    .map(
+      (criteria) => `
+        <span style="
+          display: inline-block;
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          margin: 4px 6px 4px 0;
+          backdrop-filter: blur(10px);
+        ">
+          ${escapeHtml(criteria.label)}: ${escapeHtml(criteria.value)}
+        </span>
+      `,
+    )
+    .join('')
 
-// Trial confirmation (user receives this when trial starts)
-export async function sendTrialConfirmationEmail(data: {
-  email: string
-  firstName: string
-  lastName: string
-  trialEndsAt: Date
-}) {
-  const { email, firstName, lastName, trialEndsAt } = data
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
-        <h1 style="margin: 0; color: white; font-size: 24px;">🎉 Your Trial Has Started!</h1>
+  // Generate top opportunities cards
+  const opportunitiesHtml = topResults
+    .slice(0, 10)
+    .map(
+      (opp, index) => `
+      <div style="
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        border-left: 4px solid ${BRAND_COLORS.green};
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      ">
+        <h3 style="
+          margin: 0 0 12px 0;
+          font-size: 16px;
+          font-weight: 700;
+          color: ${BRAND_COLORS.textDark};
+          line-height: 1.3;
+        ">
+          ${index + 1}. ${escapeHtml(opp.title)}
+        </h3>
+
+        <div style="margin-bottom: 12px;">
+          <p style="margin: 6px 0; font-size: 13px; color: ${BRAND_COLORS.textLight};">
+            <strong style="color: ${BRAND_COLORS.textDark};">Agency:</strong> ${escapeHtml(opp.agency)}
+          </p>
+          ${
+            opp.solicitationNumber
+              ? `<p style="margin: 6px 0; font-size: 13px; color: ${BRAND_COLORS.textLight};">
+              <strong style="color: ${BRAND_COLORS.textDark};">Solicitation #:</strong> ${escapeHtml(
+                opp.solicitationNumber,
+              )}
+            </p>`
+              : ''
+          }
+          ${
+            opp.naics
+              ? `<p style="margin: 6px 0; font-size: 13px; color: ${BRAND_COLORS.textLight};">
+              <strong style="color: ${BRAND_COLORS.textDark};">NAICS:</strong> ${escapeHtml(opp.naics)}
+            </p>`
+              : ''
+          }
+          ${
+            opp.responseDeadline
+              ? `<p style="margin: 6px 0; font-size: 13px; color: #dc2626;">
+              <strong>⏰ Response Deadline:</strong> ${escapeHtml(opp.responseDeadline)}
+            </p>`
+              : ''
+          }
+        </div>
+
+        <a href="${escapeHtml(opp.url)}"
+           style="
+             display: inline-block;
+             background: ${BRAND_COLORS.navy};
+             color: white;
+             padding: 10px 16px;
+             border-radius: 10px;
+             text-decoration: none;
+             font-size: 13px;
+             font-weight: 600;
+           ">
+          View Opportunity →
+        </a>
       </div>
-      <p>Hi ${firstName},</p>
-      <p>Welcome to Precise GovCon! Your 7-day free trial has been activated.</p>
-      <div style="background: #dcfce7; border: 1px solid #86efac; padding: 16px; border-radius: 8px; margin: 24px 0;">
-        <p style="margin: 0; color: #166534;">
-          <strong>✅ Full access to all features</strong><br/>
-          <strong>📅 Trial ends:</strong> ${new Date(trialEndsAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+    `,
+    )
+    .join('')
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(searchName)} - Opportunities Alert</title>
+</head>
+<body style="margin: 0; padding: 0; background: ${BRAND_COLORS.lightGray}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
+  <div style="max-width: 640px; margin: 0 auto; padding: 24px 12px;">
+    <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 12px 30px rgba(0,0,0,0.12);">
+
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, ${BRAND_COLORS.navy} 0%, #2d5266 100%); padding: 40px 32px; text-align: center; border-radius: 0 0 24px 24px;">
+          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 280px; height: auto; margin-bottom: 24px;" />
+          <div style="background: ${BRAND_COLORS.green}; color: white; padding: 12px 20px; border-radius: 12px; display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;">
+            📊 NEW OPPORTUNITIES ALERT
+          </div>
+      </div>
+
+      <!-- Content -->
+      <div style="padding: 32px;">
+        <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800; color: ${BRAND_COLORS.textDark};">
+          Good ${getTimeGreeting()}, Norman!
+        </h1>
+        <p style="margin: 0 0 24px 0; font-size: 15px; color: ${BRAND_COLORS.textLight}; line-height: 1.5;">
+          Take a moment this weekend to explore these opportunities.
+        </p>
+
+        <!-- Summary Card -->
+        <div style="background: ${BRAND_COLORS.green}; padding: 24px; border-radius: 18px; color: white; margin-bottom: 28px;">
+          <div style="text-align: center; margin-bottom: 18px;">
+            <div style="font-size: 46px; font-weight: 900; line-height: 1; margin-bottom: 6px;">
+              ${totalResults}
+            </div>
+            <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; opacity: 0.95;">
+              OPPORTUNITIES FOUND
+            </div>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 12px; font-weight: 800; margin-bottom: 10px; opacity: 0.95;">
+              Search Criteria
+            </div>
+            <div>${criteriaPills}</div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; opacity: 0.95; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.25);">
+            <div><strong>Alert Name:</strong> ${escapeHtml(searchName)}</div>
+            <div>📅 ${escapeHtml(formattedDate)}</div>
+          </div>
+        </div>
+
+        <!-- Top Opportunities -->
+        <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 800; color: ${BRAND_COLORS.textDark};">
+          Top 10 Opportunities
+        </h2>
+
+        ${opportunitiesHtml}
+
+        <!-- CTA -->
+        <div style="text-align: center; margin-top: 28px; padding: 24px; background: ${BRAND_COLORS.lightGray}; border-radius: 16px;">
+          <p style="margin: 0 0 16px 0; font-size: 14px; color: ${BRAND_COLORS.textLight};">
+            Want to see all ${totalResults} opportunities?
+          </p>
+          <a href="${APP_URL}/alerts"
+             style="
+               display: inline-block;
+               background: ${BRAND_COLORS.orange};
+               color: white;
+               padding: 14px 28px;
+               border-radius: 12px;
+               text-decoration: none;
+               font-size: 14px;
+               font-weight: 700;
+               box-shadow: 0 6px 16px rgba(255,152,0,0.35);
+             ">
+            View Full Results in Dashboard →
+          </a>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="background: ${BRAND_COLORS.navy}; padding: 32px; color: rgba(255,255,255,0.85); font-size: 12px; text-align: center;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 200px; height: auto; opacity: 0.8;" />
+        </div>
+
+        <p style="margin: 0 0 10px 0; line-height: 1.6;">
+          You're receiving this email because you subscribed to opportunity alerts on ${BRAND_NAME}.
+        </p>
+        <p style="margin: 0 0 10px 0; line-height: 1.6;">
+          Need help? Reply to this email or contact us at<br/>
+          <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.green}; text-decoration: none;">${SUPPORT_EMAIL}</a>
+        </p>
+        <p style="margin: 18px 0 0 0; opacity: 0.65;">
+          © ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.
         </p>
       </div>
-      <p><a href="https://precisegovcon.com/dashboard" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">Go to Dashboard →</a></p>
-      <p style="margin-top: 32px; color: #64748b; font-size: 14px;">
-        Need help? Reply to this email anytime.<br/>
-        <strong>Precise GovCon Team</strong>
-      </p>
-    </body>
-    </html>
-  `
-
-  return resend.emails.send({
-    from: 'Precise GovCon <noreply@precisegovcon.com>',
-    to: email,
-    subject: 'Welcome to Precise GovCon - Your Trial Has Started!',
-    html,
-  })
+    </div>
+  </div>
+</body>
+</html>
+`
 }
 
-// Admin notification when trial starts
-export async function sendAdminTrialNotification(data: {
-  firstName: string
-  lastName: string
+// Helper functions
+function escapeHtml(text: string) {
+  if (!text) return ''
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function getTimeGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'morning'
+  if (hour < 17) return 'afternoon'
+  return 'evening'
+}
+
+/**
+ * Notify support about new access requests
+ */
+export async function notifySupportNewAccessRequest({
+  email,
+  name,
+  company,
+  message,
+}: {
   email: string
-  phone: string
+  name: string
   company?: string
-  position?: string
-  trialEndsAt: Date
+  message?: string
 }) {
-  const { firstName, lastName, email, phone, company, position, trialEndsAt } = data
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: #3b82f6; padding: 24px; border-radius: 12px; margin-bottom: 24px;">
-        <h1 style="margin: 0; color: white; font-size: 20px;">🆕 New Trial Started</h1>
+  try {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: ${BRAND_COLORS.navy};">New Access Request</h2>
+        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+        ${company ? `<p><strong>Company:</strong> ${escapeHtml(company)}</p>` : ''}
+        ${message ? `<p><strong>Message:</strong><br/>${escapeHtml(message)}</p>` : ''}
+        <hr style="margin: 24px 0;" />
+        <p style="color: ${BRAND_COLORS.textLight}; font-size: 12px;">
+          Sent from ${BRAND_NAME} access request form.
+        </p>
       </div>
-      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-        <p style="margin: 8px 0;"><strong>Name:</strong> ${firstName} ${lastName}</p>
-        <p style="margin: 8px 0;"><strong>Email:</strong> ${email}</p>
-        <p style="margin: 8px 0;"><strong>Phone:</strong> ${phone}</p>
-        ${company ? `<p style="margin: 8px 0;"><strong>Company:</strong> ${company}</p>` : ''}
-        ${position ? `<p style="margin: 8px 0;"><strong>Position:</strong> ${position}</p>` : ''}
-        <p style="margin: 8px 0;"><strong>Trial Ends:</strong> ${new Date(trialEndsAt).toLocaleDateString('en-US')}</p>
-        <p style="margin: 8px 0;"><strong>Started:</strong> ${new Date().toLocaleString('en-US')}</p>
-      </div>
-    </body>
-    </html>
-  `
+    `
 
-  return resend.emails.send({
-    from: 'Precise GovCon <system@precisegovcon.com>',
-    to: 'admin@precisegovcon.com',
-    subject: `New Trial: ${firstName} ${lastName}${company ? ` (${company})` : ''}`,
-    html,
-  })
+    const result = await resend.emails.send({
+      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      to: SUPPORT_EMAIL,
+      subject: `New Access Request from ${name}`,
+      html,
+    })
+
+    return { success: true, result }
+  } catch (error) {
+    console.error('Error sending support notification:', error)
+    return { success: false, error }
+  }
 }
 
-// Trial expiration notice
-export async function sendTrialExpired(data: {
-  email: string
-  firstName: string
-}) {
-  const { email, firstName } = data
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
-        <h1 style="margin: 0; color: white; font-size: 24px;">Your Trial Has Ended</h1>
-      </div>
-      <p>Hi ${firstName},</p>
-      <p>Your 7-day trial of Precise GovCon has ended. We hope you found it valuable!</p>
-      <p>To continue accessing federal contracting opportunities, subscribe to one of our plans:</p>
-      <p><a href="https://precisegovcon.com/pricing" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">View Pricing →</a></p>
-      <p style="margin-top: 32px; color: #64748b; font-size: 14px;">
-        Questions? Reply to this email.<br/>
-        <strong>Precise GovCon Team</strong>
-      </p>
-    </body>
-    </html>
-  `
-
-  return resend.emails.send({
-    from: 'Precise GovCon <noreply@precisegovcon.com>',
-    to: email,
-    subject: 'Your Precise GovCon Trial Has Ended',
-    html,
-  })
-}
-
-// 3-day trial reminder
-export async function sendTrialReminder3Days(data: {
-  email: string
-  firstName: string
+/**
+ * Trial email helpers
+ */
+export async function sendTrialConfirmationEmail({
+  to,
+  name,
+  trialEndsAt,
+}: {
+  to: string
+  name: string
   trialEndsAt: Date
 }) {
-  const { email, firstName, trialEndsAt } = data
-  const daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 32px; border-radius: 12px; margin-bottom: 24px;">
-        <h1 style="margin: 0; color: white; font-size: 24px;">⏰ Your Trial Ends in ${daysLeft} Day${daysLeft !== 1 ? 's' : ''}</h1>
-      </div>
-      <p>Hi ${firstName},</p>
-      <p>Just a friendly reminder that your Precise GovCon trial ends on <strong>${new Date(trialEndsAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</strong>.</p>
-      <p>Don't miss out on federal contracting opportunities. Subscribe now to continue your access:</p>
-      <p><a href="https://precisegovcon.com/pricing" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">View Pricing →</a></p>
-      <p style="margin-top: 32px; color: #64748b; font-size: 14px;">
-        Need more time to decide? Reply to this email.<br/>
-        <strong>Precise GovCon Team</strong>
-      </p>
-    </body>
-    </html>
-  `
+  try {
+    const formatted = trialEndsAt.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
 
-  return resend.emails.send({
-    from: 'Precise GovCon <noreply@precisegovcon.com>',
-    to: email,
-    subject: `Your Trial Ends in ${daysLeft} Day${daysLeft !== 1 ? 's' : ''} - Precise GovCon`,
-    html,
-  })
+    const html = `
+      <div style="margin:0;padding:0;background:${BRAND_COLORS.lightGray};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+        <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
+          <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
+            <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <div style="background:${BRAND_COLORS.orange};color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
+                🎉 TRIAL ACTIVATED
+              </div>
+            </div>
+
+            <div style="padding:30px;">
+              <h2 style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-size:22px;font-weight:800;">Welcome, ${escapeHtml(
+                name,
+              )}!</h2>
+              <p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
+                Your ${BRAND_NAME} trial is now active. You have full access to all features until <strong>${formatted}</strong>.
+              </p>
+
+              <div style="background:${BRAND_COLORS.lightGray};border-radius:16px;padding:18px;margin:18px 0;">
+                <p style="margin:0;color:${BRAND_COLORS.textDark};font-weight:700;">What you can do next:</p>
+                <ul style="margin:10px 0 0 18px;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
+                  <li>Run advanced searches on SAM.gov opportunities</li>
+                  <li>Create Saved Searches &amp; custom alert subscriptions</li>
+                  <li>Export opportunities to CSV</li>
+                  <li>Use AI-powered insights to prioritize bids</li>
+                </ul>
+              </div>
+
+              <div style="text-align:center;margin-top:22px;">
+                <a href="${APP_URL}/dashboard"
+                  style="display:inline-block;background:${BRAND_COLORS.green};color:white;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:800;font-size:14px;">
+                  Go to Dashboard →
+                </a>
+              </div>
+
+              <p style="margin:22px 0 0 0;color:${BRAND_COLORS.textLight};font-size:12px;line-height:1.6;text-align:center;">
+                Questions? Contact <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND_COLORS.green};text-decoration:none;">${SUPPORT_EMAIL}</a>
+              </p>
+            </div>
+
+            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
+              © ${new Date().getFullYear()} ${BRAND_NAME}
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      to,
+      subject: `Your ${BRAND_NAME} Trial is Active`,
+      html,
+    })
+
+    return { success: true, result }
+  } catch (error) {
+    console.error('Error sending trial confirmation email:', error)
+    return { success: false, error }
+  }
+}
+
+export async function sendAdminTrialNotification({
+  to,
+  userEmail,
+  userName,
+  trialEndsAt,
+}: {
+  to: string
+  userEmail: string
+  userName: string
+  trialEndsAt: Date
+}) {
+  try {
+    const formatted = trialEndsAt.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: ${BRAND_COLORS.navy};">New Trial Started</h2>
+        <p><strong>User:</strong> ${escapeHtml(userName)} (${escapeHtml(userEmail)})</p>
+        <p><strong>Trial ends:</strong> ${formatted}</p>
+        <p><a href="${APP_URL}/admin" style="color: ${BRAND_COLORS.green};">Open Admin Dashboard</a></p>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      to,
+      subject: `New Trial: ${userName}`,
+      html,
+    })
+
+    return { success: true, result }
+  } catch (error) {
+    console.error('Error sending admin trial notification:', error)
+    return { success: false, error }
+  }
+}
+
+export async function sendTrialExpired({
+  to,
+  name,
+}: {
+  to: string
+  name: string
+}) {
+  try {
+    const html = `
+      <div style="margin:0;padding:0;background:${BRAND_COLORS.lightGray};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+        <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
+          <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
+            <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <div style="background:#dc2626;color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
+                ⏳ TRIAL ENDED
+              </div>
+            </div>
+
+            <div style="padding:30px;">
+              <h2 style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-size:22px;font-weight:800;">Hi ${escapeHtml(
+                name,
+              )},</h2>
+              <p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
+                Your ${BRAND_NAME} trial has ended. Upgrade now to keep receiving alerts and access advanced search features.
+              </p>
+
+              <div style="text-align:center;margin-top:22px;">
+                <a href="${APP_URL}/pricing"
+                  style="display:inline-block;background:${BRAND_COLORS.orange};color:white;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:800;font-size:14px;">
+                  Upgrade Now →
+                </a>
+              </div>
+
+              <p style="margin:22px 0 0 0;color:${BRAND_COLORS.textLight};font-size:12px;line-height:1.6;text-align:center;">
+                Need help choosing a plan? Email <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND_COLORS.green};text-decoration:none;">${SUPPORT_EMAIL}</a>
+              </p>
+            </div>
+
+            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
+              © ${new Date().getFullYear()} ${BRAND_NAME}
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      to,
+      subject: `${BRAND_NAME} Trial Ended`,
+      html,
+    })
+
+    return { success: true, result }
+  } catch (error) {
+    console.error('Error sending trial expired email:', error)
+    return { success: false, error }
+  }
+}
+
+export async function sendTrialReminder3Days({
+  to,
+  name,
+  trialEndsAt,
+}: {
+  to: string
+  name: string
+  trialEndsAt: Date
+}) {
+  try {
+    const formatted = trialEndsAt.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+
+    const html = `
+      <div style="margin:0;padding:0;background:${BRAND_COLORS.lightGray};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+        <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
+          <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
+            <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <div style="background:${BRAND_COLORS.green};color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
+                🔔 TRIAL REMINDER
+              </div>
+            </div>
+
+            <div style="padding:30px;">
+              <h2 style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-size:22px;font-weight:800;">Hi ${escapeHtml(
+                name,
+              )},</h2>
+              <p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
+                Just a reminder — your ${BRAND_NAME} trial ends in <strong>3 days</strong> on <strong>${formatted}</strong>.
+              </p>
+              <p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
+                Upgrade now to keep your Saved Searches, Alert Subscriptions, exports, and insights uninterrupted.
+              </p>
+
+              <div style="text-align:center;margin-top:22px;">
+                <a href="${APP_URL}/pricing"
+                  style="display:inline-block;background:${BRAND_COLORS.orange};color:white;padding:12px 22px;border-radius:12px;text-decoration:none;font-weight:800;font-size:14px;">
+                  View Plans & Upgrade →
+                </a>
+              </div>
+
+              <p style="margin:22px 0 0 0;color:${BRAND_COLORS.textLight};font-size:12px;line-height:1.6;text-align:center;">
+                Questions? Email <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND_COLORS.green};text-decoration:none;">${SUPPORT_EMAIL}</a>
+              </p>
+            </div>
+
+            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
+              © ${new Date().getFullYear()} ${BRAND_NAME}
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      to,
+      subject: `Your ${BRAND_NAME} Trial Ends in 3 Days`,
+      html,
+    })
+
+    return { success: true, result }
+  } catch (error) {
+    console.error('Error sending trial reminder email:', error)
+    return { success: false, error }
+  }
+}
+
+/**
+ * Send confirmation email to user when they request access
+ */
+export async function sendAccessRequestConfirmation({
+  to,
+  name,
+  company,
+}: {
+  to: string
+  name: string
+  company?: string
+}) {
+  try {
+    const html = `
+      <div style="margin:0;padding:0;background:${BRAND_COLORS.lightGray};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+        <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
+          <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
+            <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <div style="background:${BRAND_COLORS.green};color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
+                ✅ ACCESS REQUEST RECEIVED
+              </div>
+            </div>
+
+            <div style="padding:30px;">
+              <h2 style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-size:22px;font-weight:800;">Thank you, ${escapeHtml(name)}!</h2>
+              <p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
+                We've received your access request for ${BRAND_NAME}. Our team will review your request and get back to you within 1-2 business days.
+              </p>
+              
+              ${company ? `<p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;"><strong>Company:</strong> ${escapeHtml(company)}</p>` : ''}
+
+              <div style="background:${BRAND_COLORS.lightGray};border-radius:16px;padding:18px;margin:18px 0;">
+                <p style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-weight:700;">What happens next?</p>
+                <ul style="margin:10px 0 0 18px;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
+                  <li>Our team reviews your request</li>
+                  <li>We'll email you with next steps</li>
+                  <li>You'll get access to your free trial</li>
+                  <li>Start finding government contracts that match your business</li>
+                </ul>
+              </div>
+
+              <p style="margin:22px 0 0 0;color:${BRAND_COLORS.textLight};font-size:12px;line-height:1.6;text-align:center;">
+                Questions? Contact <a href="mailto:${SUPPORT_EMAIL}" style="color:${BRAND_COLORS.green};text-decoration:none;">${SUPPORT_EMAIL}</a>
+              </p>
+            </div>
+
+            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
+              © ${new Date().getFullYear()} ${BRAND_NAME}
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: `${BRAND_NAME} <access@precisegovcon.com>`,
+      to,
+      subject: `Your ${BRAND_NAME} Access Request Has Been Received`,
+      html,
+    })
+
+    return { success: true, result }
+  } catch (error) {
+    console.error('Error sending access request confirmation email:', error)
+    return { success: false, error }
+  }
 }

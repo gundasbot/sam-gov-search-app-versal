@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url)
     const onlyAlertId = url.searchParams.get('alertId')
 
-    const alerts = await prisma.searchAlert.findMany({
+    const alerts = await prisma.search_alerts.findMany({
       where: {
         active: true,
         emailNotification: true,
@@ -171,8 +171,7 @@ export async function GET(req: NextRequest) {
         },
         ...(onlyAlertId ? { id: onlyAlertId } : {}),
       },
-      include: {
-        user: {
+      include: { users: {
           select: {
             id: true,
             email: true,
@@ -223,7 +222,7 @@ export async function GET(req: NextRequest) {
           console.log(`📭 Skipped "${alert.name}" (no results, sendEmptyResults=false)`)
         }
 
-        await prisma.searchAlert.update({
+        await prisma.search_alerts.update({
           where: { id: alert.id },
           data: {
             lastRunAt: now,
@@ -239,7 +238,7 @@ export async function GET(req: NextRequest) {
         console.error(`❌ Failed to process alert "${alert.name}":`, error)
 
         try {
-          await prisma.searchAlert.update({
+          await prisma.search_alerts.update({
             where: { id: alert.id },
             data: {
               lastError: errorMsg.substring(0, 500),

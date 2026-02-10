@@ -1,4 +1,4 @@
-// app/api/stripe/webhook/route.ts
+﻿// app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
   } catch (err: any) {
-    console.error('❌ Webhook signature verification failed:', err?.message || err)
+    console.error('âŒ Webhook signature verification failed:', err?.message || err)
     return jsonError('Invalid signature', 400)
   }
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, received: true })
   } catch (err: any) {
-    console.error('❌ Webhook processing error:', err)
+    console.error('âŒ Webhook processing error:', err)
     return NextResponse.json(
       { ok: false, error: 'Webhook processing failed', message: err?.message || 'unknown error' },
       { status: 500 }
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 }
 
 type Tier = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' | 'FREE'
-type BillingInterval = 'monthly' | 'annual'
+type billing_interval = 'monthly' | 'annual'
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (session.mode !== 'subscription') return
@@ -79,12 +79,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     (session.metadata?.name as string | undefined) || undefined
 
   if (!email) {
-    console.warn('⚠️ checkout.session.completed missing email; skipping user update')
+    console.warn('âš ï¸ checkout.session.completed missing email; skipping user update')
     return
   }
 
   let tier: Tier | undefined
-  let interval: BillingInterval | undefined
+  let interval: billing_interval | undefined
 
   if (subscriptionId) {
     const sub = await stripe.subscriptions.retrieve(subscriptionId)
@@ -95,35 +95,35 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     interval = recurringInterval === 'year' ? 'annual' : 'monthly'
   }
 
-  const planTier = tier || 'PROFESSIONAL'
-  const planName = planTierToDisplay(planTier)
+  const plan_tier = tier || 'PROFESSIONAL'
+  const planName = planTierToDisplay(plan_tier)
 
-  const user = await prisma.user.upsert({
+  const user = await prisma.users.upsert({
     where: { email },
     update: {
-      stripeCustomerId: customerId || undefined,
-      stripeSubscriptionId: subscriptionId || undefined,
-      planTier: planTier,
-      planStatus: 'ACTIVE',
+      stripe_customer_id: customerId || undefined,
+      stripe_subscription_id: subscriptionId || undefined,
+      plan_tier: plan_tier,
+      plan_status: 'ACTIVE',
       plan: planName,
-      trialActive: false,
-      trialExpiresAt: null,
+      trial_active: false,
+      trial_expires_at: null,
     },
     create: {
       email,
       name: customerName,
-      stripeCustomerId: customerId || undefined,
-      stripeSubscriptionId: subscriptionId || undefined,
-      planTier: planTier,
-      planStatus: 'ACTIVE',
+      stripe_customer_id: customerId || undefined,
+      stripe_subscription_id: subscriptionId || undefined,
+      plan_tier: plan_tier,
+      plan_status: 'ACTIVE',
       plan: planName,
-      trialActive: false,
-      trialExpiresAt: null,
+      trial_active: false,
+      trial_expires_at: null,
     },
   })
 
-  console.log(`✅ Checkout completed for ${user.email}: ${planTier} (${interval || 'monthly'})`)
-  await sendSubscriptionEmail(user.email, 'welcome', planTier, undefined, user.name || customerName)
+  console.log(`âœ… Checkout completed for ${user.email}: ${plan_tier} (${interval || 'monthly'})`)
+  await sendSubscriptionEmail(user.email, 'welcome', plan_tier, undefined, user.name || customerName)
 }
 
 async function handleSubscriptionUpsert(subscription: Stripe.Subscription) {
@@ -133,34 +133,34 @@ async function handleSubscriptionUpsert(subscription: Stripe.Subscription) {
   const priceId = subscription.items.data[0]?.price?.id
   const tier = priceId ? getTierFromPriceId(priceId) : 'PROFESSIONAL'
   const planName = planTierToDisplay(tier)
-  const planStatus = mapStripeStatus(subscription.status)
+  const plan_status = mapStripeStatus(subscription.status)
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.users.findFirst({
     where: {
-      OR: [{ stripeCustomerId: customerId }, { stripeSubscriptionId: subscriptionId }],
+      OR: [{ stripe_customer_id: customerId }, { stripe_subscription_id: subscriptionId }],
     },
   }) || null
 
   if (!user) {
-    console.warn('⚠️ Subscription event for unknown user:', { customerId, subscriptionId })
+    console.warn('âš ï¸ Subscription event for unknown user:', { customerId, subscriptionId })
     return
   }
 
-  const previousTier = (user.planTier as string | null) || null
+  const previousTier = (user.plan_tier as string | null) || null
 
-  await prisma.user.update({
+  await prisma.users.update({
     where: { id: user.id },
     data: {
-      stripeCustomerId: customerId || undefined,
-      stripeSubscriptionId: subscriptionId || undefined,
-      planTier: tier,
-      planStatus: planStatus,
+      stripe_customer_id: customerId || undefined,
+      stripe_subscription_id: subscriptionId || undefined,
+      plan_tier: tier,
+      plan_status: plan_status,
       plan: planName,
-      trialActive: subscription.status === 'trialing',
+      trial_active: subscription.status === 'trialing',
     },
   })
 
-  console.log(`✅ Subscription upsert for ${user.email}: ${tier} (${planStatus})`)
+  console.log(`âœ… Subscription upsert for ${user.email}: ${tier} (${plan_status})`)
 
   if (previousTier && previousTier !== tier) {
     await sendSubscriptionEmail(user.email, 'changed', tier, previousTier, user.name || undefined)
@@ -171,30 +171,30 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const subscriptionId = subscription.id
   const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.users.findFirst({
     where: {
-      OR: [{ stripeSubscriptionId: subscriptionId }, { stripeCustomerId: customerId }],
+      OR: [{ stripe_subscription_id: subscriptionId }, { stripe_customer_id: customerId }],
     },
   }) || null
 
   if (!user) {
-    console.warn('⚠️ subscription.deleted for unknown user:', { customerId, subscriptionId })
+    console.warn('âš ï¸ subscription.deleted for unknown user:', { customerId, subscriptionId })
     return
   }
 
-  await prisma.user.update({
+  await prisma.users.update({
     where: { id: user.id },
     data: {
-      planTier: 'FREE',
-      planStatus: 'CANCELED',
+      plan_tier: 'FREE',
+      plan_status: 'CANCELED',
       plan: 'Free',
-      stripeSubscriptionId: null,
-      trialActive: false,
-      trialExpiresAt: null,
+      stripe_subscription_id: null,
+      trial_active: false,
+      trial_expires_at: null,
     },
   })
 
-  console.log(`✅ Subscription canceled for ${user.email}`)
+  console.log(`âœ… Subscription canceled for ${user.email}`)
   await sendSubscriptionEmail(user.email, 'canceled', undefined, undefined, user.name || undefined)
 }
 
@@ -206,18 +206,18 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   
   if (!subscriptionId) return
 
-  const user = await prisma.user.findFirst({
-    where: { stripeSubscriptionId: subscriptionId },
+  const user = await prisma.users.findFirst({
+    where: { stripe_subscription_id: subscriptionId },
   })
 
   if (!user) return
 
-  await prisma.user.update({
+  await prisma.users.update({
     where: { id: user.id },
-    data: { planStatus: 'PAST_DUE' },
+    data: { plan_status: 'PAST_DUE' },
   })
 
-  console.log(`⚠️ Payment failed for ${user.email}`)
+  console.log(`âš ï¸ Payment failed for ${user.email}`)
   await sendSubscriptionEmail(user.email, 'payment_failed', undefined, undefined, user.name || undefined)
 }
 
@@ -232,18 +232,18 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   
   if (!subscriptionId) return
 
-  const user = await prisma.user.findFirst({
-    where: { stripeSubscriptionId: subscriptionId },
+  const user = await prisma.users.findFirst({
+    where: { stripe_subscription_id: subscriptionId },
   })
 
   if (!user) return
 
-  await prisma.user.update({
+  await prisma.users.update({
     where: { id: user.id },
-    data: { planStatus: 'ACTIVE' },
+    data: { plan_status: 'ACTIVE' },
   })
 
-  await sendSubscriptionEmail(user.email, 'renewal', user.planTier || undefined, undefined, user.name || undefined)
+  await sendSubscriptionEmail(user.email, 'renewal', user.plan_tier || undefined, undefined, user.name || undefined)
 }
 
 function getTierFromPriceId(priceId: string): Exclude<Tier, 'FREE'> {
@@ -268,7 +268,7 @@ function getTierFromPriceId(priceId: string): Exclude<Tier, 'FREE'> {
     priceId === 'price_1SpKxuPBeHrQUcEB9Ytzoo2N'
   ) return 'ENTERPRISE'
 
-  console.warn('⚠️ Unknown price ID:', priceId, '- defaulting to PROFESSIONAL')
+  console.warn('âš ï¸ Unknown price ID:', priceId, '- defaulting to PROFESSIONAL')
   return 'PROFESSIONAL'
 }
 
@@ -312,7 +312,7 @@ async function sendSubscriptionEmail(
 
   switch (type) {
     case 'welcome':
-      subject = `Welcome to Precise GovCon${niceNew ? ` — ${niceNew}` : ''}`
+      subject = `Welcome to Precise GovCon${niceNew ? ` â€” ${niceNew}` : ''}`
       headline = `Welcome${customerName ? `, ${customerName}` : ''}!`
       intro = `Your subscription is active${niceNew ? ` on the ${niceNew} plan` : ''}. You can now access premium tools.`
       ctaLabel = 'Go to Search'
@@ -333,14 +333,14 @@ async function sendSubscriptionEmail(
       ctaUrl = `${appUrl}/pricing`
       break
     case 'payment_failed':
-      subject = 'Payment Failed — Action Required'
+      subject = 'Payment Failed â€” Action Required'
       headline = 'Payment Issue'
       intro = 'We couldn\'t process your payment. Please update your billing method to avoid interruption.'
       ctaLabel = 'Manage Plan'
       ctaUrl = `${appUrl}/account/plan`
       break
     case 'renewal':
-      subject = 'Payment Confirmed — Thanks for Renewing'
+      subject = 'Payment Confirmed â€” Thanks for Renewing'
       headline = 'Renewal Confirmed'
       intro = 'Your subscription renewal payment was processed successfully.'
       ctaLabel = 'Open Dashboard'

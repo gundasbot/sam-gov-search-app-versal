@@ -1,4 +1,4 @@
-// app/api/stripe/invoices/route.ts
+﻿// app/api/stripe/invoices/route.ts
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
@@ -18,18 +18,18 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
-      select: { stripeCustomerId: true },
+      select: { stripe_customer_id: true },
     })
 
-    if (!user?.stripeCustomerId) {
+    if (!user?.stripe_customer_id) {
       return NextResponse.json({ invoices: [] })
     }
 
     // Fetch customer's invoices from Stripe
     const invoices = await stripe.invoices.list({
-      customer: user.stripeCustomerId,
+      customer: user.stripe_customer_id,
       limit: 12, // Last 12 invoices
     })
 

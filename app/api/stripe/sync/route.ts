@@ -1,4 +1,4 @@
-// app/api/stripe/sync/route.ts
+﻿// app/api/stripe/sync/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import Stripe from 'stripe'
@@ -11,10 +11,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-12-15.clover',
 })
 
-type PlanTier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
-type BillingInterval = 'MONTHLY' | 'YEARLY'
+type plan_tier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
+type billing_interval = 'MONTHLY' | 'YEARLY'
 
-function tierFromPrice(priceId?: string | null): PlanTier {
+function tierFromPrice(priceId?: string | null): plan_tier {
   if (!priceId) return 'NONE'
 
   if (
@@ -43,18 +43,18 @@ function tierFromPrice(priceId?: string | null): PlanTier {
 
 export async function POST(_req: NextRequest) {
   try {
-    /* ───────────────────────── AUTH ───────────────────────── */
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const session = await getServerSession(authOptions)
     const email = session?.user?.email
     if (!email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
     })
 
-    if (!user || !user.stripeCustomerId) {
+    if (!user || !user.stripe_customer_id) {
       return NextResponse.json({
         ok: true,
         synced: false,
@@ -62,9 +62,9 @@ export async function POST(_req: NextRequest) {
       })
     }
 
-    /* ───────────────────── FETCH STRIPE ───────────────────── */
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ FETCH STRIPE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const subscriptions = await stripe.subscriptions.list({
-      customer: user.stripeCustomerId,
+      customer: user.stripe_customer_id,
       status: 'all',
       limit: 5,
     })
@@ -76,15 +76,15 @@ export async function POST(_req: NextRequest) {
 
     if (!subscription) {
       // User has no subscription at all
-      await prisma.user.update({
+      await prisma.users.update({
         where: { id: user.id },
         data: {
-          planTier: 'NONE',
-          billingInterval: null,
-          stripeSubscriptionId: null,
-          subscriptionStatus: 'inactive',
-          cancelAtPeriodEnd: false,
-          currentPeriodEnd: null,
+          plan_tier: 'NONE',
+          billing_interval: null,
+          stripe_subscription_id: null,
+          subscription_status: 'inactive',
+          cancel_at_period_end: false,
+          current_period_end: null,
         },
       })
 
@@ -98,15 +98,15 @@ export async function POST(_req: NextRequest) {
       })
     }
 
-    /* ───────────────────── DERIVE PLAN ───────────────────── */
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ DERIVE PLAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const item = subscription.items.data[0]
     const price = item?.price
 
-    const tier: PlanTier =
-      (subscription.metadata?.tier as PlanTier) ||
+    const tier: plan_tier =
+      (subscription.metadata?.tier as plan_tier) ||
       tierFromPrice(price?.id)
 
-    const billingInterval: BillingInterval | null =
+    const billing_interval: billing_interval | null =
       subscription.metadata?.interval === 'annual'
         ? 'YEARLY'
         : subscription.metadata?.interval === 'monthly'
@@ -117,42 +117,42 @@ export async function POST(_req: NextRequest) {
               ? 'MONTHLY'
               : null
 
-    const currentPeriodEnd =
+    const current_period_end =
       typeof (subscription as any).current_period_end === 'number'
         ? new Date((subscription as any).current_period_end * 1000)
         : null
 
-    /* ───────────────────── UPDATE DB ───────────────────── */
-    await prisma.user.update({
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ UPDATE DB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    await prisma.users.update({
       where: { id: user.id },
       data: {
-        planTier: tier,
-        billingInterval,
-        stripeSubscriptionId: subscription.id,
-        subscriptionStatus: subscription.status,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-        currentPeriodEnd,
+        plan_tier: tier,
+        billing_interval,
+        stripe_subscription_id: subscription.id,
+        subscription_status: subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+        current_period_end,
       },
     })
 
-    /* ───────────────────── RESPONSE ───────────────────── */
+    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ RESPONSE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     return NextResponse.json({
       ok: true,
       synced: true,
       plan: {
         tier,
-        billingInterval,
+        billing_interval,
         status: subscription.status,
-        stripeSubscriptionId: subscription.id,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-        currentPeriodEnd: currentPeriodEnd?.toISOString() ?? null,
+        stripe_subscription_id: subscription.id,
+        cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+        current_period_end: current_period_end?.toISOString() ?? null,
         hasSubscription:
           subscription.status === 'active' ||
           subscription.status === 'trialing',
       },
     })
   } catch (err: any) {
-    console.error('❌ Stripe sync failed:', err)
+    console.error('âŒ Stripe sync failed:', err)
     return NextResponse.json(
       { error: 'Failed to sync subscription' },
       { status: 500 }

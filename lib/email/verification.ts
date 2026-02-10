@@ -5,12 +5,14 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/send'
 import { getVerificationEmailHtml, getVerificationEmailText } from '@/lib/email/verification-email'
 
+import { randomBytes } from 'crypto'
 export async function createVerificationToken(userId: string, email: string) {
   const token = crypto.randomBytes(32).toString('hex')
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-  await prisma.emailVerificationToken.create({
+  await prisma.emailVer
+        id: randomBytes(12).toString('hex'),ificationToken.create({
     data: {
       userId,
       tokenHash,
@@ -45,7 +47,7 @@ export async function sendVerificationEmail(email: string, name: string, token: 
 export async function verifyEmailToken(token: string) {
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
 
-  const verificationToken = await prisma.emailVerificationToken.findUnique({
+  const verificationToken = await prisma.email_verification_tokens.findUnique({
     where: { tokenHash },
   })
 
@@ -57,7 +59,7 @@ export async function verifyEmailToken(token: string) {
     return { success: false, error: 'This verification link has expired' }
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { id: verificationToken.userId },
   })
 
@@ -66,21 +68,20 @@ export async function verifyEmailToken(token: string) {
   }
 
   await prisma.$transaction([
-    prisma.user.update({
+    prisma.users.update({
       where: { id: verificationToken.userId },
       data: {
         emailVerified: new Date(),
         isActive: true,
       },
     }),
-    prisma.emailVerificationToken.delete({
+    prisma.email_verification_tokens.delete({
       where: { tokenHash },
     }),
   ])
 
   return {
-    success: true,
-    user: {
+    success: true, users: {
       id: user.id,
       email: user.email,
       name: user.name,

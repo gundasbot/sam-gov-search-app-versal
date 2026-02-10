@@ -1,4 +1,4 @@
-// app/api/auth/forgot-password/route.ts
+﻿// app/api/auth/forgot-password/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { Resend } from 'resend'
@@ -33,7 +33,7 @@ function buildEmailHtml(opts: { appUrl: string; logoUrl: string; resetUrl: strin
   const { appUrl, logoUrl, resetUrl, ttlMinutes } = opts
   const year = new Date().getFullYear()
 
-  // Accessible light-ish background (not too dark), matches your “second image” direction
+  // Accessible light-ish background (not too dark), matches your â€œsecond imageâ€ direction
   return `<!doctype html>
 <html>
   <head>
@@ -62,7 +62,7 @@ function buildEmailHtml(opts: { appUrl: string; logoUrl: string; resetUrl: strin
               <td style="padding:16px 20px 8px 20px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#0f172a;">
                 <h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:900;">Reset your password</h1>
                 <p style="margin:10px 0 0 0;font-size:14px;line-height:1.6;color:#334155;">
-                  We received a request to reset your Precise GovCon password. If you didn’t request this, you can safely ignore this email.
+                  We received a request to reset your Precise GovCon password. If you didnâ€™t request this, you can safely ignore this email.
                 </p>
               </td>
             </tr>
@@ -81,7 +81,7 @@ function buildEmailHtml(opts: { appUrl: string; logoUrl: string; resetUrl: strin
             <tr>
               <td style="padding:8px 20px 0 20px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#475569;">
                 <p style="margin:0;font-size:12px;line-height:1.6;">
-                  If the button doesn’t work, copy and paste this link into your browser:
+                  If the button doesnâ€™t work, copy and paste this link into your browser:
                 </p>
                 <p style="margin:8px 0 0 0;font-size:12px;line-height:1.6;word-break:break-all;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;color:#0f172a;">
                   ${resetUrl}
@@ -95,7 +95,7 @@ function buildEmailHtml(opts: { appUrl: string; logoUrl: string; resetUrl: strin
             <tr>
               <td style="padding:16px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#64748b;font-size:12px;line-height:1.6;">
                 Need help? Email <a href="mailto:support@precisegovcon.com" style="color:#0891b2;text-decoration:none;">support@precisegovcon.com</a>.
-                <div style="margin-top:6px;">© ${year} Precise GovCon. All rights reserved.</div>
+                <div style="margin-top:6px;">Â© ${year} Precise GovCon. All rights reserved.</div>
               </td>
             </tr>
 
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       message: 'If an account exists, you will receive a reset email.',
     })
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    const user = await prisma.users.findUnique({ where: { email } })
     if (!user) return okResponse
 
     const ttlMinutes = Number(process.env.RESET_TOKEN_TTL_MINUTES || '30')
@@ -132,10 +132,10 @@ export async function POST(req: NextRequest) {
     const tokenHash = sha256Hex(rawToken)
 
     // Ensure only one active token per email
-    await prisma.passwordResetToken.deleteMany({ where: { email } })
+    await prisma.password_reset_tokens.deleteMany({ where: { email } })
 
-    // ✅ IMPORTANT: use Prisma field names (not mapped column names)
-    await prisma.passwordResetToken.create({
+    // âœ… IMPORTANT: use Prisma field names (not mapped column names)
+    await prisma.password_reset_tokens.create({
       data: {
         email,
         tokenHash,
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
 
     return okResponse
   } catch (err) {
-    console.error('❌ forgot-password route error:', err)
+    console.error('âŒ forgot-password route error:', err)
     return NextResponse.json({ ok: false, error: 'Failed to process request' }, { status: 500 })
   }
 }

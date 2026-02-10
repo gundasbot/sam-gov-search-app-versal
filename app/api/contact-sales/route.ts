@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { Resend } from 'resend'
 
@@ -25,9 +25,9 @@ export async function POST(req: Request) {
       from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
       to: [salesEmail],
       replyTo: email,
-      subject: `🎯 New Sales Inquiry: ${interested_plan} Plan - ${company}`,
+      subject: `ðŸŽ¯ New Sales Inquiry: ${interested_plan} Plan - ${company}`,
       html: `
-        <h2>🎯 New Sales Inquiry</h2>
+        <h2>ðŸŽ¯ New Sales Inquiry</h2>
         <p><strong>Plan:</strong> ${interested_plan}</p>
         
         <h3>Contact Information</h3>
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       to: [email],
       subject: 'Thank you for your interest in Precise GovCon',
       html: `
-        <h2>✅ We Received Your Inquiry</h2>
+        <h2>âœ… We Received Your Inquiry</h2>
         <p>Hi ${name},</p>
         <p>Thank you for your interest in the <strong>${interested_plan}</strong> plan!</p>
         <p>Our sales team will contact you within <strong>24 hours</strong> at <strong>${email}</strong>.</p>

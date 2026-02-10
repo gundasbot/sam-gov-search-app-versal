@@ -11,36 +11,36 @@ import {
   Building2,
   Phone,
   Mail,
-  Calendar,
-  Check,
   AlertCircle,
   ExternalLink,
-  TrendingUp,
-  Zap,
-  Key,
   Loader2,
   Download,
   FileText,
-  ArrowUpRight,
-  BarChart3,
-  Clock,
-  DollarSign,
-  Package,
   Settings,
   Bell,
   Crown,
   ChevronRight,
-  ArrowRight,
   CheckCircle2,
   RefreshCw,
   Sparkles,
+  HeadphonesIcon,
+  MessageSquare,
+  Gavel,
+  TrendingUp,
+  Package,
+  Key,
+  Send,
+  XCircle,
+  AlertTriangle,
+  Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 // Types
 type PlanTier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
-type BillingInterval = 'monthly' | 'annual'
 
 type Plan = {
   tier: PlanTier
@@ -49,13 +49,16 @@ type Plan = {
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean
   subscriptionId: string | null
+  price?: number
 }
 
 type ProfileData = {
   email: string
+  emailVerified: boolean
   firstName: string
   lastName: string
   phone: string
+  phoneVerified: boolean
   company: string
   title: string
   addressLine1: string
@@ -64,6 +67,32 @@ type ProfileData = {
   state: string
   postalCode: string
   country: string
+}
+
+type PaymentMethod = {
+  id: string
+  brand: string
+  last4: string
+  expMonth: number
+  expYear: number
+  isDefault: boolean
+}
+
+type BidData = {
+  id: string
+  opportunityId: string
+  opportunityTitle: string
+  dueDate: string
+  status: 'draft' | 'submitted' | 'awarded' | 'not_awarded'
+  value?: number
+}
+
+type Invoice = {
+  id: string
+  date: string
+  amount: number
+  status: string
+  invoicePdf: string
 }
 
 type Usage = {
@@ -79,111 +108,41 @@ type Usage = {
   }
 }
 
-type Invoice = {
-  id: string
-  date: string
-  amount: number
-  status: string
-  invoicePdf: string
-}
+type TabType = 'overview' | 'profile' | 'billing' | 'support' | 'bids'
 
-// Match EXACTLY with PricingClient - FIXED PRICES TO MATCH PRICING PAGE
-const PLAN_FEATURES = {
+// Plan configuration
+const PLAN_DETAILS = {
   BASIC: {
-    id: 'BASIC' as PlanTier,
     name: 'Basic',
-    tagline: 'Get Started',
-    highlight: false,
-    description: 'Essential tools for solo contractors',
-    monthlyPrice: 24.99, // FIXED: Match pricing page ($24.99)
-    annualPrice: 240, // FIXED: Match pricing page ($240)
-    stripeMonthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC_MONTHLY || 'price_1SrX4iPBeHrQUcEBcCNR77ti',
-    stripeAnnualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC_ANNUAL || 'price_1SrX5JPBeHrQUcEBp36HLtHq',
-    icon: Shield,
-    iconColor: 'blue',
-    gradient: 'from-blue-500 to-cyan-500',
+    monthlyPrice: 24.99,
+    annualPrice: 240,
     color: 'from-blue-500 to-cyan-500',
-    bestFor: 'Solo contractors & consultants starting their GovCon journey',
-    features: [
-      '500 searches per month',
-      '10 exports per month',
-      '5 saved opportunities',
-      'Email alerts',
-      'Basic support',
-    ],
-    limits: {
-      searches: 500,
-      exports: 10,
-      savedOpportunities: 5,
-    },
+    icon: Shield,
+    features: ['500 searches/month', '10 exports/month', '5 saved opportunities', 'Email alerts'],
   },
   PROFESSIONAL: {
-    id: 'PROFESSIONAL' as PlanTier,
     name: 'Professional',
-    tagline: 'Most Popular',
-    description: 'Advanced features for growing teams',
-    highlight: true,
-    monthlyPrice: 49, // FIXED: Match pricing page ($49)
-    annualPrice: 490, // FIXED: Match pricing page ($490)
-    stripeMonthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL_MONTHLY || 'price_1SpKkkPBeHrQUcEBikiRqBhP',
-    stripeAnnualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL_ANNUAL || 'price_1SpKu0PBeHrQUcEBLqvi496k',
+    monthlyPrice: 49,
+    annualPrice: 490,
+    color: 'from-emerald-500 to-teal-500',
     icon: TrendingUp,
-    iconColor: 'emerald',
-    gradient: 'from-emerald-500 to-teal-500',
-    color: 'from-emerald-500 to-teal-500', // FIXED: Made consistent
-    bestFor: 'Growing businesses & small teams winning multiple contracts',
-    features: [
-      '5,000 searches per month',
-      '100 exports per month',
-      '50 saved opportunities',
-      'Real-time alerts',
-      'Priority support',
-      'API access',
-    ],
-    limits: {
-      searches: 5000,
-      exports: 100,
-      savedOpportunities: 50,
-    },
+    features: ['5,000 searches/month', '100 exports/month', '50 saved opportunities', 'Real-time alerts', 'API access'],
   },
   ENTERPRISE: {
-    id: 'ENTERPRISE' as PlanTier,
     name: 'Enterprise',
-    tagline: 'Full Power',
-    description: 'Complete solution for prime contractors',
-    highlight: false,
-    monthlyPrice: 199, // FIXED: Match pricing page ($199)
-    annualPrice: 1990, // FIXED: Match pricing page ($1,990)
-    stripeMonthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ENTERPRISE_MONTHLY || 'price_1SpKx6PBeHrQUcEB8KezJ9dx',
-    stripeAnnualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ENTERPRISE_ANNUAL || 'price_1SpKxuPBeHrQUcEB9Ytzoo2N',
-    icon: Crown,
-    iconColor: 'amber',
-    gradient: 'from-amber-500 to-orange-500',
+    monthlyPrice: 199,
+    annualPrice: 1990,
     color: 'from-amber-500 to-orange-500',
-    bestFor: 'Large contractors & primes managing complex pursuit strategies',
-    features: [
-      'Unlimited searches',
-      'Unlimited exports',
-      'Unlimited saved opportunities',
-      'Dedicated account manager',
-      'Custom integrations',
-      'Phone support',
-    ],
-    limits: {
-      searches: -1,
-      exports: -1,
-      savedOpportunities: -1,
-    },
+    icon: Crown,
+    features: ['Unlimited searches', 'Unlimited exports', 'Unlimited opportunities', 'Dedicated support', 'Custom integrations'],
   },
 } as const
-
-type TabType = 'overview' | 'subscription' | 'billing' | 'profile' | 'usage'
 
 export default function AccountPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-screen bg-slate-900">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         </div>
       }
@@ -198,21 +157,21 @@ function AccountPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  // State
   const [activeTab, setActiveTab] = useState<TabType>('overview')
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly')
-  const [profileLoading, setProfileLoading] = useState(true)
-  const [planLoading, setPlanLoading] = useState(true)
-  const [usageLoading, setUsageLoading] = useState(true)
-  const [invoicesLoading, setInvoicesLoading] = useState(false)
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [loadingPlanChange, setLoadingPlanChange] = useState<PlanTier | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [plan, setPlan] = useState<Plan | null>(null)
+  
+  // Data state
   const [profile, setProfile] = useState<ProfileData>({
     email: session?.user?.email || '',
+    emailVerified: false,
     firstName: '',
     lastName: '',
     phone: '',
+    phoneVerified: false,
     company: '',
     title: '',
     addressLine1: '',
@@ -220,236 +179,158 @@ function AccountPageContent() {
     city: '',
     state: '',
     postalCode: '',
-    country: 'USA',
+    country: 'United States',
   })
-  const [usage, setUsage] = useState<Usage | null>(null)
+  
+  const [plan, setPlan] = useState<Plan | null>(null)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [usage, setUsage] = useState<Usage | null>(null)
+  const [bids, setBids] = useState<BidData[]>([])
   const [editMode, setEditMode] = useState<string | null>(null)
+  const [verificationSent, setVerificationSent] = useState(false)
+  const [loadingPlanChange, setLoadingPlanChange] = useState<string | null>(null)
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/')
+    }
+  }, [status, router])
 
   // Load data
   useEffect(() => {
     if (status === 'authenticated') {
-      loadProfile()
-      loadPlan()
-      loadUsage()
-    } else if (status === 'unauthenticated') {
-      router.push('/login?callbackUrl=/account')
+      loadAccountData()
     }
-  }, [status, router])
+  }, [status])
 
-  // Handle success message from checkout
+  // Handle success/cancel callbacks from Stripe
   useEffect(() => {
-    const successParam = searchParams?.get('success')
-    if (successParam === 'true') {
-      setMessage({
-        type: 'success',
-        text: 'Subscription updated successfully! Your changes are now active.',
-      })
-      loadPlan()
-      // Clear the URL parameter
-      const newUrl = window.location.pathname
-      window.history.replaceState({}, '', newUrl)
-      setTimeout(() => setMessage(null), 5000)
+    const success = searchParams.get('success')
+    const canceled = searchParams.get('canceled')
+    
+    if (success) {
+      setMessage({ type: 'success', text: 'Payment method updated successfully!' })
+      setActiveTab('billing')
+    } else if (canceled) {
+      setMessage({ type: 'error', text: 'Payment update was canceled.' })
     }
   }, [searchParams])
 
-  useEffect(() => {
-    if (activeTab === 'billing' && status === 'authenticated' && invoices.length === 0) {
-      loadInvoices()
-    }
-  }, [activeTab, status])
-
-  const loadProfile = async () => {
+  const loadAccountData = async () => {
+    setLoading(true)
     try {
-      setProfileLoading(true)
-      const res = await fetch('/api/account/profile')
-      if (res.ok) {
-        const data = await res.json()
-        // ✅ FIXED: Convert null values to empty strings for React inputs
-        setProfile((prev) => ({
-          ...prev,
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          phone: data.phone || '',
-          company: data.company || '',
-          title: data.title || '',
-          addressLine1: data.addressLine1 || '',
-          addressLine2: data.addressLine2 || '',
-          city: data.city || '',
-          state: data.state || '',
-          postalCode: data.postalCode || '',
-          country: data.country || 'USA',
-        }))
+      const [profileRes, planRes, paymentsRes, invoicesRes, usageRes, bidsRes] = await Promise.all([
+        fetch('/api/account/profile'),
+        fetch('/api/account/plan'),
+        fetch('/api/account/payment-methods'),
+        fetch('/api/stripe/invoices'),
+        fetch('/api/account/usage'),
+        fetch('/api/account/bids'),
+      ])
+
+      if (profileRes.ok) {
+        const profileData = await profileRes.json()
+        setProfile({ ...profile, ...profileData })
+      }
+
+      if (planRes.ok) {
+        const planData = await planRes.json()
+        setPlan(planData)
+        // Set billing interval from plan
+        if (planData.interval) {
+          setBillingInterval(planData.interval === 'year' ? 'annual' : 'monthly')
+        }
+      }
+
+      if (paymentsRes.ok) {
+        const paymentsData = await paymentsRes.json()
+        setPaymentMethods(paymentsData)
+      }
+
+      if (invoicesRes.ok) {
+        const invoicesData = await invoicesRes.json()
+        setInvoices(invoicesData.invoices || [])
+      }
+
+      if (usageRes.ok) {
+        const usageData = await usageRes.json()
+        setUsage(usageData)
+      }
+
+      if (bidsRes.ok) {
+        const bidsData = await bidsRes.json()
+        setBids(bidsData)
       }
     } catch (error) {
-      console.error('Failed to load profile', error)
+      console.error('Error loading account data:', error)
+      setMessage({ type: 'error', text: 'Failed to load account data' })
     } finally {
-      setProfileLoading(false)
+      setLoading(false)
     }
   }
 
-  const loadPlan = async () => {
+  const saveProfile = async () => {
+    setSaving(true)
     try {
-      setPlanLoading(true)
-      const res = await fetch('/api/account/plan')
-      console.log('Plan API Response status:', res.status)
+      const response = await fetch('/api/account/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile),
+      })
 
-      if (res.ok) {
-        const data = await res.json()
-        console.log('Account page plan data loaded (RAW):', data)
-
-        // Extract data with better error handling
-        const tier =
-          data.tier ||
-          data.planTier ||
-          (data.plan && data.plan !== 'trial' && data.plan !== 'none' ? data.plan.toUpperCase() : 'NONE')
-        const interval =
-          data.interval ||
-          (data.billingInterval === 'MONTHLY'
-            ? 'month'
-            : data.billingInterval === 'ANNUAL'
-            ? 'year'
-            : null)
-        const status = data.status || data.subscriptionStatus || data.planStatus || 'inactive'
-
-        console.log('Extracted values:', { tier, interval, status })
-
-        // Set billing interval based on plan
-        if (interval) {
-          setBillingInterval(interval === 'year' ? 'annual' : 'monthly')
-        }
-
-        // Set the plan state
-        setPlan({
-          tier: tier as PlanTier,
-          status: status,
-          interval: interval,
-          currentPeriodEnd: data.currentPeriodEnd,
-          cancelAtPeriodEnd: data.cancelAtPeriodEnd || false,
-          subscriptionId: data.subscriptionId || data.stripeSubscriptionId,
-        })
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Profile updated successfully!' })
+        setEditMode(null)
       } else {
-        const errorText = await res.text()
-        console.error('Failed to load plan', 'status:', res.status, 'Error:', errorText)
+        throw new Error('Failed to update profile')
       }
     } catch (error) {
-      console.error('Failed to load plan', error)
+      setMessage({ type: 'error', text: 'Failed to save profile changes' })
     } finally {
-      setPlanLoading(false)
+      setSaving(false)
     }
   }
 
-  const loadUsage = async () => {
+  const sendEmailVerification = async () => {
     try {
-      setUsageLoading(true)
-      const res = await fetch('/api/account/usage')
+      const response = await fetch('/api/account/verify-email', {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        setVerificationSent(true)
+        setMessage({ type: 'success', text: 'Verification email sent! Please check your inbox.' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to send verification email' })
+    }
+  }
+
+  const managePaymentMethod = async () => {
+    try {
+      setSaving(true)
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
       if (res.ok) {
-        const data = await res.json()
-        if (plan && plan.tier !== 'NONE' && data.limits) {
-          data.limits = PLAN_FEATURES[plan.tier]?.limits
-        }
-        setUsage(data)
-      }
-    } catch (error) {
-      console.error('Failed to load usage', error)
-    } finally {
-      setUsageLoading(false)
-    }
-  }
-
-  const loadInvoices = async () => {
-    try {
-      setInvoicesLoading(true)
-      const res = await fetch('/api/stripe/invoices')
-      if (res.ok) {
-        const data = await res.json()
-        setInvoices(data.invoices)
-      }
-    } catch (error) {
-      console.error('Failed to load invoices', error)
-    } finally {
-      setInvoicesLoading(false)
-    }
-  }
-
-  // FIXED: handlePlanChange - NOW REQUIRES STRIPE CHECKOUT FOR PLAN CHANGES
-  const handlePlanChange = async (newTier: PlanTier) => {
-    if (!plan || !session) return
-
-    const isCurrentPlan = plan.tier === newTier && plan.interval === (billingInterval === 'annual' ? 'year' : 'month')
-
-    if (isCurrentPlan) {
-      setMessage({ type: 'error', text: 'This is already your current plan' })
-      setTimeout(() => setMessage(null), 3000)
-      return
-    }
-
-    try {
-      setLoadingPlanChange(newTier)
-      setMessage(null)
-
-      // ONLY allow interval changes without checkout (same tier, different billing)
-      if (plan.tier === newTier && plan.tier !== 'NONE') {
-        console.log('Interval change detected for tier:', newTier, billingInterval)
-        const res = await fetch('/api/stripe/change-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tier: newTier,
-            interval: billingInterval,
-          }),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || 'Failed to change billing interval')
-        }
-
-        const updateData = await res.json()
-        setMessage({
-          type: 'success',
-          text: updateData.message || `Billing interval changed to ${billingInterval}!`,
-        })
-
-        // Force refresh plan data from Stripe
-        await loadPlan()
-        await loadUsage()
-        setTimeout(() => setMessage(null), 5000)
-      } else {
-        // ALL OTHER CASES: Upgrades, downgrades, new subscriptions - MUST use Stripe Checkout
-        console.log('Creating checkout for plan change:', newTier, billingInterval)
-        const res = await fetch('/api/stripe/create-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tier: newTier,
-            interval: billingInterval,
-            successUrl: `${window.location.origin}/account?success=true`,
-            cancelUrl: `${window.location.origin}/account`,
-          }),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || 'Failed to create checkout session')
-        }
-
         const { url } = await res.json()
-        if (url) {
-          window.location.href = url
-        } else {
-          throw new Error('No checkout URL received')
-        }
+        window.open(url, '_blank', 'noopener,noreferrer')
+      } else {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to open billing portal')
       }
     } catch (error: any) {
-      console.error('Plan change error:', error)
+      console.error('Stripe portal error:', error)
       setMessage({
         type: 'error',
-        text: error.message || 'Failed to change plan. Please try again.',
+        text: error.message || 'Failed to open billing portal. Please try again.',
       })
-      setTimeout(() => setMessage(null), 5000)
     } finally {
-      setLoadingPlanChange(null)
+      setSaving(false)
     }
   }
 
@@ -479,7 +360,7 @@ function AccountPageContent() {
           text: 'Subscription cancelled. You will have access until the end of your billing period.',
         })
         // Reload plan data
-        await loadPlan()
+        await loadAccountData()
         setTimeout(() => setMessage(null), 5000)
       } else {
         const data = await res.json()
@@ -496,1237 +377,323 @@ function AccountPageContent() {
     }
   }
 
-  const openStripePortal = async () => {
-    try {
-      setSaving(true)
-      const res = await fetch('/api/stripe/portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
+  const handlePlanChange = async (newTier: PlanTier, interval: 'month' | 'year') => {
+    if (!plan || !session) return
 
-      if (res.ok) {
-        const { url } = await res.json()
-        window.open(url, '_blank', 'noopener,noreferrer')
-      } else {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to open billing portal')
-      }
-    } catch (error: any) {
-      console.error('Stripe portal error:', error)
-      setMessage({
-        type: 'error',
-        text: error.message || 'Failed to open billing portal. Please try again.',
-      })
-    } finally {
-      setSaving(false)
+    const requestedInterval = interval === 'year' ? 'annual' : 'monthly'
+    const isCurrentPlan = plan.tier === newTier && plan.interval === interval
+
+    if (isCurrentPlan) {
+      setMessage({ type: 'error', text: 'This is already your current plan' })
+      setTimeout(() => setMessage(null), 3000)
+      return
     }
-  }
 
-  const saveProfile = async () => {
     try {
-      setSaving(true)
+      setLoadingPlanChange(newTier)
       setMessage(null)
 
-      const res = await fetch('/api/account/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstname: profile.firstName,
-          lastname: profile.lastName,
-          phone: profile.phone,
-          company: profile.company,
-          title: profile.title,
-          addressline1: profile.addressLine1,
-          addressline2: profile.addressLine2,
-          city: profile.city,
-          state: profile.state,
-          zip: profile.postalCode,
-          country: profile.country,
-        }),
-      })
+      // ONLY allow interval changes without checkout (same tier, different billing)
+      if (plan.tier === newTier && plan.tier !== 'NONE') {
+        console.log('Interval change detected for tier:', newTier, requestedInterval)
+        const res = await fetch('/api/stripe/change-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tier: newTier,
+            interval: requestedInterval,
+          }),
+        })
 
-      if (res.ok) {
-        setMessage({ type: 'success', text: 'Profile updated successfully!' })
-        setEditMode(null)
-        setTimeout(() => setMessage(null), 3000)
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Failed to change billing interval')
+        }
+
+        const updateData = await res.json()
+        setMessage({
+          type: 'success',
+          text: updateData.message || `Billing interval changed to ${requestedInterval}!`,
+        })
+
+        // Force refresh plan data from Stripe
+        await loadAccountData()
+        setTimeout(() => setMessage(null), 5000)
       } else {
-        const errorData = await res.json()
-        throw new Error(errorData.error || 'Failed to update profile')
+        // ALL OTHER CASES: Upgrades, downgrades, new subscriptions - MUST use Stripe Checkout
+        console.log('Creating checkout for plan change:', newTier, requestedInterval)
+        const res = await fetch('/api/stripe/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tier: newTier,
+            interval: requestedInterval,
+            successUrl: `${window.location.origin}/account?success=true`,
+            cancelUrl: `${window.location.origin}/account`,
+          }),
+        })
+
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Failed to create checkout session')
+        }
+
+        const { url } = await res.json()
+        if (url) {
+          window.location.href = url
+        } else {
+          throw new Error('No checkout URL received')
+        }
       }
     } catch (error: any) {
+      console.error('Plan change error:', error)
       setMessage({
         type: 'error',
-        text: error.message || 'Failed to update profile.',
+        text: error.message || 'Failed to change plan. Please try again.',
       })
+      setTimeout(() => setMessage(null), 5000)
     } finally {
-      setSaving(false)
+      setLoadingPlanChange(null)
     }
   }
 
+  if (status === 'loading' || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-900">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    )
+  }
+
+  const currentPlanDetails = plan?.tier && plan.tier !== 'NONE' ? PLAN_DETAILS[plan.tier] : null
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Header */}
+      <div className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="py-6">
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <User className="h-8 w-8" />
+              Account Settings
+            </h1>
+            <p className="text-slate-400 mt-2">Manage your profile, subscription, and preferences</p>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 overflow-x-auto pb-px">
+            {[
+              { id: 'overview', label: 'Overview', icon: Sparkles },
+              { id: 'profile', label: 'Profile', icon: User },
+              { id: 'billing', label: 'Billing', icon: CreditCard },
+              { id: 'support', label: 'Support', icon: HeadphonesIcon },
+              { id: 'bids', label: 'Bid Management', icon: Gavel },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as TabType)}
+                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${
+                  activeTab === tab.id
+                    ? 'text-blue-400 border-blue-400'
+                    : 'text-slate-400 border-transparent hover:text-slate-300'
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Message Banner */}
+      {message && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <div
+            className={`p-4 rounded-xl flex items-center gap-3 ${
+              message.type === 'success'
+                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                : 'bg-red-500/10 border border-red-500/20 text-red-400'
+            }`}
+          >
+            {message.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+            <span>{message.text}</span>
+            <button onClick={() => setMessage(null)} className="ml-auto">
+              <XCircle className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'overview' && (
+          <OverviewTab
+            profile={profile}
+            plan={plan}
+            currentPlanDetails={currentPlanDetails}
+            paymentMethods={paymentMethods}
+            usage={usage}
+            bids={bids}
+            setActiveTab={setActiveTab}
+          />
+        )}
+
+        {activeTab === 'profile' && (
+          <ProfileTab
+            profile={profile}
+            setProfile={setProfile}
+            editMode={editMode}
+            setEditMode={setEditMode}
+            saving={saving}
+            saveProfile={saveProfile}
+            sendEmailVerification={sendEmailVerification}
+            verificationSent={verificationSent}
+          />
+        )}
+
+        {activeTab === 'billing' && (
+          <BillingTab
+            plan={plan}
+            currentPlanDetails={currentPlanDetails}
+            paymentMethods={paymentMethods}
+            invoices={invoices}
+            billingInterval={billingInterval}
+            setBillingInterval={setBillingInterval}
+            handlePlanChange={handlePlanChange}
+            managePaymentMethod={managePaymentMethod}
+            handleCancelSubscription={handleCancelSubscription}
+            loadingPlanChange={loadingPlanChange}
+          />
+        )}
+
+        {activeTab === 'support' && <SupportTab profile={profile} plan={plan} />}
+
+        {activeTab === 'bids' && <BidsTab bids={bids} setBids={setBids} />}
+      </div>
+    </div>
+  )
+}
+
+// Overview Tab
+function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage, bids, setActiveTab }: any) {
   const getUsagePercentage = (current: number, limit: number) => {
     if (limit === -1) return 0
     return Math.min((current / limit) * 100, 100)
   }
 
-  const getButtonText = (tier: PlanTier) => {
-    if (!plan) return 'Get Started'
-
-    const selectedInterval = billingInterval === 'annual' ? 'year' : 'month'
-
-    // Same plan, same interval
-    if (plan.tier === tier && plan.interval === selectedInterval) {
-      return 'Current Plan'
-    }
-
-    // Explicitly narrow BOTH sides to paid tiers
-    if (plan.tier && plan.tier !== 'NONE' && tier !== 'NONE') {
-      const currentPrice =
-        plan.interval === 'year'
-          ? PLAN_FEATURES[plan.tier].annualPrice
-          : PLAN_FEATURES[plan.tier].monthlyPrice
-      const newPrice =
-        selectedInterval === 'year' ? PLAN_FEATURES[tier].annualPrice : PLAN_FEATURES[tier].monthlyPrice
-
-      if (newPrice > currentPrice) return 'Upgrade'
-      if (newPrice < currentPrice) return 'Downgrade'
-      return 'Switch Billing'
-    }
-
-    return 'Subscribe'
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-slate-400">Loading your account...</p>
-        </div>
-      </div>
-    )
-  }
-
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'subscription', label: 'Subscription', icon: Package },
-    { id: 'billing', label: 'Billing', icon: FileText },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'usage', label: 'Usage', icon: TrendingUp },
-  ] as const
-
-  const currentPlanDetails = plan?.tier !== 'NONE' ? PLAN_FEATURES[plan?.tier as keyof typeof PLAN_FEATURES] : null
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-50">
-      {/* Background effects */}
-      <div className="fixed inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-cyan-500/5 pointer-events-none" />
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">Account Management</h1>
-          <p className="text-slate-400">Complete control over your subscription, billing, and profile</p>
-        </div>
-
-        {/* Message Banner */}
-        {message && (
-          <div
-            className={`mb-6 rounded-xl border p-4 ${
-              message.type === 'success'
-                ? 'border-green-500/30 bg-green-500/10 text-green-300'
-                : 'border-red-500/30 bg-red-500/10 text-red-300'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {message.type === 'success' ? <Check className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-              <span className="font-medium">{message.text}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Tabs Navigation */}
-        <div className="mb-6 border-b border-slate-700">
-          <div className="flex gap-1 overflow-x-auto">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-3 font-medium transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'text-white border-b-2 border-blue-500'
-                      : 'text-slate-400 hover:text-slate-300'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="space-y-6">
-          {activeTab === 'overview' && (
-            <OverviewTab
-              plan={plan}
-              planLoading={planLoading}
-              usage={usage}
-              usageLoading={usageLoading}
-              profile={profile}
-              planDetails={currentPlanDetails}
-              router={router}
-              openStripePortal={openStripePortal}
-              loadPlan={loadPlan}
-            />
-          )}
-          {activeTab === 'subscription' && (
-            <SubscriptionTab
-              plan={plan}
-              planLoading={planLoading}
-              billingInterval={billingInterval}
-              setBillingInterval={setBillingInterval}
-              currentPlanDetails={currentPlanDetails}
-              handlePlanChange={handlePlanChange}
-              handleCancelSubscription={handleCancelSubscription}
-              openStripePortal={openStripePortal}
-              loadingPlanChange={loadingPlanChange}
-              saving={saving}
-              getButtonText={getButtonText}
-              router={router}
-              loadPlan={loadPlan}
-            />
-          )}
-          {activeTab === 'billing' && (
-            <BillingTab
-              invoices={invoices}
-              invoicesLoading={invoicesLoading}
-              plan={plan}
-              openStripePortal={openStripePortal}
-              saving={saving}
-              formatCurrency={formatCurrency}
-            />
-          )}
-          {activeTab === 'profile' && (
-            <ProfileTab
-              profile={profile}
-              setProfile={setProfile}
-              profileLoading={profileLoading}
-              editMode={editMode}
-              setEditMode={setEditMode}
-              saveProfile={saveProfile}
-              saving={saving}
-              router={router}
-            />
-          )}
-          {activeTab === 'usage' && (
-            <UsageTab
-              usage={usage}
-              usageLoading={usageLoading}
-              plan={plan}
-              currentPlanDetails={currentPlanDetails}
-              getUsagePercentage={getUsagePercentage}
-              formatCurrency={formatCurrency}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Overview Tab Component
-function OverviewTab({
-  plan,
-  planLoading,
-  usage,
-  usageLoading,
-  profile,
-  planDetails,
-  router,
-  openStripePortal,
-  loadPlan,
-}: any) {
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* Current Plan Card - Matching Pricing Page Style */}
+    <div className="space-y-6">
+      {/* Account Status */}
       <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">Current Plan</h2>
-          {!planLoading && plan && plan.tier !== 'NONE' && (
-            <div className="flex gap-2">
-              <button
-                onClick={loadPlan}
-                className="flex items-center gap-1 text-sm font-medium text-slate-300 hover:text-white transition"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Refresh
-              </button>
-              <button
-                onClick={() => router.push('/pricing')}
-                className="text-sm font-medium text-blue-400 hover:text-blue-300 transition flex items-center gap-1"
-              >
-                Compare Plans
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {planLoading ? (
-          <div className="space-y-4">
-            <div className="h-24 bg-slate-800/50 rounded-xl animate-pulse" />
-            <div className="h-10 bg-slate-800/50 rounded-lg animate-pulse" />
-          </div>
-        ) : planDetails ? (
-          <div className="space-y-4">
-            <div className={`rounded-xl bg-gradient-to-br ${planDetails.gradient} p-6`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <planDetails.icon className="h-8 w-8 text-white" />
-                  <span className="text-2xl font-bold text-white">{planDetails.name}</span>
-                </div>
-                <span className="text-sm text-white/80 capitalize bg-white/20 px-3 py-1 rounded-full">
-                  {plan.interval === 'year' ? 'Annual' : 'Monthly'}
-                </span>
-              </div>
-              <div className="text-4xl font-extrabold text-white">
-                ${plan.interval === 'year' ? planDetails.annualPrice : planDetails.monthlyPrice}
-                <span className="text-lg font-normal text-white/80">/{plan.interval === 'year' ? 'year' : 'month'}</span>
-              </div>
-              {plan.interval === 'year' && planDetails.monthlyPrice > 0 && (
-                <p className="text-sm text-white/80 mt-2">
-                  Save ${(planDetails.monthlyPrice * 12 - planDetails.annualPrice).toFixed(0)}/year
-                </p>
-              )}
-            </div>
-
-            {plan.currentPeriodEnd && (
-              <div className="flex items-center justify-between p-4 rounded-lg bg-slate-800/50">
-                <div>
-                  <span className="text-slate-400">Next Billing Date</span>
-                  <p className="font-semibold text-white">
-                    {new Date(plan.currentPeriodEnd).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-slate-400">Next Charge</span>
-                  <p className="font-semibold text-white">
-                    ${plan.interval === 'year' ? planDetails.annualPrice : planDetails.monthlyPrice}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {plan.cancelAtPeriodEnd && (
-              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-                <p className="text-sm text-red-300 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Subscription will cancel on {new Date(plan.currentPeriodEnd).toLocaleDateString()}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Package className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400 mb-4">No active subscription</p>
-            <button
-              onClick={() => router.push('/pricing')}
-              className="px-6 py-3 rounded-lg bg-blue-500 hover:bg-blue-600 transition text-white font-medium"
-            >
-              View Plans
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Usage Summary */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6">Usage Summary</h2>
-
-        {usageLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-slate-800/50 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : usage && usage.available ? (
-          <div className="space-y-4">
-            {[
-              { label: 'Searches', value: usage.searches, limit: planDetails?.limits.searches || 0, icon: TrendingUp },
-              { label: 'Exports', value: usage.exports, limit: planDetails?.limits.exports || 0, icon: Download },
-              {
-                label: 'Saved Opportunities',
-                value: usage.savedOpportunities,
-                limit: planDetails?.limits.savedOpportunities || 0,
-                icon: FileText,
-              },
-            ].map((item) => (
-              <div key={item.label} className="p-4 rounded-lg bg-slate-800/30">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <item.icon className="h-4 w-4 text-slate-400" />
-                    <span className="text-slate-400">{item.label}</span>
-                  </div>
-                  <span className="font-bold text-white">
-                    {item.value.toLocaleString()}
-                    {item.limit !== -1 && <span className="text-slate-500"> / {item.limit.toLocaleString()}</span>}
-                  </span>
-                </div>
-                {item.limit !== -1 && (
-                  <div className="w-full bg-slate-700 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        (item.value / item.limit) * 100 > 90 ? 'bg-red-500' : 'bg-blue-500'
-                      }`}
-                      style={{ width: `${Math.min((item.value / item.limit) * 100, 100)}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-slate-400">
-            <BarChart3 className="h-16 w-16 mx-auto mb-4 text-slate-600" />
-            <p>Usage data unavailable</p>
-          </div>
-        )}
-      </div>
-
-      {/* Account Info Card */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6">Account Information</h2>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <User className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <p className="font-semibold text-white">
-                {profile.firstName} {profile.lastName}
-              </p>
-              <p className="text-sm text-slate-400">{profile.email}</p>
-            </div>
-          </div>
-
-          {profile.company && (
-            <div className="pt-4 border-t border-slate-700">
-              <div className="flex items-center gap-2 mb-2">
-                <Building2 className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-400">Company</span>
-              </div>
-              <p className="text-white font-medium">{profile.company}</p>
-              {profile.title && <p className="text-sm text-slate-400">{profile.title}</p>}
-            </div>
-          )}
-
-          {profile.phone && (
-            <div className="pt-4 border-t border-slate-700">
-              <div className="flex items-center gap-2 mb-2">
-                <Phone className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-400">Phone</span>
-              </div>
-              <p className="text-white">{profile.phone}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => router.push('/pricing')}
-            className="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition"
-          >
-            <ArrowUpRight className="h-6 w-6 text-blue-400" />
-            <span className="text-sm font-medium text-white">Upgrade Plan</span>
-          </button>
-          <button
-            onClick={() => router.push('/account?password')}
-            className="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition"
-          >
-            <Key className="h-6 w-6 text-purple-400" />
-            <span className="text-sm font-medium text-white">Change Password</span>
-          </button>
-          <button
-            onClick={openStripePortal}
-            className="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition"
-          >
-            <CreditCard className="h-6 w-6 text-green-400" />
-            <span className="text-sm font-medium text-white">Payment Methods</span>
-          </button>
-          <button
-            onClick={() => window.open('https://support.precisegovcon.com', '_blank')}
-            className="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition"
-          >
-            <AlertCircle className="h-6 w-6 text-amber-400" />
-            <span className="text-sm font-medium text-white">Get Support</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Subscription Tab Component - Updated with Stripe Integration
-function SubscriptionTab({
-  plan,
-  planLoading,
-  billingInterval,
-  setBillingInterval,
-  currentPlanDetails,
-  handlePlanChange,
-  handleCancelSubscription,
-  openStripePortal,
-  loadingPlanChange,
-  saving,
-  getButtonText,
-  router,
-  loadPlan,
-}: any) {
-  const isAnnual = billingInterval === 'annual'
-
-  return (
-    <div className="space-y-8">
-      {/* Current Subscription Details */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-8 shadow-2xl">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
-          <h2 className="text-2xl font-bold text-white">Your Subscription</h2>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Billing Toggle */}
-            <div className="inline-flex items-center gap-2 p-1 bg-slate-800/60 rounded-xl border border-slate-700">
-              <button
-                onClick={() => setBillingInterval('monthly')}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  billingInterval === 'monthly'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingInterval('annual')}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  billingInterval === 'annual'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Annual
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-emerald-500 text-white rounded-full">Save 17%</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {planLoading ? (
-          <div className="space-y-4">
-            <div className="h-32 bg-slate-800/50 rounded-xl animate-pulse" />
-          </div>
-        ) : currentPlanDetails ? (
-          <div className="space-y-8">
-            {/* Current Plan Card */}
-            <div className={`rounded-xl bg-gradient-to-br ${currentPlanDetails.gradient} p-8`}>
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div>
-                  <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-2xl bg-white/20 flex items-center justify-center">
-                      <currentPlanDetails.icon className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-3xl font-bold text-white">{currentPlanDetails.name} Plan</h3>
-                        <span className="px-3 py-1 bg-white/20 rounded-full text-white text-sm font-medium capitalize">
-                          {String(plan.status || 'active')}
-                        </span>
-
-                      </div>
-                      <p className="text-white/80">
-                        ${plan.interval === 'year' ? currentPlanDetails.annualPrice : currentPlanDetails.monthlyPrice}/
-                        {plan.interval === 'year' ? 'year' : 'month'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-white/80 mb-2">Current Billing Cycle</p>
-                  <p className="text-2xl font-bold text-white capitalize">
-                    {plan.interval === 'year' ? 'Annual' : 'Monthly'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Information */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="p-4 rounded-lg bg-slate-800/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400">Next Billing Date</span>
-                </div>
-                <p className="text-xl font-semibold text-white">
-                  {plan.currentPeriodEnd
-                    ? new Date(plan.currentPeriodEnd).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : 'N/A'}
-                </p>
-              </div>
-
-              <div className="p-4 rounded-lg bg-slate-800/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400">Next Charge</span>
-                </div>
-                <p className="text-xl font-semibold text-white">
-                  ${plan.interval === 'year' ? currentPlanDetails.annualPrice : currentPlanDetails.monthlyPrice}
-                </p>
-                <p className="text-sm text-slate-400 mt-1">{plan.interval === 'year' ? 'Annual billing' : 'Monthly billing'}</p>
-              </div>
-
-              <div className="p-4 rounded-lg bg-slate-800/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400">Status</span>
-                </div>
-                <p className="text-xl font-semibold text-white flex items-center gap-2">
-                  {plan.cancelAtPeriodEnd ? (
-                    <>
-                      <span className="text-amber-400">Cancelling</span>
-                      <span className="text-sm text-slate-400">
-                        (ends {plan.currentPeriodEnd ? new Date(plan.currentPeriodEnd).toLocaleDateString() : 'soon'})
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-green-400">Active</span>
-                      <Check className="h-5 w-5 text-green-400" />
-                    </>
-                  )}
-                </p>
-              </div>
-
-              <div className="p-4 rounded-lg bg-slate-800/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-400">Subscription ID</span>
-                </div>
-                <p className="text-sm font-mono text-slate-300 truncate">{plan.subscriptionId || 'No active subscription'}</p>
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="pt-6 border-t border-slate-700">
-              <h3 className="text-lg font-semibold text-white mb-4">Your Plan Includes</h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {currentPlanDetails.features.map((feature: string, index: number) => (
-                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/30">
-                    <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-                    <span className="text-slate-300">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="pt-6 border-t border-slate-700 space-y-4">
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={loadPlan}
-                  className="flex items-center gap-2 px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 transition text-white text-sm font-medium"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh from Stripe
-                </button>
-
-                <button
-                  onClick={openStripePortal}
-                  disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-600 bg-slate-800/50 hover:bg-slate-800 transition text-white font-medium"
-                >
-                  <CreditCard className="h-5 w-5" />
-                  Manage Payment Methods
-                  <ExternalLink className="h-4 w-4" />
-                </button>
-
-                {!plan.cancelAtPeriodEnd && plan.subscriptionId && (
-                  <button
-                    onClick={handleCancelSubscription}
-                    disabled={saving}
-                    className="flex-1 px-6 py-3 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition text-red-300 font-medium"
-                  >
-                    Cancel Subscription
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <Package className="h-20 w-20 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Active Subscription</h3>
-            <p className="text-slate-400 mb-6">Subscribe to unlock all features and start finding government contracts</p>
-            <button
-              onClick={() => router.push('/pricing')}
-              className="px-8 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 transition text-white font-medium"
-            >
-              View Plans & Pricing
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Plan Comparison - Matching Pricing Page */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-8 shadow-2xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Compare Plans</h2>
-            <p className="text-slate-400 mt-1">Choose the plan that fits your needs</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-400">
-              Billing: <span className="text-white font-medium capitalize">{billingInterval}</span>
-            </p>
-            {isAnnual && <p className="text-sm text-emerald-400">Save 17% with annual billing</p>}
-          </div>
-        </div>
+        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <Sparkles className="h-6 w-6 text-blue-400" />
+          Account Overview
+        </h2>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {Object.entries(PLAN_FEATURES).map(([key, planData]) => {
-            const Icon = planData.icon
-            const isCurrentPlan = plan?.tier === key
-            const price = isAnnual ? planData.annualPrice : planData.monthlyPrice
-
-            return (
-              <div
-                key={key}
-                className={`relative rounded-xl border p-6 transition-all ${
-                  isCurrentPlan
-                    ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/20'
-                    : 'border-slate-700 bg-slate-800/30 hover:border-slate-600'
-                }`}
-              >
-                {isCurrentPlan && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className={`px-4 py-1 bg-gradient-to-r ${planData.gradient} text-white text-xs font-bold rounded-full`}>
-                      CURRENT PLAN
-                    </span>
-                  </div>
-                )}
-
-                {planData.highlight && !isCurrentPlan && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className={`px-4 py-1 bg-gradient-to-r ${planData.gradient} text-white text-xs font-bold rounded-full`}>
-                      MOST POPULAR
-                    </span>
-                  </div>
-                )}
-
-                <div className="mb-4">
-                  <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${planData.gradient} flex items-center justify-center mb-3`}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">{planData.name}</h3>
-                  <p className="text-sm text-slate-400 mt-1">{planData.description}</p>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-white">${price}</span>
-                    <span className="text-slate-400">/{isAnnual ? 'year' : 'month'}</span>
-                  </div>
-                  {isAnnual && planData.monthlyPrice > 0 && (
-                    <p className="text-sm text-emerald-400 mt-1">
-                      Save ${(planData.monthlyPrice * 12 - planData.annualPrice).toFixed(0)}/year
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => handlePlanChange(key as PlanTier)}
-                  disabled={loadingPlanChange !== null || isCurrentPlan}
-                  className={`w-full py-3 rounded-lg font-medium transition-all mb-4 ${
-                    isCurrentPlan
-                      ? 'bg-slate-700 cursor-not-allowed opacity-60'
-                      : planData.highlight
-                      ? `bg-gradient-to-r ${planData.gradient} hover:shadow-lg`
-                      : 'bg-slate-700 hover:bg-slate-600'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {loadingPlanChange === key ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {plan?.subscriptionId ? 'Updating...' : 'Processing...'}
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      {getButtonText(key as PlanTier)}
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  )}
-                </button>
-
-                <div className="space-y-3">
-                  {planData.features.slice(0, 4).map((feature, idx) => (
-                    <div key={idx} className="flex items-start gap-2">
-                      <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-400" />
-                      <span className="text-sm text-slate-300">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-slate-700/50">
-                  <p className="text-xs text-slate-500">{planData.bestFor}</p>
-                </div>
+          {/* Profile Status */}
+          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+            <div className="flex items-center gap-3 mb-3">
+              <User className="h-8 w-8 text-blue-400" />
+              <div>
+                <p className="text-sm text-slate-400">Profile</p>
+                <p className="text-xl font-bold text-white">
+                  {profile.firstName || profile.lastName
+                    ? `${profile.firstName} ${profile.lastName}`.trim()
+                    : 'Incomplete'}
+                </p>
               </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Billing Tab Component
-function BillingTab({ invoices, invoicesLoading, plan, openStripePortal, saving, formatCurrency }: any) {
-  return (
-    <div className="space-y-6">
-      {/* Payment Method */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-8 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">Payment Method</h2>
-          <button
-            onClick={openStripePortal}
-            disabled={saving}
-            className="text-sm font-medium text-blue-400 hover:text-blue-300 transition flex items-center gap-1"
-          >
-            Manage
-            <ExternalLink className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4 p-6 rounded-lg bg-slate-800/30">
-          <div className="h-12 w-16 rounded bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-            <CreditCard className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              {profile.emailVerified ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                  <span className="text-emerald-400">Email Verified</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-4 w-4 text-amber-400" />
+                  <span className="text-amber-400">Email Not Verified</span>
+                </>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="text-white font-medium">•••• •••• •••• ••••</p>
-            <p className="text-sm text-slate-400">Manage your payment methods in the billing portal</p>
-          </div>
-        </div>
 
-        <div className="mt-4 flex gap-3">
-          <button
-            onClick={openStripePortal}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 transition text-white text-sm font-medium"
-          >
-            <CreditCard className="h-4 w-4" />
-            Add Payment Method
-          </button>
-          <button
-            onClick={openStripePortal}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-600 bg-slate-800/50 hover:bg-slate-800 transition text-white text-sm font-medium"
-          >
-            Update Billing Info
-          </button>
-        </div>
-      </div>
-
-      {/* Invoice History */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-8 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6">Billing History</h2>
-
-        {invoicesLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-slate-800/50 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : invoices.length > 0 ? (
-          <div className="space-y-3">
-            {invoices.map((invoice: Invoice) => (
-              <div
-                key={invoice.id}
-                className="flex items-center justify-between p-4 rounded-lg bg-slate-800/30 hover:bg-slate-800/50 transition"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-lg bg-slate-700 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-slate-300" />
-                  </div>
+          {/* Plan Status */}
+          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+            <div className="flex items-center gap-3 mb-3">
+              {currentPlanDetails ? (
+                <>
+                  <currentPlanDetails.icon className="h-8 w-8 text-emerald-400" />
                   <div>
-                    <p className="font-medium text-white">
-                      {new Date(invoice.date).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      {formatCurrency(invoice.amount)} • {invoice.status}
-                    </p>
+                    <p className="text-sm text-slate-400">Current Plan</p>
+                    <p className="text-xl font-bold text-white">{currentPlanDetails.name}</p>
                   </div>
-                </div>
-                <button
-                  onClick={() => window.open(invoice.invoicePdf, '_blank')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition text-white text-sm font-medium"
-                >
-                  <Download className="h-4 w-4" />
-                  Download
-                </button>
-              </div>
-            ))}
+                </>
+              ) : (
+                <>
+                  <Package className="h-8 w-8 text-slate-400" />
+                  <div>
+                    <p className="text-sm text-slate-400">Current Plan</p>
+                    <p className="text-xl font-bold text-white">Free</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => setActiveTab('billing')}
+              className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+            >
+              Manage Plan
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <FileText className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400">No invoices available</p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
 
-// Profile Tab Component
-function ProfileTab({ profile, setProfile, profileLoading, editMode, setEditMode, saveProfile, saving, router }: any) {
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* Personal Information */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <User className="h-5 w-5 text-white" />
-            </div>
-            <h2 className="text-xl font-bold">Personal Information</h2>
-          </div>
-          {!profileLoading &&
-            (editMode !== 'personal' ? (
-              <button
-                onClick={() => setEditMode('personal')}
-                className="text-sm font-medium text-blue-400 hover:text-blue-300 transition"
-              >
-                Edit
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditMode(null)}
-                  className="px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveProfile}
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            ))}
-        </div>
-
-        {profileLoading ? (
-          <div className="space-y-4">
-            <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-            <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-            <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">First Name</label>
-              <input
-                type="text"
-                value={profile.firstName || ''}
-                onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                disabled={editMode !== 'personal'}
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Last Name</label>
-              <input
-                type="text"
-                value={profile.lastName || ''}
-                onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                disabled={editMode !== 'personal'}
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
-              <div className="flex items-center gap-2 w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5">
-                <Mail className="h-4 w-4 text-slate-400" />
-                <span className="text-white">{profile.email}</span>
-              </div>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1">Phone</label>
-              <input
-                type="tel"
-                value={profile.phone || ''}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                disabled={editMode !== 'personal'}
-                placeholder="+1 (555) 123-4567"
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Company Information */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
-            <h2 className="text-xl font-bold">Company Information</h2>
-          </div>
-          {!profileLoading &&
-            (editMode !== 'company' ? (
-              <button
-                onClick={() => setEditMode('company')}
-                className="text-sm font-medium text-blue-400 hover:text-blue-300 transition"
-              >
-                Edit
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditMode(null)}
-                  className="px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveProfile}
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            ))}
-        </div>
-
-        {profileLoading ? (
-          <div className="space-y-4">
-            <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-            <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Company Name</label>
-              <input
-                type="text"
-                value={profile.company || ''}
-                onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                disabled={editMode !== 'company'}
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Job Title</label>
-              <input
-                type="text"
-                value={profile.title || ''}
-                onChange={(e) => setProfile({ ...profile, title: e.target.value })}
-                disabled={editMode !== 'company'}
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Address Information */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl lg:col-span-2">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-              <MapPin className="h-5 w-5 text-white" />
-            </div>
-            <h2 className="text-xl font-bold">Address</h2>
-          </div>
-          {!profileLoading &&
-            (editMode !== 'address' ? (
-              <button
-                onClick={() => setEditMode('address')}
-                className="text-sm font-medium text-blue-400 hover:text-blue-300 transition"
-              >
-                Edit
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditMode(null)}
-                  className="px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveProfile}
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            ))}
-        </div>
-
-        {profileLoading ? (
-          <div className="space-y-4">
-            <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-            <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-              <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-              <div className="h-12 bg-slate-800/50 rounded-lg animate-pulse" />
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Address Line 1</label>
-              <input
-                type="text"
-                value={profile.addressLine1 || ''}
-                onChange={(e) => setProfile({ ...profile, addressLine1: e.target.value })}
-                disabled={editMode !== 'address'}
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Address Line 2</label>
-              <input
-                type="text"
-                value={profile.addressLine2 || ''}
-                onChange={(e) => setProfile({ ...profile, addressLine2: e.target.value })}
-                disabled={editMode !== 'address'}
-                placeholder="Apartment, suite, etc. (optional)"
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
+          {/* Bid Status */}
+          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+            <div className="flex items-center gap-3 mb-3">
+              <Gavel className="h-8 w-8 text-purple-400" />
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">City</label>
-                <input
-                  type="text"
-                  value={profile.city || ''}
-                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                  disabled={editMode !== 'address'}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">State</label>
-                <input
-                  type="text"
-                  value={profile.state || ''}
-                  onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                  disabled={editMode !== 'address'}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Postal Code</label>
-                <input
-                  type="text"
-                  value={profile.postalCode || ''}
-                  onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
-                  disabled={editMode !== 'address'}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-                />
+                <p className="text-sm text-slate-400">Active Bids</p>
+                <p className="text-xl font-bold text-white">{bids.filter((b: BidData) => b.status === 'draft' || b.status === 'submitted').length}</p>
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Country</label>
-              <input
-                type="text"
-                value={profile.country || ''}
-                onChange={(e) => setProfile({ ...profile, country: e.target.value })}
-                disabled={editMode !== 'address'}
-                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition"
-              />
-            </div>
+            <button
+              onClick={() => setActiveTab('bids')}
+              className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+            >
+              View All Bids
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
-        )}
+        </div>
       </div>
-    </div>
-  )
-}
 
-// Usage Tab Component
-function UsageTab({ usage, usageLoading, plan, currentPlanDetails, getUsagePercentage, formatCurrency }: any) {
-  return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-8 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6">Usage Statistics</h2>
-
-        {usageLoading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-slate-800/50 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : usage && usage.available ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Usage Summary */}
+      {usage && usage.available && currentPlanDetails && (
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+          <h2 className="text-2xl font-bold text-white mb-6">Usage This Month</h2>
+          <div className="grid gap-6 md:grid-cols-3">
             {[
               {
                 label: 'Searches',
                 current: usage.searches,
-                limit: currentPlanDetails?.limits.searches || 0,
+                limit: currentPlanDetails.limits.searches,
                 icon: TrendingUp,
                 color: 'blue',
               },
               {
                 label: 'Exports',
                 current: usage.exports,
-                limit: currentPlanDetails?.limits.exports || 0,
+                limit: currentPlanDetails.limits.exports,
                 icon: Download,
                 color: 'emerald',
               },
               {
                 label: 'Saved Opportunities',
                 current: usage.savedOpportunities,
-                limit: currentPlanDetails?.limits.savedOpportunities || 0,
+                limit: currentPlanDetails.limits.savedOpportunities,
                 icon: FileText,
                 color: 'purple',
               },
@@ -1762,10 +729,926 @@ function UsageTab({ usage, usageLoading, plan, currentPlanDetails, getUsagePerce
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <QuickActionCard
+          icon={Mail}
+          title="Verify Email"
+          description="Verify your email address to enable all features"
+          buttonText="Verify Now"
+          buttonAction={() => setActiveTab('profile')}
+          show={!profile.emailVerified}
+        />
+
+        <QuickActionCard
+          icon={CreditCard}
+          title="Update Payment"
+          description="Add or update your payment method"
+          buttonText="Manage Payment"
+          buttonAction={() => setActiveTab('billing')}
+          show={paymentMethods.length === 0}
+        />
+
+        <QuickActionCard
+          icon={User}
+          title="Complete Profile"
+          description="Add your contact information and company details"
+          buttonText="Update Profile"
+          buttonAction={() => setActiveTab('profile')}
+          show={!profile.firstName || !profile.company}
+        />
+
+        <QuickActionCard
+          icon={HeadphonesIcon}
+          title="Need Help?"
+          description="Contact our support team for assistance"
+          buttonText="Get Support"
+          buttonAction={() => setActiveTab('support')}
+          show={true}
+        />
+      </div>
+    </div>
+  )
+}
+
+function QuickActionCard({ icon: Icon, title, description, buttonText, buttonAction, show }: any) {
+  if (!show) return null
+
+  return (
+    <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+      <div className="flex items-start gap-4">
+        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
+          <p className="text-sm text-slate-400 mb-4">{description}</p>
+          <button
+            onClick={buttonAction}
+            className="text-sm font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1"
+          >
+            {buttonText}
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Profile Tab
+function ProfileTab({
+  profile,
+  setProfile,
+  editMode,
+  setEditMode,
+  saving,
+  saveProfile,
+  sendEmailVerification,
+  verificationSent,
+}: any) {
+  return (
+    <div className="space-y-6">
+      {/* Personal Information */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Personal Information</h2>
+          </div>
+          {editMode !== 'personal' ? (
+            <button
+              onClick={() => setEditMode('personal')}
+              className="text-sm font-medium text-blue-400 hover:text-blue-300"
+            >
+              Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditMode(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveProfile}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">First Name</label>
+            <input
+              type="text"
+              value={profile.firstName || ''}
+              onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+              disabled={editMode !== 'personal'}
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Last Name</label>
+            <input
+              type="text"
+              value={profile.lastName || ''}
+              onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+              disabled={editMode !== 'personal'}
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+            <div className="relative">
+              <input
+                type="email"
+                value={profile.email || ''}
+                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                disabled={editMode !== 'personal'}
+                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed pr-12"
+              />
+              {profile.emailVerified ? (
+                <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-400" />
+              ) : (
+                <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-400" />
+              )}
+            </div>
+            {!profile.emailVerified && (
+              <button
+                onClick={sendEmailVerification}
+                disabled={verificationSent}
+                className="mt-2 text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 disabled:opacity-50"
+              >
+                <Send className="h-3 w-3" />
+                {verificationSent ? 'Verification email sent!' : 'Send verification email'}
+              </button>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Phone</label>
+            <div className="relative">
+              <input
+                type="tel"
+                value={profile.phone || ''}
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                disabled={editMode !== 'personal'}
+                placeholder="+1 (555) 123-4567"
+                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed pr-12"
+              />
+              {profile.phoneVerified ? (
+                <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-400" />
+              ) : (
+                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Company Information */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Company Information</h2>
+          </div>
+          {editMode !== 'company' ? (
+            <button
+              onClick={() => setEditMode('company')}
+              className="text-sm font-medium text-blue-400 hover:text-blue-300"
+            >
+              Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditMode(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveProfile}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Company Name</label>
+            <input
+              type="text"
+              value={profile.company || ''}
+              onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+              disabled={editMode !== 'company'}
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Job Title</label>
+            <input
+              type="text"
+              value={profile.title || ''}
+              onChange={(e) => setProfile({ ...profile, title: e.target.value })}
+              disabled={editMode !== 'company'}
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Address */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+              <MapPin className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Address</h2>
+          </div>
+          {editMode !== 'address' ? (
+            <button
+              onClick={() => setEditMode('address')}
+              className="text-sm font-medium text-blue-400 hover:text-blue-300"
+            >
+              Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditMode(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveProfile}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Address Line 1</label>
+            <input
+              type="text"
+              value={profile.addressLine1 || ''}
+              onChange={(e) => setProfile({ ...profile, addressLine1: e.target.value })}
+              disabled={editMode !== 'address'}
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Address Line 2</label>
+            <input
+              type="text"
+              value={profile.addressLine2 || ''}
+              onChange={(e) => setProfile({ ...profile, addressLine2: e.target.value })}
+              disabled={editMode !== 'address'}
+              placeholder="Apartment, suite, etc. (optional)"
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">City</label>
+              <input
+                type="text"
+                value={profile.city || ''}
+                onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                disabled={editMode !== 'address'}
+                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">State</label>
+              <input
+                type="text"
+                value={profile.state || ''}
+                onChange={(e) => setProfile({ ...profile, state: e.target.value })}
+                disabled={editMode !== 'address'}
+                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Postal Code</label>
+              <input
+                type="text"
+                value={profile.postalCode || ''}
+                onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
+                disabled={editMode !== 'address'}
+                className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Country</label>
+            <input
+              type="text"
+              value={profile.country || ''}
+              onChange={(e) => setProfile({ ...profile, country: e.target.value })}
+              disabled={editMode !== 'address'}
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Billing Tab
+function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billingInterval, setBillingInterval, handlePlanChange, managePaymentMethod, handleCancelSubscription, loadingPlanChange }: any) {
+  return (
+    <div className="space-y-6">
+      {/* Current Plan */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <Package className="h-6 w-6 text-blue-400" />
+          Current Plan
+        </h2>
+
+        {currentPlanDetails ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+              <div className="flex items-center gap-4">
+                <div className={`h-16 w-16 rounded-xl bg-gradient-to-br ${currentPlanDetails.color} flex items-center justify-center`}>
+                  <currentPlanDetails.icon className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{currentPlanDetails.name}</h3>
+                  <p className="text-slate-400">
+                    ${plan.interval === 'year' ? currentPlanDetails.annualPrice : currentPlanDetails.monthlyPrice}
+                    /{plan.interval === 'year' ? 'year' : 'month'}
+                  </p>
+                  {plan.currentPeriodEnd && (
+                    <p className="text-sm text-slate-500 mt-1">
+                      {plan.cancelAtPeriodEnd ? 'Cancels' : 'Renews'} on {new Date(plan.currentPeriodEnd).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={managePaymentMethod}
+                className="px-4 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 border border-blue-400/30 rounded-lg hover:bg-blue-400/10"
+              >
+                Manage in Stripe
+              </button>
+            </div>
+
+            {plan.cancelAtPeriodEnd && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                <div className="flex items-center gap-2 text-red-400">
+                  <AlertCircle className="h-5 w-5" />
+                  <p className="text-sm">
+                    Your subscription will cancel on {new Date(plan.currentPeriodEnd).toLocaleDateString()}. 
+                    You'll have access until then.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!plan.cancelAtPeriodEnd && (
+              <button
+                onClick={handleCancelSubscription}
+                className="text-sm text-red-400 hover:text-red-300"
+              >
+                Cancel Subscription
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700 text-center">
+            <Package className="h-12 w-12 mx-auto mb-3 text-slate-500" />
+            <p className="text-lg text-white mb-2">No Active Plan</p>
+            <p className="text-sm text-slate-400 mb-4">Choose a plan below to get started</p>
+          </div>
+        )}
+      </div>
+
+      {/* Plan Selection */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">Change Plan</h2>
+
+          {/* Interval Toggle */}
+          <div className="flex items-center gap-2 p-1 bg-slate-800 rounded-lg">
+            <button
+              onClick={() => setBillingInterval('monthly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                billingInterval === 'monthly' ? 'bg-blue-500 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingInterval('annual')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                billingInterval === 'annual' ? 'bg-blue-500 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Annual
+              <span className="ml-1 text-xs text-emerald-400">Save 17%</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {Object.entries(PLAN_DETAILS).map(([tier, details]) => {
+            const isCurrentPlan = plan?.tier === tier && plan?.interval === (billingInterval === 'annual' ? 'year' : 'month')
+            const isLoading = loadingPlanChange === tier
+
+            return (
+              <div
+                key={tier}
+                className="rounded-xl border border-slate-700 bg-slate-800/30 p-6 flex flex-col"
+              >
+                <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${details.color} flex items-center justify-center mb-4`}>
+                  <details.icon className="h-6 w-6 text-white" />
+                </div>
+
+                <h3 className="text-xl font-bold text-white mb-2">{details.name}</h3>
+
+                <div className="mb-4">
+                  <span className="text-3xl font-bold text-white">
+                    ${billingInterval === 'annual' ? details.annualPrice : details.monthlyPrice}
+                  </span>
+                  <span className="text-slate-400">/{billingInterval === 'annual' ? 'year' : 'month'}</span>
+                </div>
+
+                <ul className="space-y-2 mb-6 flex-1">
+                  {details.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2 text-sm text-slate-300">
+                      <Check className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {isCurrentPlan ? (
+                  <button
+                    disabled
+                    className="w-full py-3 px-4 rounded-lg bg-slate-700 text-slate-400 font-medium cursor-not-allowed"
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handlePlanChange(tier as PlanTier, billingInterval === 'annual' ? 'year' : 'month')}
+                    disabled={isLoading}
+                    className="w-full py-3 px-4 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      plan?.tier === 'NONE' ? 'Get Started' : 'Switch to ' + details.name
+                    )}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Payment Methods */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <CreditCard className="h-6 w-6 text-blue-400" />
+            Payment Methods
+          </h2>
+          <button
+            onClick={managePaymentMethod}
+            className="px-4 py-2 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Manage Payment Methods
+          </button>
+        </div>
+
+        {paymentMethods.length > 0 ? (
+          <div className="space-y-3">
+            {paymentMethods.map((method: PaymentMethod) => (
+              <div
+                key={method.id}
+                className="flex items-center justify-between p-4 rounded-lg bg-slate-800/30 border border-slate-700"
+              >
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-6 w-6 text-slate-400" />
+                  <div>
+                    <p className="text-white font-medium">
+                      {method.brand.toUpperCase()} •••• {method.last4}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      Expires {method.expMonth}/{method.expYear}
+                    </p>
+                  </div>
+                </div>
+                {method.isDefault && (
+                  <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium">
+                    Default
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-400">
+            <CreditCard className="h-12 w-12 mx-auto mb-3 text-slate-600" />
+            <p>No payment methods on file</p>
+          </div>
+        )}
+      </div>
+
+      {/* Invoice History */}
+      {invoices && invoices.length > 0 && (
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+            <FileText className="h-6 w-6 text-blue-400" />
+            Invoice History
+          </h2>
+
+          <div className="space-y-3">
+            {invoices.slice(0, 5).map((invoice: Invoice) => (
+              <div
+                key={invoice.id}
+                className="flex items-center justify-between p-4 rounded-lg bg-slate-800/30 border border-slate-700"
+              >
+                <div>
+                  <p className="text-white font-medium">
+                    ${(invoice.amount / 100).toFixed(2)}
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    {new Date(invoice.date).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    invoice.status === 'paid'
+                      ? 'bg-emerald-500/10 text-emerald-400'
+                      : 'bg-amber-500/10 text-amber-400'
+                  }`}>
+                    {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                  </span>
+                  {invoice.invoicePdf && (
+                    <a
+                      href={invoice.invoicePdf}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg hover:bg-slate-700 text-blue-400 hover:text-blue-300"
+                    >
+                      <Download className="h-5 w-5" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Support Tab
+function SupportTab({ profile, plan }: any) {
+  const [subject, setSubject] = useState('')
+  const [message, setMessage] = useState('')
+  const [priority, setPriority] = useState<'low' | 'normal' | 'high'>('normal')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSending(true)
+
+    try {
+      const response = await fetch('/api/support/ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject,
+          message,
+          priority,
+          userInfo: {
+            email: profile.email,
+            name: `${profile.firstName} ${profile.lastName}`.trim(),
+            plan: plan?.tier || 'NONE',
+          },
+        }),
+      })
+
+      if (response.ok) {
+        setSent(true)
+        setSubject('')
+        setMessage('')
+        setPriority('normal')
+        setTimeout(() => setSent(false), 5000)
+      }
+    } catch (error) {
+      console.error('Error submitting support ticket:', error)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Contact Options */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl text-center">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+            <Mail className="h-6 w-6 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Email Support</h3>
+          <p className="text-sm text-slate-400 mb-4">We'll respond within 24 hours</p>
+          <a
+            href="mailto:support@precisegov.com"
+            className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+          >
+            support@precisegov.com
+          </a>
+        </div>
+
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl text-center">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto mb-4">
+            <MessageSquare className="h-6 w-6 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Live Chat</h3>
+          <p className="text-sm text-slate-400 mb-4">Available Mon-Fri, 9am-5pm ET</p>
+          <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+            Start Chat
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl text-center">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
+            <Phone className="h-6 w-6 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">Phone Support</h3>
+          <p className="text-sm text-slate-400 mb-4">
+            {plan?.tier === 'ENTERPRISE' ? 'Priority phone support' : 'Enterprise plans only'}
+          </p>
+          {plan?.tier === 'ENTERPRISE' ? (
+            <a href="tel:+18445551234" className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+              (844) 555-1234
+            </a>
+          ) : (
+            <button className="text-slate-500 text-sm font-medium cursor-not-allowed">
+              Upgrade for phone support
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Submit Ticket Form */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <HeadphonesIcon className="h-6 w-6 text-blue-400" />
+          Submit Support Ticket
+        </h2>
+
+        {sent && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5" />
+            <span>Your support ticket has been submitted. We'll be in touch soon!</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Subject</label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required
+              placeholder="Brief description of your issue"
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Priority</label>
+            <div className="flex gap-3">
+              {[
+                { value: 'low', label: 'Low', color: 'slate' },
+                { value: 'normal', label: 'Normal', color: 'blue' },
+                { value: 'high', label: 'High', color: 'red' },
+              ].map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setPriority(p.value as any)}
+                  className={`flex-1 py-2 px-4 rounded-lg border transition ${
+                    priority === p.value
+                      ? `border-${p.color}-500 bg-${p.color}-500/10 text-${p.color}-400`
+                      : 'border-slate-600 bg-slate-900/50 text-slate-400 hover:border-slate-500'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Message</label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+              rows={6}
+              placeholder="Please describe your issue in detail..."
+              className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={sending}
+            className="w-full py-3 px-6 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {sending ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="h-5 w-5" />
+                Submit Ticket
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* Billing Support */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+          <CreditCard className="h-6 w-6 text-blue-400" />
+          Billing Support
+        </h2>
+        <p className="text-slate-400 mb-6">
+          For billing inquiries, subscription changes, or invoice requests, please contact our billing team.
+        </p>
+        <a
+          href="mailto:billing@precisegov.com"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium transition"
+        >
+          <Mail className="h-5 w-5" />
+          Contact Billing Support
+        </a>
+      </div>
+    </div>
+  )
+}
+
+// Bids Tab
+function BidsTab({ bids, setBids }: any) {
+  const [filter, setFilter] = useState<'all' | 'draft' | 'submitted' | 'awarded' | 'not_awarded'>('all')
+
+  const filteredBids = filter === 'all' ? bids : bids.filter((b: BidData) => b.status === filter)
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'draft':
+        return 'text-slate-400 bg-slate-400/10 border-slate-400/20'
+      case 'submitted':
+        return 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+      case 'awarded':
+        return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20'
+      case 'not_awarded':
+        return 'text-red-400 bg-red-400/10 border-red-400/20'
+      default:
+        return 'text-slate-400 bg-slate-400/10 border-slate-400/20'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    return status
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid gap-6 md:grid-cols-4">
+        {[
+          { label: 'Total Bids', value: bids.length, color: 'blue' },
+          { label: 'In Progress', value: bids.filter((b: BidData) => b.status === 'draft').length, color: 'slate' },
+          { label: 'Submitted', value: bids.filter((b: BidData) => b.status === 'submitted').length, color: 'purple' },
+          { label: 'Awarded', value: bids.filter((b: BidData) => b.status === 'awarded').length, color: 'emerald' },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+            <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
+            <p className={`text-3xl font-bold text-${stat.color}-400`}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Bids List */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Gavel className="h-6 w-6 text-blue-400" />
+            Bid Management
+          </h2>
+
+          {/* Filter */}
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as any)}
+            className="rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="all">All Bids</option>
+            <option value="draft">Drafts</option>
+            <option value="submitted">Submitted</option>
+            <option value="awarded">Awarded</option>
+            <option value="not_awarded">Not Awarded</option>
+          </select>
+        </div>
+
+        {filteredBids.length > 0 ? (
+          <div className="space-y-3">
+            {filteredBids.map((bid: BidData) => (
+              <div
+                key={bid.id}
+                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-slate-600 transition cursor-pointer"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-white font-medium mb-1">{bid.opportunityTitle}</h3>
+                    <div className="flex items-center gap-4 text-sm text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-4 w-4" />
+                        {bid.opportunityId}
+                      </span>
+                      <span>Due: {new Date(bid.dueDate).toLocaleDateString()}</span>
+                      {bid.value && (
+                        <span className="text-emerald-400 font-medium">
+                          ${bid.value.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(bid.status)}`}>
+                    {getStatusLabel(bid.status)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="text-center py-12 text-slate-400">
-            <BarChart3 className="h-16 w-16 mx-auto mb-4 text-slate-600" />
-            <p>Usage data unavailable</p>
+            <Gavel className="h-16 w-16 mx-auto mb-4 text-slate-600" />
+            <p className="text-lg mb-2">No bids found</p>
+            <p className="text-sm">Start tracking your government contract bids here</p>
           </div>
         )}
       </div>

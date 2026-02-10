@@ -1,4 +1,4 @@
-// app/api/auth/[...nextauth]/authOptions.ts - FIXED REDIRECT LOOP
+// app/api/auth/[...nextauth]/authOptions.ts
 
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
@@ -44,41 +44,45 @@ async function ensureUserRow(params: {
   const { first, last } = splitName(params.name)
   const now = new Date()
 
-  const existing = await prisma.user.findUnique({
+  const existing = await prisma.users.findUnique({
     where: { email },
     select: {
       id: true,
       email: true,
-      trialEndsAt: true,
-      trialActive: true,
+      trial_ends_at: true,
+      trial_active: true,
       plan: true,
-      trialExpiresAt: true,
-      planTier: true,
-      planStatus: true,
-      emailVerified: true,
-      subscriptionStatus: true,
-      billingInterval: true,
+      trial_expires_at: true,
+      plan_tier: true,
+      plan_status: true,
+      email_verified: true,
+      subscription_status: true,
+      billing_interval: true,
     },
   })
 
   if (!existing) {
     const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
-    const displayName = params.name || `${first || ""} ${last || ""}`.trim() || email.split('@')[0]
+    const displayName = params.name || `${first || ""} ${last || ""}`.trim() || email.split("@")[0]
 
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        // ✅ FIX: schema requires these on create
+        id: crypto.randomUUID(),
+        updated_at: now,
+
         email,
-        firstName: first || email.split('@')[0],
-        lastName: last || "",
+        first_name: first || email.split("@")[0],
+        last_name: last || "",
         role: "user",
         plan: "BASIC",
-        planTier: "BASIC",
-        planStatus: "trialing",
-        trialActive: true,
-        trialStartedAt: now,
-        trialExpiresAt: trialExpires,
-        trialEndsAt: trialExpires,
-        emailVerified: params.provider === "google" ? now : null,
+        plan_tier: "BASIC",
+        plan_status: "trialing",
+        trial_active: true,
+        trial_started_at: now,
+        trial_expires_at: trialExpires,
+        trial_ends_at: trialExpires,
+        email_verified: params.provider === "google" ? now : null,
         name: displayName,
         image: params.image || undefined,
       },
@@ -87,17 +91,17 @@ async function ensureUserRow(params: {
     return user
   }
 
-  const shouldVerifyNow = params.provider === "google" && !existing.emailVerified
+  const shouldVerifyNow = params.provider === "google" && !existing.email_verified
   const updateData: any = {
-    ...(first && { firstName: first }),
-    ...(last && { lastName: last }),
+    ...(first && { first_name: first }),
+    ...(last && { last_name: last }),
     ...(params.name && { name: params.name.trim() }),
     ...(params.image && { image: params.image }),
-    ...(shouldVerifyNow && { emailVerified: now }),
+    ...(shouldVerifyNow && { email_verified: now }),
   }
 
   if (Object.keys(updateData).length > 0) {
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: existing.id },
       data: updateData,
     })
@@ -107,12 +111,12 @@ async function ensureUserRow(params: {
 }
 
 export const authOptions: NextAuthOptions = {
-  session: { 
+  session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours - refresh session from DB
   },
-  
+
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -134,27 +138,27 @@ export const authOptions: NextAuthOptions = {
         const password = String(credentials?.password ?? "")
         const autoLoginToken = String((credentials as any)?.autoLoginToken ?? "").trim()
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
           where: { email },
           select: {
             id: true,
             email: true,
-            passwordHash: true,
-            emailVerified: true,
-            firstName: true,
-            lastName: true,
+            password_hash: true,
+            email_verified: true,
+            first_name: true,
+            last_name: true,
             name: true,
             role: true,
             plan: true,
-            planTier: true,
-            planStatus: true,
-            subscriptionStatus: true,
-            billingInterval: true,
-            trialEndsAt: true,
-            trialExpiresAt: true,
-            trialActive: true,
-            stripeSubscriptionId: true,
-            stripeCustomerId: true,
+            plan_tier: true,
+            plan_status: true,
+            subscription_status: true,
+            billing_interval: true,
+            trial_ends_at: true,
+            trial_expires_at: true,
+            trial_active: true,
+            stripe_subscription_id: true,
+            stripe_customer_id: true,
           },
         })
 
@@ -162,7 +166,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Account not found")
         }
 
-        if (!user.emailVerified) {
+        if (!user.email_verified) {
           throw new Error("Email not verified. Please check your inbox.")
         }
 
@@ -172,177 +176,124 @@ export const authOptions: NextAuthOptions = {
 
           const tokenRow = await prisma.auto_login_tokens.findFirst({
             where: {
-              user_id: user.id,
               token_hash: tokenHash,
               used_at: null,
               expires_at: { gt: now },
             },
-            select: { id: true },
+            select: {
+              id: true,
+              user_id: true,
+              expires_at: true,
+              used_at: true,
+            },
           })
 
           if (!tokenRow) {
-            throw new Error("Invalid credentials")
+            throw new Error("Invalid or expired auto-login token")
           }
 
+          // Mark token used
           await prisma.auto_login_tokens.update({
             where: { id: tokenRow.id },
             data: { used_at: now },
           })
-        } else {
-          if (!password || !user.passwordHash) {
-            throw new Error("Invalid credentials")
-          }
 
-          const { compare } = await import("bcryptjs")
-          const valid = await compare(password, user.passwordHash)
-          if (!valid) {
-            throw new Error("Invalid credentials")
-          }
+          // Successful login via token
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email,
+            role: user.role || "user",
+            plan: user.plan || null,
+            plan_tier: user.plan_tier || null,
+            plan_status: user.plan_status || null,
+            trial_active: !!user.trial_active,
+            trial_ends_at: user.trial_ends_at || null,
+            subscription_status: user.subscription_status || null,
+            billing_interval: user.billing_interval || null,
+          } as any
         }
 
-        let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
-        const rawTier = (user.planTier || user.plan || 'BASIC').toUpperCase()
-        if (rawTier === 'PROFESSIONAL' || rawTier === 'PRO') {
-          tier = 'PROFESSIONAL'
-        } else if (rawTier === 'ENTERPRISE') {
-          tier = 'ENTERPRISE'
-        } else {
-          tier = 'BASIC'
+        if (!user.password_hash) {
+          throw new Error("Password login not enabled for this account")
         }
 
-        const rawInterval = user.billingInterval || null
-        let interval: 'month' | 'year' | null = null
-        if (rawInterval) {
-          const lower = String(rawInterval).toLowerCase()
-          if (lower === 'monthly' || lower === 'month') interval = 'month'
-          if (lower === 'annual' || lower === 'year') interval = 'year'
+        // Verify password
+        const bcrypt = await import("bcryptjs")
+        const ok = await bcrypt.compare(password, user.password_hash)
+        if (!ok) {
+          throw new Error("Invalid password")
         }
 
-        const status = user.subscriptionStatus || user.planStatus || 'trialing'
-
-        const hasSubscription = Boolean(
-          user.stripeSubscriptionId &&
-          (status === 'active' || status === 'trialing' || status === 'trial' || status === 'past_due')
-        )
-
-        console.log(`✅ User logged in: ${user.email}, hasSubscription: ${hasSubscription}, tier: ${tier}, status: ${status}`)
-
+        // Successful login
         return {
           id: user.id,
           email: user.email,
-          name: user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || email.split('@')[0],
-          role: user.role ?? "user",
-          tier,
-          interval,
-          status,
-          hasSubscription,
-          trial_active: user.trialActive || false,
-          currentPeriodEnd:
-            user.trialExpiresAt?.toISOString() ||
-            user.trialEndsAt?.toISOString() ||
-            new Date().toISOString(),
-        }
+          name: user.name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email,
+          role: user.role || "user",
+          plan: user.plan || null,
+          plan_tier: user.plan_tier || null,
+          plan_status: user.plan_status || null,
+          trial_active: !!user.trial_active,
+          trial_ends_at: user.trial_ends_at || null,
+          subscription_status: user.subscription_status || null,
+          billing_interval: user.billing_interval || null,
+        } as any
       },
     }),
   ],
 
-  events: {
+  callbacks: {
     async signIn({ user, account }) {
-      if (!user?.email) return
+      if (!user?.email) return false
       await ensureUserRow({
         email: user.email,
         name: user.name ?? null,
         image: (user as any).image ?? null,
         provider: account?.provider ?? null,
       })
+      return true
     },
-  },
 
-  callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = (user as any).id
         token.email = user.email
-        token.name = user.name || (user as any).name || ""
-        token.role = (user as any).role ?? "user"
-        token.tier = (user as any).tier || "BASIC"
-        token.interval = (user as any).interval || null
-        token.status = (user as any).status || "trialing"
-        token.hasSubscription = (user as any).hasSubscription || false
-        token.trial_active = (user as any).trial_active || false
-        token.currentPeriodEnd = (user as any).currentPeriodEnd
       }
 
-      // ✅ ALWAYS REFRESH FROM DATABASE
-      // This ensures subscription updates are reflected immediately
-      if (token.email) {
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: token.email as string },
-            select: {
-              id: true,
-              name: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-              plan: true,
-              planTier: true,
-              planStatus: true,
-              subscriptionStatus: true,
-              billingInterval: true,
-              trialActive: true,
-              trialEndsAt: true,
-              trialExpiresAt: true,
-              stripeSubscriptionId: true,
-              stripeCustomerId: true,
-            },
-          })
+      if (token?.email) {
+        const dbUser = await prisma.users.findUnique({
+          where: { email: String(token.email) },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            plan: true,
+            plan_tier: true,
+            plan_status: true,
+            trial_active: true,
+            trial_ends_at: true,
+            subscription_status: true,
+            billing_interval: true,
+            stripe_subscription_id: true,
+            stripe_customer_id: true,
+          },
+        })
 
-          if (dbUser) {
-            token.id = dbUser.id
-            token.name = dbUser.name || `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim() || (token.email as string).split('@')[0]
-            token.role = dbUser.role ?? "user"
-
-            let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
-            const rawTier = (dbUser.planTier || dbUser.plan || 'BASIC').toUpperCase()
-            if (rawTier === 'PROFESSIONAL' || rawTier === 'PRO') {
-              tier = 'PROFESSIONAL'
-            } else if (rawTier === 'ENTERPRISE') {
-              tier = 'ENTERPRISE'
-            } else {
-              tier = 'BASIC'
-            }
-            token.tier = tier
-
-            const rawInterval = dbUser.billingInterval || null
-            let interval: 'month' | 'year' | null = null
-            if (rawInterval) {
-              const lower = String(rawInterval).toLowerCase()
-              if (lower === 'monthly' || lower === 'month') interval = 'month'
-              if (lower === 'annual' || lower === 'year') interval = 'year'
-            }
-            token.interval = interval
-
-            const status = dbUser.subscriptionStatus || dbUser.planStatus || 'trialing'
-            token.status = status
-
-            const hasSubscription = Boolean(
-              dbUser.stripeSubscriptionId &&
-              (status === 'active' || status === 'trialing' || status === 'trial' || status === 'past_due')
-            )
-            token.hasSubscription = hasSubscription
-            token.trial_active = dbUser.trialActive ?? false
-            token.currentPeriodEnd =
-              dbUser.trialExpiresAt?.toISOString() ||
-              dbUser.trialEndsAt?.toISOString() ||
-              (typeof token.currentPeriodEnd === "string"
-                ? token.currentPeriodEnd
-                : new Date().toISOString())
-
-            console.log(`🔄 JWT refreshed for ${token.email}: hasSubscription=${hasSubscription}, tier=${tier}`)
-          }
-        } catch (err) {
-          console.error("JWT refresh error:", err)
+        if (dbUser) {
+          token.id = dbUser.id
+          token.name = dbUser.name
+          token.role = dbUser.role ?? "user"
+          token.plan = dbUser.plan
+          token.plan_tier = dbUser.plan_tier
+          token.plan_status = dbUser.plan_status
+          token.trial_active = dbUser.trial_active ?? false  // ✅ FIX: Convert null to false
+          token.trial_ends_at = dbUser.trial_ends_at
+          token.subscription_status = dbUser.subscription_status
+          token.billing_interval = dbUser.billing_interval
+          token.stripe_subscription_id = dbUser.stripe_subscription_id
+          token.stripe_customer_id = dbUser.stripe_customer_id
         }
       }
 
@@ -351,82 +302,38 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user) {
-        ;(session.user as any).id = token.id as string
-        session.user.email = token.email as string
-        session.user.name = (token.name as string) || (token.email as string).split('@')[0]
-        ;(session.user as any).role = token.role as string
-        ;(session.user as any).tier = token.tier as string
-        ;(session.user as any).interval = token.interval as string | null
-        ;(session.user as any).status = token.status as string
-        ;(session.user as any).hasSubscription = token.hasSubscription as boolean
-        ;(session.user as any).trial_active = token.trial_active as boolean
-        ;(session.user as any).currentPeriodEnd = token.currentPeriodEnd as string
+        ;(session.user as any).id = token.id
+        ;(session.user as any).role = (token as any).role
+        ;(session.user as any).plan = (token as any).plan
+        ;(session.user as any).plan_tier = (token as any).plan_tier
+        ;(session.user as any).plan_status = (token as any).plan_status
+        ;(session.user as any).trial_active = (token as any).trial_active
+        ;(session.user as any).trial_ends_at = (token as any).trial_ends_at
+        ;(session.user as any).subscription_status = (token as any).subscription_status
+        ;(session.user as any).billing_interval = (token as any).billing_interval
+        ;(session.user as any).stripe_subscription_id = (token as any).stripe_subscription_id
+        ;(session.user as any).stripe_customer_id = (token as any).stripe_customer_id
       }
       return session
     },
 
     async redirect({ url, baseUrl }) {
-      // Parse URL to check for welcome flag
-      const urlObj = new URL(url.startsWith('/') ? `${baseUrl}${url}` : url)
-      const welcomeFlag = urlObj.searchParams.get('welcome')
-      
-      // ✅ NEVER REDIRECT /dashboard TO ANYWHERE ELSE
-      // This fixes the redirect loop
-      if (url.startsWith('/dashboard') || url.includes('/dashboard')) {
-        console.log('✅ Allowing access to /dashboard page')
-        return url.startsWith('/') ? `${baseUrl}${url}` : url
-      }
-      
-      // Handle relative URLs
-      if (url.startsWith('/')) {
-        // Block redirects to /dashboard from other pages
-        if (url === '/login' || url.startsWith('/login?')) {
-          console.log('🔀 Redirecting to dashboard instead of login')
-          const dashboardUrl = new URL('/dashboard', baseUrl)
-          if (welcomeFlag === 'true') {
-            dashboardUrl.searchParams.set('welcome', 'true')
-          }
-          return dashboardUrl.toString()
-        }
-        
-        if (welcomeFlag === 'true') {
-          const targetUrl = new URL(url, baseUrl)
-          targetUrl.searchParams.set('welcome', 'true')
-          return targetUrl.toString()
-        }
-        
-        return `${baseUrl}${url}`
-      }
-      
-      // Handle absolute URLs
-      if (url.startsWith(baseUrl)) {
-        const path = url.replace(baseUrl, '')
-        
-        if (path === '/login' || path.startsWith('/login?')) {
-          console.log('🔀 Redirecting to dashboard instead of login')
-          const dashboardUrl = new URL('/dashboard', baseUrl)
-          if (welcomeFlag === 'true') {
-            dashboardUrl.searchParams.set('welcome', 'true')
-          }
-          return dashboardUrl.toString()
-        }
-        
-        if (welcomeFlag === 'true' && !url.includes('welcome=')) {
-          const targetUrl = new URL(url)
-          targetUrl.searchParams.set('welcome', 'true')
-          return targetUrl.toString()
-        }
-        
-        return url
-      }
-      
-      // Default: redirect to dashboard
-      console.log('✅ Default redirect to /dashboard')
-      const dashboardUrl = new URL('/dashboard', baseUrl)
-      if (welcomeFlag === 'true') {
-        dashboardUrl.searchParams.set('welcome', 'true')
-      }
-      return dashboardUrl.toString()
+      // Only allow relative redirects or same-origin
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      try {
+        const u = new URL(url)
+        if (u.origin === baseUrl) return url
+      } catch {}
+      return baseUrl
     },
   },
+
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
 }
+
+export default NextAuth(authOptions)

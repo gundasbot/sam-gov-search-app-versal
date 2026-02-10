@@ -1,4 +1,4 @@
-// app/api/stripe/subscription/cancel/route.ts
+﻿// app/api/stripe/subscription/cancel/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import Stripe from 'stripe';
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`🔄 Canceling subscription: ${subscriptionId}`);
+    console.log(`ðŸ”„ Canceling subscription: ${subscriptionId}`);
 
     // Cancel the subscription at period end
     const canceledSubscription = await stripe.subscriptions.update(
@@ -40,11 +40,11 @@ export async function POST(request: Request) {
       }
     );
 
-    console.log(`✅ Subscription marked for cancellation at period end`);
+    console.log(`âœ… Subscription marked for cancellation at period end`);
 
     // Extract current_period_end safely
     const periodEnd = (canceledSubscription as any).current_period_end;
-    const currentPeriodEnd = typeof periodEnd === 'number' 
+    const current_period_end = typeof periodEnd === 'number' 
       ? new Date(periodEnd * 1000).toISOString()
       : null;
 
@@ -53,13 +53,13 @@ export async function POST(request: Request) {
       subscription: {
         id: canceledSubscription.id,
         status: canceledSubscription.status,
-        cancelAtPeriodEnd: canceledSubscription.cancel_at_period_end,
-        currentPeriodEnd,
+        cancel_at_period_end: canceledSubscription.cancel_at_period_end,
+        current_period_end,
       },
     });
 
   } catch (error: any) {
-    console.error('❌ Error canceling subscription:', error);
+    console.error('âŒ Error canceling subscription:', error);
     
     return NextResponse.json(
       { 
@@ -93,12 +93,12 @@ export async function DELETE(request: Request) {
       );
     }
 
-    console.log(`🔄 Immediately canceling subscription: ${subscriptionId}`);
+    console.log(`ðŸ”„ Immediately canceling subscription: ${subscriptionId}`);
 
     // Cancel the subscription immediately
     const canceledSubscription = await stripe.subscriptions.cancel(subscriptionId);
 
-    console.log(`✅ Subscription canceled immediately`);
+    console.log(`âœ… Subscription canceled immediately`);
 
     return NextResponse.json({
       success: true,
@@ -110,7 +110,7 @@ export async function DELETE(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('❌ Error canceling subscription:', error);
+    console.error('âŒ Error canceling subscription:', error);
     
     return NextResponse.json(
       { 

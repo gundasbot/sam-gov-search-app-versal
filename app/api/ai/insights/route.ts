@@ -1,4 +1,4 @@
-// app/api/ai/insights/route.ts
+﻿// app/api/ai/insights/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -65,7 +65,7 @@ Rules:
 - Return an ARRAY (not an object)
 - Each item MUST have:
   - title (string)
-  - description (string, 2–3 sentences)
+  - description (string, 2â€“3 sentences)
   - priority ("high" | "medium" | "low")
   - category ("opportunity" | "trend" | "recommendation" | "alert")
 
@@ -170,7 +170,7 @@ async function createWithFallbackModels(
       const msg = String(e?.message || '')
       const status = e?.status || e?.response?.status
 
-      // Only “fall back” on obvious model-name failures; otherwise rethrow
+      // Only â€œfall backâ€ on obvious model-name failures; otherwise rethrow
       if (status === 404 || msg.toLowerCase().includes('not_found')) {
         continue
       }

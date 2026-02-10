@@ -1,4 +1,4 @@
-// app/api/auth/auto-login/route.ts - BEAUTIFUL FIRST-TIME WELCOME
+﻿// app/api/auth/auto-login/route.ts - BEAUTIFUL FIRST-TIME WELCOME
 
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
@@ -42,14 +42,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: autoLoginToken.user_id },
       select: { 
         id: true, 
         email: true, 
         firstName: true,
         lastName: true,
-        trialExpiresAt: true,
+        trial_expires_at: true,
         trialStartedAt: true
       }
     })
@@ -65,11 +65,11 @@ export async function GET(request: NextRequest) {
       data: { used_at: new Date() }
     })
 
-    console.log(`🔐 Auto-login successful for: ${user.email}`)
+    console.log(`ðŸ” Auto-login successful for: ${user.email}`)
 
     // Calculate trial days remaining
-    const trialDaysRemaining = user.trialExpiresAt 
-      ? Math.ceil((user.trialExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    const trialDaysRemaining = user.trial_expires_at 
+      ? Math.ceil((user.trial_expires_at.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       : 7
 
     const firstName = user.firstName || user.email.split('@')[0]
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Welcome to Precise GovCon 🎉</title>
+  <title>Welcome to Precise GovCon ðŸŽ‰</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     * {
@@ -269,9 +269,9 @@ export async function GET(request: NextRequest) {
 </head>
 <body>
   <div class="container">
-    <div class="logo">✓</div>
+    <div class="logo">âœ“</div>
     
-    <h1>Welcome, ${firstName}! 🎉</h1>
+    <h1>Welcome, ${firstName}! ðŸŽ‰</h1>
     
     <p class="subtitle">
       Your email is verified and your free trial is active.<br>
@@ -279,24 +279,24 @@ export async function GET(request: NextRequest) {
     </p>
     
     <div class="trial-badge">
-      🎁 ${trialDaysRemaining} days of full access remaining
+      ðŸŽ ${trialDaysRemaining} days of full access remaining
     </div>
     
     <button class="cta-button" id="ctaBtn">
-      Let's Get to Work! 🚀
+      Let's Get to Work! ðŸš€
     </button>
 
     <div class="features">
       <div class="feature">
-        <div class="feature-icon">🔍</div>
+        <div class="feature-icon">ðŸ”</div>
         <div class="feature-text">Search 1,000+ opportunities</div>
       </div>
       <div class="feature">
-        <div class="feature-icon">🎯</div>
+        <div class="feature-icon">ðŸŽ¯</div>
         <div class="feature-text">AI-powered matching</div>
       </div>
       <div class="feature">
-        <div class="feature-icon">📊</div>
+        <div class="feature-icon">ðŸ“Š</div>
         <div class="feature-text">Real-time alerts</div>
       </div>
     </div>
@@ -349,7 +349,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('❌ Auto-login error:', error)
+    console.error('âŒ Auto-login error:', error)
     return NextResponse.redirect(
       new URL('/?error=auto-login-failed', request.url)
     )

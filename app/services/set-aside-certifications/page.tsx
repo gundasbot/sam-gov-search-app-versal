@@ -60,7 +60,7 @@ export default function SetAsideCertificationsPage() {
     { 
       id: 'sdvosb', 
       label: 'SDVOSB', 
-      description: 'Service-Disabled Veteran-Owned', 
+      description: 'VETERAN-OWNED', 
       icon: Shield 
     },
     { 

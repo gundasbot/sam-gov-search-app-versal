@@ -292,7 +292,7 @@ function LoginPageContent() {
   // Redirect if already authenticated
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push('/account')
+      router.push('/dashboard')
     }
   }, [status, router])
 
@@ -386,13 +386,13 @@ function LoginPageContent() {
       title: 'Welcome back',
       description: 'Redirecting to your account…',
     })
-    router.push('/account')
+    router.push('/dashboard')
   }, [email, password, router, setUrlMode])
 
   const onGoogle = useCallback(async () => {
     setBusy(true)
     setNotice(null)
-    await signIn('google', { callbackUrl: '/account' })
+    await signIn('google', { callbackUrl: '/dashboard' })
     setBusy(false)
   }, [])
 
@@ -467,7 +467,6 @@ function LoginPageContent() {
       { email }
     )
     setBusy(false)
-
     if (!res.ok) {
       setNotice({
         variant: 'error',
@@ -476,13 +475,17 @@ function LoginPageContent() {
       })
       return
     }
-
     setNotice({
       variant: 'success',
       title: 'Reset link sent',
-      description: 'Please check your email for password reset instructions.',
+      description: 'Please check your email for password reset instructions. Redirecting to login in 3 seconds...',
     })
-  }, [email])
+    // Redirect to login after 3 seconds
+    setTimeout(() => {
+      setUrlMode('login')
+    }, 3000)
+  }, [email, setUrlMode])
+
 
   const onReset = useCallback(async () => {
     if (!token) {

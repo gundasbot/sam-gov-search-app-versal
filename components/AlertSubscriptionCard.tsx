@@ -1,347 +1,263 @@
-// components/AlertSubscriptionCard.tsx
+//app/components/AlertSubscriptionCard.tsx
+
 'use client'
+
 import React, { useState } from 'react'
 import {
   Bell,
-  ChevronDown,
-  ChevronUp,
-  Play,
-  Pause,
-  Edit,
+  Pencil,
   Trash2,
-  Download,
-  Mail,
-  Calendar,
-  FileText,
-  CheckCircle,
-  XCircle,
-  Clock
+  Save,
+  X,
 } from 'lucide-react'
+import { deleteAlertSubscription, updateAlertSubscription } from '@/lib/actions'
 
-interface SearchRun {
-  id: string
-  createdAt: string
-  status: 'SUCCESS' | 'ERROR'
-  resultCount: number
-  emailSent: boolean
-  errorMessage?: string | null
-}
-
-interface AlertSubscription {
+export type AlertSubscription = {
   id: string
   name: string
-  description?: string | null
-  frequency: string | null
-  recipients?: string | null
-  subscriptionEnabled: boolean
-  lastRunAt?: string | null
-  lastResultCount?: number | null
-  exportFormat: string
-  runs: SearchRun[]
-  _count: {
-    runs: number
-    exports: number
-  }
+  keywords: string
+  setAside?: string
+  placeOfPerformance?: string
+  procurementType?: string
+  naics?: string
+  createdAt: string
 }
 
 interface AlertSubscriptionCardProps {
   alert: AlertSubscription
-  onRun: (id: string) => void
-  onPause: (id: string) => void
-  onEdit: (id: string) => void
-  onDelete: (id: string) => void
-  onExport: (runId: string, format: string) => void
+  refresh: () => void
 }
 
-export default function AlertSubscriptionCard({
-  alert,
-  onRun,
-  onPause,
-  onEdit,
-  onDelete,
-  onExport,
-}: AlertSubscriptionCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [isLoadingRuns, setIsLoadingRuns] = useState(false)
-  const [detailedRuns, setDetailedRuns] = useState<SearchRun[]>(alert.runs || [])
-  const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
+const setAsideOptions = [
+  { value: '', label: 'Any' },
+  { value: 'Total Small Business Set-Aside (FAR 19.5)', label: 'Total Small Business Set-Aside (FAR 19.5)' },
+  { value: '8(a) Set-Aside (FAR 19.8)', label: '8(a) Set-Aside (FAR 19.8)' },
+  { value: 'Veteran-Owned', label: 'Veteran-Owned' },
+  { value: 'VETERAN-OWNED', label: 'VETERAN-OWNED' },
+  { value: 'HUBZone', label: 'HUBZone' },
+  { value: 'Women-Owned', label: 'Women-Owned' },
+]
 
-  const loadDetailedRuns = async () => {
-    if (detailedRuns.length > 0 && isExpanded) {
-      // Already loaded, just toggle
-      setIsExpanded(false)
+const procurementTypeOptions = [
+  { value: '', label: 'Any' },
+  { value: 'Presolicitation', label: 'Presolicitation' },
+  { value: 'Sources Sought', label: 'Sources Sought' },
+  { value: 'Combined Synopsis/Solicitation', label: 'Combined Synopsis/Solicitation' },
+  { value: 'Special Notice', label: 'Special Notice' },
+]
+
+const stateOptions = [
+  { value: '', label: 'Any' },
+  { value: 'VA', label: 'VA' },
+  { value: 'CA', label: 'CA' },
+  { value: 'TX', label: 'TX' },
+  { value: 'NY', label: 'NY' },
+  { value: 'FL', label: 'FL' },
+  { value: 'GA', label: 'GA' },
+  { value: 'DC', label: 'DC' },
+  { value: 'MD', label: 'MD' },
+  { value: 'IL', label: 'IL' },
+  { value: 'PA', label: 'PA' },
+]
+
+function formatDate(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+export default function AlertSubscriptionCard({ alert: alertData, refresh }: AlertSubscriptionCardProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [name, setName] = useState(alertData.name)
+  const [keywords, setKeywords] = useState(alertData.keywords)
+  const [setAside, setSetAside] = useState(alertData.setAside || '')
+  const [placeOfPerformance, setPlaceOfPerformance] = useState(alertData.placeOfPerformance || '')
+  const [procurementType, setProcurementType] = useState(alertData.procurementType || '')
+  const [naics, setNaics] = useState(alertData.naics || '')
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true)
+      
+      const result = await updateAlertSubscription({
+        id: alertData.id,
+        name,
+        keywords,
+        setAside,
+        placeOfPerformance,
+        procurementType,
+        naics,
+      })
+      
+      if (result.success) {
+        window.alert('Alert updated successfully')
+        setIsEditing(false)
+        refresh()
+      } else {
+        throw new Error('Update failed')
+      }
+    } catch (err) {
+      console.error('Error updating alert:', err)
+      window.alert(`Failed to update alert: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete "${alertData.name}"?`)) {
       return
     }
-
-    setIsLoadingRuns(true)
-    try {
-      const response = await fetch(`/api/saved-searches/${alert.id}/runs?limit=10`)
-      if (response.ok) {
-        const data = await response.json()
-        setDetailedRuns(data.runs || [])
-        setIsExpanded(true)
-      }
-    } catch (error) {
-      console.error('Failed to load runs:', error)
-    } finally {
-      setIsLoadingRuns(false)
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  }
-
-  const getFrequencyBadge = (frequency: string | null) => {
-    if (!frequency) return null
     
-    const colors: Record<string, string> = {
-      DAILY: 'bg-emerald-500/20 text-emerald-400',
-      WEEKLY: 'bg-blue-500/20 text-blue-400',
-      MONTHLY: 'bg-purple-500/20 text-purple-400',
-      AS_CHANGES: 'bg-amber-500/20 text-amber-400',
-      MANUAL: 'bg-slate-500/20 text-slate-400',
+    try {
+      setIsDeleting(true)
+      console.log('Deleting alert:', alertData.id)
+      
+      const result = await deleteAlertSubscription(alertData.id)
+      
+      if (result.success) {
+        console.log('Delete successful, refreshing...')
+        window.alert('Alert deleted successfully')
+        refresh()
+      } else {
+        throw new Error('Delete failed')
+      }
+    } catch (err) {
+      console.error('Error deleting alert:', err)
+      window.alert(`Failed to delete alert: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      setIsDeleting(false)
     }
-
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[frequency] || colors.MANUAL}`}>
-        {frequency.replace('_', ' ')}
-      </span>
-    )
+    // Note: Don't set isDeleting to false here if successful, 
+    // as the component will be removed from the DOM
   }
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
-      {/* Main Card Header */}
-      <div className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1">
-            <div className={`p-2 rounded-lg ${alert.subscriptionEnabled ? 'bg-emerald-500/20' : 'bg-slate-700/50'}`}>
-              <Bell className={`h-5 w-5 ${alert.subscriptionEnabled ? 'text-emerald-400' : 'text-slate-400'}`} />
-            </div>
+    <div className="border-2 border-gray-300 p-4 rounded-lg shadow-sm space-y-4 bg-white">
+      {isEditing ? (
+        <>
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Alert name"
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
             
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold text-white truncate">
-                  {alert.name}
-                </h3>
-                {getFrequencyBadge(alert.frequency)}
-              </div>
-              
-              {alert.description && (
-                <p className="text-sm text-slate-400 mb-2 line-clamp-1">
-                  {alert.description}
-                </p>
-              )}
+            <input
+              type="text"
+              value={keywords}
+              onChange={(e) => setKeywords(e.target.value)}
+              placeholder="Keywords"
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
 
-              <div className="flex items-center gap-4 text-xs text-slate-400">
-                <div className="flex items-center gap-1">
-                  <Mail className="h-3 w-3" />
-                  <span>{alert.recipients?.split(',').length || 0} recipient(s)</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <FileText className="h-3 w-3" />
-                  <span>{alert._count.runs} runs</span>
-                </div>
-                {alert.lastRunAt && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>Last: {formatDate(alert.lastRunAt)}</span>
-                  </div>
-                )}
-              </div>
+            <select
+              value={setAside}
+              onChange={(e) => setSetAside(e.target.value)}
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            >
+              {setAsideOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={placeOfPerformance}
+              onChange={(e) => setPlaceOfPerformance(e.target.value)}
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            >
+              {stateOptions.map((state) => (
+                <option key={state.value} value={state.value}>
+                  {state.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={procurementType}
+              onChange={(e) => setProcurementType(e.target.value)}
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            >
+              {procurementTypeOptions.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              value={naics}
+              onChange={(e) => setNaics(e.target.value)}
+              placeholder="NAICS Code"
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={() => setIsEditing(false)}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 disabled:opacity-50 font-semibold"
+            >
+              <X className="h-4 w-4" />
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-lg text-gray-900">{name}</p>
+              <p className="text-sm text-gray-600 mt-1">{keywords || 'No keywords'}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                title="Edit alert"
+              >
+                <Pencil className="h-4 w-4 text-gray-600" />
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="p-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Delete alert"
+              >
+                <Trash2 className={`h-4 w-4 ${isDeleting ? 'text-red-300' : 'text-red-500'}`} />
+              </button>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onRun(alert.id)}
-              className="p-2 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors"
-              title="Run now"
-            >
-              <Play className="h-4 w-4" />
-            </button>
-            
-            <button
-              onClick={() => onPause(alert.id)}
-              className={`p-2 rounded-lg transition-colors ${
-                alert.subscriptionEnabled
-                  ? 'hover:bg-amber-500/20 text-amber-400'
-                  : 'hover:bg-emerald-500/20 text-emerald-400'
-              }`}
-              title={alert.subscriptionEnabled ? 'Pause' : 'Resume'}
-            >
-              <Pause className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={() => onEdit(alert.id)}
-              className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors"
-              title="Edit"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={() => onDelete(alert.id)}
-              className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
-              title="Delete"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-
-            <button
-              onClick={loadDetailedRuns}
-              disabled={isLoadingRuns}
-              className="p-2 hover:bg-slate-700 text-slate-400 rounded-lg transition-colors"
-              title={isExpanded ? 'Hide history' : 'Show history'}
-            >
-              {isLoadingRuns ? (
-                <Clock className="h-4 w-4 animate-spin" />
-              ) : isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
+          <div className="text-sm text-gray-600 space-y-1 border-t border-gray-200 pt-3">
+            <p><span className="font-semibold">Set Aside:</span> {setAside || 'Any'}</p>
+            <p><span className="font-semibold">State:</span> {placeOfPerformance || 'Any'}</p>
+            <p><span className="font-semibold">Type:</span> {procurementType || 'Any'}</p>
+            <p><span className="font-semibold">NAICS:</span> {naics || '—'}</p>
+            <p className="text-xs text-gray-500 mt-2">Created: {formatDate(alertData.createdAt)}</p>
           </div>
-        </div>
-      </div>
-
-      {/* Expandable Run History */}
-      {isExpanded && (
-        <div className="border-t border-slate-700 bg-slate-900/50">
-          <div className="p-4">
-            <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Last 10 Runs
-            </h4>
-
-            {detailedRuns.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">
-                No runs yet. Click "Run now" to execute this search.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {detailedRuns.map((run) => (
-                  <div
-                    key={run.id}
-                    className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      {run.status === 'SUCCESS' ? (
-                        <CheckCircle className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
-                      )}
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm text-white">
-                            {formatDate(run.createdAt)}
-                          </span>
-                          {run.emailSent && (
-                            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">
-                              Emailed
-                            </span>
-                          )}
-                        </div>
-                        
-                        {run.status === 'SUCCESS' ? (
-                          <p className="text-xs text-slate-400">
-                            {run.resultCount} result{run.resultCount !== 1 ? 's' : ''} found
-                          </p>
-                        ) : (
-                          <p className="text-xs text-red-400 truncate">
-                            {run.errorMessage || 'Unknown error'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {run.status === 'SUCCESS' && run.resultCount > 0 && (
-                      <div className="relative">
-                        <button
-                          onClick={() => setExpandedRunId(expandedRunId === run.id ? null : run.id)}
-                          className="p-1.5 hover:bg-emerald-500/20 text-emerald-400 rounded transition-colors flex items-center gap-1"
-                          title="Export"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          <ChevronDown className={`h-3 w-3 transition-transform ${expandedRunId === run.id ? 'rotate-180' : ''}`} />
-                        </button>
-                        
-                        {expandedRunId === run.id && (
-                          <div className="absolute right-0 mt-1 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10">
-                            <div className="py-1">
-                              <button
-                                onClick={() => {
-                                  onExport(run.id, 'XLSB')
-                                  setExpandedRunId(null)
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm text-white hover:bg-slate-700 flex items-center justify-between"
-                              >
-                                <span>Excel Binary</span>
-                                <span className="text-xs text-emerald-400">Default</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  onExport(run.id, 'EXCEL')
-                                  setExpandedRunId(null)
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm text-white hover:bg-slate-700"
-                              >
-                                Excel Workbook
-                              </button>
-                              <button
-                                onClick={() => {
-                                  onExport(run.id, 'CSV')
-                                  setExpandedRunId(null)
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm text-white hover:bg-slate-700"
-                              >
-                                CSV
-                              </button>
-                              <button
-                                onClick={() => {
-                                  onExport(run.id, 'JSON')
-                                  setExpandedRunId(null)
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm text-white hover:bg-slate-700"
-                              >
-                                JSON
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        </>
       )}
-
-      {/* Footer Stats */}
-      <div className="border-t border-slate-700 px-4 py-2 bg-slate-900/30">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-400">
-            Format: <span className="text-white">{alert.exportFormat}</span>
-          </span>
-          {alert.lastResultCount !== null && (
-            <span className="text-slate-400">
-              Last results: <span className="text-white">{alert.lastResultCount}</span>
-            </span>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

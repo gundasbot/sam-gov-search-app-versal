@@ -1,4 +1,4 @@
-// app/api/stripe/create-checkout/route.ts
+﻿// app/api/stripe/create-checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -64,16 +64,16 @@ export async function POST(req: NextRequest) {
     }
 
     // ---- Load user + ensure Stripe customer ----
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
-      select: { stripeCustomerId: true, id: true },
+      select: { stripe_customer_id: true, id: true },
     })
 
     if (!user?.id) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    let customerId = user.stripeCustomerId
+    let customerId = user.stripe_customer_id
 
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
       })
       customerId = customer.id
 
-      await prisma.user.update({
+      await prisma.users.update({
         where: { email },
-        data: { stripeCustomerId: customerId },
+        data: { stripe_customer_id: customerId },
       })
     }
 
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     if (activeLike.length > 0) {
       // They already have a subscription -> manage via Billing Portal
       console.warn(
-        `⚠️ Customer already has ${activeLike.length} active-like subscription(s). Redirecting to Billing Portal instead of creating new Checkout.`,
+        `âš ï¸ Customer already has ${activeLike.length} active-like subscription(s). Redirecting to Billing Portal instead of creating new Checkout.`,
         activeLike.map((s) => ({ id: s.id, status: s.status, created: s.created }))
       )
 

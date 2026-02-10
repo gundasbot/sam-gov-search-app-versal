@@ -298,22 +298,32 @@ export default function Header() {
         </div>
       </div>
 
-      {/* MAIN HEADER (DARK, STICKY UNDER TICKER) */}
+      {/* MAIN HEADER (LIGHTER BACKGROUND, STICKY UNDER TICKER) */}
       <header
         className={`sticky top-[52px] z-40 transition-all duration-300 ${
-          scrolled ? 'bg-slate-950/95 backdrop-blur-lg shadow-2xl border-b border-white/10' : 'bg-slate-950'
+          scrolled ? 'bg-slate-800/95 backdrop-blur-lg shadow-2xl border-b border-white/10' : 'bg-slate-800'
         }`}
       >
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-24 py-6">
-            {/* Logo */}
-            <Link href={isAuthed ? '/dashboard' : '/'} className="flex items-center gap-3 group">
-              <Image src="/logo.png" alt="Precise GovCon Logo" width={52} height={52} className="w-13 h-13" />
-              <div>
-                <div className="text-xl font-black text-white">
-                  PRECISE <span className="text-orange-500">GOVCON</span>
+            {/* Logo - Exact match to precise-govcon-logo-light.png */}
+            <Link href={isAuthed ? '/dashboard' : '/'} className="flex items-center gap-3 group flex-shrink-0">
+              {/* Green globe icon */}
+              <Image 
+                src="/logo.png" 
+                alt="Precise GovCon Globe Icon" 
+                width={56} 
+                height={56} 
+                className="w-14 h-14 group-hover:scale-105 transition-transform" 
+              />
+              
+              {/* Text styled exactly like your logo image */}
+              <div className="flex flex-col gap-0.5">
+                <div className="text-2xl lg:text-3xl font-black leading-none tracking-tight">
+                  <span className="text-white">PRECISE</span>{' '}
+                  <span className="text-[#f97316]">GOVCON</span>
                 </div>
-                <div className="text-xs font-semibold text-slate-400 -mt-1">
+                <div className="text-xs lg:text-sm font-medium text-slate-400 tracking-wide">
                   contracting intelligence and procurement experts
                 </div>
               </div>

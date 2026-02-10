@@ -17,10 +17,10 @@ export async function POST(
     }
 
     // Fetch the subscription
-    const subscription = await prisma.savedSearchNew.findFirst({
+    const subscription = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id
+        user_id: session.user.id,
       },
     })
 
@@ -29,7 +29,7 @@ export async function POST(
     }
 
     // Toggle subscription enabled status
-    const newStatus = !subscription.subscriptionEnabled
+    const newStatus = !subscription.subscription_enabled
 
     // If enabling subscription, ensure we have required fields
     if (newStatus) {
@@ -41,49 +41,49 @@ export async function POST(
       }
       if (!subscription.frequency) {
         // Set default frequency if not set
-        await prisma.savedSearchNew.update({
+        await prisma.saved_searches_new.update({
           where: { id },
           data: {
-            subscriptionEnabled: true,
+            subscription_enabled: true,
             frequency: 'DAILY',
           },
         })
-        const updated = await prisma.savedSearchNew.findUnique({
+        const updated = await prisma.saved_searches_new.findUnique({
           where: { id },
           include: {
             _count: {
               select: {
-                runs: true,
-                exports: true,
+                search_runs: true,
+                search_exports: true,
               },
             },
           },
         })
-        
+
         return NextResponse.json({
           subscription: {
             ...updated,
-            active: updated?.subscriptionEnabled,
-            fileFormat: updated?.exportFormat,
+            active: updated?.subscription_enabled,
+            fileFormat: updated?.export_format,
           },
-          message: 'Subscription enabled with default daily frequency'
+          message: 'Subscription enabled with default daily frequency',
         })
       }
     }
 
     // Update subscription status
-    const updated = await prisma.savedSearchNew.update({
+    const updated = await prisma.saved_searches_new.update({
       where: { id },
       data: {
-        subscriptionEnabled: newStatus,
+        subscription_enabled: newStatus,
         // Clear frequency if disabling
         ...(newStatus === false && { frequency: null }),
       },
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
@@ -92,16 +92,13 @@ export async function POST(
     return NextResponse.json({
       subscription: {
         ...updated,
-        active: updated.subscriptionEnabled,
-        fileFormat: updated.exportFormat,
+        active: updated.subscription_enabled,
+        fileFormat: updated.export_format,
       },
-      message: newStatus ? 'Subscription enabled' : 'Subscription disabled'
+      message: newStatus ? 'Subscription enabled' : 'Subscription disabled',
     })
   } catch (error) {
     console.error('Error toggling subscription:', error)
-    return NextResponse.json(
-      { error: 'Failed to toggle subscription' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to toggle subscription' }, { status: 500 })
   }
 }

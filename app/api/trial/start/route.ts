@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import bcrypt from 'bcryptjs'
 import { sendTrialConfirmationEmail, sendAdminTrialNotification } from '@/lib/email'
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       if ((u.plan ?? 'trial') === 'trial' && u.trial_ends_at) {
         const ends = new Date(u.trial_ends_at).getTime()
         if (!Number.isNaN(ends) && ends > Date.now()) {
-          return NextResponse.json({ ok: true, trialEndsAt: u.trial_ends_at, alreadyExists: true })
+          return NextResponse.json({ ok: true, trial_ends_at: u.trial_ends_at, alreadyExists: true })
         }
       }
 
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       RETURNING trial_ends_at
     `
 
-    const trialEndsAt = (inserted?.[0] as any)?.trial_ends_at
+    const trial_ends_at = (inserted?.[0] as any)?.trial_ends_at
     
     // Send confirmation email to user
     try {
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         email,
         firstName,
         lastName,
-        trialEndsAt: new Date(trialEndsAt)
+        trial_ends_at: new Date(trial_ends_at)
       })
     } catch (emailError) {
       console.error('Failed to send trial confirmation email:', emailError)
@@ -144,12 +144,12 @@ export async function POST(req: NextRequest) {
         phone,
         company,
         position,
-        trialEndsAt: new Date(trialEndsAt)
+        trial_ends_at: new Date(trial_ends_at)
       })
     } catch (emailError) {
       console.error('Failed to send admin notification:', emailError)
     }
-    return NextResponse.json({ ok: true, trialEndsAt })
+    return NextResponse.json({ ok: true, trial_ends_at })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Server error.' }, { status: 500 })
   }

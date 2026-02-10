@@ -9,7 +9,7 @@ async function testPasswordReset() {
   const testEmail = 'test@example.com'
   
   // 1. Create a test user
-  await prisma.user.upsert({
+  await prisma.users.upsert({
     where: { email: testEmail },
     update: {},
     create: {

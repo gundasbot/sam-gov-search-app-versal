@@ -1,10 +1,12 @@
-// app/api/saved-searches/[id]/subscription/route.ts
+// app/api/saved-searches/[id]/toggle/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 
-// PATCH /api/saved-searches/[id]/subscription - Update subscription settings
+// PATCH /api/saved-searches/[id]/subscription
+// Update subscription settings
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,8 +20,11 @@ export async function PATCH(
     }
 
     // Verify ownership
-    const search = await prisma.savedSearchNew.findFirst({
-      where: { id, userId: session.user.id },
+    const search = await prisma.saved_searches_new.findFirst({
+      where: {
+        id,
+        userId: session.user.id,
+      },
       select: { id: true },
     })
 
@@ -31,40 +36,43 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const data: any = {}
+    const data: Record<string, any> = {}
 
     // Handle enabling/disabling subscription
     if (typeof body.enabled === 'boolean') {
       data.subscriptionEnabled = body.enabled
-      
-      // If enabling, ensure we have a frequency
+
       if (body.enabled) {
+        // Enabling subscription
         data.frequency = body.frequency || 'DAILY'
         data.emailNotification = body.emailNotification ?? true
         data.sendEmptyResults = body.sendEmptyResults ?? false
         data.maxResults = body.maxResults ?? 100
       } else {
-        // If disabling, clear frequency
+        // Disabling subscription
         data.frequency = null
       }
     }
 
     // Update individual subscription settings
-    if ('frequency' in body && body.frequency) {
+    if (body.frequency) {
       data.frequency = body.frequency
       data.subscriptionEnabled = true
     }
+
     if (typeof body.emailNotification === 'boolean') {
       data.emailNotification = body.emailNotification
     }
+
     if (typeof body.sendEmptyResults === 'boolean') {
       data.sendEmptyResults = body.sendEmptyResults
     }
+
     if (typeof body.maxResults === 'number') {
       data.maxResults = body.maxResults
     }
 
-    const updated = await prisma.savedSearchNew.update({
+    const updated = await prisma.saved_searches_new.update({
       where: { id },
       data,
       select: {
@@ -90,7 +98,8 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/saved-searches/[id]/subscription - Disable subscription
+// DELETE /api/saved-searches/[id]/subscription
+// Disable subscription
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -104,8 +113,11 @@ export async function DELETE(
     }
 
     // Verify ownership
-    const search = await prisma.savedSearchNew.findFirst({
-      where: { id, userId: session.user.id },
+    const search = await prisma.saved_searches_new.findFirst({
+      where: {
+        id,
+        userId: session.user.id,
+      },
       select: { id: true },
     })
 
@@ -116,8 +128,7 @@ export async function DELETE(
       )
     }
 
-    // Disable subscription
-    const updated = await prisma.savedSearchNew.update({
+    const updated = await prisma.saved_searches_new.update({
       where: { id },
       data: {
         subscriptionEnabled: false,

@@ -4,316 +4,109 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL") // pooled for runtime
-  directUrl = env("DIRECT_URL")   // direct for migrations
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-//
-// Precise GovCon schema (merged)
-// - Keeps ALL of your existing models/fields
-// - Adds missing subscription + join-us/alerts support fields
-// - Adds SavedSearch run history + optional daily stats caching for Insights
-// - NEW: Phase 2 - SavedSearchV2, AlertSubscription, SubscriptionRun
-// - UPDATED: Added includeLinks and deliveryTime to AlertSubscription
-//
+model accounts {
+  id                  String  @id
+  user_id             String
+  type                String
+  provider            String
+  provider_account_id String
+  refresh_token       String?
+  access_token        String?
+  expires_at          Int?
+  token_type          String?
+  scope               String?
+  id_token            String?
+  session_state       String?
+  users               users   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-model User {
-  id                     String    @id @default(cuid())
-  email                  String    @unique
-  name                   String?
-  company                String?
-  plan                   String?
-  accountStatus          String?   @map("account_status")
-  planStatus             String?   @map("plan_status")
-  planTier               String?   @map("plan_tier")
-  stripeCustomerId       String?   @unique @map("stripe_customer_id")
-  stripeSubscriptionId   String?   @unique @map("stripe_subscription_id")
-  stripePriceId          String?   @map("stripe_price_id")
-  stripeCurrentPeriodEnd DateTime? @map("stripe_current_period_end")
-
-  // Added for Stripe lifecycle handling
-  cancelAtPeriodEnd      Boolean   @default(false) @map("cancel_at_period_end")
-  billingInterval        String?   @map("billing_interval") // month | year (kept as string to avoid enum migrations)
-
-  createdAt              DateTime  @default(now()) @map("created_at")
-  updatedAt              DateTime  @updatedAt @map("updated_at")
-  passwordHash           String?   @map("password_hash")
-  lastLoginAt            DateTime? @map("last_login_at")
-  isActive               Boolean?  @map("is_active")
-  isSuspended            Boolean?  @map("is_suspended")
-  firstName              String?   @map("first_name")
-  lastName               String?   @map("last_name")
-  trialActive            Boolean?  @map("trial_active")
-  trialStartedAt         DateTime? @map("trial_started_at")
-  trialExpiresAt         DateTime? @map("trial_expires_at")
-  subscriptionTier       String?   @map("subscription_tier")
-  subscriptionStatus     String?   @map("subscription_status")
-  role                   String?
-  trialEndsAt            DateTime? @map("trial_ends_at")
-  subscriptionPlan       String?   @map("subscription_plan")
-  addressLine1           String?   @map("address_line1")
-  addressLine2           String?   @map("address_line2")
-  city                   String?
-  country                String?
-  currentPeriodEnd       DateTime? @map("current_period_end")
-  image                  String?
-  phone                  String?
-  phoneVerified          Boolean?  @map("phone_verified")
-  planInterval           String?   @map("plan_interval")
-  postalCode             String?   @map("postal_code")
-  state                  String?
-  subscriptions          Json?
-  title                  String?
-  emailVerified          DateTime? @map("email_verified") @db.Timestamp(6)
-  twoFactorSecret        String?   @map("two_factor_secret")
-  twoFactorEnabled       Boolean?  @default(false) @map("two_factor_enabled")
-  emailNotifications     Boolean?  @default(true) @map("email_notifications")
-  notificationFrequency  String?   @default("daily") @map("notification_frequency")
-  lastNotificationSentAt DateTime? @map("last_notification_sent_at")
-
-  // Added for auto-login / magic-link flows
-  autoLoginUserId        String?   @unique @map("auto_login_user_id")
-
-  accounts             Account[]
-  auto_login_tokens    auto_login_tokens[]
-  searches             Search[]
-  sessions             Session[]
-  savedSearches        SavedSearch[]
-  twoFactorBackupCodes TwoFactorBackupCode[]
-  searchAlerts         SearchAlert[]
-  AlertExport          AlertExport[]
-  emailVerificationTokens EmailVerificationToken[]
-  
-  // NEW: Phase 2 relations
-  savedSearchesV2      SavedSearchV2[]
-  alertSubscriptions   AlertSubscription[]
-  
-  // NEW: Consolidated saved searches (Phase 3)
-  savedSearchesNew     SavedSearchNew[]
-  searchExports        SearchExport[]
-
-  @@index([email])
-  @@index([planStatus])
-  @@index([planTier])
-  @@index([stripeCustomerId])
-  @@map("users")
+  @@unique([provider, provider_account_id])
 }
 
-model SearchAlert {
-  id          String  @id @default(cuid())
-  userId      String  @map("user_id")
-  name        String
-  description String?
-
-  // Search filters
-  keywords           String?
-  naics              String?
-  agency             String?
-  setAside           String?
-  stateOfPerformance String?
-  postedAfter        DateTime? @map("posted_after")
-  postedBefore       DateTime? @map("posted_before")
-  procurementType    String?   @default("o") @map("procurement_type")
-
-  // Alert settings
-  frequency         AlertFrequency @default(DAILY)
-  emailNotification Boolean        @default(true) @map("email_notification")
-  sendEmptyResults  Boolean        @default(false) @map("send_empty_results")
-  maxResults        Int?           @default(100) @map("max_results")
-
-  // Status
-  active          Boolean   @default(true)
-  lastRunAt       DateTime? @map("last_run_at")
-  lastResultCount Int?      @map("last_result_count")
-  lastError       String?   @map("last_error")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alertRuns AlertRun[]
-  exports   AlertExport[]
-
-  @@index([userId])
-  @@index([createdAt])
-  @@index([active])
-  @@map("search_alerts")
+model admin_users {
+  id         String       @id
+  email      String       @unique
+  name       String
+  password   String
+  role       AdminRole
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime
+  audit_logs audit_logs[]
 }
 
-model AlertRun {
-  id              String         @id @default(cuid())
-  alertId         String         @map("alert_id")
-  status          AlertRunStatus @default(SUCCESS)
-  resultCount     Int            @map("result_count")
-  newResultsCount Int?           @map("new_results_count")
-  errorMessage    String?        @map("error_message")
-  ranAt           DateTime       @default(now()) @map("ran_at")
+model alert_exports {
+  id            String        @id
+  alert_id      String
+  user_id       String
+  format        ExportFormat  @default(CSV)
+  status        ExportStatus  @default(COMPLETED)
+  file_url      String?
+  file_name     String
+  file_size     Int?
+  record_count  Int
+  downloaded_at DateTime?
+  expires_at    DateTime?
+  created_at    DateTime      @default(now())
+  search_alerts search_alerts @relation(fields: [alert_id], references: [id], onDelete: Cascade)
+  users         users         @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  // Search metadata
-  searchParams    Json? @map("search_params")
-  resultsSnapshot Json? @map("results_snapshot")
-
-  // Relations
-  alert SearchAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
-
-  @@index([alertId])
-  @@index([ranAt])
-  @@map("alert_runs")
+  @@index([alert_id])
+  @@index([created_at])
+  @@index([user_id])
 }
 
-model AlertExport {
-  id           String       @id @default(cuid())
-  alertId      String       @map("alert_id")
-  userId       String       @map("user_id")
-  format       ExportFormat @default(CSV)
-  status       ExportStatus @default(COMPLETED)
-  fileUrl      String?      @map("file_url")
-  fileName     String       @map("file_name")
-  fileSize     Int?         @map("file_size")
-  recordCount  Int          @map("record_count")
-  downloadedAt DateTime?    @map("downloaded_at")
-  expiresAt    DateTime?    @map("expires_at")
-  createdAt    DateTime     @default(now()) @map("created_at")
+model alert_runs {
+  id                String         @id
+  alert_id          String
+  status            AlertRunStatus @default(SUCCESS)
+  result_count      Int
+  new_results_count Int?
+  error_message     String?
+  ran_at            DateTime       @default(now())
+  search_params     Json?
+  results_snapshot  Json?
+  search_alerts     search_alerts  @relation(fields: [alert_id], references: [id], onDelete: Cascade)
 
-  // Relations
-  alert SearchAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([alertId])
-  @@index([userId])
-  @@index([createdAt])
-  @@map("alert_exports")
+  @@index([alert_id])
+  @@index([ran_at])
 }
 
-// ============================================================================
-// NEW PHASE 2 MODELS: SavedSearchV2, AlertSubscription, SubscriptionRun
-// ============================================================================
+model alert_subscriptions {
+  id                      String              @id
+  created_at              DateTime            @default(now())
+  updated_at              DateTime
+  user_id                 String
+  saved_search_id         String
+  name                    String
+  description             String?
+  recipients              String
+  email_notification      Boolean             @default(true)
+  send_empty_results      Boolean             @default(false)
+  frequency               AlertFrequency      @default(DAILY)
+  delivery_time           String?
+  export_format           String              @default("csv")
+  include_links           Boolean             @default(false)
+  include_attachments     Boolean             @default(true)
+  include_results_in_body Boolean             @default(true)
+  max_results             Int                 @default(100)
+  active                  Boolean             @default(true)
+  last_run_at             DateTime?
+  last_result_count       Int?
+  last_error              String?
+  saved_searches_v2       saved_searches_v2   @relation(fields: [saved_search_id], references: [id], onDelete: Cascade)
+  users                   users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  subscription_runs       subscription_runs[]
 
-// NEW: Separated SavedSearch (filters only) from AlertSubscription (email schedules)
-model SavedSearchV2 {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Search identity
-  name        String
-  description String?
-  
-  // Search filters
-  keywords              String?
-  naics                 String?
-  agency                String?
-  setAside              String?   @map("set_aside")
-  stateOfPerformance    String?   @map("state_of_performance")
-  postedAfter           String?   @map("posted_after")
-  postedBefore          String?   @map("posted_before")
-  procurementType       String?   @default("o") @map("procurement_type")
-  
-  // Usage tracking
-  lastUsedAt            DateTime? @map("last_used_at")
-  useCount              Int       @default(0) @map("use_count")
-  
-  // Relations
-  alertSubscriptions    AlertSubscription[]
-  
-  @@index([userId])
-  @@index([userId, updatedAt])
-  @@map("saved_searches_v2")
+  @@index([saved_search_id])
+  @@index([user_id, active])
+  @@index([user_id])
 }
 
-model AlertSubscription {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Link to saved search
-  savedSearchId String           @map("saved_search_id")
-  savedSearch   SavedSearchV2    @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
-  
-  // Subscription details
-  name        String
-  description String?
-  
-  // Email settings
-  recipients           String   // comma-separated emails
-  emailNotification    Boolean  @default(true) @map("email_notification")
-  sendEmptyResults     Boolean  @default(false) @map("send_empty_results")
-  
-  // Schedule
-  frequency            AlertFrequency @default(DAILY)
-  deliveryTime         String?  @map("delivery_time") // e.g., "09:00" or "14:30"
-  
-  // Delivery options
-  exportFormat         String   @default("csv") @map("export_format") // csv, json
-  includeLinks         Boolean  @default(false) @map("include_links")
-  includeAttachments   Boolean  @default(true) @map("include_attachments")
-  includeResultsInBody Boolean  @default(true) @map("include_results_in_body")
-  maxResults           Int      @default(100) @map("max_results")
-  
-  // Status
-  active               Boolean  @default(true)
-  
-  // Execution tracking
-  lastRunAt            DateTime? @map("last_run_at")
-  lastResultCount      Int?      @map("last_result_count")
-  lastError            String?   @map("last_error")
-  
-  // Relations
-  runs                 SubscriptionRun[]
-  
-  @@index([userId])
-  @@index([savedSearchId])
-  @@index([userId, active])
-  @@map("alert_subscriptions")
-}
-
-model SubscriptionRun {
-  id               String   @id @default(cuid())
-  createdAt        DateTime @default(now()) @map("created_at")
-  
-  subscriptionId   String              @map("subscription_id")
-  subscription     AlertSubscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  
-  status           AlertRunStatus @default(SUCCESS)
-  resultCount      Int      @default(0) @map("result_count")
-  newResultsCount  Int      @default(0) @map("new_results_count")
-  
-  searchParams     Json?    @map("search_params")
-  resultsSnapshot  Json?    @map("results_snapshot")
-  errorMessage     String?  @map("error_message")
-  
-  @@index([subscriptionId])
-  @@index([createdAt])
-  @@map("subscription_runs")
-}
-
-// ============================================================================
-// END NEW PHASE 2 MODELS
-// ============================================================================
-
-model AdminUser {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  name      String
-  password  String
-  role      AdminRole
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  auditLogs AuditLog[]
-
-  @@map("admin_users")
-}
-
-model AuditLog {
-  id            String    @id @default(cuid())
+model audit_logs {
+  id            String      @id
   adminUserId   String
   action        String
   entityType    String
@@ -324,122 +117,13 @@ model AuditLog {
   userAgent     String?
   success       Boolean
   errorMessage  String?
-  createdAt     DateTime  @default(now())
-  adminUser     AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  admin_users   admin_users @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
 
-  @@index([adminUserId])
   @@index([action])
+  @@index([adminUserId])
+  @@index([createdAt])
   @@index([entityType])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
-
-model EmailVerificationToken {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  tokenHash String   @unique @map("token_hash")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([tokenHash])
-  @@map("email_verification_tokens")
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String  @map("user_id")
-  type              String
-  provider          String
-  providerAccountId String  @map("provider_account_id")
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique @map("session_token")
-  userId       String   @map("user_id")
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
-}
-
-model Search {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  query     String
-  results   Json?
-  createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-  @@map("searches")
-}
-
-model PasswordResetToken {
-  id        String    @id @default(cuid())
-  email     String
-  tokenHash String    @unique @map("token_hash")
-  expiresAt DateTime  @map("expires_at")
-  usedAt    DateTime? @map("used_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  @@map("password_reset_tokens")
-}
-
-model SavedSearch {
-  id          String    @id @default(cuid())
-  userId      String    @map("user_id")
-  name        String
-  description String?
-  filters     Json // { keywords, setAside, stateOfPerformance, naics, agency, ... }
-  frequency   String    @default("none") // "daily", "weekly", "as-changes", "none"
-  active      Boolean   @default(true)
-  lastRunAt   DateTime? @map("last_run_at")
-
-  // Added: richer scheduling + delivery preferences (optional)
-  dayOfWeek      Int?     @map("day_of_week")   // 0-6 if weekly
-  timeOfDay      String?  @map("time_of_day")   // "09:00"
-  timezone       String?  @map("timezone")      // e.g. "America/New_York"
-  deliveryEmail  String?  @map("delivery_email")
-  deliverEmail   Boolean  @default(true)  @map("deliver_email")
-  deliverCsv     Boolean  @default(false) @map("deliver_csv")
-  deliverPdf     Boolean  @default(false) @map("deliver_pdf")
-  deliverJson    Boolean  @default(false) @map("deliver_json")
-  nextRunAt      DateTime? @map("next_run_at")
-
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  runs SavedSearchRun[]
-
-  @@index([userId])
-  @@index([createdAt])
-  @@map("saved_searches")
 }
 
 model auto_login_tokens {
@@ -449,82 +133,380 @@ model auto_login_tokens {
   expires_at DateTime  @db.Timestamptz(6)
   created_at DateTime  @default(now()) @db.Timestamptz(6)
   used_at    DateTime? @db.Timestamptz(6)
-  users      User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([expires_at], map: "idx_auto_login_tokens_expires_at")
   @@index([token_hash], map: "idx_auto_login_tokens_token_hash")
   @@index([user_id], map: "idx_auto_login_tokens_user_id")
-  @@map("auto_login_tokens")
 }
 
-model TwoFactorBackupCode {
-  id        String    @id @default(cuid())
-  userId    String    @map("user_id")
-  code      String
-  used      Boolean   @default(false)
-  usedAt    DateTime? @map("used_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+model email_verification_tokens {
+  id         String   @id
+  user_id    String
+  token_hash String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([token_hash])
+  @@index([user_id])
+}
+
+model opportunity_daily_stats {
+  id           String   @id
+  day          DateTime @unique @db.Date
+  total        Int      @default(0)
+  by_state     Json?
+  by_dept      Json?
+  by_set_aside Json?
+  created_at   DateTime @default(now())
+}
+
+model password_reset_tokens {
+  id         String    @id
+  email      String
+  token_hash String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+}
+
+model recipient_contacts {
+  id           String    @id
+  user_id      String
+  email        String
+  name         String?
+  organization String?
+  notes        String?
+  use_count    Int       @default(0)
+  last_used_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime
+  users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, email])
+  @@index([user_id, email])
+  @@index([user_id])
+}
+
+model saved_search_runs {
+  id              String         @id
+  saved_search_id String
+  ran_at          DateTime       @default(now())
+  result_count    Int            @default(0)
+  status          String         @default("success")
+  error_message   String?
+  payload         Json?
+  saved_searches  saved_searches @relation(fields: [saved_search_id], references: [id], onDelete: Cascade)
+
+  @@index([ran_at])
+  @@index([saved_search_id])
+}
+
+model saved_searches {
+  id                String              @id
+  user_id           String
+  name              String
+  description       String?
+  filters           Json
+  frequency         String              @default("none")
+  active            Boolean             @default(true)
+  last_run_at       DateTime?
+  day_of_week       Int?
+  time_of_day       String?
+  timezone          String?
+  delivery_email    String?
+  deliver_email     Boolean             @default(true)
+  deliver_csv       Boolean             @default(false)
+  deliver_pdf       Boolean             @default(false)
+  deliver_json      Boolean             @default(false)
+  next_run_at       DateTime?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime
+  saved_search_runs saved_search_runs[]
+  users             users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([created_at])
+  @@index([user_id])
+}
+
+model saved_searches_new {
+  id                       String           @id
+  user_id                  String
+  name                     String
+  description              String?
+  is_pinned                Boolean          @default(false)
+  keywords                 String?
+  naics                    String?
+  agency                   String?
+  set_aside                String?
+  state_of_performance     String?
+  procurement_type         String           @default("o")
+  is_active                String?
+  posted_after             DateTime?
+  posted_before            DateTime?
+  rdl_from                 DateTime?
+  rdl_to                   DateTime?
+  solicitation_number      String?
+  notice_id                String?
+  classification_code      String?
+  organization_code        String?
+  place_of_performance_zip String?
+  opportunity_status       String?
+  subscription_enabled     Boolean          @default(false)
+  frequency                AlertFrequency?
+  email_notification       Boolean          @default(false)
+  send_empty_results       Boolean          @default(false)
+  max_results              Int              @default(100)
+  recipients               String?
+  delivery_time            String?
+  export_format            String           @default("XLSB")
+  include_links            Boolean          @default(true)
+  last_run_at              DateTime?
+  last_result_count        Int?
+  created_at               DateTime         @default(now())
+  updated_at               DateTime
+  isPaused                 Boolean          @default(false)
+  pausedUntil              DateTime?
+  pausedAt                 DateTime?
+  lastRunAt                DateTime?
+  lastRunStatus            String?
+  lastRunCount             Int?
+  totalRuns                Int              @default(0)
+  totalEmailsSent          Int              @default(0)
+  users                    users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  search_exports           search_exports[]
+  search_runs              search_runs[]
+
+  @@index([user_id])
+  @@index([user_id, subscription_enabled])
+  @@index([user_id, updated_at])
+}
+
+model saved_searches_v2 {
+  id                   String                @id
+  created_at           DateTime              @default(now())
+  updated_at           DateTime
+  user_id              String
+  name                 String
+  description          String?
+  keywords             String?
+  naics                String?
+  agency               String?
+  set_aside            String?
+  state_of_performance String?
+  posted_after         String?
+  posted_before        String?
+  procurement_type     String?               @default("o")
+  last_used_at         DateTime?
+  use_count            Int                   @default(0)
+  alert_subscriptions  alert_subscriptions[]
+  users                users                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([user_id, updated_at])
+}
+
+model search_alerts {
+  id                 String          @id
+  user_id            String
+  name               String
+  description        String?
+  keywords           String?
+  naics              String?
+  agency             String?
+  setAside           String?
+  stateOfPerformance String?
+  posted_after       DateTime?
+  posted_before      DateTime?
+  procurement_type   String?         @default("o")
+  frequency          AlertFrequency  @default(DAILY)
+  email_notification Boolean         @default(true)
+  send_empty_results Boolean         @default(false)
+  max_results        Int?            @default(100)
+  active             Boolean         @default(true)
+  last_run_at        DateTime?
+  last_result_count  Int?
+  last_error         String?
+  created_at         DateTime        @default(now())
+  updated_at         DateTime
+  alert_exports      alert_exports[]
+  alert_runs         alert_runs[]
+  users              users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([active])
+  @@index([created_at])
+  @@index([user_id])
+}
+
+model search_exports {
+  id                 String             @id
+  saved_search_id    String
+  user_id            String
+  format             ExportFormat
+  file_name          String
+  file_size          Int
+  record_count       Int
+  file_url           String?
+  expires_at         DateTime
+  created_at         DateTime           @default(now())
+  saved_searches_new saved_searches_new @relation(fields: [saved_search_id], references: [id], onDelete: Cascade)
+  users              users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([saved_search_id])
+  @@index([user_id])
+}
+
+model search_runs {
+  id                 String             @id
+  saved_search_id    String
+  status             RunStatus          @default(SUCCESS)
+  result_count       Int                @default(0)
+  new_results_count  Int                @default(0)
+  search_params      Json
+  results_snapshot   Json
+  error_message      String?
+  email_sent         Boolean            @default(false)
+  created_at         DateTime           @default(now())
+  saved_searches_new saved_searches_new @relation(fields: [saved_search_id], references: [id], onDelete: Cascade)
+
+  @@index([saved_search_id, created_at])
+  @@index([saved_search_id])
+}
+
+model searches {
+  id         String   @id
+  user_id    String
+  query      String
+  results    Json?
+  created_at DateTime @default(now())
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([created_at])
+  @@index([user_id])
+}
+
+model sessions {
+  id            String   @id
+  session_token String   @unique
+  user_id       String
+  expires       DateTime
+  users         users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model subscription_runs {
+  id                  String              @id
+  created_at          DateTime            @default(now())
+  subscription_id     String
+  status              AlertRunStatus      @default(SUCCESS)
+  result_count        Int                 @default(0)
+  new_results_count   Int                 @default(0)
+  search_params       Json?
+  results_snapshot    Json?
+  error_message       String?
+  alert_subscriptions alert_subscriptions @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+
+  @@index([created_at])
+  @@index([subscription_id])
+}
+
+model two_factor_backup_codes {
+  id         String    @id
+  user_id    String
+  code       String
+  used       Boolean   @default(false)
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
   @@index([code])
-  @@map("two_factor_backup_codes")
+  @@index([user_id])
 }
 
-// Added: run history for SavedSearch (separate from SearchAlert / AlertRun)
-model SavedSearchRun {
-  id            String   @id @default(cuid())
-  savedSearchId String   @map("saved_search_id")
+model users {
+  id                        String                      @id
+  email                     String                      @unique
+  name                      String?
+  company                   String?
+  plan                      String?
+  account_status            String?
+  plan_status               String?
+  plan_tier                 String?
+  stripe_customer_id        String?                     @unique
+  stripe_subscription_id    String?                     @unique
+  stripe_price_id           String?
+  stripe_current_period_end DateTime?
+  cancel_at_period_end      Boolean                     @default(false)
+  billing_interval          String?
+  created_at                DateTime                    @default(now())
+  updated_at                DateTime
+  password_hash             String?
+  last_login_at             DateTime?
+  is_active                 Boolean?
+  is_suspended              Boolean?
+  first_name                String?
+  last_name                 String?
+  trial_active              Boolean?
+  trial_started_at          DateTime?
+  trial_expires_at          DateTime?
+  subscription_tier         String?
+  subscription_status       String?
+  role                      String?
+  trial_ends_at             DateTime?
+  subscription_plan         String?
+  address_line1             String?
+  address_line2             String?
+  city                      String?
+  country                   String?
+  current_period_end        DateTime?
+  image                     String?
+  phone                     String?
+  phone_verified            Boolean?
+  plan_interval             String?
+  postal_code               String?
+  state                     String?
+  subscriptions             Json?
+  title                     String?
+  email_verified            DateTime?                   @db.Timestamp(6)
+  two_factor_secret         String?
+  two_factor_enabled        Boolean?                    @default(false)
+  email_notifications       Boolean?                    @default(true)
+  notification_frequency    String?                     @default("daily")
+  last_notification_sent_at DateTime?
+  auto_login_user_id        String?                     @unique
+  accounts                  accounts[]
+  alert_exports             alert_exports[]
+  alert_subscriptions       alert_subscriptions[]
+  auto_login_tokens         auto_login_tokens[]
+  email_verification_tokens email_verification_tokens[]
+  recipient_contacts        recipient_contacts[]
+  saved_searches            saved_searches[]
+  saved_searches_new        saved_searches_new[]
+  saved_searches_v2         saved_searches_v2[]
+  search_alerts             search_alerts[]
+  search_exports            search_exports[]
+  searches                  searches[]
+  sessions                  sessions[]
+  two_factor_backup_codes   two_factor_backup_codes[]
 
-  ranAt         DateTime @default(now()) @map("ran_at")
-  resultCount   Int      @default(0) @map("result_count")
-  status        String   @default("success") // success | error
-  errorMessage  String?  @map("error_message")
-  payload       Json?
-
-  savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
-
-  @@index([savedSearchId])
-  @@index([ranAt])
-  @@map("saved_search_runs")
+  @@index([email])
+  @@index([plan_status])
+  @@index([plan_tier])
+  @@index([stripe_customer_id])
 }
 
-// Optional: cached daily metrics for Insights/Dashboard
-model OpportunityDailyStat {
-  id         String   @id @default(cuid())
-  day        DateTime @unique @db.Date
+model verification_tokens {
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-  total      Int      @default(0)
-  byState    Json?    @map("by_state")
-  byDept     Json?    @map("by_dept")
-  bySetAside Json?    @map("by_set_aside")
-
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@map("opportunity_daily_stats")
+  @@unique([identifier, token])
 }
 
-// Enums
 enum AdminRole {
   SUPER_ADMIN
   ADMIN
   VIEWER
-}
-
-enum PlanStatus {
-  ACTIVE
-  INACTIVE
-  TRIALING
-  PAST_DUE
-  CANCELED
-  UNPAID
-}
-
-enum PlanTier {
-  FREE
-  BASIC
-  PROFESSIONAL
-  ENTERPRISE
 }
 
 enum AlertFrequency {
@@ -556,108 +538,23 @@ enum ExportStatus {
   EXPIRED
 }
 
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+enum PlanTier {
+  FREE
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+}
+
 enum RunStatus {
   SUCCESS
   ERROR
-}
-
-// =============================================================================
-// CONSOLIDATED SAVED SEARCHES - Phase 3 (New Unified Approach)
-// Combines saved searches + alert subscriptions into one clean model
-// =============================================================================
-
-model SavedSearchNew {
-  id     String @id @default(cuid())
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Basic Info
-  name        String
-  description String?
-  isPinned    Boolean @default(false) @map("is_pinned")
-
-  // Search Criteria
-  keywords           String?
-  naics              String?
-  agency             String?
-  setAside           String?   @map("set_aside")
-  stateOfPerformance String?   @map("state_of_performance")
-  postedAfter        DateTime? @map("posted_after")
-  postedBefore       DateTime? @map("posted_before")
-  procurementType    String    @default("o") @map("procurement_type")
-
-  // Subscription Settings (optional - nullable when not subscribed)
-  subscriptionEnabled Boolean         @default(false) @map("subscription_enabled")
-  frequency           AlertFrequency? // Only set if subscriptionEnabled
-  emailNotification   Boolean         @default(false) @map("email_notification")
-  sendEmptyResults    Boolean         @default(false) @map("send_empty_results")
-  maxResults          Int             @default(100) @map("max_results")
-  recipients          String?         // comma-separated email addresses
-  deliveryTime        String?         @map("delivery_time") // e.g., "09:00"
-  exportFormat        String          @default("XLSB") @map("export_format") // KEEP ONLY THIS ONE - Default to XLSB
-  includeLinks        Boolean         @default(true) @map("include_links") // include URLs in results
-
-  // Execution Metadata
-  lastRunAt       DateTime? @map("last_run_at")
-  lastResultCount Int?      @map("last_result_count")
-
-  // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  runs    SearchRun[]
-  exports SearchExport[]
-
-  @@index([userId])
-  @@index([userId, subscriptionEnabled])
-  @@index([userId, updatedAt])
-  @@map("saved_searches_new")
-}
-
-model SearchRun {
-  id            String   @id @default(cuid())
-  savedSearchId String   @map("saved_search_id")
-  savedSearch   SavedSearchNew @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
-
-  // Execution Details
-  status           RunStatus @default(SUCCESS)
-  resultCount      Int       @default(0) @map("result_count")
-  newResultsCount  Int       @default(0) @map("new_results_count")
-  searchParams     Json      @map("search_params")
-  resultsSnapshot  Json      @map("results_snapshot")
-  errorMessage     String?   @map("error_message")
-  
-  // Notification
-  emailSent        Boolean   @default(false) @map("email_sent")
-  
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([savedSearchId])
-  @@index([savedSearchId, createdAt])
-  @@map("search_runs")
-}
-
-model SearchExport {
-  id            String   @id @default(cuid())
-  savedSearchId String   @map("saved_search_id")
-  savedSearch   SavedSearchNew @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
-  userId        String   @map("user_id")
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Export Details
-  format      ExportFormat @map("format")
-  fileName    String       @map("file_name")
-  fileSize    Int          @map("file_size")
-  recordCount Int          @map("record_count")
-  
-  // Storage (for S3/CloudFlare R2 in production)
-  fileUrl     String?      @map("file_url")
-  
-  expiresAt DateTime  @map("expires_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  @@index([savedSearchId])
-  @@index([userId])
-  @@map("search_exports")
 }

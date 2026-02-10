@@ -66,13 +66,13 @@ export default async function proxy(request: NextRequest) {
     // email verification when the token was just issued). A direct DB check is the only
     // reliable way to know if the trial is actually active.
     try {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: token.id as string },
         select: {
-          trialActive: true,
-          trialExpiresAt: true,
-          trialEndsAt: true,
-          planStatus: true,
+          trial_active: true,
+          trial_expires_at: true,
+          trial_ends_at: true,
+          plan_status: true,
         },
       })
 
@@ -80,14 +80,14 @@ export default async function proxy(request: NextRequest) {
         const now = new Date()
 
         // Check trialExpiresAt first, fall back to trialEndsAt
-        const trialEnd = user.trialExpiresAt || user.trialEndsAt
+        const trialEnd = user.trial_expires_at || user.trial_ends_at
 
-        if (user.trialActive && trialEnd && trialEnd > now) {
+        if (user.trial_active && trialEnd && trialEnd > now) {
           console.log(`✅ User has active trial (expires ${trialEnd.toISOString()}) - access granted`)
           return NextResponse.next()
         }
 
-        if (user.planStatus === 'trialing') {
+        if (user.plan_status === 'trialing') {
           console.log('✅ User planStatus is trialing - access granted')
           return NextResponse.next()
         }

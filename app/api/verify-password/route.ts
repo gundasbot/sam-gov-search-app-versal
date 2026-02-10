@@ -1,4 +1,4 @@
-// app/api/verify-password/route.ts
+﻿// app/api/verify-password/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
       select: {
         id: true,
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       email: user.email,
       role: user.role,
       passwordValid: isValid,
-      message: isValid ? "✅ Password is VALID!" : "❌ Password is INVALID",
+      message: isValid ? "âœ… Password is VALID!" : "âŒ Password is INVALID",
     })
   } catch (error: any) {
     return NextResponse.json(

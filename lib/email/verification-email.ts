@@ -242,7 +242,7 @@ export function getVerificationEmailHtml(params: {
                 © ${new Date().getFullYear()} Precise Analytics LLC
               </p>
               <p style="margin: 4px 0 0; color: #475569; font-size: 11px;">
-                Service-Disabled Veteran-Owned Small Business · Richmond, Virginia
+                VETERAN-OWNED Small Business · Richmond, Virginia
               </p>
               <p style="margin: 8px 0 0; color: #475569; font-size: 12px;">
                 <a href="https://precisegovcon.com/privacy" style="color: #64748b; text-decoration: none;">Privacy Policy</a> • 
@@ -296,7 +296,7 @@ If you didn't create an account with Precise GovCon, you can safely ignore this 
 
 ---
 © ${new Date().getFullYear()} Precise Analytics LLC
-Service-Disabled Veteran-Owned Small Business
+VETERAN-OWNED Small Business
 Richmond, Virginia
   `.trim();
 }

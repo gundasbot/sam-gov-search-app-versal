@@ -1,4 +1,4 @@
-// app/api/admin/promote/route.ts
+﻿// app/api/admin/promote/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     // Find and update user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email: email.toLowerCase() }
     })
 
@@ -36,14 +36,13 @@ export async function POST(request: Request) {
     }
 
     // Update user to admin
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { email: email.toLowerCase() },
       data: { role: 'admin' }
     })
 
     return NextResponse.json({
-      message: 'User promoted to admin successfully',
-      user: {
+      message: 'User promoted to admin successfully', users: {
         id: updatedUser.id,
         email: updatedUser.email,
         role: updatedUser.role

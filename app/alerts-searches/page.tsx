@@ -18,7 +18,7 @@ import {
   AlertCircle,
   ChevronDown,
 } from 'lucide-react'
-import SaveSearchModalNew from '@/components/SaveSearchModal'
+import UnifiedSaveSearchModal from '@/components/UnifiedSaveSearchModal'
 
 interface SavedSearch {
   id: string
@@ -392,23 +392,25 @@ export default function AlertsSearchesPage() {
 
       {/* Edit Modal */}
       {showEditModal && editingSearch && (
-        <SaveSearchModalNew
+        <UnifiedSaveSearchModal
           isOpen={showEditModal}
           onClose={() => {
             setShowEditModal(false)
             setEditingSearch(null)
           }}
-          currentSearch={{
+          mode="save"
+          existingSearch={{
+            id: editingSearch.id,
+            name: editingSearch.name,
+            description: editingSearch.description || '',
             keywords: editingSearch.keywords || '',
             naics: editingSearch.naics || '',
             agency: editingSearch.agency || '',
             setAside: editingSearch.setAside || '',
             stateOfPerformance: editingSearch.stateOfPerformance || '',
-            procurementType: editingSearch.procurementType,
+            procurementType: editingSearch.procurementType || '',
           }}
-          editMode={true}
-          existingSearch={editingSearch}
-          onSuccess={() => {
+          onSave={() => {
             loadSearches()
             setShowEditModal(false)
             setEditingSearch(null)

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getToken } from 'next-auth/jwt'
 
@@ -10,7 +10,7 @@ function isActiveUser(u: any) {
   const tier = String(u?.plan_tier || u?.plan || 'free').toLowerCase()
   const status = String(u?.plan_status || 'inactive').toLowerCase()
 
-  const trialActive = !!u?.trial_active
+  const trial_active = !!u?.trial_active
   const trialExpires = u?.trial_expires_at ? new Date(u.trial_expires_at).getTime() : null
 
   const periodEnd = u?.current_period_end ? new Date(u.current_period_end).getTime() : null
@@ -20,7 +20,7 @@ function isActiveUser(u: any) {
   const statusOk = status === 'active' || status === 'trialing'
   const timeOk = periodEnd ? periodEnd > now : true // webhook may not have filled it yet
 
-  const trialOk = trialActive && (!trialExpires || trialExpires > now)
+  const trialOk = trial_active && (!trialExpires || trialExpires > now)
 
   return (paidTier && statusOk && timeOk) || trialOk
 }
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       stripe_subscription_id: user?.stripe_subscription_id || null,
     })
   } catch (err: any) {
-    console.error('❌ [ACCESS STATUS] error:', err?.message || err)
+    console.error('âŒ [ACCESS STATUS] error:', err?.message || err)
     return NextResponse.json({ authenticated: false, active: false, error: 'status_failed' }, { status: 500 })
   }
 }

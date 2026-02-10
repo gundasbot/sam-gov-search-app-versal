@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react'
 import { Plus } from 'lucide-react'
-import SaveSearchModal from './SaveSearchModal'
+import UnifiedSaveSearchModal from './UnifiedSaveSearchModal'
 
 interface NewSearchButtonProps {
   onSearchCreated?: () => void
@@ -18,7 +18,7 @@ export default function NewSearchButton({
 }: NewSearchButtonProps) {
   const [showModal, setShowModal] = useState(false)
 
-  const handleSuccess = () => {
+  const handleSave = () => {
     setShowModal(false)
     onSearchCreated?.()
   }
@@ -37,11 +37,11 @@ export default function NewSearchButton({
         New Search
       </button>
 
-      <SaveSearchModal
+      <UnifiedSaveSearchModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        currentSearch={{}}
-        onSuccess={handleSuccess}
+        mode="save"  // Default mode for New Search button
+        onSave={handleSave}
       />
     </>
   )

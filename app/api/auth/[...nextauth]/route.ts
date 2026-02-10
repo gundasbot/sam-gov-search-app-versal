@@ -1,4 +1,4 @@
-// app/api/auth/[...nextauth]/route.ts - COMPLETE WITH AUTO-LOGIN + SEARCH DEFAULT
+// app/api/auth/[...nextauth]/route.ts 
 
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
@@ -39,42 +39,48 @@ async function ensureUserRow(params: {
   const { first, last } = splitName(params.name)
   const now = new Date()
 
-  const existing = await prisma.user.findUnique({
+  const existing = await prisma.users.findUnique({
     where: { email },
     select: {
       id: true,
       email: true,
-      trialEndsAt: true,
-      trialActive: true,
+      trial_ends_at: true,
+      trial_active: true,
       plan: true,
-      trialExpiresAt: true,
-      planTier: true,
-      planStatus: true,
-      emailVerified: true,
-      subscriptionStatus: true,
-      billingInterval: true,
-      stripeSubscriptionId: true,
+      trial_expires_at: true,
+      plan_tier: true,
+      plan_status: true,
+      email_verified: true,
+      subscription_status: true,
+      billing_interval: true,
+      stripe_subscription_id: true,
     },
   })
 
   // If user doesn't exist, create one with BASIC tier and 7-day trial
   if (!existing) {
     const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
+    
+    // Generate a unique ID using crypto
+    const { randomUUID } = await import("crypto")
+    const userId = randomUUID()
 
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        id: userId,
         email,
-        firstName: first || email.split("@")[0],
-        lastName: last || "",
+        first_name: first || email.split("@")[0],
+        last_name: last || "",
         role: "user",
         plan: "BASIC",
-        planTier: "BASIC",
-        planStatus: "trialing",
-        trialActive: true,
-        trialStartedAt: now,
-        trialExpiresAt: trialExpires,
-        trialEndsAt: trialExpires,
-        emailVerified: params.provider === "google" ? now : null,
+        plan_tier: "BASIC",
+        plan_status: "trialing",
+        trial_active: true,
+        trial_started_at: now,
+        trial_expires_at: trialExpires,
+        trial_ends_at: trialExpires,
+        updated_at: now,
+        email_verified: params.provider === "google" ? now : null,
         name:
           params.name ||
           `${first || ""} ${last || ""}`.trim() ||
@@ -87,17 +93,18 @@ async function ensureUserRow(params: {
   }
 
   // Keep user profile info fresh
-  const shouldVerifyNow = params.provider === "google" && !existing.emailVerified
+  const shouldVerifyNow = params.provider === "google" && !existing.email_verified
   const updateData: any = {
-    ...(first && { firstName: first }),
-    ...(last && { lastName: last }),
+    updated_at: now,
+    ...(first && { first_name: first }),
+    ...(last && { last_name: last }),
     ...(params.name && { name: params.name }),
     ...(params.image && { image: params.image }),
-    ...(shouldVerifyNow && { emailVerified: now }),
+    ...(shouldVerifyNow && { email_verified: now }),
   }
 
-  if (Object.keys(updateData).length > 0) {
-    await prisma.user.update({
+  if (Object.keys(updateData).length > 1) { // Changed from > 0 to > 1 since updated_at is always present
+    await prisma.users.update({
       where: { id: existing.id },
       data: updateData,
     })
@@ -128,26 +135,26 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase().trim()
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
           where: { email },
           select: {
             id: true,
             email: true,
-            passwordHash: true,
-            emailVerified: true,
-            firstName: true,
-            lastName: true,
+            password_hash: true,
+            email_verified: true,
+            first_name: true,
+            last_name: true,
             name: true,
             role: true,
             plan: true,
-            planTier: true,
-            planStatus: true,
-            subscriptionStatus: true,
-            billingInterval: true,
-            trialEndsAt: true,
-            trialExpiresAt: true,
-            trialActive: true,
-            stripeSubscriptionId: true,
+            plan_tier: true,
+            plan_status: true,
+            subscription_status: true,
+            billing_interval: true,
+            trial_ends_at: true,
+            trial_expires_at: true,
+            trial_active: true,
+            stripe_subscription_id: true,
           },
         })
 
@@ -169,25 +176,25 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Password is required")
           }
 
-          if (!user.passwordHash) {
+          if (!user.password_hash) {
             throw new Error("Please use a different login method")
           }
 
           const { compare } = await import("bcryptjs")
-          const valid = await compare(credentials.password, user.passwordHash)
+          const valid = await compare(credentials.password, user.password_hash)
           if (!valid) {
             throw new Error("Invalid credentials")
           }
         }
 
         // Check email verification (for both flows)
-        if (!user.emailVerified) {
+        if (!user.email_verified) {
           throw new Error("Email not verified. Please check your inbox.")
         }
 
         // ✅ Normalize tier to one of three tiers
         let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
-        const rawTier = (user.planTier || user.plan || "BASIC").toUpperCase()
+        const rawTier = (user.plan_tier || user.plan || "BASIC").toUpperCase()
 
         if (rawTier === "PROFESSIONAL" || rawTier === "PRO") {
           tier = "PROFESSIONAL"
@@ -198,7 +205,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // ✅ Normalize interval
-        const rawInterval = user.billingInterval || null
+        const rawInterval = user.billing_interval || null
         let interval: "month" | "year" | null = null
         if (rawInterval) {
           const lower = String(rawInterval).toLowerCase()
@@ -206,12 +213,12 @@ export const authOptions: NextAuthOptions = {
           if (lower === "annual" || lower === "year") interval = "year"
         }
 
-        // ✅ Use subscriptionStatus as primary, fallback to planStatus
-        const status = user.subscriptionStatus || user.planStatus || "trialing"
+        // ✅ Use subscription_status as primary, fallback to plan_status
+        const status = user.subscription_status || user.plan_status || "trialing"
 
         // ✅ Check if user has active subscription
         const hasSubscription = Boolean(
-          user.stripeSubscriptionId &&
+          user.stripe_subscription_id &&
             (status === "active" ||
               status === "trialing" ||
               status === "trial" ||
@@ -223,17 +230,17 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name:
             user.name ||
-            `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+            `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() ||
             email.split("@")[0],
           role: user.role ?? "user",
           tier,
           interval,
           status,
           hasSubscription,
-          trial_active: user.trialActive || false,
+          trial_active: user.trial_active || false,
           currentPeriodEnd:
-            user.trialExpiresAt?.toISOString() ||
-            user.trialEndsAt?.toISOString() ||
+            user.trial_expires_at?.toISOString() ||
+            user.trial_ends_at?.toISOString() ||
             new Date().toISOString(),
         }
       },
@@ -301,23 +308,23 @@ export const authOptions: NextAuthOptions = {
       // If session update is triggered, fetch fresh data from database
       if (token.email && (trigger === "update" || !user)) {
         try {
-          const dbUser = await prisma.user.findUnique({
+          const dbUser = await prisma.users.findUnique({
             where: { email: token.email as string },
             select: {
               id: true,
               name: true,
-              firstName: true,
-              lastName: true,
+              first_name: true,
+              last_name: true,
               role: true,
               plan: true,
-              planTier: true,
-              planStatus: true,
-              subscriptionStatus: true,
-              billingInterval: true,
-              trialActive: true,
-              trialEndsAt: true,
-              trialExpiresAt: true,
-              stripeSubscriptionId: true,
+              plan_tier: true,
+              plan_status: true,
+              subscription_status: true,
+              billing_interval: true,
+              trial_active: true,
+              trial_ends_at: true,
+              trial_expires_at: true,
+              stripe_subscription_id: true,
             },
           })
 
@@ -325,13 +332,13 @@ export const authOptions: NextAuthOptions = {
             token.id = dbUser.id
             token.name =
               dbUser.name ||
-              `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim() ||
+              `${dbUser.first_name || ""} ${dbUser.last_name || ""}`.trim() ||
               (token.email as string).split("@")[0]
             token.role = dbUser.role ?? "user"
 
             // Normalize tier
             let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
-            const rawTier = (dbUser.planTier || dbUser.plan || "BASIC").toUpperCase()
+            const rawTier = (dbUser.plan_tier || dbUser.plan || "BASIC").toUpperCase()
 
             if (rawTier === "PROFESSIONAL" || rawTier === "PRO") {
               tier = "PROFESSIONAL"
@@ -344,7 +351,7 @@ export const authOptions: NextAuthOptions = {
             token.tier = tier
 
             // Normalize interval
-            const rawInterval = dbUser.billingInterval || null
+            const rawInterval = dbUser.billing_interval || null
             let interval: "month" | "year" | null = null
             if (rawInterval) {
               const lower = String(rawInterval).toLowerCase()
@@ -354,13 +361,13 @@ export const authOptions: NextAuthOptions = {
 
             token.interval = interval
 
-            // Use subscriptionStatus as primary
-            const status = dbUser.subscriptionStatus || dbUser.planStatus || "trialing"
+            // Use subscription_status as primary
+            const status = dbUser.subscription_status || dbUser.plan_status || "trialing"
             token.status = status
 
             // Check if user has active subscription
             const hasSubscription = Boolean(
-              dbUser.stripeSubscriptionId &&
+              dbUser.stripe_subscription_id &&
                 (status === "active" ||
                   status === "trialing" ||
                   status === "trial" ||
@@ -368,10 +375,10 @@ export const authOptions: NextAuthOptions = {
             )
 
             token.hasSubscription = hasSubscription
-            token.trial_active = dbUser.trialActive ?? false
+            token.trial_active = dbUser.trial_active ?? false
             token.currentPeriodEnd =
-              dbUser.trialExpiresAt?.toISOString() ||
-              dbUser.trialEndsAt?.toISOString() ||
+              dbUser.trial_expires_at?.toISOString() ||
+              dbUser.trial_ends_at?.toISOString() ||
               (typeof token.currentPeriodEnd === "string"
                 ? token.currentPeriodEnd
                 : new Date().toISOString())

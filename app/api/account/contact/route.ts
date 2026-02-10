@@ -1,134 +1,71 @@
+﻿// app/api/contact/enterprise/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { PrismaClient } from '@prisma/client'
+import { Resend } from 'resend'
 
-export const runtime = 'nodejs'
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined
-}
-
-const prisma = global.prisma ?? new PrismaClient()
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma
-
-function clamp(v: unknown, max = 120) {
-  return String(v ?? '').trim().slice(0, max)
-}
-
-export async function GET(_req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    const email = session?.user?.email?.toLowerCase().trim()
+    const { name, email, company, phone, message } = await request.json()
 
-    if (!email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Validate required fields
+    if (!name || !email) {
+      return NextResponse.json(
+        { error: 'Name and email are required' },
+        { status: 400 }
+      )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        phone: true,
-        company: true,
-        title: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        state: true,
-        postalCode: true,
-        country: true,
-      },
+    // Send email to sales team
+    const salesEmail = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'Precise GovCon <noreply@precisegovcon.com>',
+      to: process.env.SALES_EMAIL || 'sales@precisegovcon.com',
+      subject: `New Enterprise Inquiry from ${name}`,
+      html: `
+        <html>
+          <body>
+            <h2>New Enterprise Inquiry</h2>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Company:</strong> ${company || 'Not provided'}</p>
+            <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+            <p><strong>Message:</strong></p>
+            <p>${message || 'No message provided'}</p>
+          </body>
+        </html>
+      `,
     })
 
-    console.log('Contact GET - User:', JSON.stringify(user, null, 2))
+    // Send confirmation email to customer
+    const customerEmail = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'Precise GovCon <noreply@precisegovcon.com>',
+      to: email,
+      subject: 'Thank you for your enterprise inquiry',
+      html: `
+        <html>
+          <body>
+            <h2>Thank you for your inquiry, ${name}!</h2>
+            <p>We have received your enterprise inquiry and our team will contact you shortly.</p>
+            <p>If you have any urgent questions, please contact us at support@precisegovcon.com</p>
+          </body>
+        </html>
+      `,
+    })
 
-    return NextResponse.json(user || {})
+    console.log('âœ… Enterprise inquiry emails sent:', {
+      salesEmailId: salesEmail.data?.id,
+      customerEmailId: customerEmail.data?.id,
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Your inquiry has been sent successfully',
+    })
   } catch (error) {
-    console.error('Contact GET error:', error)
-    return NextResponse.json({ error: 'Failed to load contact info' }, { status: 500 })
-  }
-}
-
-export async function PUT(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    const email = session?.user?.email?.toLowerCase().trim()
-
-    if (!email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const body = await req.json()
-    console.log('Contact PUT - Request body:', JSON.stringify(body, null, 2))
-
-    const updateData: any = {}
-
-    if (body.phone !== undefined) {
-      updateData.phone = clamp(body.phone, 40) || null
-    }
-    if (body.company !== undefined) {
-      updateData.company = clamp(body.company, 120) || null
-    }
-    if (body.title !== undefined) {
-      updateData.title = clamp(body.title, 120) || null
-    }
-    if (body.address_line1 !== undefined) {
-      updateData.addressLine1 = clamp(body.address_line1, 160) || null
-    }
-    if (body.address_line2 !== undefined) {
-      updateData.addressLine2 = clamp(body.address_line2, 160) || null
-    }
-    if (body.city !== undefined) {
-      updateData.city = clamp(body.city, 80) || null
-    }
-    if (body.state !== undefined) {
-      updateData.state = clamp(body.state, 40) || null
-    }
-    if (body.zip !== undefined) {
-      updateData.postalCode = clamp(body.zip, 20) || null
-    }
-    if (body.country !== undefined) {
-      updateData.country = clamp(body.country, 60) || null
-    }
-
-    console.log('Contact PUT - Update data:', JSON.stringify(updateData, null, 2))
-
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true }
-    })
-
-    if (!existingUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const updated = await prisma.user.update({
-      where: { email },
-      data: updateData,
-      select: {
-        phone: true,
-        company: true,
-        title: true,
-        addressLine1: true,
-        addressLine2: true,
-        city: true,
-        state: true,
-        postalCode: true,
-        country: true,
-      },
-    })
-
-    console.log('Contact PUT - Updated user:', JSON.stringify(updated, null, 2))
-
-    return NextResponse.json(updated)
-  } catch (error: any) {
-    console.error('Contact PUT error details:', error)
-    return NextResponse.json({ 
-      error: 'Failed to save contact info',
-      details: error.message,
-      code: error.code
-    }, { status: 500 })
+    console.error('Enterprise contact error:', error)
+    return NextResponse.json(
+      { error: 'Failed to send inquiry' },
+      { status: 500 }
+    )
   }
 }

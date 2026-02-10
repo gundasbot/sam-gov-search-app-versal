@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { sendTrialReminder3Days } from "@/lib/email";
 
@@ -28,7 +28,7 @@ export async function GET() {
       await sendTrialReminder3Days({
         email: u.email,
         firstName: u.first_name,
-        trialEndsAt: new Date(u.trial_expires_at),
+        trial_ends_at: new Date(u.trial_expires_at),
       });
 
       await sql`

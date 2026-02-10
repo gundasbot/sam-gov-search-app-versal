@@ -1,10 +1,10 @@
-// app/api/saved-searches/[id]/toggle/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 
-// POST /api/saved-searches/[id]/toggle - Toggle subscription on/off
+// POST /api/saved-searches/[id]/toggle
+// Toggle subscription on/off
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -17,11 +17,11 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch the saved search
-    const search = await prisma.savedSearchNew.findFirst({
-      where: { 
-        id, 
-        userId: session.user.id 
+    // Fetch the saved search (ownership enforced)
+    const search = await prisma.saved_searches_new.findFirst({
+      where: {
+        id,
+        user_id: session.user.id,
       },
     })
 
@@ -29,10 +29,9 @@ export async function POST(
       return NextResponse.json({ error: 'Search not found' }, { status: 404 })
     }
 
-    // Toggle subscription enabled status
     const newStatus = !search.subscriptionEnabled
-    
-    // If enabling subscription, ensure we have required fields
+
+    // If enabling, ensure required fields exist
     if (newStatus) {
       if (!search.recipients) {
         return NextResponse.json(
@@ -40,64 +39,64 @@ export async function POST(
           { status: 400 }
         )
       }
+
+      // Default frequency if missing
       if (!search.frequency) {
-        // Set default frequency if not set
-        await prisma.savedSearchNew.update({
+        await prisma.saved_searches_new.update({
           where: { id },
-          data: { 
+          data: {
             subscriptionEnabled: true,
             frequency: 'DAILY',
           },
         })
-        
-        const updated = await prisma.savedSearchNew.findUnique({
+
+        const updated = await prisma.saved_searches_new.findUnique({
           where: { id },
           include: {
             _count: {
               select: {
-                runs: true,
-                exports: true,
+                searchRuns: true,
+                searchExports: true,
               },
             },
-            runs: {
+            searchRuns: {
               orderBy: { createdAt: 'desc' },
               take: 1,
             },
           },
         })
-        
-        return NextResponse.json({ 
+
+        return NextResponse.json({
           search: updated,
-          message: 'Subscription enabled with default daily frequency'
+          message: 'Subscription enabled with default daily frequency',
         })
       }
     }
 
-    // Update subscription status
-    const updated = await prisma.savedSearchNew.update({
+    // Toggle subscription
+    const updated = await prisma.saved_searches_new.update({
       where: { id },
-      data: { 
+      data: {
         subscriptionEnabled: newStatus,
-        // Clear frequency if disabling
         ...(newStatus === false && { frequency: null }),
       },
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            searchRuns: true,
+            searchExports: true,
           },
         },
-        runs: {
+        searchRuns: {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
       },
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       search: updated,
-      message: newStatus ? 'Subscription enabled' : 'Subscription disabled'
+      message: newStatus ? 'Subscription enabled' : 'Subscription disabled',
     })
   } catch (error) {
     console.error('Error toggling subscription:', error)

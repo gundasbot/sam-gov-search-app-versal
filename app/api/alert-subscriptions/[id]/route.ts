@@ -16,21 +16,21 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const subscription = await prisma.savedSearchNew.findFirst({
+    const subscription = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id,
-        subscriptionEnabled: true,
+        user_id: session.user.id,
+        subscription_enabled: true,
       },
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
-        runs: {
-          orderBy: { createdAt: 'desc' },
+        search_runs: {
+          orderBy: { created_at: 'desc' },
           take: 5,
         },
       },
@@ -46,33 +46,33 @@ export async function GET(
       name: subscription.name,
       description: subscription.description,
       frequency: subscription.frequency,
-      active: subscription.subscriptionEnabled,
+      active: subscription.subscription_enabled,
       recipients: subscription.recipients,
-      emailNotification: subscription.emailNotification,
-      sendEmptyResults: subscription.sendEmptyResults,
-      maxResults: subscription.maxResults,
-      deliveryTime: subscription.deliveryTime,
-      exportFormat: subscription.exportFormat,
-      fileFormat: subscription.exportFormat,
-      includeLinks: subscription.includeLinks,
-      lastRunAt: subscription.lastRunAt,
-      lastResultCount: subscription.lastResultCount,
-      createdAt: subscription.createdAt,
-      updatedAt: subscription.updatedAt,
+      emailNotification: subscription.email_notification,
+      sendEmptyResults: subscription.send_empty_results,
+      maxResults: subscription.max_results,
+      deliveryTime: subscription.delivery_time,
+      exportFormat: subscription.export_format,
+      fileFormat: subscription.export_format,
+      includeLinks: subscription.include_links,
+      lastRunAt: subscription.last_run_at,
+      lastResultCount: subscription.last_result_count,
+      createdAt: subscription.created_at,
+      updatedAt: subscription.updated_at,
       savedSearch: {
         id: subscription.id,
         name: subscription.name,
         keywords: subscription.keywords,
         naics: subscription.naics,
         agency: subscription.agency,
-        setAside: subscription.setAside,
-        stateOfPerformance: subscription.stateOfPerformance,
-        procurementType: subscription.procurementType,
-        postedAfter: subscription.postedAfter,
-        postedBefore: subscription.postedBefore,
+        setAside: subscription.set_aside,
+        stateOfPerformance: subscription.state_of_performance,
+        procurementType: subscription.procurement_type,
+        postedAfter: subscription.posted_after,
+        postedBefore: subscription.posted_before,
       },
       _count: subscription._count,
-      runs: subscription.runs,
+      runs: subscription.search_runs,
     }
 
     return NextResponse.json({ subscription: formatted })
@@ -97,17 +97,25 @@ export async function PUT(
     const body = await req.json()
 
     // Verify ownership
-    const existing = await prisma.savedSearchNew.findFirst({
-      where: { id, userId: session.user.id },
+    const existing = await prisma.saved_searches_new.findFirst({
+      where: { id, user_id: session.user.id },
     })
 
     if (!existing) {
       return NextResponse.json({ error: 'Subscription not found' }, { status: 404 })
     }
 
-    // Validate recipients if provided
-    if (body.recipients) {
-      const emails = body.recipients.split(',').map((e: string) => e.trim())
+    // Validate email recipients if provided
+    if (body.recipients !== undefined) {
+      const emails = Array.isArray(body.recipients)
+        ? body.recipients
+        : typeof body.recipients === 'string'
+          ? body.recipients
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : []
+
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       const invalidEmails = emails.filter((e: string) => e && !emailRegex.test(e))
       if (invalidEmails.length > 0) {
@@ -120,27 +128,27 @@ export async function PUT(
 
     // Build update data
     const updateData: any = {}
-    
+
     if (body.name !== undefined) updateData.name = body.name
     if (body.description !== undefined) updateData.description = body.description
     if (body.frequency !== undefined) updateData.frequency = body.frequency
     if (body.recipients !== undefined) updateData.recipients = body.recipients
-    if (body.emailNotification !== undefined) updateData.emailNotification = body.emailNotification
-    if (body.sendEmptyResults !== undefined) updateData.sendEmptyResults = body.sendEmptyResults
-    if (body.maxResults !== undefined) updateData.maxResults = body.maxResults
-    if (body.deliveryTime !== undefined) updateData.deliveryTime = body.deliveryTime
-    if (body.exportFormat !== undefined) updateData.exportFormat = body.exportFormat
-    if (body.fileFormat !== undefined) updateData.exportFormat = body.fileFormat // Support both names
-    if (body.includeLinks !== undefined) updateData.includeLinks = body.includeLinks
+    if (body.emailNotification !== undefined) updateData.email_notification = body.emailNotification
+    if (body.sendEmptyResults !== undefined) updateData.send_empty_results = body.sendEmptyResults
+    if (body.maxResults !== undefined) updateData.max_results = body.maxResults
+    if (body.deliveryTime !== undefined) updateData.delivery_time = body.deliveryTime
+    if (body.exportFormat !== undefined) updateData.export_format = body.exportFormat
+    if (body.fileFormat !== undefined) updateData.export_format = body.fileFormat // Support both names
+    if (body.includeLinks !== undefined) updateData.include_links = body.includeLinks
 
-    const updated = await prisma.savedSearchNew.update({
+    const updated = await prisma.saved_searches_new.update({
       where: { id },
       data: updateData,
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
@@ -152,30 +160,30 @@ export async function PUT(
       name: updated.name,
       description: updated.description,
       frequency: updated.frequency,
-      active: updated.subscriptionEnabled,
+      active: updated.subscription_enabled,
       recipients: updated.recipients,
-      emailNotification: updated.emailNotification,
-      sendEmptyResults: updated.sendEmptyResults,
-      maxResults: updated.maxResults,
-      deliveryTime: updated.deliveryTime,
-      exportFormat: updated.exportFormat,
-      fileFormat: updated.exportFormat,
-      includeLinks: updated.includeLinks,
-      lastRunAt: updated.lastRunAt,
-      lastResultCount: updated.lastResultCount,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
+      emailNotification: updated.email_notification,
+      sendEmptyResults: updated.send_empty_results,
+      maxResults: updated.max_results,
+      deliveryTime: updated.delivery_time,
+      exportFormat: updated.export_format,
+      fileFormat: updated.export_format,
+      includeLinks: updated.include_links,
+      lastRunAt: updated.last_run_at,
+      lastResultCount: updated.last_result_count,
+      createdAt: updated.created_at,
+      updatedAt: updated.updated_at,
       savedSearch: {
         id: updated.id,
         name: updated.name,
         keywords: updated.keywords,
         naics: updated.naics,
         agency: updated.agency,
-        setAside: updated.setAside,
-        stateOfPerformance: updated.stateOfPerformance,
-        procurementType: updated.procurementType,
-        postedAfter: updated.postedAfter,
-        postedBefore: updated.postedBefore,
+        setAside: updated.set_aside,
+        stateOfPerformance: updated.state_of_performance,
+        procurementType: updated.procurement_type,
+        postedAfter: updated.posted_after,
+        postedBefore: updated.posted_before,
       },
       _count: updated._count,
     }
@@ -200,8 +208,8 @@ export async function DELETE(
     }
 
     // Verify ownership
-    const existing = await prisma.savedSearchNew.findFirst({
-      where: { id, userId: session.user.id },
+    const existing = await prisma.saved_searches_new.findFirst({
+      where: { id, user_id: session.user.id },
     })
 
     if (!existing) {
@@ -209,7 +217,7 @@ export async function DELETE(
     }
 
     // Delete the subscription
-    await prisma.savedSearchNew.delete({
+    await prisma.saved_searches_new.delete({
       where: { id },
     })
 

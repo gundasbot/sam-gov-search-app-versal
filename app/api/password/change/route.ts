@@ -1,4 +1,4 @@
-///app/api/password/change/route.ts
+﻿///app/api/password/change/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user with passwordHash (NOT password!)
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
       select: {
         id: true,
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
     // Update passwordHash (NOT password!)
-    await prisma.user.update({
+    await prisma.users.update({
       where: { email },
       data: { 
         passwordHash: hashedPassword,

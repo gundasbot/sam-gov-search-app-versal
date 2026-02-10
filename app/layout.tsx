@@ -8,6 +8,7 @@ import AuthModalProvider from '@/components/auth/AuthModalProvider'
 import SmoothScrollProvider from '@/components/SmoothScrollProvider'
 import FloatingCTA from '@/components/FloatingCTA'
 import BrowsingTimerBanner from '@/components/BrowsingTimerBanner'
+import CookieConsent from '@/components/CookieConsent'
 import { Inter } from 'next/font/google'
 
 const inter = Inter({
@@ -80,20 +81,32 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen`} style={{ isolation: 'isolate' }}>
+    <html lang="en" suppressHydrationWarning className="h-full">
+      <body className={`${inter.className} h-full overflow-hidden`} style={{ isolation: 'isolate' }}>
         <AuthProvider>
           <AuthModalProvider>
             <SmoothScrollProvider>
-              <Header />
-              <BrowsingTimerBanner />
-              
-              <main>
-                {children}
-              </main>
+              {/* Container with flexbox layout */}
+              <div className="h-full flex flex-col">
+                {/* Fixed Header - flex-none prevents shrinking */}
+                <div className="flex-none">
+                  <Header />
+                  <BrowsingTimerBanner />
+                </div>
+                
+                {/* Scrollable Content - flex-1 takes remaining space */}
+                <main className="flex-1 overflow-y-auto overflow-x-hidden">
+                  {children}
+                </main>
 
-              <Footer />
+                {/* Fixed Footer - flex-none prevents shrinking */}
+                <div className="flex-none">
+                  <Footer />
+                </div>
+              </div>
+              
               <FloatingCTA />
+              <CookieConsent />
             </SmoothScrollProvider>
           </AuthModalProvider>
         </AuthProvider>

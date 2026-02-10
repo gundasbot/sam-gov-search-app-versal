@@ -34,7 +34,7 @@ export default function HelpStatusPage() {
     },
     {
       question: 'What is a set-aside contract?',
-      answer: 'Set-aside contracts are reserved for specific business types like VOSB (Veteran-Owned Small Business), SDVOSB (Service-Disabled Veteran-Owned Small Business), 8(a), HUBZone, WOSB (Women-Owned Small Business), and other small businesses. These set-asides help level the playing field for eligible businesses.'
+      answer: 'Set-aside contracts are reserved for specific business types like VOSB (Veteran-Owned Small Business), SDVOSB (VETERAN-OWNED Small Business), 8(a), HUBZone, WOSB (Women-Owned Small Business), and other small businesses. These set-asides help level the playing field for eligible businesses.'
     },
     {
       question: 'How often is data updated?',

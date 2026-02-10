@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendAlertEmail } from '@/lib/email'
+import { randomBytes } from 'crypto'
 
 // Date converter for SAM.gov format
 function toSamGovDate(v: Date | string | null) {
@@ -35,11 +37,21 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch the subscription (saved search)
-    const subscription = await prisma.savedSearchNew.findFirst({
+    // Fetch the subscription (saved search) with user data
+    const subscription = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id
+        user_id: session.user.id,
+      },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            first_name: true, // ✅ FIX: was firstName
+          },
+        },
       },
     })
 
@@ -53,41 +65,19 @@ export async function POST(
     const samUrl = new URL('https://api.sam.gov/opportunities/v2/search')
 
     // Add search params
-    if (subscription.keywords) {
-      samUrl.searchParams.set('keywords', subscription.keywords)
-    }
-
-    if (subscription.naics) {
-      samUrl.searchParams.set('naics', subscription.naics)
-    }
-
-    if (subscription.agency) {
-      samUrl.searchParams.set('agency', subscription.agency)
-    }
-
-    if (subscription.setAside) {
-      samUrl.searchParams.set('setAside', subscription.setAside)
-    }
-
-    if (subscription.stateOfPerformance) {
-      samUrl.searchParams.set('state', subscription.stateOfPerformance)
-    }
-
-    if (subscription.procurementType) {
-      samUrl.searchParams.set('ptype', subscription.procurementType)
-    }
+    if (subscription.keywords) samUrl.searchParams.set('keywords', subscription.keywords)
+    if (subscription.naics) samUrl.searchParams.set('naics', subscription.naics)
+    if (subscription.agency) samUrl.searchParams.set('agency', subscription.agency)
+    if (subscription.set_aside) samUrl.searchParams.set('setAside', subscription.set_aside)
+    if (subscription.state_of_performance) samUrl.searchParams.set('state', subscription.state_of_performance)
+    if (subscription.procurement_type) samUrl.searchParams.set('ptype', subscription.procurement_type)
 
     // Convert dates to SAM.gov format (MM/dd/yyyy)
-    if (subscription.postedAfter) {
-      samUrl.searchParams.set('postedFrom', toSamGovDate(subscription.postedAfter))
-    }
-
-    if (subscription.postedBefore) {
-      samUrl.searchParams.set('postedTo', toSamGovDate(subscription.postedBefore))
-    }
+    if (subscription.posted_after) samUrl.searchParams.set('postedFrom', toSamGovDate(subscription.posted_after))
+    if (subscription.posted_before) samUrl.searchParams.set('postedTo', toSamGovDate(subscription.posted_before))
 
     // Add limit and API key
-    samUrl.searchParams.set('limit', String(subscription.maxResults || 100))
+    samUrl.searchParams.set('limit', String(subscription.max_results || 100))
     samUrl.searchParams.set('api_key', process.env.SAMGOV_API_KEY || '')
 
     console.log('📡 Calling SAM.gov API:', samUrl.searchParams.toString())
@@ -100,9 +90,7 @@ export async function POST(
     try {
       const samResponse = await fetch(samUrl.toString(), {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { Accept: 'application/json' },
       })
 
       if (!samResponse.ok) {
@@ -122,99 +110,111 @@ export async function POST(
     }
 
     // Create search run record
-    const searchRun = await prisma.searchRun.create({
+    const searchRun = await prisma.search_runs.create({
       data: {
-        savedSearchId: subscription.id,
+        id: randomBytes(12).toString('hex'),
+        saved_search_id: subscription.id,
         status: errorMessage ? 'ERROR' : 'SUCCESS',
-        resultCount,
-        newResultsCount: resultCount, // For now, assume all are new
-        searchParams: {
+        result_count: resultCount,
+        new_results_count: resultCount, // For now, assume all are new
+        search_params: {
           keywords: subscription.keywords,
           naics: subscription.naics,
           agency: subscription.agency,
-          setAside: subscription.setAside,
-          stateOfPerformance: subscription.stateOfPerformance,
-          postedAfter: subscription.postedAfter,
-          postedBefore: subscription.postedBefore,
-          procurementType: subscription.procurementType,
+          setAside: subscription.set_aside,
+          stateOfPerformance: subscription.state_of_performance,
+          postedAfter: subscription.posted_after,
+          postedBefore: subscription.posted_before,
+          procurementType: subscription.procurement_type,
         },
-        resultsSnapshot: opportunities.slice(0, 50), // Store first 50
-        errorMessage,
-        emailSent: false,
+        results_snapshot: opportunities.slice(0, 50), // Store first 50
+        error_message: errorMessage,
+        email_sent: false,
       },
     })
 
     // Update subscription last run metadata
-    await prisma.savedSearchNew.update({
+    await prisma.saved_searches_new.update({
       where: { id: subscription.id },
       data: {
-        lastRunAt: new Date(),
-        lastResultCount: resultCount,
+        last_run_at: new Date(),
+        last_result_count: resultCount,
       },
     })
 
-    // Send email notification (if subscription enabled and configured)
+    // ✅ SEND EMAIL NOTIFICATION
     let emailSent = false
-    if (subscription.subscriptionEnabled && subscription.emailNotification && subscription.recipients) {
-      const shouldSendEmail = resultCount > 0 || subscription.sendEmptyResults
+    if (subscription.subscription_enabled && subscription.email_notification && subscription.recipients) {
+      const shouldSendEmail = resultCount > 0 || !!subscription.send_empty_results
 
       if (shouldSendEmail) {
         try {
-          console.log(`📧 Would send email to: ${subscription.recipients}`)
+          console.log(`📧 Sending email to: ${subscription.recipients}`)
           console.log(`📊 Results: ${resultCount}`)
-          // TODO: Implement actual email sending here
-          // await sendAlertEmail({ ... })
-          
-          emailSent = true
-          await prisma.searchRun.update({
-            where: { id: searchRun.id },
-            data: { emailSent: true },
+
+          // Parse recipients
+          const recipientEmails = subscription.recipients
+            .split(',')
+            .map((e) => e.trim())
+            .filter(Boolean)
+
+          // Build search criteria array for email
+          const searchCriteria: Array<{ label: string; value: string }> = []
+          if (subscription.keywords) searchCriteria.push({ label: 'Keywords', value: subscription.keywords })
+          if (subscription.naics) searchCriteria.push({ label: 'NAICS', value: subscription.naics })
+          if (subscription.agency) searchCriteria.push({ label: 'Agency', value: subscription.agency })
+          if (subscription.set_aside) searchCriteria.push({ label: 'Set-Aside', value: subscription.set_aside })
+          if (subscription.state_of_performance) searchCriteria.push({ label: 'State', value: subscription.state_of_performance })
+          if (subscription.procurement_type) searchCriteria.push({ label: 'Type', value: subscription.procurement_type })
+
+          // Transform opportunities to match email template format
+          const topResults = opportunities.slice(0, 10).map((opp) => ({
+            title: opp.title || opp.description || 'Untitled Opportunity',
+            agency: opp.department || opp.agency || 'Unknown Agency',
+            solicitationNumber: opp.solicitationNumber || opp.noticeId,
+            naics: opp.naics?.[0] || opp.naicsCode,
+            responseDeadline: opp.responseDeadLine || opp.archiveDate,
+            url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || opp.solicitationNumber}`,
+          }))
+
+          await sendAlertEmail({
+            to: recipientEmails,
+            searchName: subscription.name,
+            totalResults: resultCount,
+            searchCriteria,
+            topResults,
           })
+
+          emailSent = true
+
+          await prisma.search_runs.update({
+            where: { id: searchRun.id },
+            data: { email_sent: true },
+          })
+
+          console.log('✅ Email sent successfully')
         } catch (emailErr) {
-          console.error('Email send failed (non-fatal):', emailErr)
+          console.error('❌ Email send failed (non-fatal):', emailErr)
+          // Don't throw - email failure shouldn't fail the whole alert run
         }
+      } else {
+        console.log('📭 Skipping email: empty results and send_empty_results is false')
       }
+    } else {
+      console.log('📭 Skipping email: subscription disabled or email_notification off or recipients missing')
     }
 
     return NextResponse.json({
-      success: true,
+      ok: true,
+      subscriptionId: subscription.id,
+      runId: searchRun.id,
+      status: searchRun.status,
       resultCount,
-      searchRunId: searchRun.id,
       emailSent,
-      subscription: {
-        id: subscription.id,
-        name: subscription.name,
-        lastRunAt: new Date().toISOString(),
-        lastResultCount: resultCount,
-      },
+      error: errorMessage,
     })
   } catch (error) {
-    console.error('Alert subscription run error:', error)
-    
-    // Try to create error run record
-    try {
-      const { id } = await params
-      await prisma.searchRun.create({
-        data: {
-          savedSearchId: id,
-          status: 'ERROR',
-          resultCount: 0,
-          newResultsCount: 0,
-          searchParams: {},
-          resultsSnapshot: [],
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        },
-      })
-    } catch (recordError) {
-      console.error('Failed to create error record:', recordError)
-    }
-
-    return NextResponse.json(
-      {
-        error: 'Failed to run alert subscription',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
+    console.error('Error running subscription now:', error)
+    return NextResponse.json({ error: 'Failed to run subscription' }, { status: 500 })
   }
 }

@@ -1,4 +1,4 @@
-// app/api/sam/live-ticker/route.ts - FINAL CORRECTED with Date Formatting
+﻿// app/api/sam/live-ticker/route.ts - Enhanced with graceful 429 handling
 import { NextResponse } from 'next/server';
 
 const SAM_API_KEY = process.env.SAMGOVAPIKEY || process.env.SAM_API_KEY || '';
@@ -25,8 +25,9 @@ export async function GET() {
     return NextResponse.json({
       count: 0,
       opportunities: [],
+      rateLimitExceeded: false,
       error: 'SAM API key not configured'
-    }, { status: 500 });
+    }, { status: 200 }); // Return 200 to prevent app errors
   }
 
   try {
@@ -51,13 +52,44 @@ export async function GET() {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      next: { revalidate: 120 }
+      next: { revalidate: 300 } // Cache for 5 minutes to reduce API calls
     });
+
+    // Handle 429 Rate Limit errors gracefully
+    if (response.status === 429) {
+      const errorData = await response.json().catch(() => ({}));
+      const nextAccessTime = errorData.nextAccessTime || 'Unknown';
+      
+      console.warn('⚠️ SAM API Rate Limit Exceeded');
+      console.warn('Next access time:', nextAccessTime);
+      
+      return NextResponse.json({
+        count: 0,
+        opportunities: [],
+        rateLimitExceeded: true,
+        nextAccessTime: nextAccessTime,
+        message: 'SAM.gov API quota exceeded. Service will resume after quota resets.',
+        error: null
+      }, { 
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+        }
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ SAM API Error (Ticker):', response.status, errorText);
-      throw new Error(`SAM API error: ${response.status} - ${errorText.substring(0, 100)}`);
+      
+      // Return graceful error instead of throwing
+      return NextResponse.json({
+        count: 0,
+        opportunities: [],
+        rateLimitExceeded: false,
+        error: `SAM.gov API error (${response.status})`,
+        message: 'Unable to fetch live opportunities at this time.'
+      }, { status: 200 });
     }
 
     const data = await response.json();
@@ -82,15 +114,24 @@ export async function GET() {
     return NextResponse.json({
       count: data.totalRecords || opportunities.length,
       opportunities,
+      rateLimitExceeded: false,
+      error: null
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+      }
     });
 
   } catch (error) {
     console.error('❌ Error fetching ticker data:', error);
     
+    // Return graceful error response instead of 500
     return NextResponse.json({
       count: 0,
       opportunities: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch ticker data'
-    }, { status: 500 });
+      rateLimitExceeded: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch ticker data',
+      message: 'Unable to fetch live opportunities at this time.'
+    }, { status: 200 });
   }
 }

@@ -1,4 +1,4 @@
-// app/api/auth/register/route.ts
+﻿// app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const { name, email, password } = await req.json()
 
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email },
     })
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         name,
         email,
@@ -29,11 +29,11 @@ export async function POST(req: NextRequest) {
         emailVerified: null,
         isActive: true, // Set user as active
         // Optionally set other fields:
-        // planStatus: 'TRIALING', // or 'INACTIVE'
-        // planTier: 'FREE',
-        // trialActive: true,
+        // plan_status: 'TRIALING', // or 'INACTIVE'
+        // plan_tier: 'FREE',
+        // trial_active: true,
         // trialStartedAt: new Date(),
-        // trialExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        // trial_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       },
     })
 

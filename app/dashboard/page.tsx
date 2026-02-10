@@ -1,4 +1,4 @@
-﻿﻿﻿// app/dashboard/page.tsx - Dashboard with Dynamic User Name + Actionable Stats
+﻿﻿// app/dashboard/page.tsx - Dashboard with Dynamic User Name + Actionable Stats
 'use client';
 
 import { useSession } from 'next-auth/react';
@@ -51,7 +51,7 @@ function getWelcomeName(session: any) {
     .join(' ');
 }
 
-type DrawerKey = 'activeSearches' | 'savedOpps' | 'matchInfo' | null;
+type DrawerKey = 'activeSearches' | 'savedOpps' | 'matchInfo' | 'notifications' | 'settings' | null;
 
 type ActiveSearch = {
   id: string;
@@ -277,11 +277,17 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-3 animate-fadeInRight">
-              <button className="relative p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl border border-white/10 transition-all duration-300 hover:scale-105">
+              <button 
+                onClick={() => setDrawer('notifications')}
+                className="relative p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl border border-white/10 transition-all duration-300 hover:scale-105"
+              >
                 <Bell className="w-5 h-5 text-slate-300" />
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               </button>
-              <button className="p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl border border-white/10 transition-all duration-300 hover:scale-105">
+              <button 
+                onClick={() => setDrawer('settings')}
+                className="p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl border border-white/10 transition-all duration-300 hover:scale-105"
+              >
                 <Settings className="w-5 h-5 text-slate-300" />
               </button>
             </div>
@@ -299,6 +305,8 @@ export default function DashboardPage() {
                 {drawer === 'activeSearches' && 'Active Searches'}
                 {drawer === 'savedOpps' && 'Saved Opportunities'}
                 {drawer === 'matchInfo' && 'Match Score'}
+                {drawer === 'notifications' && 'Notifications'}
+                {drawer === 'settings' && 'Settings'}
               </div>
               <button
                 onClick={closeDrawer}
@@ -462,6 +470,131 @@ export default function DashboardPage() {
                     >
                       Close
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Notifications Drawer */}
+              {drawer === 'notifications' && (
+                <div>
+                  <p className="text-slate-400 text-sm mb-6">
+                    Stay updated with your latest opportunity matches and deadlines
+                  </p>
+                  <div className="space-y-3">
+                    {notifications.map((notif, index) => {
+                      const IconComponent = notif.icon;
+                      return (
+                        <div
+                          key={index}
+                          className="p-4 bg-slate-800/40 hover:bg-slate-800/60 rounded-xl border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-slate-700/50 rounded-lg">
+                              <IconComponent className={`w-5 h-5 ${notif.color}`} />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-white font-semibold text-sm mb-1">{notif.title}</p>
+                              <p className="text-slate-400 text-xs">{notif.time}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-6">
+                    <button
+                      onClick={() => {
+                        closeDrawer();
+                        router.push('/opportunities');
+                      }}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                    >
+                      View All Opportunities
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Settings Drawer */}
+              {drawer === 'settings' && (
+                <div>
+                  <p className="text-slate-400 text-sm mb-6">
+                    Manage your account preferences and notification settings
+                  </p>
+                  <div className="space-y-4">
+                    {/* Profile Section */}
+                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
+                      <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-cyan-400" />
+                        Profile
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-slate-300">Name: <span className="text-white font-semibold">{welcomeName}</span></p>
+                        <p className="text-slate-300">Email: <span className="text-white font-semibold">{session?.user?.email}</span></p>
+                        <button className="mt-2 text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
+                          Edit Profile →
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Notifications Settings */}
+                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
+                      <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-purple-400" />
+                        Notifications
+                      </h3>
+                      <div className="space-y-3">
+                        <label className="flex items-center justify-between cursor-pointer">
+                          <span className="text-slate-300 text-sm">Email notifications</span>
+                          <input type="checkbox" defaultChecked className="w-4 h-4 rounded bg-slate-700 border-slate-600" />
+                        </label>
+                        <label className="flex items-center justify-between cursor-pointer">
+                          <span className="text-slate-300 text-sm">New opportunity alerts</span>
+                          <input type="checkbox" defaultChecked className="w-4 h-4 rounded bg-slate-700 border-slate-600" />
+                        </label>
+                        <label className="flex items-center justify-between cursor-pointer">
+                          <span className="text-slate-300 text-sm">Deadline reminders</span>
+                          <input type="checkbox" defaultChecked className="w-4 h-4 rounded bg-slate-700 border-slate-600" />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Opportunity Preferences */}
+                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
+                      <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <Target className="w-4 h-4 text-green-400" />
+                        Opportunity Preferences
+                      </h3>
+                      <button
+                        onClick={() => {
+                          closeDrawer();
+                          router.push('/opportunities');
+                        }}
+                        className="w-full text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
+                      >
+                        Update Preferences →
+                      </button>
+                    </div>
+
+                    {/* Account Actions */}
+                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
+                      <h3 className="text-white font-semibold mb-3">Account</h3>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => router.push('/pricing')}
+                          className="w-full text-left text-sm text-slate-300 hover:text-white transition-colors py-2"
+                        >
+                          View Plan & Billing
+                        </button>
+                        <button
+                          onClick={() => router.push('/api/auth/signout')}
+                          className="w-full text-left text-sm text-red-400 hover:text-red-300 transition-colors py-2"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

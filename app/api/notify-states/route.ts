@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
 export const runtime = 'nodejs' // Resend uses node APIs; keep it on node runtime

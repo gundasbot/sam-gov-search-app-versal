@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     };
 
     // For now: log (works everywhere)
-    console.log("📈 TRACK EVENT:", payload);
+    console.log("ðŸ“ˆ TRACK EVENT:", payload);
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch {

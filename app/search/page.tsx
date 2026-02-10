@@ -1,5 +1,4 @@
 //app/search/page.tsx
-
 'use client'
 
 import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense } from 'react'
@@ -8,10 +7,12 @@ import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import WelcomeBanner from '@/components/WelcomeBanner'
 import { useSession, signIn } from 'next-auth/react'
-import SavedSearchModal from '@/components/SavedSearchModal'
-import SearchAlertModal from '@/components/SearchAlertModal'
 import SavedSearchActions from '@/components/SavedSearchActions'
+import UnifiedSaveSearchModal from '@/components/UnifiedSaveSearchModal'
 import ProfileCompletionReminder from '@/components/ProfileCompletionReminder'
+import AIAnalytics from '@/components/AIAnalytics'
+import InlineDatePicker from '@/components/InlineDatePicker'
+import SaveSearchSuccessModal from '@/components/SaveSearchSuccessModal'
 import {
   Search,
   SlidersHorizontal,
@@ -94,6 +95,8 @@ import {
   Cpu as CpuIcon,
   Loader2,
   Phone,
+  StopCircle,
+  Settings,
 } from 'lucide-react'
 import AccessControlModal from '@/components/AccessControlModal'
 export const dynamic = 'force-dynamic'
@@ -204,7 +207,6 @@ function useBrowsingSession() {
   const [browsingStartTime, setBrowsingStartTime] = useState<number | null>(null)
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [showLockoutModal, setShowLockoutModal] = useState(false)
-  const [remainingTime, setRemainingTime] = useState<number>(0)
   
   // Initialize browsing session for unauthenticated users
   useEffect(() => {
@@ -241,9 +243,6 @@ function useBrowsingSession() {
     const interval = setInterval(() => {
       const now = Date.now()
       const elapsed = now - browsingStartTime
-      const remaining = 900000 - elapsed // 15 minutes
-
-      setRemainingTime(remaining)
 
       // Show reminder at 10 minutes (5 minutes left)
       if (elapsed >= 600000 && elapsed < 601000) {
@@ -314,7 +313,6 @@ function useBrowsingSession() {
     setShowReminderModal,
     showLockoutModal,
     setShowLockoutModal,
-    remainingTime,
     isAuthenticated: status === 'authenticated',
     tier,
     planStatus,
@@ -334,6 +332,10 @@ type Opp = {
   postedDate?: string
   responseDeadLine?: string
   type?: string
+  // SAM.gov often returns both a set-aside *code* and a human-readable description.
+  // Different endpoints / export formats may use different field names, so we support both.
+  typeOfSetAside?: string
+  typeOfSetAsideDescription?: string
   setAside?: string
   setAsideCode?: string
   naicsCode?: string
@@ -450,7 +452,8 @@ const SET_ASIDE_OPTIONS = [
   { value: '8A', label: '8(a) Set-Aside' },
   { value: '8AN', label: '8(a) Sole Source' },
   { value: 'HZC', label: 'HUBZone Set-Aside' },
-  { value: 'SDV', label: 'Service-Disabled Veteran-Owned' },
+  { value: 'SDV', label: 'VETERAN-OWNED' },
+  { value: 'SDVOSBC', label: 'VETERAN-OWNED Small Business Set Aside' },
   { value: 'WOSB', label: 'Woman-Owned Small Business' },
   { value: 'EDWOSB', label: 'Economically Disadvantaged WOSB' },
   { value: 'SDB', label: 'Small Disadvantaged Business' },
@@ -463,14 +466,15 @@ const SET_ASIDE_LABEL_BY_CODE: Record<string, string> = {
   '8A': '8(a) Set-Aside',
   '8AN': '8(a) Sole Source',
   'HZC': 'HUBZone Set-Aside',
-  'SDV': 'Service-Disabled Veteran-Owned',
+  'SDV': 'VETERAN-OWNED',
+  'SDVOSBC': 'VETERAN-OWNED Small Business Set Aside',
   'WOSB': 'Woman-Owned Small Business',
   'EDWOSB': 'Economically Disadvantaged WOSB',
   'SDB': 'Small Disadvantaged Business',
   'NONE': 'No Set-Aside',
   // Common variations
   'HUBZone': 'HUBZone Set-Aside',
-  'SDVOSB': 'Service-Disabled Veteran-Owned'
+  'SDVOSB': 'VETERAN-OWNED'
 }
 
 // Reverse mapping: label -> code
@@ -497,29 +501,29 @@ const StatCard = ({
 }) => (
   <div
     onClick={onClick}
-    className={`group relative p-4 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/50 to-slate-950/30 backdrop-blur-sm hover:border-slate-700 hover:from-slate-800/30 hover:to-slate-900/30 transition-all duration-300 cursor-pointer ${
+    className={`group relative p-4 rounded-lg border-2 border-gray-300 bg-white hover:border-gray-400 hover:shadow-md transition-all duration-300 cursor-pointer ${
       onClick ? 'hover:scale-[1.02] active:scale-[0.98]' : ''
     }`}
   >
     {trend && (
-      <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-semibold ${
+      <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-bold ${
         trend > 0 
-          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+          ? 'bg-green-100 text-green-900 border-2 border-green-700' 
+          : 'bg-red-100 text-red-900 border-2 border-red-600'
       }`}>
         {trend > 0 ? '+' : ''}{trend}%
       </div>
     )}
     <div className="flex items-center gap-3">
-      <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 group-hover:border-blue-500/30 transition-colors">
+      <div className="p-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
         {icon}
       </div>
       <div className="flex-1">
-        <div className="text-xs text-slate-500 font-medium">{label}</div>
+        <div className="text-xs text-gray-600 font-bold">{label}</div>
         {loading ? (
-          <div className="h-8 w-20 bg-slate-800 rounded-lg animate-pulse mt-1" />
+          <div className="h-8 w-20 bg-gray-100 rounded-lg animate-pulse mt-1" />
         ) : (
-          <div className="text-2xl font-bold text-white mt-1">{value}</div>
+          <div className="text-2xl font-bold text-gray-900 mt-1">{value}</div>
         )}
       </div>
     </div>
@@ -536,11 +540,11 @@ const Badge = ({
   size?: 'sm' | 'md'
 }) => {
   const variants = {
-    default: 'bg-slate-800 text-slate-300 border-slate-700',
+    default: 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50',
     primary: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    success: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    warning: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    danger: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    success: 'bg-emerald-500/20 text-white border-emerald-500/30',
+    warning: 'bg-amber-500/20 text-white border-amber-500/30',
+    danger: 'bg-rose-500/20 text-white border-rose-500/30',
   }
   
   const sizes = {
@@ -563,38 +567,41 @@ const Button = ({
   variant = 'primary',
   size = 'md',
   fullWidth = false,
-  icon
+  icon,
+  className = ''
 }: { 
   children: React.ReactNode, 
   onClick?: () => void, 
   disabled?: boolean,
   loading?: boolean,
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success',
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'danger' | 'success',
   size?: 'sm' | 'md' | 'lg',
   fullWidth?: boolean,
-  icon?: React.ReactNode
+  icon?: React.ReactNode,
+  className?: string
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95'
+  const baseClasses = 'inline-flex items-center justify-center font-bold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm'
   
   const variants = {
-    primary: 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:opacity-90 shadow-lg shadow-emerald-500/20',
-    secondary: 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:border-slate-600',
-    ghost: 'text-slate-400 hover:text-white hover:bg-slate-800/50',
-    danger: 'bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30',
-    success: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30',
+    primary: 'bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-700',
+    secondary: 'bg-white text-gray-900 border-2 border-gray-400 hover:bg-gray-50 hover:border-gray-500',
+    tertiary: 'bg-orange-500 text-white hover:bg-orange-600 border-2 border-orange-600',
+    ghost: 'text-gray-700 hover:text-gray-900 hover:bg-gray-100',
+    danger: 'bg-red-600 text-white border-2 border-red-700 hover:bg-red-700',
+    success: 'bg-green-700 text-white border-2 border-green-800 hover:bg-green-800',
   }
   
   const sizes = {
-    sm: 'px-3 py-1.5 text-sm gap-1.5',
-    md: 'px-4 py-2.5 text-sm gap-2',
-    lg: 'px-6 py-3 text-base gap-2.5',
+    sm: 'px-4 py-2.5 text-base gap-2',
+    md: 'px-6 py-3.5 text-lg gap-2.5',
+    lg: 'px-8 py-4 text-xl gap-3',
   }
   
   return (
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''}`}
+      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
     >
       {loading && (
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -622,7 +629,7 @@ const Input = ({
 }) => (
   <div className="relative">
     {icon && (
-      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
         {icon}
       </div>
     )}
@@ -631,14 +638,14 @@ const Input = ({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full px-4 py-3 rounded-xl bg-slate-900 border ${
-        error ? 'border-rose-500/50' : 'border-slate-800'
-      } text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors ${
+      className={`w-full px-4 py-3 text-lg font-semibold rounded-lg bg-white border-2 ${
+        error ? 'border-red-600' : 'border-gray-400'
+      } text-gray-900 placeholder-gray-500 hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 transition-colors ${
         icon ? 'pl-10' : ''
       }`}
     />
     {error && (
-      <p className="mt-1 text-xs text-rose-400">{error}</p>
+      <p className="mt-1 text-sm font-semibold text-red-600">{error}</p>
     )}
   </div>
 )
@@ -649,19 +656,19 @@ const Field = ({
   tooltip,
   required = false 
 }: { 
-  label: string, 
+  label: React.ReactNode, 
   children: React.ReactNode, 
   tooltip?: string,
   required?: boolean 
 }) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
-      <label className="text-sm font-medium text-slate-300 flex items-center gap-1">
+      <label className="text-base font-medium text-orange-400 flex items-center gap-1">
         {label}
-        {required && <span className="text-rose-400">*</span>}
+        {required && <span className="text-white">*</span>}
       </label>
       {tooltip && (
-        <button type="button" className="text-slate-500 hover:text-slate-300">
+        <button type="button" className="text-gray-600 hover:text-gray-700">
           <HelpCircle className="h-4 w-4" />
         </button>
       )}
@@ -680,11 +687,11 @@ const Pill = ({
   onRemove?: () => void
 }) => {
   const tones = {
-    neutral: 'bg-slate-800 text-slate-300 border-slate-700',
+    neutral: 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50',
     info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    success: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    warning: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    danger: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    success: 'bg-emerald-500/20 text-white border-emerald-500/30',
+    warning: 'bg-amber-500/20 text-white border-amber-500/30',
+    danger: 'bg-rose-500/20 text-white border-rose-500/30',
   }
   
   return (
@@ -693,11 +700,146 @@ const Pill = ({
       {onRemove && (
         <button
           onClick={onRemove}
-          className="hover:text-white transition-colors ml-1"
+          className="hover:text-gray-900 transition-colors ml-1"
         >
           <X className="h-3 w-3" />
         </button>
       )}
+    </div>
+  )
+}
+
+// --- COMPACT OPPORTUNITY CARD FOR GRID VIEW ---
+interface OpportunityCardProps {
+  opportunity: Opp
+  index: number
+  isSaved: boolean
+  toggleSaved: (id: string) => void
+  copyText: (text: string) => void
+  copiedId: string | null
+}
+
+const OpportunityCard: React.FC<OpportunityCardProps> = ({
+  opportunity,
+  index,
+  isSaved,
+  toggleSaved,
+  copyText,
+  copiedId,
+}) => {
+  const id = opportunity.noticeId || String(index)
+  const title = opportunity.title || 'Untitled Opportunity'
+  const department = opportunity.department || opportunity.fullParentPathName || 'Unknown Department'
+  const postedDate = opportunity.postedDate ? formatDate(opportunity.postedDate) : 'N/A'
+  const responseDeadline = opportunity.responseDeadLine ? formatDate(opportunity.responseDeadLine) : 'N/A'
+  const type = opportunity.type || 'N/A'
+  const setAsideLabel = opportunity.typeOfSetAsideDescription || 
+                        (opportunity.typeOfSetAside && SET_ASIDE_LABEL_BY_CODE[opportunity.typeOfSetAside]) ||
+                        (opportunity.setAside && SET_ASIDE_LABEL_BY_CODE[opportunity.setAside]) ||
+                        opportunity.setAside ||
+                        'Not specified'
+  const naics = opportunity.naicsCode || 'N/A'
+  
+  const daysUntilDeadline = opportunity.responseDeadLine 
+    ? Math.ceil((new Date(opportunity.responseDeadLine).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null
+  
+  return (
+    <div className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full">
+      {/* Header with Badge and Bookmark */}
+      <div className="p-5 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-sm font-semibold mb-3">
+              <FileText className="h-4 w-4" />
+              {type}
+            </div>
+            {opportunity.uiLink ? (
+              <a
+                href={opportunity.uiLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer block mb-2 line-clamp-2 group/title"
+              >
+                {title}
+                <ExternalLink className="h-4 w-4 inline ml-1 opacity-0 group-hover/title:opacity-100 transition-opacity" />
+              </a>
+            ) : (
+              <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                {title}
+              </h3>
+            )}
+          </div>
+          <button
+            onClick={() => toggleSaved(id)}
+            className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
+          >
+            {isSaved ? (
+              <BookmarkCheck className="h-5 w-5 text-blue-600" />
+            ) : (
+              <Bookmark className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
+        </div>
+        
+        <div className="flex items-center gap-2 text-base text-gray-700 mb-2">
+          <Building2 className="h-4 w-4 flex-shrink-0 text-gray-400" />
+          <span className="truncate">{department}</span>
+        </div>
+        
+        {daysUntilDeadline !== null && daysUntilDeadline <= 7 && (
+          <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
+            daysUntilDeadline <= 3 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+          }`}>
+            <Clock className="h-3 w-3" />
+            {daysUntilDeadline} day{daysUntilDeadline !== 1 ? 's' : ''} left
+          </div>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="p-5 space-y-3 flex-1 overflow-y-auto">
+        <div className="flex items-center gap-2 text-base text-gray-700">
+          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <span className="text-sm text-gray-500">Posted:</span>
+          <span className="font-medium">{postedDate}</span>
+        </div>
+        
+        <div className="flex items-center gap-2 text-base text-gray-700">
+          <Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
+          <span className="text-sm text-gray-500">Deadline:</span>
+          <span className="font-medium text-red-600">{responseDeadline}</span>
+        </div>
+        
+        {setAsideLabel !== 'Not specified' && (
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+            <span className="text-base font-medium text-emerald-700 line-clamp-1">{setAsideLabel}</span>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2 text-base text-gray-600">
+          <Hash className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <span className="text-sm text-gray-500">NAICS:</span>
+          <span className="font-mono font-medium">{naics}</span>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="p-5 pt-0 flex-shrink-0">
+        {opportunity.uiLink && (
+          <a
+            href={opportunity.uiLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors text-base"
+          >
+            View on SAM.gov
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        )}
+      </div>
     </div>
   )
 }
@@ -730,11 +872,13 @@ const ResultCard = ({
   const postedDate = opportunity.postedDate ? formatDate(opportunity.postedDate) : 'Not specified'
   const deadlineDate = opportunity.responseDeadLine ? formatDate(opportunity.responseDeadLine) : 'Not specified'
   
-  // Set-Aside display
-  const setAsideLabel = opportunity.setAside 
-    ? SET_ASIDE_LABEL_BY_CODE[opportunity.setAside] || opportunity.setAside
-    : 'Not specified'
-  
+  // Set-Aside display - FIXED: Use correct variable name
+  const setAsideLabel = opportunity.typeOfSetAsideDescription || 
+                      (opportunity.typeOfSetAside && SET_ASIDE_LABEL_BY_CODE[opportunity.typeOfSetAside]) ||
+                      (opportunity.setAside && SET_ASIDE_LABEL_BY_CODE[opportunity.setAside]) ||
+                      opportunity.setAside ||
+                      'Not specified'
+ 
   // Place of performance
   const city = opportunity.placeOfPerformance?.city?.name || ''
   const state = opportunity.placeOfPerformance?.state?.code || ''
@@ -746,30 +890,32 @@ const ResultCard = ({
   return (
     <div 
       key={id}
-      className="group relative rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/50 to-slate-950/30 p-6 transition-all duration-300 hover:border-slate-700 hover:from-slate-800/30 hover:to-slate-900/30"
+      className="group relative rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-gray-400 hover: hover:bg-white"
     >
       {/* Quick Actions */}
       <div className="absolute right-4 top-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => copyText(id)}
-          className="p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
+          className="p-1.5 rounded-lg bg-white/6 hover:bg-white/7 transition-colors"
           title="Copy Notice ID"
+          aria-label="Copy Notice ID"
         >
           {copiedId === id ? (
-            <Check className="h-4 w-4 text-emerald-400" />
+            <Check className="h-4 w-4 text-white" />
           ) : (
-            <Copy className="h-4 w-4 text-slate-400" />
+            <Copy className="h-4 w-4 text-gray-600" />
           )}
         </button>
         <button
           onClick={() => toggleSaved(id)}
-          className="p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
+          className="p-1.5 rounded-lg bg-white/6 hover:bg-white/7 transition-colors"
           title={isSaved ? 'Remove from saved' : 'Save opportunity'}
+          aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
         >
           {isSaved ? (
-            <BookmarkCheck className="h-4 w-4 text-emerald-400" />
+            <BookmarkCheck className="h-4 w-4 text-white" />
           ) : (
-            <Bookmark className="h-4 w-4 text-slate-400" />
+            <Bookmark className="h-4 w-4 text-gray-600" />
           )}
         </button>
       </div>
@@ -783,13 +929,13 @@ const ResultCard = ({
                 href={opportunity.uiLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-lg font-bold text-white hover:text-emerald-300 transition-colors cursor-pointer flex items-center gap-2 group/title"
+                className="text-lg font-bold text-gray-900 hover:text-emerald-300 transition-colors cursor-pointer flex items-center gap-2 group/title"
               >
                 {opportunity.title || 'Untitled Opportunity'}
                 <ExternalLink className="h-4 w-4 opacity-0 group-hover/title:opacity-100 transition-opacity" />
               </a>
             ) : (
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-gray-900">
                 {opportunity.title || 'Untitled Opportunity'}
               </h3>
             )}
@@ -806,20 +952,20 @@ const ResultCard = ({
             {/* Solicitation Number */}
             {opportunity.solicitationNumber && (
               <div className="flex items-start gap-2">
-                <FileText className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                <FileText className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs text-slate-500">Solicitation #</div>
-                  <div className="text-sm text-slate-300 font-medium">{opportunity.solicitationNumber}</div>
+                  <div className="text-sm font-bold text-orange-500">Solicitation #</div>
+                  <div className="text-sm text-gray-700 font-medium">{opportunity.solicitationNumber}</div>
                 </div>
               </div>
             )}
             
             {/* Department/Agency */}
             <div className="flex items-start gap-2">
-              <Building2 className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+              <Building2 className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs text-slate-500">Department/Agency</div>
-                <div className="text-sm text-slate-300 font-medium break-words line-clamp-2" title={department}>
+                <div className="text-sm font-bold text-orange-500">Department/Agency</div>
+                <div className="text-sm text-gray-700 font-medium break-words line-clamp-2" title={department}>
                   {department}
                 </div>
               </div>
@@ -827,10 +973,10 @@ const ResultCard = ({
             
             {/* Set-Aside */}
             <div className="flex items-start gap-2">
-              <Target className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+              <Target className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs text-slate-500">Set-Aside</div>
-                <div className="text-sm text-slate-300 font-medium break-words line-clamp-2" title={setAsideLabel}>
+                <div className="text-sm font-bold text-orange-500">Set-Aside</div>
+                <div className="text-sm text-gray-700 font-medium break-words line-clamp-2" title={setAsideLabel}>
                   {setAsideLabel}
                 </div>
               </div>
@@ -838,29 +984,29 @@ const ResultCard = ({
             
             {/* Place of Performance (City/State) - NEW */}
             <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+              <MapPin className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs text-slate-500">Place of Performance</div>
-                <div className="text-sm text-slate-300 font-medium break-words">{placeOfPerformance}</div>
+                <div className="text-sm font-bold text-orange-500">Place of Performance</div>
+                <div className="text-sm text-gray-700 font-medium break-words">{placeOfPerformance}</div>
               </div>
             </div>
             
             {/* Published Date */}
             <div className="flex items-start gap-2">
-              <Calendar className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+              <Calendar className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs text-slate-500">Published</div>
-                <div className="text-sm text-slate-300 font-medium">{postedDate}</div>
+                <div className="text-sm font-bold text-orange-500">Published</div>
+                <div className="text-sm text-gray-700 font-medium">{postedDate}</div>
               </div>
             </div>
             
             {/* Response Deadline */}
             {opportunity.responseDeadLine && (
               <div className="flex items-start gap-2">
-                <Clock className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                <Clock className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs text-slate-500">Response Deadline</div>
-                  <div className="text-sm text-slate-300 font-medium">{deadlineDate}</div>
+                  <div className="text-sm font-bold text-orange-500">Response Deadline</div>
+                  <div className="text-sm text-gray-700 font-medium">{deadlineDate}</div>
                 </div>
               </div>
             )}
@@ -868,10 +1014,10 @@ const ResultCard = ({
             {/* NAICS Code */}
             {opportunity.naicsCode && (
               <div className="flex items-start gap-2">
-                <Tag className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                <Tag className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs text-slate-500">NAICS Code</div>
-                  <div className="text-sm text-slate-300 font-medium">{opportunity.naicsCode}</div>
+                  <div className="text-sm font-bold text-orange-500">NAICS Code</div>
+                  <div className="text-sm text-gray-700 font-medium">{opportunity.naicsCode}</div>
                 </div>
               </div>
             )}
@@ -879,10 +1025,10 @@ const ResultCard = ({
             {/* Type */}
             {opportunity.type && (
               <div className="flex items-start gap-2">
-                <Layers className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                <Layers className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs text-slate-500">Type</div>
-                  <div className="text-sm text-slate-300 font-medium">{opportunity.type}</div>
+                  <div className="text-sm font-bold text-orange-500">Type</div>
+                  <div className="text-sm text-gray-700 font-medium">{opportunity.type}</div>
                 </div>
               </div>
             )}
@@ -894,12 +1040,12 @@ const ResultCard = ({
       
       {/* Collapsible Details */}
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-slate-800 space-y-4">
+        <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
           {/* Description */}
           {opportunity.description && (
             <div>
-              <h4 className="text-sm font-semibold text-slate-300 mb-2">Description</h4>
-              <p className="text-sm text-slate-400 line-clamp-6">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
+              <p className="text-base text-gray-900 font-medium line-clamp-6">
                 {opportunity.description}
               </p>
             </div>
@@ -910,21 +1056,21 @@ const ResultCard = ({
             {/* Point of Contact */}
             {opportunity.pointOfContact && (
               <div>
-                <h4 className="text-sm font-semibold text-slate-300 mb-2">Point of Contact</h4>
-                <div className="text-sm text-slate-400 space-y-2">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Point of Contact</h4>
+                <div className="text-base text-gray-900 font-medium space-y-2">
                   {opportunity.pointOfContact.fullname && (
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-slate-500" />
+                      <Users className="h-4 w-4 text-gray-600" />
                       <span className="font-medium">{opportunity.pointOfContact.fullname}</span>
                     </div>
                   )}
                   {opportunity.pointOfContact.title && (
-                    <div className="text-slate-500">{opportunity.pointOfContact.title}</div>
+                    <div className="text-gray-600">{opportunity.pointOfContact.title}</div>
                   )}
                   {opportunity.pointOfContact.email && (
                     <a 
                       href={`mailto:${opportunity.pointOfContact.email}`}
-                      className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors"
+                      className="flex items-center gap-2 text-white hover:text-emerald-300 transition-colors"
                     >
                       <MessageSquare className="h-4 w-4" />
                       {opportunity.pointOfContact.email}
@@ -933,9 +1079,9 @@ const ResultCard = ({
                   {opportunity.pointOfContact.phone && (
                     <a 
                       href={`tel:${opportunity.pointOfContact.phone.replace(/\D/g, '')}`}
-                      className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+                      className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
                     >
-                      <Phone className="h-4 w-4 text-slate-500" />
+                      <Phone className="h-4 w-4 text-gray-600" />
                       {opportunity.pointOfContact.phone}
                     </a>
                   )}
@@ -945,7 +1091,7 @@ const ResultCard = ({
             
             {/* Links */}
             <div>
-              <h4 className="text-sm font-semibold text-slate-300 mb-2">Links & Resources</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Links & Resources</h4>
               <div className="space-y-2">
                 {/* SAM.gov UI Link */}
                 {opportunity.uiLink && (
@@ -953,12 +1099,12 @@ const ResultCard = ({
                     href={opportunity.uiLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 text-sm text-emerald-400 hover:text-emerald-300 transition-colors w-full"
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/6 hover:bg-white/7 border border-gray-300 hover:border-gray-400 text-sm text-white hover:text-emerald-300 transition-colors w-full"
                   >
                     <ExternalLink className="h-4 w-4" />
                     <div className="flex-1">
                       <div className="font-medium">View on SAM.gov</div>
-                      <div className="text-xs text-slate-500 truncate">{opportunity.uiLink}</div>
+                      <div className="text-xs text-gray-600 truncate">{opportunity.uiLink}</div>
                     </div>
                   </a>
                 )}
@@ -970,7 +1116,7 @@ const ResultCard = ({
                     href={link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/6 hover:bg-white/7 border border-gray-300 hover:border-gray-400 text-base text-gray-900 font-medium hover:text-gray-700 transition-colors"
                   >
                     <ArrowUpRight className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">
@@ -984,25 +1130,25 @@ const ResultCard = ({
           
           {/* Additional Information */}
           {(opportunity.award || opportunity.archiveType || opportunity.baseType) && (
-            <div className="pt-4 border-t border-slate-800">
-              <h4 className="text-sm font-semibold text-slate-300 mb-2">Additional Information</h4>
+            <div className="pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Additional Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {opportunity.baseType && (
                   <div>
-                    <div className="text-xs text-slate-500">Original Type</div>
-                    <div className="text-sm text-slate-300">{opportunity.baseType}</div>
+                    <div className="text-xs text-gray-600">Original Type</div>
+                    <div className="text-sm text-gray-700">{opportunity.baseType}</div>
                   </div>
                 )}
                 {opportunity.archiveType && (
                   <div>
-                    <div className="text-xs text-slate-500">Archive Type</div>
-                    <div className="text-sm text-slate-300">{opportunity.archiveType}</div>
+                    <div className="text-xs text-gray-600">Archive Type</div>
+                    <div className="text-sm text-gray-700">{opportunity.archiveType}</div>
                   </div>
                 )}
                 {opportunity.award?.date && (
                   <div>
-                    <div className="text-xs text-slate-500">Award Date</div>
-                    <div className="text-sm text-slate-300">{formatDate(opportunity.award.date)}</div>
+                    <div className="text-xs text-gray-600">Award Date</div>
+                    <div className="text-sm text-gray-700">{formatDate(opportunity.award.date)}</div>
                   </div>
                 )}
               </div>
@@ -1012,11 +1158,12 @@ const ResultCard = ({
       )}
       
       {/* Footer - UPDATED */}
-      <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
+      <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
             onClick={() => toggleExpanded(id)}
-            className="text-sm text-slate-500 hover:text-white transition-colors flex items-center gap-1"
+            className="text-base text-gray-900 font-medium hover:text-gray-900 transition-colors flex items-center gap-1"
+            aria-label={isExpanded ? 'Show less details' : 'Show more details'}
           >
             {isExpanded ? (
               <>
@@ -1032,7 +1179,7 @@ const ResultCard = ({
           </button>
           
           {opportunity.noticeId && (
-            <div className="text-sm text-slate-500 flex items-center gap-1">
+            <div className="text-base text-gray-900 font-medium flex items-center gap-1">
               <Hash className="h-3 w-3" />
               <span className="font-mono">{opportunity.noticeId}</span>
             </div>
@@ -1054,6 +1201,7 @@ const ResultCard = ({
                 copyText(opportunity.uiLink)
               }
             }}
+            aria-label="Share opportunity"
           >
             Share
           </Button>
@@ -1063,6 +1211,7 @@ const ResultCard = ({
               size="sm"
               onClick={() => window.open(opportunity.uiLink, '_blank')}
               icon={<ExternalLink className="h-4 w-4" />}
+              aria-label="View on SAM.gov"
             >
               View on SAM.gov
             </Button>
@@ -1074,14 +1223,54 @@ const ResultCard = ({
 }
 
 // --- Utility Functions ---
-function getDefaultDates() {
-  const to = new Date()
-  const from = new Date()
-  from.setMonth(from.getMonth() - 6)
-  return {
-    from: from.toISOString().split('T')[0],
-    to: to.toISOString().split('T')[0]
+
+/**
+ * Retry a fetch request with exponential backoff for SAM.gov reliability
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  initialDelay = 2000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 Attempt ${attempt + 1}/${maxRetries + 1}: Fetching SAM.gov data...`);
+      const response = await fetch(url, options);
+      
+      // If response is OK or it's a client error (4xx), return immediately
+      if (response.ok || (response.status >= 400 && response.status < 500)) {
+        if (attempt > 0) {
+          console.log(`✅ Request succeeded after ${attempt} ${attempt === 1 ? 'retry' : 'retries'}`);
+        }
+        return response;
+      }
+      
+      // For 5xx errors (server errors), we'll retry
+      if (response.status >= 500 && attempt < maxRetries) {
+        const delay = initialDelay * Math.pow(2, attempt); // Exponential backoff
+        console.log(`⚠️  Server error ${response.status}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Check if it's a network error or timeout
+      if (attempt < maxRetries && !options.signal?.aborted) {
+        const delay = initialDelay * Math.pow(2, attempt);
+        console.log(`❌ Request failed: ${lastError.message}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
+  
+  console.error(`🚫 Max retries (${maxRetries}) exceeded. Last error:`, lastError);
+  throw lastError || new Error('Max retries exceeded');
 }
 
 function clamp(str: string, max: number) {
@@ -1274,6 +1463,106 @@ function updateFacets(opps: Opp[]) {
   }
 }
 
+// --- Custom Hooks ---
+
+// Search History Hook
+const useSearchHistory = () => {
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  const saveSearchToHistory = useCallback((searchParams: string) => {
+    try {
+      const updated = [searchParams, ...recentSearches.filter(s => s !== searchParams)].slice(0, 10)
+      setRecentSearches(updated)
+      localStorage.setItem('govcon_recent_searches', JSON.stringify(updated))
+    } catch (error) {
+      console.error('Failed to save search history:', error)
+    }
+  }, [recentSearches]);
+
+  return { recentSearches, saveSearchToHistory, setRecentSearches };
+};
+
+// Opportunity Management Hook
+const useOpportunityManagement = () => {
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+
+  const toggleSaved = useCallback((id: string) => {
+    setSaved((p) => {
+      const newSaved = { ...p, [id]: !p[id] }
+      try {
+        localStorage.setItem('govcon_saved_opportunities', JSON.stringify(newSaved))
+      } catch (error) {
+        console.error('Failed to save opportunities:', error)
+      }
+      return newSaved
+    });
+  }, []);
+
+  return { saved, toggleSaved, setSaved };
+};
+
+// Search State Persistence Hook
+const useSearchStatePersistence = () => {
+  const saveSearchState = useCallback((state: any) => {
+    try {
+      sessionStorage.setItem('searchState', JSON.stringify(state));
+    } catch (error) {
+      console.error('Failed to save search state:', error);
+    }
+  }, []);
+
+  const restoreSearchState = useCallback(() => {
+    try {
+      const saved = sessionStorage.getItem('searchState');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to restore search state:', error);
+    }
+    return null;
+  }, []);
+
+  return { saveSearchState, restoreSearchState };
+};
+
+// Error Boundary Component
+class SearchErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Search Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center p-8">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Search Failed to Load</h2>
+            <p className="text-gray-600 mb-4">Please refresh the page and try again.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // --- Main Component ---
 function SearchPageContent() {
   const router = useRouter()
@@ -1287,24 +1576,77 @@ function SearchPageContent() {
     setShowReminderModal,
     showLockoutModal,
     setShowLockoutModal,
-    remainingTime,
     isAuthenticated,
-    planLoading, // ✅ Add loading state
+    planLoading,
   } = useBrowsingSession()
 
-  const MAX_LOOKBACK_DAYS = 364
-  const DEFAULT_LIMIT = 1000
+  const DEFAULT_LIMIT = 10000  // Increased to get more results
   const LOAD_MORE_INCREMENT = 1000
 
-  // Search form states - REMOVED unnecessary fields
+  // Search form states
   const [keywords, setKeywords] = useState('')
   const [naics, setNaics] = useState('')
   const [agency, setAgency] = useState('')
   const [setAside, setSetAside] = useState('')
   const [stateOfPerformance, setStateOfPerformance] = useState('')
-  const [postedAfter, setPostedAfter] = useState(getDefaultDates().from)
-  const [postedBefore, setPostedBefore] = useState(getDefaultDates().to)
-  const [procurementType, setProcurementType] = useState('o') // Default to Solicitation  // ← ADD THIS LINE
+  
+  // Calculate default dates: 6 months back for "from", 1 month ahead for response deadline (both auto-update daily)
+  const defaults = useMemo(() => {
+    const today = new Date()
+    const lookback = new Date()
+    lookback.setMonth(lookback.getMonth() - 6) // Always 6 months back from today
+    const responseDeadlineDate = new Date()
+    responseDeadlineDate.setMonth(responseDeadlineDate.getMonth() + 1) // Always 1 month ahead from today
+    return {
+      from: lookback.toISOString().split('T')[0],
+      responseDeadline: responseDeadlineDate.toISOString().split('T')[0]
+    }
+  }, []) // Recalculates on component mount (each day)
+
+  const [postedAfter, setPostedAfter] = useState(defaults.from)
+  const [postedBefore, setPostedBefore] = useState('') // Removed default - field will be hidden
+  const [showDateWarning, setShowDateWarning] = useState(false)
+  const [dateWarningMessage, setDateWarningMessage] = useState('')
+
+  // Validate date range doesn't exceed 364 days
+  const validateDateRange = useCallback((startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return true
+    
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays > 364) {
+      setDateWarningMessage(
+        `⚠️ Your date range is ${diffDays} days. SAM.gov's API limits searches to 364 days (1 year). Please select a shorter date range for better results.`
+      )
+      setShowDateWarning(true)
+      return false
+    }
+    
+    setShowDateWarning(false)
+    return true
+  }, [])
+
+  const [procurementType, setProcurementType] = useState('') // '' = All Types
+  const [isActive, setIsActive] = useState('') // 'true' | 'false' | '' (all)
+  const [activeFilter, setActiveFilter] = useState<string | null>(null) // null = show all; "true"/"false" = subset view
+
+  // ===== NEW CRITICAL SEARCH PARAMETERS =====
+  // Phase 1: Critical
+  const [solicitationNumber, setSolicitationNumber] = useState('') // Priority 1B - Direct lookup
+  const [classificationCode, setClassificationCode] = useState('') // Priority 1C - PSC codes
+  const [responseDeadline, setResponseDeadline] = useState(defaults.responseDeadline)// Priority 1A - CRITICAL - Filter by specific deadline date (default: 1 month forward)
+  // Empty by default - no upper limit
+
+  // Phase 2: High Value
+  const [noticeId, setNoticeId] = useState('') // Priority 2B - Direct ID
+  const [opportunityStatus, setOpportunityStatus] = useState('') // Priority 2A - Full status filtering
+
+  // Phase 3: Medium Value
+  const [placeOfPerformanceZip, setPlaceOfPerformanceZip] = useState('') // Priority 3A - ZIP
+  const [organizationCode, setOrganizationCode] = useState('') // Priority 3B - Org code
 
   // PERFORMANCE FIX: Debounce keywords to reduce API calls
   const debouncedKeywords = useDebounce(keywords, 500)
@@ -1321,8 +1663,12 @@ function SearchPageContent() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
-  const [sortBy, setSortBy] = useState<'posted' | 'deadline' | 'relevance'>('posted')
+  const [sortBy, setSortBy] = useState<"posted-desc" | "posted-asc" | "deadline-desc" | "deadline-asc" | "relevance">("posted-desc")
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  
+  // Search timer for stop button
+  const [searchStartTime, setSearchStartTime] = useState<Date | null>(null)
+  const [searchDuration, setSearchDuration] = useState(0)
 
   // Access control - with feature-specific gating
   const [showAccessModal, setShowAccessModal] = useState(false)
@@ -1331,12 +1677,18 @@ function SearchPageContent() {
 
   const [isSignUp, setIsSignUp] = useState(true)
 
-  // Alert modal state
+  // ✅ FIXED: Unified modal state
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  
+  // ✅ Alert builder modal state (used when arriving with ?action=create-alert)
   const [showAlertBuilder, setShowAlertBuilder] = useState(false)
-
-  const [showSavedSearchModal, setShowSavedSearchModal] = useState(false)
-  // Saved opportunities
-  const [saved, setSaved] = useState<Record<string, boolean>>({})
+const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successData, setSuccessData] = useState({
+    searchName: '',
+    isSubscription: false,
+    savedSearchId: null as string | null
+  })
 
   // Results limit and pagination
   const [resultsLimit, setResultsLimit] = useState(DEFAULT_LIMIT)
@@ -1351,19 +1703,61 @@ function SearchPageContent() {
   // Interactive breakdown states
   const [expandedBreakdown, setExpandedBreakdown] = useState<'setAsides' | 'naics' | 'agencies' | 'states' | null>(null)
 
-  // Recent searches
-  const [recentSearches, setRecentSearches] = useState<string[]>([])
-
   // Refs
   const resultsRef = useRef<HTMLDivElement>(null)
   const filtersRef = useRef<HTMLDivElement>(null)
   const lastSearchParamsRef = useRef<string>('') // CRITICAL FIX: Track last search to prevent duplicates
 
+  // Custom hooks
+  const { recentSearches, saveSearchToHistory, setRecentSearches } = useSearchHistory();
+  const { saved, toggleSaved, setSaved } = useOpportunityManagement();
+  const { saveSearchState, restoreSearchState } = useSearchStatePersistence();
+
+  // Timer effect - updates search duration every second
+  useEffect(() => {
+    if (!loading || !searchStartTime) {
+      setSearchDuration(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      const duration = Math.floor((Date.now() - searchStartTime.getTime()) / 1000)
+      setSearchDuration(duration)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [loading, searchStartTime])
+
+  // Stop/Cancel search function with keyboard shortcut
+  const stopSearch = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort('Search stopped by user')
+      abortControllerRef.current = null
+    }
+    setLoading(false)
+    setLoadingMore(false)
+    setSearchStartTime(null)
+    setSearchDuration(0)
+    console.log('🛑 Search stopped by user')
+  }, [])
+
+  // Add keyboard shortcut for stopping search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && loading) {
+        stopSearch();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [loading, stopSearch]);
+
   const scrollToResults = useCallback(() => {
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
-  // Load recent searches from localStorage
+  // Load saved data from localStorage
   useEffect(() => {
     try {
       const savedSearches = localStorage.getItem('govcon_recent_searches')
@@ -1371,63 +1765,137 @@ function SearchPageContent() {
       
       const savedData = localStorage.getItem('govcon_saved_opportunities')
       if (savedData) setSaved(JSON.parse(savedData))
+
+      // Restore search state from sessionStorage
+      const restoredState = restoreSearchState();
+      if (restoredState) {
+        // Optionally restore state here
+      }
     } catch (error) {
       console.error('Failed to load data:', error)
     }
-  }, [])
+  }, [setRecentSearches, setSaved, restoreSearchState])
 
   const searchParams = useSearchParams()
   // Auto-load saved search if loadSavedSearch param is present
-  // Auto-load and optionally run a saved search from Alerts
   useEffect(() => {
-    const savedSearchId = searchParams?.get('loadSavedSearch')
-    const runImmediately = searchParams?.get('run') === '1'
+    const savedSearchId = searchParams?.get('loadSavedSearch');
+    const runImmediately = searchParams?.get('run') === '1';
     
-    if (!savedSearchId) return
+    if (!savedSearchId) return;
     
-    // ✅ Wait for subscription to load before running
+    // Wait for subscription to load before running
     if (planLoading) {
-      console.log('⏳ Waiting for subscription data before loading saved search...')
-      return
+      console.log('Waiting for subscription data before loading saved search...');
+      return;
     }
-    
-    ;(async () => {
+
+    (async () => {
       try {
-        console.log('🔄 Loading saved search:', savedSearchId)
-        
-        const res = await fetch(`/api/saved-searches/${savedSearchId}`)
+        console.log('Loading saved search:', savedSearchId);
+        const res = await fetch(`/api/saved-searches/${savedSearchId}`);
         if (!res.ok) {
-          console.error('Failed to load saved search:', res.status)
-          return
+          console.error('Failed to load saved search:', res.status);
+          return;
         }
         
-        const { search } = await res.json()
-        console.log('✅ Loaded saved search:', search)
+        const { search } = await res.json();
+        console.log('✅ Loaded saved search:', search);
+        console.log('🔍 Date fields in saved search:', {
+          posted_after: search.posted_after,
+          posted_before: search.posted_before,
+          rdl_from: search.rdl_from,
+          rdl_to: search.rdl_to,
+          postedAfter: search.postedAfter,
+          postedBefore: search.postedBefore,
+        });
+
+        // Helper to convert DateTime to date string (YYYY-MM-DD)
+        const toDateString = (dateTime: any): string => {
+          if (!dateTime) return '';
+          try {
+            // If it's already just a date string, return it
+            if (typeof dateTime === 'string' && !dateTime.includes('T')) {
+              return dateTime;
+            }
+            // Otherwise parse and extract date part
+            const date = new Date(dateTime);
+            return date.toISOString().split('T')[0];
+          } catch {
+            return '';
+          }
+        };
+
+        // Map database field names to UI/API field names
+        const mappedParams = {
+          keywords: search.keywords || '',
+          naics: search.naics || '',
+          agency: search.agency || '',
+          setAside: search.set_aside || '',  // Database uses set_aside
+          stateOfPerformance: search.state_of_performance || '',  // Database uses state_of_performance
+          procurementType: search.procurement_type || '',  // Database uses procurement_type
+          postedAfter: toDateString(search.posted_after),  // Convert DateTime to date string
+          postedBefore: toDateString(search.posted_before),  // Convert DateTime to date string
+          isActive: search.is_active !== null && search.is_active !== undefined && search.is_active !== 'undefined' ? search.is_active : '',
+          solicitationNumber: search.solicitation_number || '',  // Database uses solicitation_number
+          classificationCode: search.classification_code || '',  // Database uses classification_code
+          responseDeadlineFrom: toDateString(search.rdl_from),  // Database uses rdl_from
+          responseDeadlineTo: toDateString(search.rdl_to),  // Database uses rdl_to
+          noticeId: search.notice_id || '',  // Database uses notice_id
+          opportunityStatus: search.opportunity_status || '',  // Database uses opportunity_status
+          placeOfPerformanceZip: search.place_of_performance_zip || '',  // Database uses place_of_performance_zip
+          organizationCode: search.organization_code || '',  // Database uses organization_code
+        };
+
+        // Apply the filters to UI state for display
+        console.log('📝 Setting UI state from saved search...');
+        setKeywords(mappedParams.keywords);
+        setNaics(mappedParams.naics);
+        setAgency(mappedParams.agency);
+        setSetAside(mappedParams.setAside);
+        setStateOfPerformance(mappedParams.stateOfPerformance);
+        setProcurementType(mappedParams.procurementType);
+        setPostedAfter(mappedParams.postedAfter);
+        setPostedBefore(mappedParams.postedBefore);
+        setIsActive(mappedParams.isActive);
+        setSolicitationNumber(mappedParams.solicitationNumber);
+        setClassificationCode(mappedParams.classificationCode);
+        // Note: Currently UI only supports single deadline field, using rdl_to
+        setResponseDeadline(mappedParams.responseDeadlineTo || mappedParams.responseDeadlineFrom);
+        setNoticeId(mappedParams.noticeId);
+        setOpportunityStatus(mappedParams.opportunityStatus);
+        setPlaceOfPerformanceZip(mappedParams.placeOfPerformanceZip);
+        setOrganizationCode(mappedParams.organizationCode);
         
-        // Apply the filters
-        setKeywords(search.keywords || '')
-        setNaics(search.naics || '')
-        setAgency(search.agency || '')
-        setSetAside(search.setAside || '')
-        setStateOfPerformance(search.stateOfPerformance || '')
-        setProcurementType(search.procurementType || 'o')
-        setPostedAfter(search.postedAfter || getDefaultDates().from)
-        setPostedBefore(search.postedBefore || getDefaultDates().to)
-        
-        // If run=1, automatically execute the search
+        console.log('✅ UI state updated with mapped params:', mappedParams);
+
+        // CRITICAL FIX: If run=1, execute search IMMEDIATELY with mapped parameters
+        // No timeout needed since we're passing params directly, not relying on state
         if (runImmediately) {
-          console.log('🔍 Auto-running search with subscription loaded...')
-          setTimeout(() => {
-            console.log('🚀 Executing search now')
-            runSearch(false)
-          }, 500)
+          console.log('🚀 Auto-running search with loaded parameters...');
+          console.log('📋 Mapped parameters:', mappedParams);
+          
+          // Execute immediately - no timeout needed since we pass params directly
+          executeSearchWithParams(mappedParams);
         }
       } catch (e) {
-        console.error('Failed to auto-load saved search:', e)
+        console.error('Failed to auto-load saved search:', e);
       }
-    })()
-  }, [searchParams, planLoading]) // ✅ Add planLoading as dependency
-  // ← ADD THIS LINE HERE
+    })();
+  }, [searchParams, planLoading]);
+  
+  // Handle URL action parameters from Alerts page
+  useEffect(() => {
+    const action = searchParams?.get('action')
+    
+    if (action === 'create-saved-search') {
+      // Open saved search modal
+      setTimeout(() => setShowSaveModal(true), 300)
+    } else if (action === 'create-alert') {
+      // Open alert modal  
+      setTimeout(() => setShowAlertBuilder(true), 300)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     try {
@@ -1446,49 +1914,47 @@ function SearchPageContent() {
     } catch {
       // ignore
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [searchParams, hasValidAccess, canBrowse])
 
-
-  // Save recent searches
-  const saveSearchToHistory = useCallback((searchParams: string) => {
-    try {
-      const updated = [searchParams, ...recentSearches.filter(s => s !== searchParams)].slice(0, 10)
-      setRecentSearches(updated)
-      localStorage.setItem('govcon_recent_searches', JSON.stringify(updated))
-    } catch (error) {
-      console.error('Failed to save search history:', error)
-    }
-  }, [recentSearches])
+  // Save current search state
+  useEffect(() => {
+    const searchState = {
+      keywords, naics, agency, setAside, stateOfPerformance,
+      postedAfter, postedBefore, procurementType, isActive,
+      solicitationNumber, classificationCode, responseDeadline,
+      noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode
+    };
+    saveSearchState(searchState);
+  }, [
+    keywords, naics, agency, setAside, stateOfPerformance,
+    postedAfter, postedBefore, procurementType, isActive,
+    solicitationNumber, classificationCode, responseDeadline,
+    noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode,
+    saveSearchState
+  ]);
 
   // Check if user has access - Robust version
-  // ✅ REMOVED: Old checkAccess function - now using hasValidAccess from useBrowsingSession
-  // This function was using wrong field names (subscription_tier, plan_status)
-  // The correct approach is to use the centralized hasValidAccess which works properly
-
   /**
    * Gate a premium action - if user doesn't have access, show modal
    * @param featureName - The name of the feature being accessed (shown in modal)
    * @returns true if user has access, false if gated (modal shown)
-   * ✅ FIXED: Now checks both hasValidAccess AND canBrowse
    */
+
+  // ✅ CORRECT: Define requireAccess FIRST (before line 1898)
   const requireAccess = useCallback((featureName: string): boolean => {
-    // ✅ CRITICAL: Don't show modal while still loading
+    // Don't show modal while still loading
     if (planLoading || status === 'loading') {
       console.log('⏳ Still loading, deferring access check...')
-      return false // Block action but don't show modal
+      return false
     }
     
-    // ✅ CRITICAL FIX: Check BOTH hasValidAccess (authenticated with subscription)
-    // AND canBrowse (within 15-minute free browsing window)
+    // Check BOTH hasValidAccess AND canBrowse
     if (!hasValidAccess && !canBrowse) {
-      // User doesn't have access and not in browsing window - show modal
       setBlockedFeature(featureName)
       setShowAccessModal(true)
       
-      // Don't set pending action for search - it should be blocked
       if (featureName.includes('Search')) {
-        pendingActionRef.current = null // Clear any pending search action
+        pendingActionRef.current = null
       }
       
       return false
@@ -1497,9 +1963,57 @@ function SearchPageContent() {
     return true
   }, [hasValidAccess, canBrowse, planLoading, status])
 
+  // ✅ Then define handleOpenSaveModal (line 1898)
+  const handleOpenSaveModal = useCallback((mode: 'save' | 'alert') => {
+    if (!requireAccess(mode === 'save' ? 'Save Searches' : 'Email Alerts for New Opportunities')) {
+      return
+    }
+    setSaveModalMode(mode)
+    setShowSaveModal(true)
+  }, [requireAccess])
+
+  // ✅ Handle successful save
+  const handleSaveSuccess = useCallback(async (payload: any) => {
+    try {
+      console.log('💾 Saving search with payload:', payload)
+      
+      const endpoint = payload.subscriptionEnabled 
+        ? '/api/saved-searches/with-subscription' 
+        : '/api/saved-searches'
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save search')
+      }
+
+      const result = await response.json()
+      console.log('✅ Save successful:', result)
+      
+      setShowSaveModal(false)
+      setSuccessData({
+        searchName: result.search?.name || payload.name,
+        isSubscription: Boolean(payload.subscriptionEnabled),
+        savedSearchId: result.search?.id || null
+      })
+      setShowSuccessModal(true)
+      router.refresh()
+    } catch (error: any) {
+      console.error('❌ Failed to save:', error)
+      throw error
+    }
+  }, [router])
 
 
-    const handleCreateAlert = () => {
+
+
+
+  const handleCreateAlert = () => {
     if (status === 'loading') return
     if (!requireAccess('Email Alerts for New Opportunities')) return
     setShowAlertBuilder(true)
@@ -1510,35 +2024,233 @@ function SearchPageContent() {
     router.push('/dashboard')
   }
 
-  // Date validation helper
-  const validateDateRange = (postedAfter: string, postedBefore: string) => {
-    if (!postedAfter || !postedBefore) return { valid: true }
+  // Helper: Convert YYYY-MM-DD to MM/dd/yyyy for SAM.gov API
+  function formatDateForAPI(isoDate: string): string {
+    if (!isoDate) return ''
+    const date = new Date(isoDate)
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${month}/${day}/${year}` // MM/dd/yyyy format required by SAM.gov
+  }
+
+  // Data validation function
+  const validateSearchParams = useCallback((params: any) => {
+    const errors: string[] = [];
     
-    const start = new Date(postedAfter)
-    const end = new Date(postedBefore)
-    const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-    
-    if (daysDiff > 364) {
-      return {
-        valid: false,
-        message: 'Date range cannot exceed 364 days. SAM.gov limits searches to one year maximum. Please adjust your date range.'
+    if (params.postedAfter && params.postedBefore) {
+      const start = new Date(params.postedAfter);
+      const end = new Date(params.postedBefore);
+      if (start > end) {
+        errors.push('Start date must be before end date');
       }
     }
     
-    return { valid: true }
-  }
+    if (params.naics && !/^\d{2,6}$/.test(params.naics)) {
+      errors.push('NAICS code must be 2-6 digits');
+    }
+    
+    if (params.placeOfPerformanceZip && !/^\d{5}(-\d{4})?$/.test(params.placeOfPerformanceZip)) {
+      errors.push('ZIP code must be 5 digits or 5+4 format');
+    }
+    
+    return errors;
+  }, []);
 
-  // Auto-fix date range to 364 days
-  const autoFixDateRange = () => {
-    const end = new Date(postedBefore)
-    const start = new Date(end)
-    start.setDate(start.getDate() - 364)
-    setPostedAfter(start.toISOString().split('T')[0])
-    setError(null)
-  }
+  /**
+   * Execute search with explicit parameters (used for saved searches)
+   * This bypasses state variables to avoid race conditions
+   */
+  const executeSearchWithParams = async (params: any) => {
+    console.log('executeSearchWithParams called with:', params);
+    
+    // Validate parameters
+    const validationErrors = validateSearchParams(params);
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join('. '));
+      return;
+    }
 
-  // Search function - with gating
-  // Search function - with gating
+    // CRITICAL: Check if user can browse
+    if (!canBrowse) {
+      console.log('Search blocked: canBrowse is false');
+      setShowLockoutModal(true);
+      return;
+    }
+
+    // Gate the search action
+    if (!requireAccess('Search Federal Opportunities')) {
+      console.log('Search blocked: requireAccess failed');
+      return;
+    }
+
+    console.log('All checks passed, executing search with saved params...');
+
+    // Cancel any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort('New search started');
+    }
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    setLoading(true);
+    setSearchStartTime(new Date());
+    setResultsLimit(DEFAULT_LIMIT);
+    setCurrentPage(1);
+    setError(null);
+
+    try {
+      const qs = new URLSearchParams();
+
+      // Build query from explicit params instead of state variables
+      if (params.solicitationNumber?.trim()) {
+        qs.set('solnum', params.solicitationNumber.trim());
+      }
+      if (params.noticeId?.trim()) {
+        qs.set('noticeid', params.noticeId.trim());
+      }
+      if (params.keywords?.trim()) {
+        qs.set('title', params.keywords.trim());
+      }
+      if (params.naics?.trim()) {
+        qs.set('ncode', clamp(params.naics.trim(), 6));
+      }
+      if (params.classificationCode?.trim()) {
+        qs.set('ccode', params.classificationCode.trim());
+      }
+      if (params.agency?.trim()) {
+        qs.set('organizationName', clamp(params.agency.trim(), 120));
+      }
+      if (params.organizationCode?.trim()) {
+        qs.set('organizationCode', params.organizationCode.trim());
+      }
+      if (params.setAside && params.setAside.trim() !== '') {
+        qs.set('typeOfSetAsideCode', params.setAside.trim());
+      }
+      if (params.procurementType?.trim()) {
+        qs.set('ptype', params.procurementType.trim());
+      }
+      if (params.stateOfPerformance?.trim() && params.stateOfPerformance !== '') {
+        qs.set('state', params.stateOfPerformance.trim());
+      }
+      if (params.placeOfPerformanceZip?.trim()) {
+        qs.set('zip', params.placeOfPerformanceZip.trim());
+      }
+      if (params.opportunityStatus?.trim()) {
+        qs.set('status', params.opportunityStatus.trim());
+      }
+      if (params.isActive && params.isActive !== '' && params.isActive !== 'undefined') {
+        qs.set('isActive', params.isActive);
+      }
+      if (params.postedAfter?.trim()) {
+        qs.set('postedFrom', formatDateForAPI(params.postedAfter.trim()));
+      }
+      if (params.postedBefore?.trim()) {
+        qs.set('postedTo', formatDateForAPI(params.postedBefore.trim()));
+      }
+      // Handle response deadline range
+      if (params.responseDeadlineFrom?.trim()) {
+        qs.set('responseDeadlineFrom', formatDateForAPI(params.responseDeadlineFrom.trim()));
+      }
+      if (params.responseDeadlineTo?.trim()) {
+        qs.set('responseDeadlineTo', formatDateForAPI(params.responseDeadlineTo.trim()));
+      }
+      // Fallback for single deadline field (backward compatibility)
+      if (params.responseDeadline?.trim() && !params.responseDeadlineFrom && !params.responseDeadlineTo) {
+        qs.set('responseDeadline', formatDateForAPI(params.responseDeadline.trim()));
+      }
+
+      qs.set('limit', '1000');
+      qs.set('offset', '0');
+
+      console.log('Calling API with saved search parameters:', Object.fromEntries(qs.entries()));
+
+      const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(canBrowse && !isAuthenticated ? { 'x-browsing-session': 'true' } : {}),
+        },
+        signal: abortController.signal,
+      }, 3, 2000); // 3 retries, 2 second initial delay
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('API request failed:', { status: res.status, errorText });
+        
+        // Handle payment-required status
+        if (res.status === 402) {
+          if (!canBrowse && !hasValidAccess) {
+            setBlockedFeature('Search Federal Opportunities');
+            setShowAccessModal(true);
+            setError('Your trial has ended. Please upgrade to continue searching.');
+            setLoading(false);
+            return; // Don't throw - just return early
+          }
+        }
+
+        // Build user-friendly error message
+        let userMessage = 'Search failed. Please try again.';
+        if (res.status === 400) {
+          userMessage = 'Invalid search parameters. Please check your filters and try again.';
+        } else if (res.status === 401 || res.status === 403) {
+          userMessage = 'You need to sign in to search. Please log in and try again.';
+        } else if (res.status === 404) {
+          userMessage = 'Search service not found. Please refresh the page and try again.';
+        } else if (res.status === 429) {
+          userMessage = 'Too many searches. Please wait a moment and try again.';
+        } else if (res.status === 500) {
+          userMessage = 'SAM.gov service is temporarily unavailable. Please try again in a few moments.';
+        } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+          userMessage = 'Connection to SAM.gov failed. The service may be down. Please try again later.';
+        }
+        
+        // Set error state instead of throwing
+        setError(userMessage);
+        setData(null);
+        setLoading(false);
+        return; // Exit early instead of throwing
+      }
+
+      const json = await res.json();
+      const payload = json as ApiResponse;
+      const opps = payload.opportunitiesData || [];
+
+      const total = payload.totalCount || 0;
+      const loaded = (opps?.length ?? 0);
+      const currentTotalLoaded = loaded;
+      
+      setHasMoreResults(currentTotalLoaded < total);
+      setData(payload);
+      setActiveFilter(null);
+      
+      saveSearchToHistory(qs.toString());
+      
+      console.log('API Search successful:', {
+        results: (opps?.length ?? 0),
+        totalRecords: total,
+        hasMoreResults: currentTotalLoaded < total,
+      });
+
+    } catch (e: any) {
+      if (e.name === 'AbortError' || abortController.signal.aborted) {
+        console.log('Request aborted');
+        return;
+      }
+      
+      console.error('Search error:', e);
+      setError(e?.message || 'Search failed. Please try again.');
+      setData(null);
+    } finally {
+      if (!abortController.signal.aborted) {
+        setLoading(false);
+        setSearchStartTime(null);
+        setSearchDuration(0);
+      }
+    }
+  };
+
   const runSearch = async (isLoadMore = false) => {
     console.log('🔍 runSearch called:', { 
       isLoadMore, 
@@ -1580,18 +2292,10 @@ function SearchPageContent() {
     
     console.log('✅ All checks passed, executing search...')
     
-    // Validate date range before searching
-    const dateValidation = validateDateRange(postedAfter, postedBefore)
-    if (!dateValidation.valid) {
-      setError(dateValidation.message || 'Invalid date range')
-      setLoading(false)
-      setLoadingMore(false)
-      return
-    }
     
     // PERFORMANCE FIX: Cancel any pending requests
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
+      abortControllerRef.current.abort('New search started')
     }
 
     // PERFORMANCE FIX: Create new AbortController for this request
@@ -1602,6 +2306,7 @@ function SearchPageContent() {
       setLoadingMore(true)
     } else {
       setLoading(true)
+      setSearchStartTime(new Date()) // Start timer
       setResultsLimit(DEFAULT_LIMIT)
       setCurrentPage(1)
     }
@@ -1611,47 +2316,92 @@ function SearchPageContent() {
     try {
       const qs = new URLSearchParams()
       
-      // ? CORRECT PARAMETER MAPPING:
+      // ===== DIRECT LOOKUPS (Priority - Skip other filters if provided) =====
+      if (solicitationNumber.trim()) {
+        qs.set('solnum', solicitationNumber.trim())
+      }
+      if (noticeId.trim()) {
+        qs.set('noticeid', noticeId.trim())
+      }
       
-      // 1. KEYWORD SEARCH - Use 'title' parameter, NOT 'q'
+      // ===== TEXT SEARCH =====
       // PERFORMANCE FIX: Use debounced keywords
       if (debouncedKeywords.trim()) {
-        qs.set('title', debouncedKeywords.trim())
+        const keywords = debouncedKeywords.trim()
+        
+        // Use 'title' parameter to search ONLY in opportunity titles
+        // This gives more relevant results than 'q' which searches all fields
+        qs.set('title', keywords)
+        
+        // NOTE: Searching titles only ensures results actually contain the search term
+        // in the opportunity name, not buried in description text
       }
       
-      // 2. REQUIRED: Procurement Type (ptype)
-      qs.set('ptype', procurementType.trim() || 'o') // Default to 'o' (Solicitation) if empty
-      
-      // 3. NAICS Code - CORRECT: 'naics' NOT 'ncode'
+      // ===== CLASSIFICATION CODES =====
+      // NAICS Code
       if (naics.trim()) {
-        qs.set('naics', clamp(naics.trim(), 6))
+        qs.set('ncode', clamp(naics.trim(), 6))
+      }
+      // PSC Code (NEW - CRITICAL)
+      if (classificationCode.trim()) {
+        qs.set('ccode', classificationCode.trim())
       }
       
-      // 4. Agency/Organization - CORRECT: 'organizationCode' NOT 'organizationName'
+      // ===== ORGANIZATION =====
+      // Agency/Department
       if (agency.trim()) {
-        qs.set('organizationCode', clamp(agency.trim(), 120))
+        qs.set('organizationName', clamp(agency.trim(), 120))
+      }
+      // Organization Code (NEW)
+      if (organizationCode.trim()) {
+        qs.set('organizationCode', organizationCode.trim())
       }
       
-      // 5. Set-Aside - CORRECT ?
-      if (setAside.trim() && setAside !== '') {
-        qs.set('typeOfSetAside', setAside.trim())
+      // SET-ASIDE TYPE - Only filter if user selected a specific set-aside
+      if (setAside && setAside.trim() !== '') {
+        qs.set('typeOfSetAsideCode', setAside.trim());
+      }
+
+      // Procurement Type (ptype)
+      if (procurementType.trim()) {
+        qs.set('ptype', procurementType.trim())
       }
       
-      // 6. State - CORRECT ?
+      // ===== LOCATION =====
+      // State
       if (stateOfPerformance.trim() && stateOfPerformance !== '') {
         qs.set('state', stateOfPerformance.trim())
       }
+      // ZIP Code (NEW)
+      if (placeOfPerformanceZip.trim()) {
+        qs.set('zip', placeOfPerformanceZip.trim())
+      }
       
-      // 7. Dates - CORRECT ?
+      // ===== STATUS =====
+      // Full status filter (NEW)
+      if (opportunityStatus.trim()) {
+        qs.set('status', opportunityStatus.trim())
+      }
+      // Active / Inactive status (existing)
+      if (isActive && isActive !== '' && isActive !== 'undefined') {
+        qs.set('isActive', isActive)
+      }
+
+      // ===== POSTED DATE RANGE =====
       if (postedAfter.trim()) {
-        qs.set('postedFrom', postedAfter.trim())
+        qs.set('postedFrom', formatDateForAPI(postedAfter.trim()))
       }
       if (postedBefore.trim()) {
-        qs.set('postedTo', postedBefore.trim())
+        qs.set('postedTo', formatDateForAPI(postedBefore.trim()))
       }
       
-      // 8. Pagination
-      qs.set('limit', String(DEFAULT_LIMIT))
+      // ===== RESPONSE DEADLINE (SPECIFIC DATE) =====
+      if (responseDeadline.trim()) {
+        qs.set('responseDeadline', formatDateForAPI(responseDeadline.trim()))
+      }
+      
+      // ===== PAGINATION =====
+      qs.set('limit', '1000')  // SAM.gov max per request is 1000
       qs.set('offset', String((currentPage - 1) * DEFAULT_LIMIT))
 
       // CRITICAL FIX: Prevent duplicate identical searches
@@ -1659,20 +2409,23 @@ function SearchPageContent() {
       if (!isLoadMore && searchParamsString === lastSearchParamsRef.current) {
         console.log('⚠️ Duplicate search prevented - params unchanged')
         setLoading(false)
+        setSearchStartTime(null)
+        setSearchDuration(0)
         return
       }
       lastSearchParamsRef.current = searchParamsString
 
       console.log('Calling API with corrected SAM.gov parameters:', Object.fromEntries(qs.entries()))
 
-      // PERFORMANCE FIX: Pass signal to fetch for cancellation
-      const res = await fetch(`/api/sam?${qs.toString()}`, { 
+      // PERFORMANCE FIX: Pass signal to fetch for cancellation + RELIABILITY FIX: Retry on failures
+      const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, { 
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(canBrowse && !isAuthenticated ? { 'x-browsing-session': 'true' } : {}),
         },
         signal: abortController.signal
-      })
+      }, 3, 2000) // 3 retries, 2 second initial delay
       
       if (!res.ok) {
         const errorText = await res.text()
@@ -1680,23 +2433,57 @@ function SearchPageContent() {
         
         // Handle payment required (trial ended)
         // ✅ CRITICAL FIX: Only show modal if user is NOT in free browsing window
-        if (res.status === 402 && !canBrowse) {
-          setBlockedFeature('Search Federal Opportunities')
-          setShowAccessModal(true)
-          throw new Error('Your trial has ended. Please upgrade to continue searching.')
+        if (res.status === 402) {
+          if (!canBrowse && !hasValidAccess) {
+            setBlockedFeature('Search Federal Opportunities')
+            setShowAccessModal(true)
+            setError('Your trial has ended. Please upgrade to continue searching.')
+            if (isLoadMore) {
+              setLoadingMore(false)
+            } else {
+              setLoading(false)
+            }
+            return // Don't throw - just return early
+          }
         }
         
-        throw new Error(`API request failed with status ${res.status}: ${errorText}`)
+        // ===== USER-FRIENDLY ERROR MESSAGES =====
+        let userMessage = 'Search failed. Please try again.'
+        
+        if (res.status === 400) {
+          userMessage = 'Invalid search parameters. Please check your filters and try again.'
+        } else if (res.status === 401 || res.status === 403) {
+          userMessage = 'You need to sign in to search. Please log in and try again.'
+        } else if (res.status === 404) {
+          userMessage = 'Search service not found. Please refresh the page and try again.'
+        } else if (res.status === 429) {
+          userMessage = 'Too many searches. Please wait a moment and try again.'
+        } else if (res.status === 500) {
+          userMessage = 'SAM.gov service is temporarily unavailable. Please try again in a few moments.'
+        } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+          userMessage = 'Connection to SAM.gov failed. The service may be down. Please try again later.'
+        }
+        
+        // Set error state instead of throwing
+        setError(userMessage)
+        setData(null)
+        if (isLoadMore) {
+          setLoadingMore(false)
+        } else {
+          setLoading(false)
+        }
+        return // Exit early instead of throwing
       }
       
-      const json = await res.json()
-      const payload: ApiResponse = json
+      let json = await res.json()
 
-      const opps = payload.opportunitiesData || []
+      const payload: ApiResponse = json
+      const opps = payload.opportunitiesData
+
       
       // Check if there are more results available
-      const total = payload.totalRecords || 0
-      const loaded = opps.length
+      const total = payload.totalCount || 0
+      const loaded = (opps?.length ?? 0)
       const currentTotalLoaded = isLoadMore 
         ? (data?.opportunitiesData?.length || 0) + loaded
         : loaded
@@ -1706,17 +2493,18 @@ function SearchPageContent() {
         setData(prev => ({
           ...prev,
           totalRecords: total,
-          opportunitiesData: [...(prev?.opportunitiesData || []), ...opps]
+          opportunitiesData: [...(prev?.opportunitiesData || []), ...(opps ?? [])]
         }))
         setCurrentPage(prev => prev + 1)
       } else {
         setData(payload)
+        setActiveFilter(null) // reset subset view on fresh search
         // Save search to history
         saveSearchToHistory(qs.toString())
       }
 
       console.log('API Search successful', { 
-        results: opps.length, 
+        results: (opps?.length ?? 0), 
         totalRecords: total,
         hasMoreResults: currentTotalLoaded < total,
         procurementType: procurementType,
@@ -1743,6 +2531,8 @@ function SearchPageContent() {
           setLoadingMore(false)
         } else {
           setLoading(false)
+          setSearchStartTime(null)
+          setSearchDuration(0)
         }
       }
     }
@@ -1755,20 +2545,29 @@ function SearchPageContent() {
 
   // Reset all filters
   const resetAll = () => {
-    const dd = getDefaultDates()
     setKeywords('')
     setNaics('')
     setAgency('')
     setSetAside('')
     setStateOfPerformance('')
-    setPostedAfter(dd.from)
-    setPostedBefore(dd.to)
-    setProcurementType('o')
+    setPostedAfter(defaults.from)
+    setPostedBefore('')
+    setProcurementType('')
+    setIsActive('')
+
+    // ===== NEW: Reset enhanced parameters =====
+    setSolicitationNumber('')
+    setClassificationCode('')
+    setResponseDeadline(defaults.responseDeadline) // Reset to 1 month from today
+    setNoticeId('')
+    setOpportunityStatus('')
+    setPlaceOfPerformanceZip('')
+    setOrganizationCode('')
     setError(null)
     setData(null)
     setResultsLimit(DEFAULT_LIMIT)
     setCurrentPage(1)
-    setSortBy('posted')
+    setSortBy('posted-desc')
     setSortOrder('desc')
     
     // Close all drilldowns
@@ -1904,9 +2703,109 @@ function SearchPageContent() {
     window.URL.revokeObjectURL(url)
   }
 
-  // Quick actions
-  const handleQuickSearch = (searchTerm: string) => {
-    setKeywords(searchTerm)
+  const exportTxt = () => {
+    if (!filteredResults.length) return
+    if (!requireAccess('Export to TXT')) return
+    
+    const txtContent = filteredResults.map((opp, idx) => {
+      return `
+==========================================
+OPPORTUNITY ${idx + 1}
+==========================================
+Title: ${opp.title || 'N/A'}
+Solicitation Number: ${opp.solicitationNumber || 'N/A'}
+Agency: ${opp.department || 'N/A'}
+Posted Date: ${opp.postedDate || 'N/A'}
+Response Deadline: ${opp.responseDeadLine || 'N/A'}
+Set-Aside: ${opp.setAside || 'N/A'}
+NAICS Code: ${opp.naicsCode || 'N/A'}
+Location: ${opp.placeOfPerformance?.city?.name || ''}, ${opp.placeOfPerformance?.state?.code || ''}
+Notice ID: ${opp.noticeId || 'N/A'}
+Link: ${opp.uiLink || 'N/A'}
+==========================================
+`
+    }).join('\n')
+    
+    const blob = new Blob([txtContent], { type: 'text/plain' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.txt`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+
+  const exportXml = () => {
+    if (!filteredResults.length) return
+    if (!requireAccess('Export to XML')) return
+    
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<opportunities>
+${filteredResults.map(opp => `  <opportunity>
+    <title>${escapeXml(opp.title || '')}</title>
+    <solicitationNumber>${escapeXml(opp.solicitationNumber || '')}</solicitationNumber>
+    <agency>${escapeXml(opp.department || '')}</agency>
+    <postedDate>${escapeXml(opp.postedDate || '')}</postedDate>
+    <responseDeadline>${escapeXml(opp.responseDeadLine || '')}</responseDeadline>
+    <setAside>${escapeXml(opp.setAside || '')}</setAside>
+    <naicsCode>${escapeXml(opp.naicsCode || '')}</naicsCode>
+    <noticeId>${escapeXml(opp.noticeId || '')}</noticeId>
+    <uiLink>${escapeXml(opp.uiLink || '')}</uiLink>
+  </opportunity>`).join('\n')}
+</opportunities>`
+    
+    const blob = new Blob([xmlContent], { type: 'application/xml' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.xml`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+
+  const exportEmail = () => {
+    if (!filteredResults.length) return
+    if (!requireAccess('Email Export')) return
+    
+    const subject = `Government Contract Opportunities - ${new Date().toLocaleDateString()}`
+    const body = filteredResults.slice(0, 10).map((opp, idx) => {
+      return `${idx + 1}. ${opp.title}\n   Agency: ${opp.department || 'N/A'}\n   Deadline: ${opp.responseDeadLine || 'N/A'}\n   Link: ${opp.uiLink || 'N/A'}\n`
+    }).join('\n')
+    
+    const fullBody = `Found ${filteredResults.length} opportunities:\n\n${body}\n\n${filteredResults.length > 10 ? `... and ${filteredResults.length - 10} more opportunities. Export to CSV/JSON for full list.` : ''}`
+    
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`
+    window.location.href = mailtoLink
+  }
+
+  const exportBinary = () => {
+    if (!filteredResults.length) return
+    if (!requireAccess('Export to Binary')) return
+    
+    // Create a binary format (MessagePack-like structure)
+    const binaryData = new TextEncoder().encode(JSON.stringify({
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      count: filteredResults.length,
+      opportunities: filteredResults
+    }))
+    
+    const blob = new Blob([binaryData], { type: 'application/octet-stream' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.bin`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
+
+  // Helper function for XML escaping
+  const escapeXml = (str: string) => {
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&apos;')
   }
 
   const toggleExpanded = (k: string) => setExpanded((p) => ({ ...p, [k]: !p[k] }))
@@ -1919,22 +2818,6 @@ function SearchPageContent() {
     } catch {}
   }
 
-  const toggleSaved = (id: string) => {
-    // Gate the save action
-    if (!requireAccess('Save Opportunities')) return
-    
-    setSaved((p) => {
-      const newSaved = { ...p, [id]: !p[id] }
-      // Save to localStorage
-      try {
-        localStorage.setItem('govcon_saved_opportunities', JSON.stringify(newSaved))
-      } catch (error) {
-        console.error('Failed to save opportunities:', error)
-      }
-      return newSaved
-    })
-  }
-
   // Results data
   const totalRecords = data?.totalRecords ?? 0
   const results = data?.opportunitiesData ?? []
@@ -1943,38 +2826,25 @@ function SearchPageContent() {
   const filteredResults = useMemo(() => {
     let arr = results.slice()
 
-    // DO NOT FILTER BY: agency, setAside, naics, or stateOfPerformance
-    // These are already filtered by the SAM.gov API
-    
-    // PERFORMANCE FIX: Use debounced keywords for client-side filtering
-    // The keyword search is client-side only because SAM.gov's 'title' 
-    // parameter searches title field only, but we want to search across
-    // multiple fields including description
-    if (debouncedKeywords.trim() && debouncedKeywords.trim() !== '*') {
-      const needle = debouncedKeywords.trim()
-      arr = arr.filter((o) => {
-        const hay = [
-          normalizeTitle(o),
-          normalizeSol(o),
-          normalizeAgency(o),
-          formatNaicsDisplay(o),
-          formatSetAsideDisplay(o),
-          normalizeType(o),
-          summarizePlace(o),
-          normalizeNoticeId(o),
-          o.description || ''
-        ]
-          .filter(Boolean)
-          .join(' | ')
-        return withinText(hay, needle)
+    // Filter by active/inactive subset pill (client-side, after results are loaded)
+    if (activeFilter !== null) {
+      arr = arr.filter(o => {
+        const isActiveOpp = o.active === "Yes" || o.active === "true" || o.active === (true as any)
+        return activeFilter === "true" ? isActiveOpp : !isActiveOpp
       })
     }
+
+    // DO NOT FILTER BY: agency, setAside, naics, or stateOfPerformance
+    // These are already filtered by the SAM.gov API
 
     // Apply sorting (this doesn't filter, just reorders)
     arr.sort((a, b) => {
       let aVal, bVal
       
-      switch (sortBy) {
+      // Extract the field and direction from sortBy (e.g., "posted-desc" -> "posted", "desc")
+      const [field, direction] = sortBy.split('-')
+      
+      switch (field) {
         case 'deadline':
           aVal = new Date(a.responseDeadLine || 0).getTime()
           bVal = new Date(b.responseDeadLine || 0).getTime()
@@ -1989,12 +2859,12 @@ function SearchPageContent() {
           return 0
       }
       
-      // Apply sort order
-      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal
+      // Use the direction from the sortBy value (desc or asc)
+      return direction === 'asc' ? aVal - bVal : bVal - aVal
     })
 
     return arr
-  }, [results, debouncedKeywords, sortBy, sortOrder])
+  }, [results, sortBy, activeFilter])
 
   // Summary statistics - ENHANCED with detailed breakdowns
   const summaryStats = useMemo(() => {
@@ -2077,894 +2947,1410 @@ function SearchPageContent() {
     }
   }, [filteredResults, saved])
 
-  // Format remaining time for display
-  const formatRemainingTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60000)
-    const seconds = Math.floor((ms % 60000) / 1000)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
+  // Status breakdown counts from the full loaded set (not filteredResults)
+  // so pills always show accurate totals regardless of selection
+  const statusCounts = useMemo(() => {
+    const active = results.filter(o => o.active === "Yes" || o.active === "true" || o.active === (true as any)).length
+    const inactive = results.length - active
+    return { active, inactive, all: results.length }
+  }, [results])
 
-  const currentSearchParams = {
-    keywords, naics, agency, setAside, 
-    stateOfPerformance, postedAfter, postedBefore, procurementType,
-  }
+  // Performance monitoring
+  useEffect(() => {
+    if (loading) {
+      const startTime = performance.now();
+      return () => {
+        const endTime = performance.now();
+        console.log(`Search took ${endTime - startTime}ms`);
+        // Could send to analytics here
+      };
+    }
+  }, [loading]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate- to-slate-950 text-slate-50">
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-      <div className="relative z-10 max-w-[1800px] mx-auto px-6 lg:px-10 xl:px-12 py-6 lg:py-10">
+    <SearchErrorBoundary>
+      <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '18px' }} className="min-h-screen bg-white text-gray-900">
+        <div className="fixed inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+        <div className="relative z-10 w-full px-6 lg:px-10 xl:px-12 py-6 lg:py-10">
+          <div className="w-full max-w-[85%] mx-auto">
 
-        {/* Show browsing timer for unauthenticated users */}
-        {!isAuthenticated && canBrowse && remainingTime > 0 && (
-          <div className="sticky top-0 z-50 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-b border-amber-500/20 backdrop-blur-sm mb-6 rounded-2xl">
-            <div className="max-w-[1800px] mx-auto px-4 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-amber-400" />
-                <span className="text-slate-300">
-                  Browsing time remaining: <span className="font-semibold text-amber-400">{formatRemainingTime(remainingTime)}</span>
-                </span>
+          {/* Welcome Banner for Authenticated Users */}
+          
+          <ProfileCompletionReminder />
+          {/* Enhanced Welcome Banner */}
+          <div className="mb-8 rounded-3xl border border-gray-200 bg-white p-6 lg:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  {/* Logo - matches brand colors */}
+                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-lg flex items-center justify-center">
+                    <Search className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
+                      Welcome to Precise Govcon Bid Search
+                      <span className="ml-2 px-3 py-1 text-sm font-semibold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full">
+                        Pro
+                      </span>
+                    </h1>
+                    <p className="text-gray-600 mt-1 text-base">
+                      Find, analyze, and track federal contracting opportunities
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Quick Stats */}
+                <div className="flex flex-wrap items-center gap-4 mt-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+                    <span className="text-gray-700 font-semibold">Real-time SAM.gov data</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="text-gray-700 font-semibold">Advanced filtering</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-blue-700 animate-pulse" />
+                    <span className="text-gray-700 font-semibold">Export ready</span>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => setShowReminderModal(true)}
-                className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors"
-              >
-                Sign Up for Full Access
-              </button>
-            </div>
-          </div>
-        )}
+              
+              <div className="flex flex-col gap-3">
+                {/* Action Buttons Row - Matching Colors and Styles */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => handleOpenSaveModal('save')}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20"
+                    aria-label="Save current search"
+                  >
+                    <Save className="h-5 w-5" />
+                    Create a Saved Search
+                  </button>
 
-        {/* Welcome Banner for Authenticated Users */}
-        
-        <ProfileCompletionReminder />
-        {/* Enhanced Welcome Banner */}
-        <div className="mb-8 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/50 to-slate-950/30 p-6 lg:p-8 shadow-2xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center">
-                  <Rocket className="h-6 w-6 text-emerald-400" />
+                  <button
+                    onClick={() => handleOpenSaveModal('alert')}
+
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20"
+                    aria-label="Create email alert"
+                  >
+                    <Bell className="h-5 w-5" />
+                    Create A Subscription Alert
+                  </button>
+
+                  {/* NEW: Manage Alerts & Subscriptions Button - Yellow/Amber */}
+                  <Link href="/alerts">
+                    <button
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
+                      aria-label="Manage alerts and subscriptions"
+                    >
+                      <Settings className="h-5 w-5" />
+                      Manage Alerts & Subscriptions
+                    </button>
+                  </Link>
+
+                  {/* View Dashboard Button */}
+                  <Link href="/dashboard">
+                    <button
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-gray-700 border-2 border-gray-300 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all"
+                      aria-label="View dashboard"
+                    >
+                      <BarChart3 className="h-5 w-5" />
+                      View your Dashboard
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+            
+            {/* Results Analytics - Interactive with Expandable Lists */}
+            {filteredResults.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <PieChart className="h-5 w-5 text-white" />
+                  <span className="text-lg font-semibold text-gray-900">Results Breakdown</span>
+                  <span className="ml-auto text-base text-gray-900 font-medium">
+                    {summaryStats.total.toLocaleString()} total records
+                  </span>
+                </div>
+
+                {/* AI-Powered Analytics */}
+                {filteredResults.length > 0 && (
+                  <AIAnalytics 
+                    opportunities={filteredResults}
+                    filters={{
+                      setAside,
+                      procurementType,
+                      naics,
+                      agency
+                    }}
+                  />
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Set-Asides Breakdown - INTERACTIVE */}
+                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="h-4 w-4 text-white" />
+                      <h4 className="font-semibold text-white/85">Set-Asides</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'setAsides' ? null : 'setAsides')}
+                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
+                        aria-label={expandedBreakdown === 'setAsides' ? 'Collapse set-asides breakdown' : 'Expand set-asides breakdown'}
+                      >
+                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                          {summaryStats.uniqueSetAsides}
+                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'setAsides' ? 'rotate-180' : ''}`} />
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {expandedBreakdown === 'setAsides' ? 'Click to collapse' : 'Click to expand all'}
+                        </div>
+                      </button>
+                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'setAsides' ? 'max-h-96' : 'max-h-32'}`}>
+                        {(expandedBreakdown === 'setAsides' ? summaryStats.topSetAsides : summaryStats.topSetAsides.slice(0, 5)).map(([name, count]) => (
+                          <button
+                            key={name}
+                            onClick={() => handleBreakdownFilter('setAside', name)}
+                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
+                            title={`Click to filter by: ${name}`}
+                            aria-label={`Filter by ${name}, ${count} opportunities`}
+                          >
+                            <span className="text-gray-700 truncate mr-2 group-hover:text-gray-900 transition-colors">
+                              {name.length > 20 ? name.substring(0, 20) + '...' : name}
+                            </span>
+                            <span className="text-white font-medium whitespace-nowrap flex items-center gap-1">
+                              {count}
+                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NAICS Codes Breakdown - INTERACTIVE */}
+                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Tag className="h-4 w-4 text-cyan-400" />
+                      <h4 className="font-semibold text-white/85">NAICS Codes</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'naics' ? null : 'naics')}
+                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
+                        aria-label={expandedBreakdown === 'naics' ? 'Collapse NAICS breakdown' : 'Expand NAICS breakdown'}
+                      >
+                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                          {summaryStats.uniqueNaics}
+                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'naics' ? 'rotate-180' : ''}`} />
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {expandedBreakdown === 'naics' ? 'Click to collapse' : 'Click to expand all'}
+                        </div>
+                      </button>
+                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'naics' ? 'max-h-96' : 'max-h-32'}`}>
+                        {(expandedBreakdown === 'naics' ? summaryStats.topNaics : summaryStats.topNaics.slice(0, 5)).map(([code, count]) => (
+                          <button
+                            key={code}
+                            onClick={() => handleBreakdownFilter('naics', code)}
+                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
+                            title={`Click to filter by NAICS: ${code}`}
+                            aria-label={`Filter by NAICS ${code}, ${count} opportunities`}
+                          >
+                            <span className="text-gray-700 font-mono group-hover:text-gray-900 transition-colors">{code}</span>
+                            <span className="text-cyan-400 font-medium flex items-center gap-1">
+                              {count}
+                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Agencies Breakdown - INTERACTIVE */}
+                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Building2 className="h-4 w-4 text-white" />
+                      <h4 className="font-semibold text-white/85">Agencies</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'agencies' ? null : 'agencies')}
+                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
+                        aria-label={expandedBreakdown === 'agencies' ? 'Collapse agencies breakdown' : 'Expand agencies breakdown'}
+                      >
+                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                          {summaryStats.uniqueAgencies}
+                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'agencies' ? 'rotate-180' : ''}`} />
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {expandedBreakdown === 'agencies' ? 'Click to collapse' : 'Click to expand all'}
+                        </div>
+                      </button>
+                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'agencies' ? 'max-h-96' : 'max-h-32'}`}>
+                        {(expandedBreakdown === 'agencies' ? summaryStats.topAgencies : summaryStats.topAgencies.slice(0, 5)).map(([name, count]) => (
+                          <button
+                            key={name}
+                            onClick={() => handleBreakdownFilter('agency', name)}
+                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
+                            title={`Click to filter by agency: ${name}`}
+                            aria-label={`Filter by ${name}, ${count} opportunities`}
+                          >
+                            <span className="text-gray-700 truncate mr-2 group-hover:text-gray-900 transition-colors">
+                              {name.length > 20 ? name.substring(0, 20) + '...' : name}
+                            </span>
+                            <span className="text-white font-medium whitespace-nowrap flex items-center gap-1">
+                              {count}
+                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* States Breakdown - INTERACTIVE */}
+                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MapPin className="h-4 w-4 text-white" />
+                      <h4 className="font-semibold text-white/85">States</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'states' ? null : 'states')}
+                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
+                        aria-label={expandedBreakdown === 'states' ? 'Collapse states breakdown' : 'Expand states breakdown'}
+                      >
+                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                          {summaryStats.uniqueStates}
+                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'states' ? 'rotate-180' : ''}`} />
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {expandedBreakdown === 'states' ? 'Click to collapse' : 'Click to expand all'}
+                        </div>
+                      </button>
+                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'states' ? 'max-h-96' : 'max-h-32'}`}>
+                        {(expandedBreakdown === 'states' ? summaryStats.topStates : summaryStats.topStates.slice(0, 5)).map(([code, count]) => (
+                          <button
+                            key={code}
+                            onClick={() => handleBreakdownFilter('state', code)}
+                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
+                            title={`Click to filter by state: ${code}`}
+                            aria-label={`Filter by ${code}, ${count} opportunities`}
+                          >
+                            <span className="text-gray-700 font-medium group-hover:text-gray-900 transition-colors">{code}</span>
+                            <span className="text-white font-medium flex items-center gap-1">
+                              {count}
+                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Enhanced Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <StatCard 
+              label="Total Results" 
+              value={summaryStats.total.toLocaleString()}
+              icon={<TrendingUp className="h-5 w-5 text-white" />}
+              onClick={scrollToResults}
+              loading={loading}
+            />
+            
+            <StatCard 
+              label="Urgent (=7 days)" 
+              value={summaryStats.urgentCount.toLocaleString()}
+              icon={<AlertTriangle className="h-5 w-5 text-white" />}
+              onClick={() => {
+                const today = new Date()
+                const nextWeek = new Date(today)
+                nextWeek.setDate(today.getDate() + 7)
+                setPostedAfter(today.toISOString().split('T')[0])
+                setPostedBefore(nextWeek.toISOString().split('T')[0])
+                // User needs to click search button
+              }}
+              loading={loading}
+            />
+            
+            <StatCard 
+              label="Small Business Set-Asides" 
+              value={summaryStats.smallBusinessCount.toLocaleString()}
+              icon={<Target className="h-5 w-5 text-white" />}
+              onClick={() => {
+                setSetAside('SBA')
+                // User needs to click search button
+              }}
+              loading={loading}
+            />
+            
+            <StatCard 
+              label="Saved Opportunities" 
+              value={summaryStats.savedCount.toLocaleString()}
+              icon={<BookmarkCheck className="h-5 w-5 text-white" />}
+              onClick={() => router.push('/alerts?tab=searches')}
+              loading={loading}
+            />
+          </div>
+
+          {/* Enhanced Search Filters - IMPROVED COMPACT VERSION */}
+          <div ref={filtersRef} className="mb-4 rounded-lg border-2 border-gray-300 bg-white shadow-lg p-4">
+            <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b-2 border-gray-200">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
+                  <SlidersHorizontal className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-white">
-                   Welcome to Federal Bid Search
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 ml-2">
-                      Pro
-                    </span>
-                  </h1>
-                  <p className="text-slate-400 mt-1">
-                    Find, analyze, and track federal contracting opportunities
-                  </p>
+                  <h2 className="text-lg font-bold text-gray-900">Advanced Search Filters</h2>
+                  <p className="text-xs font-semibold text-gray-600">Set filters and click "Search Opportunities"</p>
                 </div>
               </div>
-              
-              {/* Quick Stats */}
-              <div className="flex flex-wrap items-center gap-4 mt-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-slate-300">Real-time SAM.gov data</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-slate-300">Advanced filtering</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
-                  <span className="text-slate-300">Export ready</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex flex-col gap-3">
-              <SavedSearchActions currentSearchParams={currentSearchParams} />
-              
-              <Button variant="secondary" size="lg" icon={<BarChart3 className="h-5 w-5" />} onClick={handleViewDashboard}>
-                View Dashboard
-              </Button>
-            </div>
-          </div>
-          
-          {/* Results Analytics - Interactive with Expandable Lists */}
-          {filteredResults.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-slate-800">
-              <div className="flex items-center gap-2 mb-4">
-                <PieChart className="h-5 w-5 text-emerald-400" />
-                <span className="text-lg font-semibold text-white">Results Breakdown</span>
-                <span className="ml-auto text-sm text-slate-400">
-                  {summaryStats.total.toLocaleString()} total records
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Set-Asides Breakdown - INTERACTIVE */}
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4 hover:border-slate-700 transition-colors">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Target className="h-4 w-4 text-amber-400" />
-                    <h4 className="font-semibold text-slate-200">Set-Asides</h4>
-                  </div>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setExpandedBreakdown(expandedBreakdown === 'setAsides' ? null : 'setAsides')}
-                      className="w-full text-left hover:bg-slate-800/50 rounded-lg p-2 -m-2 transition-colors group"
-                    >
-                      <div className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                        {summaryStats.uniqueSetAsides}
-                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${expandedBreakdown === 'setAsides' ? 'rotate-180' : ''}`} />
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {expandedBreakdown === 'setAsides' ? 'Click to collapse' : 'Click to expand all'}
-                      </div>
-                    </button>
-                    <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'setAsides' ? 'max-h-96' : 'max-h-32'}`}>
-                      {(expandedBreakdown === 'setAsides' ? summaryStats.topSetAsides : summaryStats.topSetAsides.slice(0, 5)).map(([name, count]) => (
-                        <button
-                          key={name}
-                          onClick={() => handleBreakdownFilter('setAside', name)}
-                          className="w-full flex items-center justify-between text-xs hover:bg-slate-800/50 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                          title={`Click to filter by: ${name}`}
-                        >
-                          <span className="text-slate-300 truncate mr-2 group-hover:text-white transition-colors">
-                            {name.length > 20 ? name.substring(0, 20) + '...' : name}
-                          </span>
-                          <span className="text-emerald-400 font-medium whitespace-nowrap flex items-center gap-1">
-                            {count}
-                            <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* NAICS Codes Breakdown - INTERACTIVE */}
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4 hover:border-slate-700 transition-colors">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Tag className="h-4 w-4 text-cyan-400" />
-                    <h4 className="font-semibold text-slate-200">NAICS Codes</h4>
-                  </div>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setExpandedBreakdown(expandedBreakdown === 'naics' ? null : 'naics')}
-                      className="w-full text-left hover:bg-slate-800/50 rounded-lg p-2 -m-2 transition-colors group"
-                    >
-                      <div className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                        {summaryStats.uniqueNaics}
-                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${expandedBreakdown === 'naics' ? 'rotate-180' : ''}`} />
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {expandedBreakdown === 'naics' ? 'Click to collapse' : 'Click to expand all'}
-                      </div>
-                    </button>
-                    <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'naics' ? 'max-h-96' : 'max-h-32'}`}>
-                      {(expandedBreakdown === 'naics' ? summaryStats.topNaics : summaryStats.topNaics.slice(0, 5)).map(([code, count]) => (
-                        <button
-                          key={code}
-                          onClick={() => handleBreakdownFilter('naics', code)}
-                          className="w-full flex items-center justify-between text-xs hover:bg-slate-800/50 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                          title={`Click to filter by NAICS: ${code}`}
-                        >
-                          <span className="text-slate-300 font-mono group-hover:text-white transition-colors">{code}</span>
-                          <span className="text-cyan-400 font-medium flex items-center gap-1">
-                            {count}
-                            <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Agencies Breakdown - INTERACTIVE */}
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4 hover:border-slate-700 transition-colors">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Building2 className="h-4 w-4 text-purple-400" />
-                    <h4 className="font-semibold text-slate-200">Agencies</h4>
-                  </div>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setExpandedBreakdown(expandedBreakdown === 'agencies' ? null : 'agencies')}
-                      className="w-full text-left hover:bg-slate-800/50 rounded-lg p-2 -m-2 transition-colors group"
-                    >
-                      <div className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                        {summaryStats.uniqueAgencies}
-                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${expandedBreakdown === 'agencies' ? 'rotate-180' : ''}`} />
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {expandedBreakdown === 'agencies' ? 'Click to collapse' : 'Click to expand all'}
-                      </div>
-                    </button>
-                    <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'agencies' ? 'max-h-96' : 'max-h-32'}`}>
-                      {(expandedBreakdown === 'agencies' ? summaryStats.topAgencies : summaryStats.topAgencies.slice(0, 5)).map(([name, count]) => (
-                        <button
-                          key={name}
-                          onClick={() => handleBreakdownFilter('agency', name)}
-                          className="w-full flex items-center justify-between text-xs hover:bg-slate-800/50 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                          title={`Click to filter by agency: ${name}`}
-                        >
-                          <span className="text-slate-300 truncate mr-2 group-hover:text-white transition-colors">
-                            {name.length > 20 ? name.substring(0, 20) + '...' : name}
-                          </span>
-                          <span className="text-purple-400 font-medium whitespace-nowrap flex items-center gap-1">
-                            {count}
-                            <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* States Breakdown - INTERACTIVE */}
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4 hover:border-slate-700 transition-colors">
-                  <div className="flex items-center gap-2 mb-3">
-                    <MapPin className="h-4 w-4 text-rose-400" />
-                    <h4 className="font-semibold text-slate-200">States</h4>
-                  </div>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setExpandedBreakdown(expandedBreakdown === 'states' ? null : 'states')}
-                      className="w-full text-left hover:bg-slate-800/50 rounded-lg p-2 -m-2 transition-colors group"
-                    >
-                      <div className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                        {summaryStats.uniqueStates}
-                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${expandedBreakdown === 'states' ? 'rotate-180' : ''}`} />
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {expandedBreakdown === 'states' ? 'Click to collapse' : 'Click to expand all'}
-                      </div>
-                    </button>
-                    <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'states' ? 'max-h-96' : 'max-h-32'}`}>
-                      {(expandedBreakdown === 'states' ? summaryStats.topStates : summaryStats.topStates.slice(0, 5)).map(([code, count]) => (
-                        <button
-                          key={code}
-                          onClick={() => handleBreakdownFilter('state', code)}
-                          className="w-full flex items-center justify-between text-xs hover:bg-slate-800/50 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                          title={`Click to filter by state: ${code}`}
-                        >
-                          <span className="text-slate-300 font-medium group-hover:text-white transition-colors">{code}</span>
-                          <span className="text-rose-400 font-medium flex items-center gap-1">
-                            {count}
-                            <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Enhanced Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard 
-            label="Total Results" 
-            value={summaryStats.total.toLocaleString()}
-            icon={<TrendingUp className="h-5 w-5 text-emerald-400" />}
-            onClick={scrollToResults}
-            loading={loading}
-          />
-          
-          <StatCard 
-            label="Urgent (=7 days)" 
-            value={summaryStats.urgentCount.toLocaleString()}
-            icon={<AlertTriangle className="h-5 w-5 text-rose-400" />}
-            onClick={() => {
-              const today = new Date()
-              const nextWeek = new Date(today)
-              nextWeek.setDate(today.getDate() + 7)
-              setPostedAfter(today.toISOString().split('T')[0])
-              setPostedBefore(nextWeek.toISOString().split('T')[0])
-              // User needs to click search button
-            }}
-            loading={loading}
-          />
-          
-          <StatCard 
-            label="Small Business Set-Asides" 
-            value={summaryStats.smallBusinessCount.toLocaleString()}
-            icon={<Target className="h-5 w-5 text-amber-400" />}
-            onClick={() => {
-              setSetAside('SBA')
-              // User needs to click search button
-            }}
-            loading={loading}
-          />
-          
-          <StatCard 
-            label="Saved Opportunities" 
-            value={summaryStats.savedCount.toLocaleString()}
-            icon={<BookmarkCheck className="h-5 w-5 text-purple-400" />}
-            onClick={() => router.push('/saved')}
-            loading={loading}
-          />
-        </div>
-
-        {/* Enhanced Search Filters */}
-        <div ref={filtersRef} className="mb-6 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/50 to-slate-950/30 p-6 shadow-2xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
-                <SlidersHorizontal className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Advanced Search Filters</h2>
-                <p className="text-sm text-slate-400">Set your filters, then click "Search Opportunities"</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Pill tone="warning">
-                <AlertCircle className="h-4 w-4" />
-                Max range: 364 days
-              </Pill>
               
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 icon={showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                aria-label={showFilters ? 'Hide filters' : 'Show filters'}
               >
-                {showFilters ? 'Hide' : 'Show'} Filters
+                {showFilters ? 'Hide' : 'Show'}
               </Button>
             </div>
-          </div>
 
-          {showFilters && (
-            <div className="space-y-6">
-              {/* Main Search Row - UPDATED with Set-Aside and State dropdowns */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <Field label="Keywords" required>
-                  <div onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      runSearch(false)
-                    }
-                  }} className="relative">
-                    <Input
-                      value={keywords}
-                      onChange={setKeywords}
-                      placeholder="Search titles, descriptions, or any text"
-                      icon={<Search className="h-4 w-4" />}
-                    />
-                    {/* PERFORMANCE FIX: Show debounce indicator */}
-                    {keywords !== debouncedKeywords && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-                      </div>
-                    )}
+            {showFilters && (
+              <div className="space-y-3">
+                
+                {/* Quick Date Presets - VIBRANT BUTTONS */}
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <label className="block text-sm font-bold text-orange-600 mb-2">Quick Date Lookup</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date()
+                        const from = new Date()
+                        from.setMonth(from.getMonth() - 1)
+                        setPostedAfter(from.toISOString().split('T')[0])
+                        setPostedBefore(today.toISOString().split('T')[0])
+                        setShowDateWarning(false)
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all"
+                      aria-label="Last 1 month"
+                    >
+                      1 Mo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date()
+                        const from = new Date()
+                        from.setMonth(from.getMonth() - 3)
+                        setPostedAfter(from.toISOString().split('T')[0])
+                        setPostedBefore(today.toISOString().split('T')[0])
+                        setShowDateWarning(false)
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+                      aria-label="Last 3 months"
+                    >
+                      3 Mo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date()
+                        const from = new Date()
+                        from.setMonth(from.getMonth() - 6)
+                        setPostedAfter(from.toISOString().split('T')[0])
+                        setPostedBefore(today.toISOString().split('T')[0])
+                        setShowDateWarning(false)
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all"
+                      aria-label="Last 6 months"
+                    >
+                      6 Mo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date()
+                        const from = new Date()
+                        from.setMonth(from.getMonth() - 9)
+                        setPostedAfter(from.toISOString().split('T')[0])
+                        setPostedBefore(today.toISOString().split('T')[0])
+                        setShowDateWarning(false)
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-all"
+                      aria-label="Last 9 months"
+                    >
+                      9 Mo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date()
+                        const from = new Date()
+                        from.setDate(from.getDate() - 364)
+                        setPostedAfter(from.toISOString().split('T')[0])
+                        setPostedBefore(today.toISOString().split('T')[0])
+                        setShowDateWarning(false)
+                      }}
+                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all"
+                      aria-label="Last year"
+                    >
+                      1 Year
+                    </button>
                   </div>
-                </Field>
-                
-                {/* Set-Aside Dropdown - NEW */}
-                <Field label="Set-Aside">
-                  <select
-                    value={setAside}
-                    onChange={(e) => setSetAside(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-                  >
-                    {SET_ASIDE_OPTIONS.map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
+                </div>
+
+                {/* Main Filters - 4 COLUMN RESPONSIVE GRID */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {/* Keywords */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Keywords</label>
+                    <div onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        runSearch(false)
+                      }
+                    }} className="relative">
+                      <Input
+                        value={keywords}
+                        onChange={setKeywords}
+                        placeholder="e.g., 'Data Analytics'"
+                        icon={<Search className="h-4 w-4" />}
+                      />
+                      {keywords !== debouncedKeywords && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Set-Aside */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Set-Aside</label>
+                    <select
+                      value={setAside}
+                      onChange={(e) => setSetAside(e.target.value)}
+                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      aria-label="Set-aside type filter"
+                    >
+                      {SET_ASIDE_OPTIONS.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* State */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">State/Territory</label>
+                    <select
+                      value={stateOfPerformance}
+                      onChange={(e) => setStateOfPerformance(e.target.value)}
+                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      aria-label="State filter"
+                    >
+                      {US_STATES.map(state => (
+                        <option key={state.value} value={state.value}>{state.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Agency */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Agency/Department</label>
+                    <Input
+                      value={agency}
+                      onChange={setAgency}
+                      placeholder="e.g., Department of Defense"
+                      icon={<Building2 className="h-4 w-4" />}
+                    />
+                  </div>
+
+                  {/* NAICS */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">NAICS Code</label>
+                    <Input
+                      value={naics}
+                      onChange={setNaics}
+                      placeholder="e.g., 541511, 541512"
+                      icon={<Tag className="h-4 w-4" />}
+                    />
+                  </div>
+
+                  {/* PSC Code */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">PSC Code</label>
+                    <Input
+                      value={classificationCode}
+                      onChange={setClassificationCode}
+                      placeholder="e.g., R425, 7030"
+                      icon={<Layers className="h-4 w-4" />}
+                    />
+                  </div>
+
+                  {/* Procurement Type */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Procurement Type</label>
+                    <select
+                      value={procurementType}
+                      onChange={(e) => setProcurementType(e.target.value)}
+                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      aria-label="Procurement type filter"
+                    >
+                      <option value="">All Types</option>
+                      <option value="o">Solicitation</option>
+                      <option value="p">Pre-solicitation</option>
+                      <option value="a">Award Notice</option>
+                      <option value="r">Sources Sought</option>
+                      <option value="s">Special Notice</option>
+                      <option value="u">Justification (J&amp;A)</option>
+                      <option value="k">Combined Synopsis/Solicitation</option>
+                      <option value="g">Sale of Surplus Property</option>
+                      <option value="i">Intent to Bundle (DoD)</option>
+                    </select>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Status</label>
+                    <select
+                      value={opportunityStatus}
+                      onChange={(e) => setOpportunityStatus(e.target.value)}
+                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      aria-label="Opportunity status filter"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="active">Active Only</option>
+                      <option value="inactive">Inactive Only</option>
+                      <option value="archived">Archived</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Date Range - COMPACT */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Posted From</label>
+                    <input
+                      type="date"
+                      value={postedAfter}
+                      onChange={(e) => {
+                        setPostedAfter(e.target.value)
+                        if (postedBefore) validateDateRange(e.target.value, postedBefore)
+                      }}
+                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                      aria-label="Posted after date"
+                    />
+                  </div>
+                  {/* Posted To field hidden - not needed as results show all current opportunities */}
+                </div>
+
+                {/* Quick Date Fill Buttons */}
+                <div className="mt-3">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Quick Search by Posted Date:
+                  </label>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Find opportunities posted in the last [timeframe] without detailed filtering
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { months: 1, label: '1 Month', description: 'Last 30 days' },
+                      { months: 3, label: '3 Months', description: 'Last 90 days' },
+                      { months: 6, label: '6 Months', description: 'Last 180 days' },
+                      { months: 9, label: '9 Months', description: 'Last 270 days' },
+                      { months: 12, label: '12 Months', description: 'Last year' },
+                    ].map(({ months, label, description }) => (
+                      <button
+                        key={months}
+                        type="button"
+                        onClick={() => {
+                          const date = new Date()
+                          date.setMonth(date.getMonth() - months)
+                          setPostedAfter(date.toISOString().split('T')[0])
+                          // Clear other filters for quick search
+                          setKeywords('')
+                          setNaics('')
+                          setAgency('')
+                          setSetAside('')
+                        }}
+                        className="px-3 py-1.5 rounded-lg border-2 border-gray-300 hover:border-emerald-500 hover:bg-emerald-50 text-sm font-medium transition-colors"
+                        title={description}
+                      >
+                        {label}
+                      </button>
                     ))}
-                  </select>
-                </Field>
-                
-                {/* State/Territory Dropdown - NEW */}
-                <Field label="State/Territory">
-                  <select
-                    value={stateOfPerformance}
-                    onChange={(e) => setStateOfPerformance(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-                  >
-                    {US_STATES.map(state => (
-                      <option key={state.value} value={state.value}>{state.label}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
+                  </div>
+                </div>
 
-              {/* Category Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Field label="NAICS Code">
-                  <Input
-                    value={naics}
-                    onChange={setNaics}
-                    placeholder="e.g., 541511"
-                    icon={<Tag className="h-4 w-4" />}
-                  />
-                </Field>
-                
-                <Field label="Agency/Department">
-                  <Input
-                    value={agency}
-                    onChange={setAgency}
-                    placeholder="e.g., Department of Defense"
-                    icon={<Building2 className="h-4 w-4" />}
-                  />
-                </Field>
-                
-                {/* Procurement Type Dropdown */}
-                <Field label="Procurement Type" required>
-                  <select
-                    value={procurementType}
-                    onChange={(e) => setProcurementType(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors"
-                  >
-                    <option value="a">Award Notice</option>
-                    <option value="p">Pre-solicitation</option>
-                    <option value="o">Solicitation</option>
-                    <option value="r">Sources Sought</option>
-                    <option value="s">Special Notice</option>
-                    <option value="u">Justification (J&amp;A)</option>
-                    <option value="k">Combined Synopsis/Solicitation</option>
-                    <option value="g">Sale of Surplus Property</option>
-                    <option value="i">Intent to Bundle (DoD)</option>
-                  </select>
-                </Field>
-              </div>
+                {/* Additional Fields */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Response Deadline Date</label>
+                    <input
+                      type="date"
+                      value={responseDeadline}
+                      onChange={(e) => setResponseDeadline(e.target.value)}
+                      placeholder="Furthest deadline date (ceiling)"
+                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
+                      aria-label="Response deadline date filter"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Opportunities with deadlines on or before this date</p>
+                  </div>
 
-              {/* Date Range */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Posted After">
-                  <Input
-                    type="date"
-                    value={postedAfter}
-                    onChange={setPostedAfter}
-                    placeholder="Select start date"
-                    icon={<Calendar className="h-4 w-4" />}
-                  />
-                </Field>
-                
-                <Field label="Posted Before">
-                  <Input
-                    type="date"
-                    value={postedBefore}
-                    onChange={setPostedBefore}
-                    placeholder="Select end date"
-                    icon={<Calendar className="h-4 w-4" />}
-                  />
-                </Field>
-              </div>
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Solicitation Number</label>
+                    <Input
+                      value={solicitationNumber}
+                      onChange={setSolicitationNumber}
+                      placeholder="e.g., W912DY24R0001"
+                      icon={<FileText className="h-4 w-4" />}
+                    />
+                  </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-between items-center pt-4 border-t border-slate-800">
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    variant="primary"
-                    onClick={() => runSearch(false)}
-                    loading={loading}
-                    icon={<Search className="h-5 w-5" />}
-                  >
-                    {loading ? 'Searching...' : 'Search Opportunities'}
-                  </Button>
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Notice ID</label>
+                    <Input
+                      value={noticeId}
+                      onChange={setNoticeId}
+                      placeholder="e.g., abc123def456"
+                      icon={<Hash className="h-4 w-4" />}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">Organization Code</label>
+                    <Input
+                      value={organizationCode}
+                      onChange={setOrganizationCode}
+                      placeholder="Optional - specific org code"
+                      icon={<Building className="h-4 w-4" />}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-orange-600 mb-1">ZIP Code</label>
+                    <Input
+                      value={placeOfPerformanceZip}
+                      onChange={setPlaceOfPerformanceZip}
+                      placeholder="e.g., 22101"
+                      icon={<MapPin className="h-4 w-4" />}
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2 border-t border-gray-200">
+                  {!loading ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => runSearch(false)}
+                      loading={loading}
+                      icon={<Search className="h-4 w-4" />}
+                      aria-label="Search opportunities"
+                    >
+                      Search Opportunities
+                    </Button>
+                  ) : (
+                    <button
+                      onClick={stopSearch}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg animate-pulse transition-all border-2 border-red-800"
+                      aria-label="Stop search"
+                    >
+                      <StopCircle className="h-4 w-4" />
+                      <span>STOP SEARCH</span>
+                      {searchDuration > 0 && (
+                        <span className="text-xs opacity-90">({searchDuration}s)</span>
+                      )}
+                    </button>
+                  )}
                   
                   <Button
                     variant="secondary"
                     onClick={resetAll}
                     disabled={loading}
-                    icon={<RefreshCw className="h-5 w-5" />}
+                    icon={<RefreshCw className="h-4 w-4" />}
+                    aria-label="Reset all filters"
                   >
                     Reset All
                   </Button>
                   
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      if (!requireAccess("Save Searches")) return;
-                      setShowSavedSearchModal(true);
-                    }}
-                    icon={<Save className="h-5 w-5" />}
-                  >
-                    Save Search
-                  </Button>
+                  {/* Export Section - Improved */}
+                  <div className="ml-auto">
+                    <div className="mb-2">
+                      <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                        <Download className="h-3.5 w-3.5" />
+                        Export Results
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-0.5">Download in your preferred format</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={exportCsv}
+                        disabled={!filteredResults.length || loading}
+                        title="Download as CSV (Excel-compatible spreadsheet)"
+                        className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        CSV
+                      </button>
+                      
+                      <button
+                        onClick={exportJson}
+                        disabled={!filteredResults.length || loading}
+                        title="Download as JSON (for developers and integrations)"
+                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        JSON
+                      </button>
+
+                      <button
+                        onClick={exportTxt}
+                        disabled={!filteredResults.length || loading}
+                        title="Download as plain text file"
+                        className="px-3 py-1.5 rounded-lg bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        TXT
+                      </button>
+
+                      <button
+                        onClick={exportXml}
+                        disabled={!filteredResults.length || loading}
+                        title="Download as XML (structured data)"
+                        className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        XML
+                      </button>
+
+                      <button
+                        onClick={exportBinary}
+                        disabled={!filteredResults.length || loading}
+                        title="Download as binary file (advanced)"
+                        className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        <Database className="h-3.5 w-3.5" />
+                        Binary
+                      </button>
+
+                      <button
+                        onClick={exportEmail}
+                        disabled={!filteredResults.length || loading}
+                        title="Email results to yourself"
+                        className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        Email
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="flex gap-3">
-                  <Button
-                    variant="success"
-                    onClick={exportCsv}
-                    disabled={!filteredResults.length || loading}
-                    icon={<Download className="h-5 w-5" />}
-                  >
-                    Export CSV
-                  </Button>
-                  
-                  <Button
-                    variant="success"
-                    onClick={exportJson}
-                    disabled={!filteredResults.length || loading}
-                    icon={<Download className="h-5 w-5" />}
-                  >
-                    Export JSON
-                  </Button>
-                </div>
-              </div>
-              
-              {error && (
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <div className="text-amber-200 font-semibold mb-1">Search Limitation</div>
-                      <div className="text-amber-300 text-sm mb-3">{error}</div>
-                      <div className="flex gap-3">
-                        {error.includes('364 days') && (
-                          <button
-                            onClick={autoFixDateRange}
-                            className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-semibold text-sm transition-colors inline-flex items-center gap-2"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Auto-adjust to 364 days
-                          </button>
-                        )}
+                {error && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="text-amber-900 font-semibold text-sm">Search Limitation</div>
+                        <div className="text-amber-700 text-xs">{error}</div>
                         <button
                           onClick={() => setError(null)}
-                          className="px-4 py-2 rounded-lg border border-amber-500/30 hover:bg-amber-500/10 text-amber-300 font-semibold text-sm transition-colors"
+                          className="mt-2 px-3 py-1 rounded-lg border border-amber-400 hover:bg-amber-100 text-amber-700 font-semibold text-xs transition-colors"
+                          aria-label="Dismiss error"
                         >
                           Dismiss
                         </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Results Section */}
-        <div ref={resultsRef} className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/50 to-slate-950/30 p-6 shadow-2xl">
-          {/* Results Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-                <Database className="h-5 w-5 text-blue-400" />
+                )}
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Search Results</h2>
-                <div className="flex items-center gap-3 mt-1">
-                  {data ? (
-                    <span className="text-slate-400">
-                      {filteredResults.length} {filteredResults.length === 1 ? 'result' : 'results'}
-                      {totalRecords > 0 && filteredResults.length < totalRecords && (
-                        <span className="text-slate-500">
-                          {' '}of {totalRecords.toLocaleString()}
-                        </span>
-                      )}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400">
-                      Set filters and click "Search Opportunities" to see results
-                    </span>
-                  )}
+            )}
+          </div>
+
+          {/* Results Section */}
+          <div ref={resultsRef} className="rounded-3xl border border-gray-200 bg-white p-6 ">
+            {/* Results Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+              <div className="flex flex-col gap-3 flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
+                    <Database className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Search Results</h2>
+                    {!data && !loading && (
+                      <p className="text-base text-gray-900 font-medium mt-0.5">Set filters and click "Search Opportunities" to see results</p>
+                    )}
+                  </div>
                   {loading && (
-                    <div className="flex items-center gap-1 text-sm text-slate-500">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Updating...
+                    <div className="flex items-center gap-1.5 text-base text-gray-900 font-medium ml-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Searching...
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-            
-            {/* Results Controls - Only show when we have results */}
-            {data && (
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Sort Controls */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-400">Sort by:</span>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="posted">Posted Date</option>
-                    <option value="deadline">Deadline</option>
-                    <option value="relevance">Relevance</option>
-                  </select>
-                  <button
-                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
-                  >
-                    {sortOrder === 'asc' ? (
-                      <SortAsc className="h-4 w-4 text-slate-400" />
-                    ) : (
-                      <SortDesc className="h-4 w-4 text-slate-400" />
+
+                {/* 💡 Save & Subscribe Prompt Banner */}
+                {data && filteredResults.length > 0 && (
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-xl p-5 shadow-sm" data-save-prompt>
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 bg-green-600 rounded-lg flex-shrink-0">
+                        <Bell className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-green-600" />
+                          Found opportunities you like?
+                        </h3>
+                        <p className="text-base text-gray-700 mb-3 leading-relaxed">
+                          <strong>Save this search</strong> and get automatic email alerts when new opportunities match your criteria!
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                          <Button
+                            variant="primary"
+                            size="md"
+                            onClick={() => {
+                              if (!requireAccess("Save Searches")) return;
+                              // Navigate to alerts page with saved searches tab and pass search params
+                              const params = new URLSearchParams({
+                                tab: 'saved-searches',
+                                title: keywords.trim(),
+                                naics: naics.trim(),
+                                agency: agency.trim(),
+                                setAside: setAside.trim(),
+                                state: stateOfPerformance.trim(),
+                                ptype: procurementType,
+                                status: opportunityStatus.trim(),
+                                solnum: solicitationNumber.trim(),
+                                noticeid: noticeId.trim(),
+                                ccode: classificationCode.trim(),
+                                zip: placeOfPerformanceZip.trim(),
+                                organizationCode: organizationCode.trim(),
+                                postedFrom: postedAfter.trim(),
+                                postedTo: postedBefore.trim(),
+                                rdlfrom: responseDeadline.trim(),
+                              });
+                              // Filter out empty params
+                              const filteredParams = new URLSearchParams();
+                              for (const [key, value] of params.entries()) {
+                                if (value) filteredParams.set(key, value);
+                              }
+                              window.location.href = `/alerts?${filteredParams.toString()}`;
+                            }}
+                            icon={<Save className="h-5 w-5" />}
+                            aria-label="Save this search"
+                          >
+                            Save This Search
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="md"
+                            onClick={() => {
+                              if (!requireAccess("Manage Alerts")) return;
+                              window.location.href = '/alerts?tab=subscriptions';
+                            }}
+                            icon={<Bell className="h-5 w-5" />}
+                            aria-label="Manage subscriptions"
+                          >
+                            Manage Subscriptions
+                          </Button>
+                        </div>
+                        <Button
+                          variant="tertiary"
+                          size="lg"
+                          fullWidth
+                          onClick={() => {
+                            window.location.href = '/alerts';
+                          }}
+                          icon={<Bell className="h-5 w-5" />}
+                          aria-label="Manage your alerts and subscriptions"
+                        >
+                          Manage Your Alerts and Subscriptions
+                        </Button>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const banner = document.querySelector('[data-save-prompt]');
+                          if (banner) banner.remove();
+                        }}
+                        className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                        title="Dismiss"
+                        aria-label="Dismiss save prompt"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 🆕 Active Filters Summary - Shows what's currently filtering results */}
+                {data && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="text-base font-bold text-blue-900 mb-2">Active Search Filters</h3>
+                        <div className="space-y-1.5 text-sm text-blue-800">
+                          {keywords && <div>• <strong>Title Search:</strong> "{keywords}"</div>}
+                          {naics && <div>• <strong>NAICS Code:</strong> {naics}</div>}
+                          {agency && <div>• <strong>Agency:</strong> {agency}</div>}
+                          {setAside && <div>• <strong>Set-Aside:</strong> {SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}</div>}
+                          {stateOfPerformance && <div>• <strong>State:</strong> {US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}</div>}
+                          {responseDeadline && (
+                            <div className="text-orange-700">• <strong>Response Deadline:</strong> {responseDeadline}</div>
+                          )}
+                          {procurementType && <div>• <strong>Type:</strong> {procurementType}</div>}
+                          {!keywords && !naics && !agency && !setAside && !stateOfPerformance && !responseDeadline && !procurementType && (
+                            <div className="text-gray-700">No filters active - showing all opportunities from the past 9 months</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Showing X of Y + status pills */}
+                {data && results.length > 0 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <span className="text-sm text-gray-900">
+                      Showing <span className="font-semibold text-blue-600">{filteredResults.length.toLocaleString()}</span> of <span className="font-semibold text-blue-600">{totalRecords > 0 ? totalRecords.toLocaleString() : results.length.toLocaleString()}</span> returned results
+                    </span>
+                    <span className="text-slate-700 hidden sm:inline">|</span>
+                    {/* Status pills — only when Status filter is "All" */}
+                    {isActive === '' && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setActiveFilter(null)}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                            activeFilter === null
+                              ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                              : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                          }`}
+                          aria-label="Show all opportunities"
+                        >
+                          All <span className="text-gray-600 font-normal ml-1">{statusCounts.all.toLocaleString()}</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveFilter('true')}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                            activeFilter === 'true'
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                              : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                          }`}
+                          aria-label="Show active opportunities"
+                        >
+                          Active <span className="text-gray-600 font-normal ml-1">{statusCounts.active.toLocaleString()}</span>
+                        </button>
+                        <button
+                          onClick={() => setActiveFilter('false')}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                            activeFilter === 'false'
+                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                              : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                          }`}
+                          aria-label="Show inactive opportunities"
+                        >
+                          Inactive <span className="text-gray-600 font-normal ml-1">{statusCounts.inactive.toLocaleString()}</span>
+                        </button>
+                      </div>
                     )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Results Controls - Only show when we have results */}
+              {data && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Sort Controls */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-base text-gray-900 font-medium">Sort by:</span>
+                    <select 
+                      value={sortBy} 
+                      onChange={(e) =>
+                        setSortBy(
+                          e.target.value as
+                            | 'posted-desc'
+                            | 'posted-asc'
+                            | 'deadline-desc'
+                            | 'deadline-asc'
+                            | 'relevance'
+                        )
+                      }
+                      className="px-3 py-2 border-2 border-gray-400 rounded-lg bg-white text-gray-900 font-semibold"
+                      aria-label="Sort results by"
+                    >
+                      <option value="posted-desc">Posted Date (Newest First)</option>
+                      <option value="posted-asc">Posted Date (Oldest First)</option>
+                      <option value="deadline-desc">Deadline (Latest First)</option>
+                      <option value="deadline-asc">Deadline (Soonest First)</option>
+                      <option value="relevance">Relevance</option>
+                    </select>
+
+                    <button
+                      onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                      className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-100 transition-colors"
+                      aria-label={sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'}
+                    >
+                      {sortOrder === 'asc' ? (
+                        <SortAsc className="h-4 w-4 text-gray-600" />
+                      ) : (
+                        <SortDesc className="h-4 w-4 text-gray-600" />
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* View Toggle */}
+                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-100 border-2 border-gray-200">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 rounded transition-colors ${
+                        viewMode === 'list' 
+                          ? 'bg-white text-blue-600 shadow-sm' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                      title="List view"
+                      aria-label="List view"
+                    >
+                      <List className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 rounded transition-colors ${
+                        viewMode === 'grid' 
+                          ? 'bg-white text-blue-600 shadow-sm' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                      title="Grid view"
+                      aria-label="Grid view"
+                    >
+                      <Grid className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Active Filters - Only show after search */}
+            {data && (agency || setAside || naics || stateOfPerformance) && (
+              <div className="mb-6 p-4 rounded-2xl border border-gray-200 bg-white/5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Active Filters</span>
+                    <span className="text-xs text-gray-600 ml-2">
+                      (Update filters and click "Search" to refresh)
+                    </span>
+                  </div>
+                  <button
+                    onClick={clearAllClientFilters}
+                    className="text-base text-gray-900 font-medium hover:text-gray-900 transition-colors flex items-center gap-1"
+                    aria-label="Clear all filters"
+                  >
+                    <X className="h-4 w-4" />
+                    Clear All
                   </button>
                 </div>
-                
-                {/* View Toggle */}
-                <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-900 border border-slate-700">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded transition-colors ${
-                      viewMode === 'list' 
-                        ? 'bg-slate-800 text-white' 
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                <div className="flex flex-wrap gap-2">
+                  {agency && (
+                    <Pill 
+                      tone="info" 
+                      onRemove={() => handleFilterRemoveAndSearch('agency')}
+                    >
+                      Agency: {agency}
+                    </Pill>
+                  )}
+                  {setAside && (
+                    <Pill 
+                      tone="info" 
+                      onRemove={() => handleFilterRemoveAndSearch('setAside')}
+                    >
+                      Set-Aside: {SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}
+                    </Pill>
+                  )}
+                  {naics && (
+                    <Pill 
+                      tone="info" 
+                      onRemove={() => handleFilterRemoveAndSearch('naics')}
+                    >
+                      NAICS: {naics}
+                    </Pill>
+                  )}
+                  {stateOfPerformance && (
+                    <Pill 
+                      tone="info" 
+                      onRemove={() => handleFilterRemoveAndSearch('state')}
+                    >
+                      State: {US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}
+                    </Pill>
+                  )}
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  After removing filters, click "Search Opportunities" to update results
+                </div>
+              </div>
+            )}
+
+            {/* Loading States */}
+            {loading && !loadingMore && (
+              <div className="py-12 text-center">
+                <div className="inline-flex flex-col items-center gap-4">
+                  <div className="h-12 w-12 rounded-full border-2 border-blue-600/30 border-t-blue-600 animate-spin" />
+                  <div className="text-gray-600">Searching SAM.gov opportunities...</div>
+                </div>
+              </div>
+            )}
+
+            {/* Results - List View */}
+            {!loading && filteredResults.length > 0 && viewMode === 'list' && (
+              <>
+                <div className="space-y-6">
+                  {filteredResults.map((opp, idx) => (
+                    <ResultCard
+                      key={`${opp.noticeId || 'no-id'}-${idx}`}
+                      opportunity={opp}
+                      index={idx}
+                      isExpanded={!!expanded[opp.noticeId || String(idx)]}
+                      toggleExpanded={(id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))}
+                      isSaved={!!saved[opp.noticeId || String(idx)]}
+                      toggleSaved={(id) => toggleSaved(id)}
+                      copyText={copyText}
+                      copiedId={copiedId}
+                    />
+                  ))}
+                </div>
+
+                {/* Load More */}
+                {hasMoreResults && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="text-base text-gray-900 font-medium">
+                        Showing {filteredResults.length} of {totalRecords.toLocaleString()} opportunities
+                      </div>
+                      <Button
+                        variant="primary"
+                        onClick={loadMoreResults}
+                        loading={loadingMore}
+                        icon={<Plus className="h-5 w-5" />}
+                        aria-label="Load more results"
+                      >
+                        {loadingMore ? 'Loading...' : `Load ${LOAD_MORE_INCREMENT} More`}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Results - Grid View */}
+            {!loading && filteredResults.length > 0 && viewMode === 'grid' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-6">
+                  {filteredResults.map((opp, idx) => (
+                    <OpportunityCard
+                      key={`${opp.noticeId || 'no-id'}-${idx}`}
+                      opportunity={opp}
+                      index={idx}
+                      isSaved={!!saved[opp.noticeId || String(idx)]}
+                      toggleSaved={(id) => toggleSaved(id)}
+                      copyText={copyText}
+                      copiedId={copiedId}
+                    />
+                  ))}
+                </div>
+
+                {/* Load More */}
+                {hasMoreResults && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="text-lg text-gray-900 font-medium">
+                        Showing {filteredResults.length} of {totalRecords.toLocaleString()} opportunities
+                      </div>
+                      <Button
+                        variant="primary"
+                        onClick={loadMoreResults}
+                        loading={loadingMore}
+                        icon={<Plus className="h-5 w-5" />}
+                        aria-label="Load more results"
+                      >
+                        {loadingMore ? 'Loading...' : `Load ${LOAD_MORE_INCREMENT} More`}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Empty State */}
+            {!loading && !filteredResults.length && data && (
+              <div className="py-12 text-center">
+                <div className="inline-flex flex-col items-center gap-4 max-w-md mx-auto">
+                  <div className="h-16 w-16 rounded-2xl border border-gray-200 bg-white flex items-center justify-center">
+                    <Search className="h-8 w-8 text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No matching opportunities</h3>
+                    <p className="text-gray-600">
+                      Try adjusting your search filters or using different keywords.
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={resetAll}
+                    icon={<RefreshCw className="h-5 w-5" />}
+                    aria-label="Reset all filters"
                   >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded transition-colors ${
-                      viewMode === 'grid' 
-                        ? 'bg-slate-800 text-white' 
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Grid className="h-4 w-4" />
-                  </button>
+                    Reset Filters
+                  </Button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Active Filters - Only show after search */}
-          {data && (agency || setAside || naics || stateOfPerformance) && (
-            <div className="mb-6 p-4 rounded-2xl border border-slate-800 bg-slate-900/20">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-300">Active Filters</span>
-                  <span className="text-xs text-slate-500 ml-2">
-                    (Update filters and click "Search" to refresh)
-                  </span>
-                </div>
-                <button
-                  onClick={clearAllClientFilters}
-                  className="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1"
-                >
-                  <X className="h-4 w-4" />
-                  Clear All
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {agency && (
-                  <Pill 
-                    tone="info" 
-                    onRemove={() => handleFilterRemoveAndSearch('agency')}
-                  >
-                    Agency: {agency}
-                  </Pill>
-                )}
-                {setAside && (
-                  <Pill 
-                    tone="info" 
-                    onRemove={() => handleFilterRemoveAndSearch('setAside')}
-                  >
-                    Set-Aside: {SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}
-                  </Pill>
-                )}
-                {naics && (
-                  <Pill 
-                    tone="info" 
-                    onRemove={() => handleFilterRemoveAndSearch('naics')}
-                  >
-                    NAICS: {naics}
-                  </Pill>
-                )}
-                {stateOfPerformance && (
-                  <Pill 
-                    tone="info" 
-                    onRemove={() => handleFilterRemoveAndSearch('state')}
-                  >
-                    State: {US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}
-                  </Pill>
-                )}
-              </div>
-              <div className="mt-2 text-xs text-slate-500">
-                After removing filters, click "Search Opportunities" to update results
-              </div>
-            </div>
-          )}
+                {/* ✅ FIXED: Unified Save/Alert Modal */}
+                <UnifiedSaveSearchModal
+                  mode={saveModalMode}
+                  isOpen={showSaveModal}
+                  onClose={() => setShowSaveModal(false)}
+                  searchParams={{
+                    title: keywords.trim(),
+                    solnum: solicitationNumber.trim(),
+                    noticeid: noticeId.trim(),
+                    ptype: procurementType,
+                    typeOfSetAside: setAside.trim(),
+                    status: opportunityStatus.trim(),
+                    state: stateOfPerformance.trim(),
+                    ncode: naics.trim(),
+                    ccode: classificationCode.trim(),
+                    zip: placeOfPerformanceZip.trim(),
+                    organizationName: agency.trim(),
+                    organizationCode: organizationCode.trim(),
+                    postedFrom: postedAfter.trim(),
+                    postedTo: postedBefore.trim(),
+                    rdlfrom: responseDeadline.trim(),
+                  }}
+                  onSave={handleSaveSuccess}
+                />
 
-          {/* Loading States */}
-          {loading && !loadingMore && (
-            <div className="py-12 text-center">
-              <div className="inline-flex flex-col items-center gap-4">
-                <div className="h-12 w-12 rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin" />
-                <div className="text-slate-400">Searching SAM.gov opportunities...</div>
-              </div>
-            </div>
-          )}
 
-          {/* Results */}
-          {!loading && filteredResults.length > 0 && (
-            <>
-              <div className="space-y-4">
-                {filteredResults.map((opp, idx) => (
-                  <ResultCard
-                    key={`${opp.noticeId || 'no-id'}-${idx}`}
-                    opportunity={opp}
-                    index={idx}
-                    isExpanded={!!expanded[opp.noticeId || String(idx)]}
-                    toggleExpanded={(id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))}
-                    isSaved={!!saved[opp.noticeId || String(idx)]}
-                    toggleSaved={(id) => toggleSaved(id)}
-                    copyText={copyText}
-                    copiedId={copiedId}
-                  />
-                ))}
-              </div>
+                {/* ✅ FIXED: Success Modal */}
+                <SaveSearchSuccessModal
+                  isOpen={showSuccessModal}
+                  onClose={() => setShowSuccessModal(false)}
+                  searchName={successData.searchName}
+                  isSubscription={successData.isSubscription}
+                />
 
-              {/* Load More */}
-              {hasMoreResults && (
-                <div className="mt-8 pt-6 border-t border-slate-800">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="text-sm text-slate-400">
-                      Showing {filteredResults.length} of {totalRecords.toLocaleString()} opportunities
+          {/* Reminder Modal - Shows at 10 minutes */}
+                  {showReminderModal && !showLockoutModal && (
+                    <AccessControlModal
+                      isOpen={showReminderModal}
+                      onClose={() => setShowReminderModal(false)}
+                      featureName="Continue Browsing"
+                      onAccessGranted={() => {
+                        setShowReminderModal(false)
+                      }}
+                      initialMode="signup"
+                    />
+                  )}
+
+                  {/* ✅ NEW - Only show for unauthenticated users */}
+                  {showLockoutModal && status === 'unauthenticated' && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-[2px]">
+                      <div className="max-w-md w-full mx-4">
+                        <div className="rounded-2xl border border-red-500/30 bg-gradient-to-br from-slate-900 to-slate-950 p-8 ">
+                          <div className="flex flex-col items-center text-center gap-4">
+                            <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                              <Lock className="h-8 w-8 text-red-400" />
+                            </div>
+                            
+                            <div>
+                              <h2 className="text-2xl font-bold text-gray-900 mb-2">Browsing Time Expired</h2>
+                              <p className="text-gray-600">
+                                Your 15-minute free browsing session has ended. Sign up or sign in to continue accessing federal contracting opportunities.
+                              </p>
+                            </div>
+
+                            <div className="w-full space-y-3 mt-4">
+                              <button
+                                onClick={() => {
+                                  setShowLockoutModal(false)
+                                  signIn()
+                                }}
+                                className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-900 font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all"
+                                aria-label="Sign up now"
+                              >
+                                Sign Up Now
+                              </button>
+                              
+                              <button
+                                onClick={() => {
+                                  setShowLockoutModal(false)
+                                  signIn()
+                                }}
+                                className="w-full px-6 py-3 rounded-xl border border-gray-300 bg-white/6 text-gray-900 font-semibold hover:bg-gray-100 transition-all"
+                                aria-label="Sign in"
+                              >
+                                Sign In
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <Button
-                      variant="primary"
-                      onClick={loadMoreResults}
-                      loading={loadingMore}
-                      icon={<Plus className="h-5 w-5" />}
-                    >
-                      {loadingMore ? 'Loading...' : `Load ${LOAD_MORE_INCREMENT} More`}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+                  )}
 
-          {/* Empty State */}
-          {!loading && !filteredResults.length && data && (
-            <div className="py-12 text-center">
-              <div className="inline-flex flex-col items-center gap-4 max-w-md mx-auto">
-                <div className="h-16 w-16 rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/50 to-slate-950/30 flex items-center justify-center">
-                  <Search className="h-8 w-8 text-slate-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">No matching opportunities</h3>
-                  <p className="text-slate-400">
-                    Try adjusting your search filters or using different keywords.
-                  </p>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={resetAll}
-                  icon={<RefreshCw className="h-5 w-5" />}
-                >
-                  Reset Filters
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-              {/* ==================== Create Alert Modal ==================== */}
-              <SearchAlertModal
-                isOpen={showAlertBuilder}
-                onClose={() => setShowAlertBuilder(false)}
-                currentSearch={{
-                  keywords: keywords.trim(),
-                  naics: naics.trim(),
-                  agency: agency.trim(),
-                  setAside: setAside.trim(),
-                  stateOfPerformance: stateOfPerformance.trim(),
-                  procurementType: procurementType || 'o',
-                  postedAfter: postedAfter.trim(),
-                  postedBefore: postedBefore.trim(),
-                }}
-              />
-              {/* ==================== Save Search Modal ==================== */}
-              <SavedSearchModal
-                isOpen={showSavedSearchModal}
-                onClose={() => setShowSavedSearchModal(false)}
-                currentFilters={{
-                  keywords: keywords.trim(),
-                  naics: naics.trim(),
-                  agency: agency.trim(),
-                  setAside: setAside.trim(),
-                  stateOfPerformance: stateOfPerformance.trim(),
-                  procurementType: procurementType || 'o',
-                  postedAfter: postedAfter.trim(),
-                  postedBefore: postedBefore.trim(),
-                }}
-                onSave={async (result) => {
-                  console.log('Search saved:', result)
-                  setShowSavedSearchModal(false)
-                }}
-              />
-      
-
-{/* Reminder Modal - Shows at 10 minutes */}
-        {showReminderModal && !showLockoutModal && (
-          <AccessControlModal
-            isOpen={showReminderModal}
-            onClose={() => setShowReminderModal(false)}
-            featureName="Continue Browsing"
-            onAccessGranted={() => {
-              setShowReminderModal(false)
-            }}
-            initialMode="signup"
-          />
-        )}
-
-        {/* ✅ NEW - Only show for unauthenticated users */}
-        {showLockoutModal && status === 'unauthenticated' && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <div className="max-w-md w-full mx-4">
-              <div className="rounded-2xl border border-red-500/30 bg-gradient-to-br from-slate-900 to-slate-950 p-8 shadow-2xl">
-                <div className="flex flex-col items-center text-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
-                    <Lock className="h-8 w-8 text-red-400" />
-                  </div>
-                  
-                  <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Browsing Time Expired</h2>
-                    <p className="text-slate-400">
-                      Your 15-minute free browsing session has ended. Sign up or sign in to continue accessing federal contracting opportunities.
-                    </p>
-                  </div>
-
-                  <div className="w-full space-y-3 mt-4">
-                    <button
-                      onClick={() => {
-                        setShowLockoutModal(false)
-                        signIn()
+          {/* Access Control Modal */}
+                  {showAccessModal && (
+                    <AccessControlModal
+                      isOpen={showAccessModal}
+                      onClose={() => {
+                        setShowAccessModal(false)
+                        pendingActionRef.current = null
                       }}
-                      className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all"
-                    >
-                      Sign Up Now
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        setShowLockoutModal(false)
-                        signIn()
+                      featureName={blockedFeature}
+                      onAccessGranted={() => {
+                        setShowAccessModal(false)
+                        // Execute pending action if there was one
+                        if (pendingActionRef.current) {
+                          setTimeout(() => {
+                            pendingActionRef.current?.()
+                            pendingActionRef.current = null
+                          }, 500)
+                        }
                       }}
-                      className="w-full px-6 py-3 rounded-xl border border-slate-700 bg-slate-800/50 text-white font-semibold hover:bg-slate-800 transition-all"
-                    >
-                      Sign In
-                    </button>
-                  </div>
+                    />
+                  )}
+                  </div> {/* Close max-w-[85%] container */}
                 </div>
+              </main>
+            </SearchErrorBoundary>
+          )
+        }
+
+
+        // Suspense wrapper for useSearchParams
+        export default function SearchPage() {
+          return (
+            <Suspense fallback={
+              <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="animate-spin h-12 w-12 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
               </div>
-            </div>
-          </div>
-        )}
-
-{/* Access Control Modal */}
-        {showAccessModal && (
-          <AccessControlModal
-            isOpen={showAccessModal}
-            onClose={() => {
-              setShowAccessModal(false)
-              pendingActionRef.current = null
-            }}
-            featureName={blockedFeature}
-            onAccessGranted={() => {
-              setShowAccessModal(false)
-              // Execute pending action if there was one
-              if (pendingActionRef.current) {
-                setTimeout(() => {
-                  pendingActionRef.current?.()
-                  pendingActionRef.current = null
-                }, 500)
-              }
-            }}
-          />
-        )}
-      </div>
-    </main>
-  )
-}
-
-
-// Suspense wrapper for useSearchParams
-export default function SearchPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
-      </div>
-    }>
-      <SearchPageContent />
-    </Suspense>
-  )
-}
+            }>
+              <SearchPageContent />
+            </Suspense>
+          )
+        }

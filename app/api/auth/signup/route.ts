@@ -1,10 +1,11 @@
-// app/api/auth/signup/route.ts
+﻿// app/api/auth/signup/route.ts
 import { NextResponse } from 'next/server'
 import { hash } from 'bcryptjs'
 import crypto from 'crypto'
 import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
 
+import { randomBytes } from 'crypto'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const TRIAL_DAYS = 7
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     const normalizedEmail = email.toLowerCase().trim()
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email: normalizedEmail },
     })
 
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
     const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
 
     // Create user - IMPORTANT: Trial does NOT start until email is verified
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         email: normalizedEmail,
         passwordHash,
@@ -67,14 +68,14 @@ export async function POST(req: Request) {
         name: `${firstName.trim()} ${lastName.trim()}`,
         role: 'user',
         plan: 'trial',
-        planTier: 'trial',
-        planStatus: 'pending', // ← Not 'trialing' yet!
-        trialActive: false,    // ← Not active yet!
-        trialStartedAt: null,  // ← Null until verified
-        trialExpiresAt: null,  // ← Null until verified
-        trialEndsAt: null,     // ← Null until verified
-        emailVerified: null,   // ← Must verify email
-        isActive: false,       // ← Not active yet
+        plan_tier: 'trial',
+        plan_status: 'pending', // â† Not 'trialing' yet!
+        trial_active: false,    // â† Not active yet!
+        trialStartedAt: null,  // â† Null until verified
+        trial_expires_at: null,  // â† Null until verified
+        trial_ends_at: null,     // â† Null until verified
+        emailVerified: null,   // â† Must verify email
+        isActive: false,       // â† Not active yet
         isSuspended: false,
       },
     })
@@ -85,7 +86,8 @@ export async function POST(req: Request) {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Create verification token
-    await prisma.emailVerificationToken.create({
+    await prisma.emailVerif
+        id: randomBytes(12).toString('hex'),icationToken.create({
       data: {
         userId: user.id,
         tokenHash,
@@ -153,7 +155,7 @@ export async function POST(req: Request) {
                           
                           <div style="margin: 24px 0; padding: 20px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 8px;">
                             <p style="margin: 0 0 12px; color: #166534; font-size: 14px; font-weight: 600;">
-                              🎉 What happens next:
+                              ðŸŽ‰ What happens next:
                             </p>
                             <ul style="margin: 0; padding-left: 20px; color: #166534; font-size: 14px; line-height: 1.8;">
                               <li>Your email will be verified</li>
@@ -184,7 +186,7 @@ export async function POST(req: Request) {
                       <tr>
                         <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 16px 16px; text-align: center;">
                           <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                            © ${new Date().getFullYear()} Precise Analytics LLC. All rights reserved.
+                            Â© ${new Date().getFullYear()} Precise Analytics LLC. All rights reserved.
                           </p>
                           <p style="margin: 8px 0 0; color: #9ca3af; font-size: 12px;">
                             Richmond, Virginia
@@ -201,9 +203,9 @@ export async function POST(req: Request) {
         `,
       })
       
-      console.log(`✅ Verification email sent to: ${user.email}`)
+      console.log(`âœ… Verification email sent to: ${user.email}`)
     } catch (emailError) {
-      console.error('❌ Failed to send verification email:', emailError)
+      console.error('âŒ Failed to send verification email:', emailError)
       // Don't fail signup if email fails - user can request resend
     }
 
@@ -217,7 +219,7 @@ export async function POST(req: Request) {
     )
 
   } catch (error: any) {
-    console.error('❌ Signup error:', error)
+    console.error('âŒ Signup error:', error)
     return NextResponse.json(
       { error: 'Failed to create account. Please try again.' },
       { status: 500 }
