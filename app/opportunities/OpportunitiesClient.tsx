@@ -3,10 +3,10 @@
 
 export const dynamic = 'force-dynamic';
 
-
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import OpportunityPreferencesSurvey from '@/components/OpportunityPreferencesSurvey';
 import {
   TrendingUp, Building2, Calendar, Award, Target, Briefcase,
@@ -14,7 +14,7 @@ import {
   CheckCircle2, Timer, ChevronDown, Loader2, Heart,
   Trophy, Star, TargetIcon, Zap, CheckCircle, AlertCircle, Filter,
   Bell, BarChart3, ArrowUpRight, LineChart, Download, Bookmark, Eye, Sparkles,
-  List, Grid3x3, Layers, X, Settings, MapPin
+  List, Grid3x3, Layers, X, Settings, MapPin, Info
 } from 'lucide-react';
 
 interface SamOpportunity {
@@ -23,7 +23,9 @@ interface SamOpportunity {
   solicitationNumber: string;
   department: string;
   postedDate: string;
+  updatedPostedDate?: string;
   responseDeadLine: string;
+  updatedResponseDeadLine?: string;
   naicsCode: string;
   typeOfSetAsideDescription: string;
   typeOfSetAside: string;
@@ -64,14 +66,6 @@ const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (
     state: 'DC'
   }
 }));
-
-const PLACEHOLDER_STATS = {
-  totalActive: 956,
-  setAsides: 423,
-  closingSoon: 28,
-  departments: 42,
-  postedToday: 12
-};
 
 // 🎯 NEW: User profile interface
 interface UserProfile {
@@ -132,14 +126,14 @@ const getUrgencyTextColor = (businessDays: number) => {
 };
 
 const getUrgencyBadgeColor = (businessDays: number) => {
-  if (businessDays <= 3) return 'bg-red-500/20 text-red-400 border-red-500/50';
-  if (businessDays <= 5) return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
-  if (businessDays <= 7) return 'bg-amber-500/20 text-amber-400 border-amber-500/50';
-  if (businessDays <= 10) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50';
-  if (businessDays <= 14) return 'bg-lime-500/20 text-lime-400 border-lime-500/50';
-  if (businessDays <= 21) return 'bg-green-500/20 text-green-400 border-green-500/50';
-  if (businessDays <= 30) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50';
-  return 'bg-emerald-600/20 text-emerald-500 border-emerald-600/50';
+  if (businessDays <= 3) return 'bg-red-600 text-white border-red-700';
+  if (businessDays <= 5) return 'bg-orange-600 text-white border-orange-700';
+  if (businessDays <= 7) return 'bg-amber-600 text-white border-amber-700';
+  if (businessDays <= 10) return 'bg-yellow-600 text-white border-yellow-700';
+  if (businessDays <= 14) return 'bg-lime-600 text-white border-lime-700';
+  if (businessDays <= 21) return 'bg-green-600 text-white border-green-700';
+  if (businessDays <= 30) return 'bg-emerald-600 text-white border-emerald-700';
+  return 'bg-emerald-700 text-white border-emerald-800';
 };
 
 const getUrgencyLabel = (businessDays: number) => {
@@ -153,27 +147,18 @@ const getUrgencyLabel = (businessDays: number) => {
   return 'PLENTY OF TIME';
 };
 
-const getUrgencyIcon = (businessDays: number) => {
-  if (businessDays <= 3) return '🔴';
-  if (businessDays <= 5) return '🟠';
-  if (businessDays <= 7) return '🟡';
-  if (businessDays <= 10) return '🟡';
-  return '🟢';
-};
-
-// ✅ NEW: Rank function so urgent cards sort LEFT in grid (and no-deadline goes far right)
+// ✅ NEW: Rank function so urgent cards sort LEFT in grid
 const getUrgencyRank = (businessDays: number | null) => {
-  if (businessDays === null || Number.isNaN(businessDays)) return 999; // No deadline last (furthest right)
-  if (businessDays <= 3) return 0;   // CRITICAL
-  if (businessDays <= 5) return 1;   // URGENT
-  if (businessDays <= 7) return 2;   // HIGH PRIORITY
-  if (businessDays <= 10) return 3;  // ACT SOON
-  if (businessDays <= 14) return 4;  // NORMAL
-  if (businessDays <= 21) return 5;  // COMFORTABLE
-  if (businessDays <= 30) return 6;  // AMPLE TIME
-  return 7;                          // PLENTY OF TIME
+  if (businessDays === null || Number.isNaN(businessDays)) return 999;
+  if (businessDays <= 3) return 0;
+  if (businessDays <= 5) return 1;
+  if (businessDays <= 7) return 2;
+  if (businessDays <= 10) return 3;
+  if (businessDays <= 14) return 4;
+  if (businessDays <= 21) return 5;
+  if (businessDays <= 30) return 6;
+  return 7;
 };
-
 
 // 🎯 NEW: Department color mapping
 const getDepartmentGradient = (department: string) => {
@@ -193,6 +178,26 @@ const getDepartmentGradient = (department: string) => {
   if (dept.includes('GENERAL SERVICES') || dept.includes('GSA')) 
     return 'from-slate-500/20 to-gray-600/20 border-slate-500/40';
   return 'from-blue-500/20 to-indigo-600/20 border-blue-500/40';
+};
+
+// ✅ SECTION 1: Agency abbreviation helper
+const getAgencyAbbreviation = (department?: string) => {
+  if (!department) return 'FED';
+
+  const dept = department.toUpperCase();
+
+  if (dept.includes('DEFENSE')) return 'DOD';
+  if (dept.includes('ARMY')) return 'ARMY';
+  if (dept.includes('NAVY')) return 'NAVY';
+  if (dept.includes('AIR FORCE')) return 'USAF';
+  if (dept.includes('HOMELAND')) return 'DHS';
+  if (dept.includes('VETERANS')) return 'VA';
+  if (dept.includes('HEALTH')) return 'HHS';
+  if (dept.includes('ENERGY')) return 'DOE';
+  if (dept.includes('NASA')) return 'NASA';
+  if (dept.includes('GENERAL SERVICES')) return 'GSA';
+
+  return department.split(' ').slice(0, 2).join('').toUpperCase();
 };
 
 /**
@@ -222,6 +227,81 @@ const getBusinessDaysUntil = (deadline: Date | string): number => {
   return calculateBusinessDays(today, deadlineDate);
 };
 
+/**
+ * Get the effective deadline for an opportunity
+ * Returns updated deadline if available, otherwise original deadline, otherwise null
+ */
+const getEffectiveDeadline = (opportunity: any): Date | null => {
+  const possibleDeadlineFields = [
+    'updatedResponseDeadLine',
+    'responseDeadLine',
+    'updatedResponseDeadline',
+    'responseDeadline',
+    'updated_response_deadline',
+    'response_deadline',
+    'archiveDate',
+    'closingDate',
+    'dueDate',
+    'dateOffersDue',
+    'date_offers_due',
+    'offersdue',
+    'deadline'
+  ];
+  
+  for (const field of possibleDeadlineFields) {
+    const value = opportunity[field];
+    if (value) {
+      try {
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      } catch (e) {
+        // Continue trying other fields
+      }
+    }
+  }
+  
+  return null;
+};
+
+/**
+ * Get the effective posted date (use updated if available)
+ */
+const getEffectivePostedDate = (opportunity: any): string => {
+  const possiblePostedFields = [
+    'updatedPostedDate',
+    'postedDate',
+    'updated_posted_date',
+    'posted_date',
+    'publishedDate',
+    'published_date',
+    'datePublished',
+    'date_published'
+  ];
+  
+  for (const field of possiblePostedFields) {
+    const value = opportunity[field];
+    if (value) {
+      return value;
+    }
+  }
+  
+  return new Date().toISOString(); // Fallback to current date
+};
+
+const formatDate = (dateString: string | Date) => {
+  try {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  } catch {
+    return 'Invalid date';
+  }
+};
 
 export default function OpportunitiesClient() {
   const searchParams = useSearchParams();
@@ -230,14 +310,15 @@ export default function OpportunitiesClient() {
 
   const [allOpportunities, setAllOpportunities] = useState<SamOpportunity[]>([]);
   const [displayedOpportunities, setDisplayedOpportunities] = useState<SamOpportunity[]>(PLACEHOLDER_OPPORTUNITIES);
+  const [filteredOpportunities, setFilteredOpportunities] = useState<SamOpportunity[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedSetAside, setSelectedSetAside] = useState<string>('all');
-  const [displayCount, setDisplayCount] = useState(30); // Increased from 20 for compact view
-  const [totalRecords, setTotalRecords] = useState(PLACEHOLDER_STATS.totalActive);
+  const [displayCount, setDisplayCount] = useState(80);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [lastUpdated, setLastUpdated] = useState('Just now');
   const [dataLoaded, setDataLoaded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'active' | 'setasides' | 'expiring' | 'departments' | null>(null);
@@ -248,6 +329,7 @@ export default function OpportunitiesClient() {
   const [selectedAgency, setSelectedAgency] = useState<string>('all');
   const [selectedNAICS, setSelectedNAICS] = useState<string>('all');
   const [selectedUrgency, setSelectedUrgency] = useState<string>('all');
+  const [selectedUrgencyFilter, setSelectedUrgencyFilter] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [refreshIndicator, setRefreshIndicator] = useState(false);
@@ -260,8 +342,11 @@ export default function OpportunitiesClient() {
   // ✅ NEW: Banner dismissal states
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  
+  // ✅ NEW: Toggle for showing/hiding all opportunities including no-deadline
+  const [showAllOpportunities, setShowAllOpportunities] = useState(false);
 
-  // 🎯 FIXED: Get user name from session instead of API call
+  // 🎯 FIXED: Get user name from session
   const userName = session?.user?.name?.split(' ')[0] || '';
   const userDisplayName = userName 
     ? (userName.endsWith('s') ? `${userName}'` : `${userName}'s`)
@@ -278,6 +363,207 @@ export default function OpportunitiesClient() {
 
   const [userAchievement, setUserAchievement] = useState('');
   const [userTip, setUserTip] = useState('');
+
+  // 🎯 IMPROVED: Accurate stats calculation based on actual data
+  const stats = useMemo(() => {
+    if (!dataLoaded) {
+      return {
+        totalActive: 0,
+        setAsides: 0,
+        closingSoon: 0,
+        departments: 0,
+        postedToday: 0
+      };
+    }
+    
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const nextWeek = new Date(now);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    // Use all opportunities for stats, not just displayed ones
+    return {
+      totalActive: allOpportunities.length,
+      setAsides: allOpportunities.filter(o => 
+        o.typeOfSetAside && o.typeOfSetAside !== 'None' && o.typeOfSetAside !== ''
+      ).length,
+      closingSoon: allOpportunities.filter(o => {
+        const deadline = getEffectiveDeadline(o);
+        if (!deadline) return false;
+        const daysUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        return daysUntil <= 7 && daysUntil > 0;
+      }).length,
+      departments: new Set(allOpportunities.map(o => o.department).filter(Boolean)).size,
+      postedToday: allOpportunities.filter(o => {
+        const posted = getEffectivePostedDate(o);
+        return posted.startsWith(today);
+      }).length
+    };
+  }, [dataLoaded, allOpportunities]);
+
+  // 🎯 OPTIMIZED: Memoized filter application - FIXED to not filter everything out
+  const applyFilters = useCallback((opportunities: SamOpportunity[],
+    filter: string | null,
+    search: string,
+    type: string,
+    setAside: string,
+    active: typeof activeFilter,
+    agency: string,
+    naics: string,
+    urgency: string,
+    urgencyFilter: string | null,
+    showAll: boolean
+  ) => {
+    let filtered = [...opportunities];
+
+    // Apply URL filter parameter
+    if (filter) {
+      const today = new Date().toISOString().split('T')[0];
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+
+      switch (filter) {
+        case 'today':
+          filtered = filtered.filter(opp => opp.postedDate?.startsWith(today));
+          break;
+        case 'expiring':
+          filtered = filtered.filter(opp => {
+            if (!opp.responseDeadLine) return false;
+            const deadline = new Date(opp.responseDeadLine);
+            return deadline <= nextWeek && deadline >= new Date();
+          });
+          break;
+      }
+    }
+
+    // Apply active filter from pills
+    if (active) {
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      
+      switch (active) {
+        case 'setasides':
+          filtered = filtered.filter(o => o.typeOfSetAside && o.typeOfSetAside !== 'None' && o.typeOfSetAside !== '');
+          break;
+        case 'expiring':
+          filtered = filtered.filter(o => {
+            const deadline = getEffectiveDeadline(o);
+            if (!deadline) return false;
+            return deadline <= nextWeek && deadline >= new Date();
+          });
+          break;
+      }
+    }
+
+    // Apply search filter - ENHANCED to search all fields
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter(opp =>
+        opp.title?.toLowerCase().includes(searchLower) ||
+        opp.department?.toLowerCase().includes(searchLower) ||
+        opp.solicitationNumber?.toLowerCase().includes(searchLower) ||
+        opp.naicsCode?.toLowerCase().includes(searchLower) ||
+        opp.typeOfSetAsideDescription?.toLowerCase().includes(searchLower) ||
+        opp.officeAddress?.city?.toLowerCase().includes(searchLower) ||
+        opp.officeAddress?.state?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply type filter
+    if (type !== 'all') {
+      filtered = filtered.filter(opp => opp.typeOfSetAside === type);
+    }
+
+    // Apply set-aside filter
+    if (setAside !== 'all') {
+      filtered = filtered.filter(opp => opp.typeOfSetAside === setAside);
+    }
+
+    // Apply agency filter
+    if (agency !== 'all') {
+      filtered = filtered.filter(opp => 
+        opp.department?.toLowerCase().includes(agency.toLowerCase())
+      );
+    }
+
+    // Apply NAICS filter
+    if (naics !== 'all') {
+      filtered = filtered.filter(opp => 
+        opp.naicsCode?.startsWith(naics)
+      );
+    }
+
+    // Apply urgency filter from interactive legend
+    if (urgencyFilter) {
+      filtered = filtered.filter(opp => {
+        const deadline = getEffectiveDeadline(opp);
+        if (!deadline) {
+          return urgencyFilter === 'No Deadline' && showAll;
+        }
+        const bd = getBusinessDaysUntil(deadline);
+        const label = getUrgencyLabel(bd);
+        return label === urgencyFilter;
+      });
+    }
+
+    // Apply urgency dropdown filter
+    if (urgency !== 'all') {
+      filtered = filtered.filter(opp => {
+        const deadline = getEffectiveDeadline(opp);
+        if (!deadline) return false;
+
+        const businessDays = getBusinessDaysUntil(deadline);
+
+        switch (urgency) {
+          case 'critical': return businessDays <= 3;
+          case 'urgent': return businessDays >= 4 && businessDays <= 5;
+          case 'high': return businessDays >= 6 && businessDays <= 7;
+          case 'normal': return businessDays >= 8 && businessDays <= 14;
+          case 'comfortable': return businessDays >= 15;
+          default: return true;
+        }
+      });
+    }
+
+    // Date-based filtering - only filter out expired opportunities
+    const now = new Date();
+    const sixMonthsFromNow = new Date(now);
+    sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+
+    filtered = filtered.filter(opp => {
+      // Check deadline
+      const deadline = getEffectiveDeadline(opp);
+      
+      if (!deadline) {
+        return showAll; // Include no-deadline only if showAll is true
+      }
+
+      // Filter out expired opportunities
+      if (deadline < now) {
+        return false;
+      }
+      
+      // Only filter out very far future opportunities (beyond 6 months)
+      if (deadline > sixMonthsFromNow) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Sort by urgency (most urgent FIRST)
+    filtered.sort((a, b) => {
+      const deadlineA = getEffectiveDeadline(a);
+      const deadlineB = getEffectiveDeadline(b);
+      
+      const bdA = deadlineA ? getBusinessDaysUntil(deadlineA) : 999;
+      const bdB = deadlineB ? getBusinessDaysUntil(deadlineB) : 999;
+      
+      return bdA - bdB;
+    });
+
+    return filtered;
+  }, []);
 
   const analyzeOpportunity = async (opportunity: SamOpportunity) => {
     try {
@@ -330,205 +616,6 @@ Provide analysis in JSON format with:
     }
   };
 
-  // 🎯 OPTIMIZED: Memoized filter application
-  const applyFilters = useCallback((
-    opportunities: SamOpportunity[],
-    filter: string | null,
-    search: string,
-    type: string,
-    setAside: string,
-    active: typeof activeFilter
-  ) => {
-    let filtered = [...opportunities];
-
-    // 🎯 FIXED: Only apply user preferences if survey is completed
-    if (opportunityPreferences && userProfile.hasCompletedSurvey) {
-      // Filter by NAICS codes
-      if (opportunityPreferences.naicsCodes?.length > 0) {
-        filtered = filtered.filter(opp => 
-          opportunityPreferences.naicsCodes.some((code: string) => 
-            opp.naicsCode?.startsWith(code)
-          )
-        );
-      }
-      
-      // Filter by set-aside types
-      if (opportunityPreferences.setAsideTypes?.length > 0) {
-        filtered = filtered.filter(opp =>
-          opportunityPreferences.setAsideTypes.some((type: string) =>
-            opp.typeOfSetAsideDescription?.includes(type)
-          )
-        );
-      }
-      
-      // Filter by agencies
-      if (opportunityPreferences.agencies?.length > 0) {
-        filtered = filtered.filter(opp =>
-          opportunityPreferences.agencies.some((agency: string) =>
-            opp.department?.toUpperCase().includes(agency.toUpperCase())
-          )
-        );
-      }
-      
-      // Filter by response deadline minimum
-      if (opportunityPreferences.responseDeadlineMin) {
-        const today = new Date();
-        filtered = filtered.filter(opp => {
-          if (!opp.responseDeadLine) return false;
-          const deadline = new Date(opp.responseDeadLine);
-          const daysUntil = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          return daysUntil >= opportunityPreferences.responseDeadlineMin;
-        });
-      }
-      
-      // Filter by keywords (include)
-      if (opportunityPreferences.keywords?.length > 0) {
-        filtered = filtered.filter(opp =>
-          opportunityPreferences.keywords.some((keyword: string) =>
-            opp.title?.toLowerCase().includes(keyword.toLowerCase()) ||
-            opp.department?.toLowerCase().includes(keyword.toLowerCase())
-          )
-        );
-      }
-      
-      // Filter by keywords (exclude)
-      if (opportunityPreferences.excludeKeywords?.length > 0) {
-        filtered = filtered.filter(opp =>
-          !opportunityPreferences.excludeKeywords.some((keyword: string) =>
-            opp.title?.toLowerCase().includes(keyword.toLowerCase()) ||
-            opp.department?.toLowerCase().includes(keyword.toLowerCase())
-          )
-        );
-      }
-      
-      // Filter by states
-      if (opportunityPreferences.states?.length > 0) {
-        filtered = filtered.filter(opp =>
-          opportunityPreferences.states.some((state: string) =>
-            opp.officeAddress?.state?.toLowerCase().includes(state.toLowerCase())
-          )
-        );
-      }
-    }
-
-    // Apply URL filter parameter
-    if (filter) {
-      const today = new Date().toISOString().split('T')[0];
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-
-      switch (filter) {
-        case 'today':
-          filtered = filtered.filter(opp => opp.postedDate?.startsWith(today));
-          break;
-        case 'expiring':
-          filtered = filtered.filter(opp => {
-            if (!opp.responseDeadLine) return false;
-            const deadline = new Date(opp.responseDeadLine);
-            return deadline <= nextWeek && deadline >= new Date();
-          });
-          break;
-        case 'agencies':
-          // Show all, but could be modified to show specific agency filter
-          break;
-      }
-    }
-
-    // Apply active filter from pills
-    if (active) {
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      
-      switch (active) {
-        case 'setasides':
-          filtered = filtered.filter(o => o.typeOfSetAside && o.typeOfSetAside !== 'None' && o.typeOfSetAside !== '');
-          break;
-        case 'expiring':
-          filtered = filtered.filter(o => {
-            if (!o.responseDeadLine) return false;
-            const deadline = new Date(o.responseDeadLine);
-            return deadline <= nextWeek && deadline >= new Date();
-          });
-          break;
-        case 'departments':
-          // Show all, could group by department
-          break;
-        case 'active':
-        default:
-          // No additional filtering for active
-          break;
-      }
-    }
-
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(opp =>
-        opp.title?.toLowerCase().includes(searchLower) ||
-        opp.department?.toLowerCase().includes(searchLower) ||
-        opp.solicitationNumber?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply type filter
-    if (type !== 'all') {
-      filtered = filtered.filter(opp => opp.typeOfSetAside === type);
-    }
-
-    // Apply set-aside filter
-    if (setAside !== 'all') {
-      filtered = filtered.filter(opp => opp.typeOfSetAside === setAside);
-    }
-
-
-    // Apply agency filter
-    if (selectedAgency !== 'all') {
-      filtered = filtered.filter(opp => 
-        opp.department?.toUpperCase().includes(selectedAgency.toUpperCase())
-      );
-    }
-
-    // Apply NAICS filter
-    if (selectedNAICS !== 'all') {
-      filtered = filtered.filter(opp => 
-        opp.naicsCode?.startsWith(selectedNAICS)
-      );
-    }
-
-    // Apply urgency filter
-    if (selectedUrgency !== 'all') {
-      filtered = filtered.filter(opp => {
-        if (!opp.responseDeadLine) return false;
-        const deadline = new Date(opp.responseDeadLine);
-        const today = new Date();
-        const daysUntil = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
-        switch (selectedUrgency) {
-          case 'critical': return daysUntil <= 3;
-          case 'urgent': return daysUntil >= 4 && daysUntil <= 5;
-          case 'high': return daysUntil >= 6 && daysUntil <= 7;
-          case 'normal': return daysUntil >= 8 && daysUntil <= 14;
-          case 'comfortable': return daysUntil >= 15;
-          default: return true;
-        }
-      });
-    }
-
-    return filtered;
-  }, [opportunityPreferences, selectedAgency, selectedNAICS, selectedUrgency]);
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return 'Invalid date';
-    }
-  };
-
   const handleSaveOpportunity = (noticeId: string) => {
     setSavedOpportunities(prev => {
       const next = new Set(prev);
@@ -550,7 +637,7 @@ Provide analysis in JSON format with:
     
     setLoadingMore(true);
     setTimeout(() => {
-      setDisplayCount(prev => Math.min(prev + 30, displayedOpportunities.length)); // Increased from 20
+      setDisplayCount(prev => Math.min(prev + 30, displayedOpportunities.length));
       setLoadingMore(false);
     }, 500);
   }, [loadingMore, displayedOpportunities.length]);
@@ -562,7 +649,7 @@ Provide analysis in JSON format with:
       `"${opp.department?.replace(/"/g, '""') || ''}"`,
       opp.naicsCode || '',
       formatDate(opp.postedDate),
-      formatDate(opp.responseDeadLine),
+      opp.responseDeadLine ? formatDate(opp.responseDeadLine) : 'No deadline',
       opp.typeOfSetAsideDescription || '',
       opp.uiLink || ''
     ].join(','));
@@ -584,64 +671,14 @@ Provide analysis in JSON format with:
   };
 
   const handlePillClick = (type: 'active' | 'setasides' | 'expiring' | 'departments') => {
-    // Toggle off if clicking the same pill
     if (activeFilter === type) {
       setActiveFilter(null);
-      setSearchTerm('');
-      setSelectedType('all');
-      setSelectedSetAside('all');
-      return;
+    } else {
+      setActiveFilter(type);
     }
-
-    // Set new active filter
-    setActiveFilter(type);
-
-    // Clear other filters
-    setSearchTerm('');
-    setSelectedType('all');
-    setSelectedSetAside('all');
-
-    // Scroll to results after a brief delay
-    setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
   };
 
-  // 🎯 IMPROVED: Polling interval for periodic updates
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const POLLING_INTERVAL = 300000; // 5 minutes (reduced from 30 seconds to avoid rate limiting)
-  const rateLimitBackoffRef = useRef<number>(0);
-  const lastSuccessfulFetchRef = useRef<number>(Date.now());
-
-  // 🎯 NEW: Listen for survey completion events
-
-  // ✅ NEW: Check if banner was dismissed in localStorage
-  useEffect(() => {
-    const dismissed = localStorage.getItem('welcomeBannerDismissed') === 'true';
-    setBannerDismissed(dismissed);
-    if (dismissed) {
-      setShowWelcomeBanner(false);
-    }
-  }, []);
-
-  // ✅ NEW: Listen for survey completion to hide banner
-  useEffect(() => {
-    const handleSurveyCompleted = () => {
-      setShowWelcomeBanner(false);
-      localStorage.setItem('welcomeBannerDismissed', 'true');
-    };
-    
-    window.addEventListener('surveyCompleted', handleSurveyCompleted);
-    return () => window.removeEventListener('surveyCompleted', handleSurveyCompleted);
-  }, []);
-
-  // ✅ NEW: Handle banner dismissal
-  const handleDismissBanner = () => {
-    setShowWelcomeBanner(false);
-    setBannerDismissed(true);
-    localStorage.setItem('welcomeBannerDismissed', 'true');
-  };
-
+  // 🎯 NEW: Listen for survey completion
   useEffect(() => {
     const handleSurveyCompleted = (event: CustomEvent) => {
       setUserProfile(prev => ({
@@ -670,13 +707,12 @@ Provide analysis in JSON format with:
         first_name: userName
       }));
     } else {
-      // For unsigned users, use more generic achievements/tips
       setUserAchievement('Discover thousands of federal opportunities!');
       setUserTip('Sign up to get personalized matches for your business');
     }
   }, [userName]);
 
-  // 🎯 NEW: Listen for preference updates and apply curation
+  // 🎯 NEW: Listen for preference updates
   useEffect(() => {
     const handlePreferencesUpdate = (event: CustomEvent) => {
       setOpportunityPreferences(event.detail);
@@ -684,7 +720,6 @@ Provide analysis in JSON format with:
     
     window.addEventListener('preferences-updated' as any, handlePreferencesUpdate);
     
-    // Load saved preferences on mount
     const savedPreferences = localStorage.getItem('opportunity-preferences');
     if (savedPreferences) {
       try {
@@ -699,23 +734,32 @@ Provide analysis in JSON format with:
     };
   }, []);
 
-// DISABLED:   // 🎯 NEW: Infinite scroll implementation
-// DISABLED:   useEffect(() => {
-// DISABLED:     const observer = new IntersectionObserver(
-// DISABLED:       (entries) => {
-// DISABLED:         if (entries[0].isIntersecting && hasMore && !loadingMore) {
-// DISABLED:           handleLoadMore();
-// DISABLED:         }
-// DISABLED:       },
-// DISABLED:       { threshold: 0.5 }
-// DISABLED:     );
-// DISABLED: 
-// DISABLED:     if (loadMoreRef.current) {
-// DISABLED:       observer.observe(loadMoreRef.current);
-// DISABLED:     }
-// DISABLED: 
-// DISABLED:     return () => observer.disconnect();
-// DISABLED:   }, [hasMore, loadingMore, handleLoadMore]);
+  // ✅ NEW: Check if banner was dismissed in localStorage
+  useEffect(() => {
+    const dismissed = localStorage.getItem('welcomeBannerDismissed') === 'true';
+    setBannerDismissed(dismissed);
+    if (dismissed) {
+      setShowWelcomeBanner(false);
+    }
+  }, []);
+
+  // ✅ NEW: Listen for survey completion to hide banner
+  useEffect(() => {
+    const handleSurveyCompleted = () => {
+      setShowWelcomeBanner(false);
+      localStorage.setItem('welcomeBannerDismissed', 'true');
+    };
+    
+    window.addEventListener('surveyCompleted', handleSurveyCompleted);
+    return () => window.removeEventListener('surveyCompleted', handleSurveyCompleted);
+  }, []);
+
+  // ✅ NEW: Handle banner dismissal
+  const handleDismissBanner = () => {
+    setShowWelcomeBanner(false);
+    setBannerDismissed(true);
+    localStorage.setItem('welcomeBannerDismissed', 'true');
+  };
 
   // Fetch ALL opportunities from SAM.gov
   useEffect(() => {
@@ -728,72 +772,43 @@ Provide analysis in JSON format with:
           setLoading(true);
         }
 
-        // Fetch with high limit to get as many as possible
         const response = await fetch(`/api/sam/opportunities?limit=1000&t=${Date.now()}`, {
           signal: abortController.signal
         });
 
         if (!response.ok) {
-          // Handle rate limiting (429) specially
           if (response.status === 429) {
-            rateLimitBackoffRef.current = Math.min(rateLimitBackoffRef.current + 1, 5);
-            const waitMinutes = Math.pow(2, rateLimitBackoffRef.current);
-            console.warn(`⚠️ Rate limited by SAM.gov. Backing off for ${waitMinutes} minutes.`);
-            
-            if (isMounted) {
-              setError(`SAM.gov rate limit reached. Pausing requests for ${waitMinutes} minutes. All features work with current data.`);
+            console.warn(`⚠️ Rate limited by SAM.gov.`);
+            if (isMounted && !dataLoaded) {
+              setError('SAM.gov rate limit reached. Using sample data.');
               setLastUpdated('Rate Limited');
             }
-            
-            // Stop polling temporarily
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
+          } else {
+            console.warn(`⚠️ SAM API unavailable (${response.status}), using current data`);
+            if (isMounted && !dataLoaded) {
+              setError('SAM.gov API is temporarily unavailable. Showing sample data.');
+              setLastUpdated('API Unavailable');
             }
-            
-            // Resume polling after backoff period
-            setTimeout(() => {
-              if (isMounted) {
-                pollingIntervalRef.current = setInterval(() => {
-                  if (!loading) {
-                    fetchAllOpportunities();
-                  }
-                }, POLLING_INTERVAL);
-              }
-            }, waitMinutes * 60 * 1000);
-            
-            return;
           }
-          
-          // Other errors - gracefully degrade
-          console.warn(`⚠️ SAM API unavailable (${response.status}), using current data`);
-
-          if (isMounted && !dataLoaded) {
-            setError('SAM.gov API is temporarily unavailable. Interactive features work with sample data below.');
-            setLastUpdated('API Unavailable');
-            // Keep placeholder data visible
-          }
-          return; // Don't throw, return gracefully
+          return;
         }
-
-        // Success! Reset backoff counter
-        rateLimitBackoffRef.current = 0;
-        lastSuccessfulFetchRef.current = Date.now();
 
         const result = await response.json();
 
         if (isMounted) {
           const opportunities = result.opportunities || [];
+          
           setAllOpportunities(opportunities);
-          setTotalRecords(result.total || result.totalRecords || opportunities.length || 0);
+          setTotalRecords(opportunities.length || 0);
           setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
           setDataLoaded(true);
-          setError(null); // Clear any previous errors
+          setError(null);
         }
       } catch (err: any) {
         if (err.name === 'AbortError') return;
         console.error('Error fetching opportunities:', err);
         if (isMounted && !dataLoaded) {
-          setError('Unable to connect to SAM.gov. Interactive features work with sample data below.');
+          setError('Unable to connect to SAM.gov. Showing sample data.');
           setLastUpdated('Connection Failed');
         }
       } finally {
@@ -804,27 +819,16 @@ Provide analysis in JSON format with:
       }
     };
 
-    // Initial fetch
     fetchAllOpportunities();
-
-    // Set up polling for periodic updates
-    //     pollingIntervalRef.current = setInterval(() => {
-    //       if (!loading) {
-    //         fetchAllOpportunities();
-    //       }
-    //     }, POLLING_INTERVAL);
     console.log("✅ Auto-fetch DISABLED. Use Refresh button to manually fetch from SAM.gov");
 
     return () => {
       isMounted = false;
       abortController.abort();
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
     };
-  }, []); // Run only once on mount
+  }, []);
 
-  // Apply filters based on URL parameter or user selection
+  // Apply filters whenever dependencies change
   useEffect(() => {
     if (dataLoaded && allOpportunities.length > 0) {
       const filtered = applyFilters(
@@ -833,37 +837,24 @@ Provide analysis in JSON format with:
         searchTerm,
         selectedType,
         selectedSetAside,
-        activeFilter
+        activeFilter,
+        selectedAgency,
+        selectedNAICS,
+        selectedUrgency,
+        selectedUrgencyFilter,
+        showAllOpportunities
       );
+      setFilteredOpportunities(filtered);
       setDisplayedOpportunities(filtered);
-      setDisplayCount(30); // Reset display count when filters change - increased for compact view
+      setDisplayCount(80);
     }
-  }, [allOpportunities, filterParam, searchTerm, selectedType, selectedSetAside, dataLoaded, activeFilter, applyFilters, selectedAgency, selectedNAICS, selectedUrgency]);
+  }, [
+    allOpportunities, filterParam, searchTerm, selectedType, selectedSetAside, 
+    dataLoaded, activeFilter, applyFilters, selectedAgency, selectedNAICS, 
+    selectedUrgency, selectedUrgencyFilter, showAllOpportunities
+  ]);
 
-  // 🎯 OPTIMIZED: Memoized statistics
-  const stats = useMemo(() => {
-    if (!dataLoaded) return PLACEHOLDER_STATS;
-    
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const nextWeek = new Date(now);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-
-    return {
-      totalActive: totalRecords || 0,
-      setAsides: allOpportunities.filter(o => o.typeOfSetAside && o.typeOfSetAside !== 'None').length,
-      closingSoon: allOpportunities.filter(o => {
-        if (!o.responseDeadLine) return false;
-        const deadline = new Date(o.responseDeadLine);
-        const daysUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-        return daysUntil <= 7 && daysUntil > 0;
-      }).length,
-      departments: new Set(allOpportunities.map(o => o.department)).size,
-      postedToday: allOpportunities.filter(o => o.postedDate?.startsWith(today)).length
-    };
-  }, [dataLoaded, totalRecords, allOpportunities]);
-
-  // 🎯 NEW: Calculate personalized stats
+  // 🎯 NEW: Personalized stats
   const personalizedStats = useMemo(() => {
     if (!dataLoaded || !userProfile) return null;
     
@@ -880,7 +871,6 @@ Provide analysis in JSON format with:
     };
   }, [dataLoaded, userProfile, allOpportunities]);
 
-  // 🎯 REMOVED: Loading and error screens that block UI
   const visibleOpportunities = displayedOpportunities.slice(0, displayCount);
   const hasMore = displayCount < displayedOpportunities.length;
 
@@ -897,8 +887,9 @@ Provide analysis in JSON format with:
 
       switch (groupMode) {
         case 'department':
-          groupKey = opp.department || 'Unknown Department';
-          break;
+          groupKey = opp.department || "Other"
+          break
+
         case 'urgency':
           if (opp.responseDeadLine) {
             const bd = getBusinessDaysUntil(opp.responseDeadLine);
@@ -908,8 +899,9 @@ Provide analysis in JSON format with:
           }
           break;
         case 'setaside':
-          groupKey = opp.typeOfSetAsideDescription || 'No Set-Aside';
-          break;
+            groupKey = opp.typeOfSetAsideDescription || "Other"
+            break
+
       }
 
       if (!groups[groupKey]) {
@@ -918,7 +910,6 @@ Provide analysis in JSON format with:
       groups[groupKey].push(opp);
     });
 
-    // ✅ FIXED: Sort groups by the actual labels you produce
     if (groupMode === 'urgency') {
       const urgencyOrder = [
         'CRITICAL',
@@ -944,7 +935,7 @@ Provide analysis in JSON format with:
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 pb-40">
-      {/* 🎯 IMPROVED: Non-blocking, non-sticky header */}
+      {/* Header with status */}
       <div className="border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
         <div className="max-w-[1900px] mx-auto px-6 lg:px-10 xl:px-12 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1021,7 +1012,7 @@ Provide analysis in JSON format with:
         </div>
       </div>
 
-      {/* 🚨 Error Banner - SAM.gov API Issues */}
+      {/* Error Banner */}
       {error && (
         <div className="border-b border-red-500/20 bg-red-500/10 backdrop-blur-xl">
           <div className="max-w-[1900px] mx-auto px-6 lg:px-10 xl:px-12 py-4">
@@ -1034,8 +1025,7 @@ Provide analysis in JSON format with:
                   SAM.gov API Temporarily Unavailable
                 </h3>
                 <p className="text-sm text-red-200/80 leading-relaxed">
-                  {error} All interactive features (pills, filters, search) are fully functional.
-                  Real data will load automatically when SAM.gov&apos;s service is restored (auto-retry every 30 seconds).
+                  {error} All interactive features are fully functional.
                 </p>
               </div>
               <button
@@ -1053,14 +1043,101 @@ Provide analysis in JSON format with:
         </div>
       )}
 
-      {/* 🎯 IMPROVED: Better responsive container */}
       <div className="max-w-[1900px] mx-auto px-6 lg:px-10 xl:px-12 py-8">
+        {/* 🎯 HERO SECTION - What we're showing and how */}
+        <div className="mb-12 p-8 bg-gradient-to-br from-blue-900/30 via-indigo-900/20 to-purple-900/30 rounded-2xl border border-blue-500/30 shadow-2xl">
+          <div className="flex flex-col lg:flex-row items-start gap-8">
+            <div className="flex-1">
+                    <div className="flex items-center gap-4 mb-4">
+                      <Image 
+                        src="/logo.png" 
+                        alt="Company Logo" 
+                        width={56}
+                        height={56}
+                        className="w-14 h-14 object-contain"
+                      />
+                      <h1 className="text-3xl lg:text-4xl font-bold text-white">
+                        Federal Contract Opportunities
+                      </h1>
+                    </div>
 
-        {/* 🎯 PERSONALIZED: Welcome Header */}
-        {/* ✅ UPDATED: Smart Welcome Banner with Dismissal */}
+              
+              <p className="text-xl text-slate-300 mb-6 leading-relaxed">
+                We've curated <span className="text-cyan-400 font-bold">{stats.totalActive.toLocaleString()}</span> active solicitations from <span className="text-cyan-400 font-bold">{stats.departments}</span> federal agencies, 
+                prioritizing those with the closest submission deadlines. Data is sourced directly from SAM.gov and updated in real-time.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-emerald-500/20 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-emerald-400">Active Solicitations</div>
+                    <div className="text-2xl font-bold text-white">{stats.totalActive.toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-500/20 rounded-lg">
+                    <Timer className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-amber-400">Closing Within 7 Days</div>
+                    <div className="text-2xl font-bold text-white">{stats.closingSoon.toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Building2 className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-purple-400">Federal Agencies</div>
+                    <div className="text-2xl font-bold text-white">{stats.departments.toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+                <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Expired opportunities filtered</span>
+                <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Sorted by deadline (closest first)</span>
+                <span className="flex items-center gap-1"><Filter className="w-4 h-4" /> Filter by agency, set-aside, NAICS</span>
+              </div>
+            </div>
+            
+            <div className="lg:w-80 p-6 bg-slate-900/60 rounded-xl border border-slate-700">
+              <div className="flex items-center gap-2 mb-4">
+                <Info className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-lg font-bold text-white">How It Works</h3>
+              </div>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold">1.</span>
+                  <span className="text-slate-300">Data fetched directly from <span className="text-white font-semibold">SAM.gov API</span></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold">2.</span>
+                  <span className="text-slate-300">Active solicitations with deadlines within <span className="text-white font-semibold">6 months</span></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold">3.</span>
+                  <span className="text-slate-300">Sorted by <span className="text-white font-semibold">business days</span> until deadline (closest first)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold">4.</span>
+                  <span className="text-slate-300">Updated deadlines and posted dates highlighted</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold">5.</span>
+                  <span className="text-slate-300">Showing {displayCount} of {displayedOpportunities.length} matching your criteria</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Welcome Banner */}
         {showWelcomeBanner && !userProfile.hasCompletedSurvey && (
-          <div className="mb-8 p-6 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-cyan-500/10 rounded-2xl border border-white/10 relative" style={{ fontFamily: 'Aptos, sans-serif' }}>
-            {/* Close button */}
+          <div className="mb-8 p-6 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-cyan-500/10 rounded-2xl border border-white/10 relative">
             <button
               onClick={handleDismissBanner}
               className="absolute top-4 right-4 p-2 hover:bg-red-500/20 rounded-lg transition-colors text-slate-400 hover:text-red-400"
@@ -1089,9 +1166,9 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-        {/* ✅ NEW: Success message after survey completion */}
+        {/* Survey Success Banner */}
         {userProfile.hasCompletedSurvey && !bannerDismissed && (
-          <div className="mb-8 p-6 bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 relative" style={{ fontFamily: 'Aptos, sans-serif' }}>
+          <div className="mb-8 p-6 bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 relative">
             <button
               onClick={handleDismissBanner}
               className="absolute top-4 right-4 p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
@@ -1121,8 +1198,7 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-
-        {/* 🎯 NEW: Stats Pills with Better Visuals */}
+        {/* 🎯 ACCURATE STATS PILLS - Interactive */}
         <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <button
             onClick={() => handlePillClick('active')}
@@ -1174,7 +1250,7 @@ Provide analysis in JSON format with:
             </div>
             <div className="text-left">
               <div className="text-2xl font-bold text-white mb-1">{stats.closingSoon.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium">Closing Soon</div>
+              <div className="text-xs text-slate-400 font-medium">Closing in 7 Days</div>
             </div>
           </button>
 
@@ -1192,7 +1268,7 @@ Provide analysis in JSON format with:
             </div>
             <div className="text-left">
               <div className="text-2xl font-bold text-white mb-1">{stats.departments.toLocaleString()}</div>
-              <div className="text-xs text-slate-400 font-medium">Departments</div>
+              <div className="text-xs text-slate-400 font-medium">Federal Agencies</div>
             </div>
           </button>
 
@@ -1208,7 +1284,38 @@ Provide analysis in JSON format with:
           </div>
         </div>
 
-        {/* 🎯 NEW: View Controls */}
+        {/* 🎯 PROMINENT SEARCH BAR - White background, enhanced visibility */}
+        <div className="mb-8">
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-600 w-6 h-6" />
+            <input
+              type="text"
+              placeholder="🔍 Search by title, department, solicitation number, NAICS code, set-aside type, city, or state..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-16 pr-16 py-5 bg-white text-slate-900 border-2 border-slate-300 rounded-2xl placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-medium shadow-xl"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors bg-slate-200 hover:bg-slate-300 rounded-full p-2"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-400">
+            <span className="flex items-center gap-1"><Search className="w-3 h-3" /> Searchable fields:</span>
+            <span className="px-2 py-1 bg-slate-800 rounded-md">Title</span>
+            <span className="px-2 py-1 bg-slate-800 rounded-md">Department</span>
+            <span className="px-2 py-1 bg-slate-800 rounded-md">Solicitation #</span>
+            <span className="px-2 py-1 bg-slate-800 rounded-md">NAICS</span>
+            <span className="px-2 py-1 bg-slate-800 rounded-md">Set-Aside</span>
+            <span className="px-2 py-1 bg-slate-800 rounded-md">City/State</span>
+          </div>
+        </div>
+
+        {/* View Controls */}
         <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-slate-800/40 rounded-xl border border-slate-700">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-300">View:</span>
@@ -1251,232 +1358,95 @@ Provide analysis in JSON format with:
               className="px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
               <option value="none">No Grouping</option>
-              <option value="urgency">Urgency (Days Until Deadline)</option>
+              <option value="urgency">Deadline Urgency</option>
               <option value="department">Department</option>
               <option value="setaside">Set-Aside Type</option>
             </select>
           </div>
         </div>
 
-        {/* ✅ NEW: Urgency legend (matches hues + urgency order) */}
-        <div className="mb-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-              <Timer className="w-4 h-4 text-cyan-400" />
-              Urgency Legend
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(3)}`}>🔴 Critical (≤3bd)</span>
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(5)}`}>🟠 Urgent (4–5bd)</span>
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(7)}`}>🟡 High (6–7bd)</span>
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(10)}`}>🟡 Act Soon (8–10bd)</span>
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(14)}`}>🟢 Normal (11–14bd)</span>
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(21)}`}>🟢 Comfortable (15–21bd)</span>
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(30)}`}>🟢 Ample (22–30bd)</span>
-              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getNoDeadlineBadgeColor()}`}>∞ No Deadline</span>
-            </div>
-
-            <div className="ml-auto text-xs text-slate-400">
-              In grid view, most urgent cards will appear far-left.
-            </div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search opportunities by title, department, or solicitation number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-12 py-4 bg-slate-800/60 border-2 border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-
-        {/* 🎯 NEW: Advanced Filters - SAM.gov Parameters */}
-        <div className="mb-6 p-4 bg-slate-800/40 rounded-xl border border-slate-700">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-lg font-bold text-white">Filter Curated Opportunities</h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Agency Filter */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Federal Agency
-              </label>
-              <select
-                value={selectedAgency}
-                onChange={(e) => setSelectedAgency(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              >
-                <option value="all">All Agencies</option>
-                <option value="DEPT OF DEFENSE">DEPT OF DEFENSE</option>
-                <option value="DEPT OF THE ARMY">DEPT OF THE ARMY</option>
-                <option value="DEPT OF THE NAVY">DEPT OF THE NAVY</option>
-                <option value="DEPT OF THE AIR FORCE">DEPT OF THE AIR FORCE</option>
-                <option value="GENERAL SERVICES ADMINISTRATION">GSA</option>
-                <option value="DEPT OF HOMELAND SECURITY">DHS</option>
-                <option value="DEPT OF VETERANS AFFAIRS">VA</option>
-                <option value="DEPT OF HEALTH AND HUMAN SERVICES">HHS</option>
-                <option value="DEPT OF ENERGY">DOE</option>
-                <option value="NATIONAL AERONAUTICS AND SPACE ADMINISTRATION">NASA</option>
-              </select>
-            </div>
-
-            {/* Set-Aside Filter */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Set-Aside Type
-              </label>
-              <select
-                value={selectedSetAside}
-                onChange={(e) => setSelectedSetAside(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              >
-                <option value="all">All Set-Asides</option>
-                <option value="SBA">Total Small Business</option>
-                <option value="8A">8(a) Set-Aside</option>
-                <option value="HZC">HUBZone</option>
-                <option value="SDVOSBC">SDVOSB</option>
-                <option value="WOSB">WOSB</option>
-                <option value="EDWOSB">EDWOSB</option>
-              </select>
-            </div>
-
-            {/* NAICS Filter */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                NAICS Code
-              </label>
-              <select
-                value={selectedNAICS}
-                onChange={(e) => setSelectedNAICS(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              >
-                <option value="all">All NAICS</option>
-                <option value="541">Professional Services</option>
-                <option value="541330">Engineering Services</option>
-                <option value="541511">Custom Programming</option>
-                <option value="541512">Systems Design</option>
-                <option value="541519">IT Services</option>
-                <option value="541611">Admin Consulting</option>
-                <option value="541618">Management Consulting</option>
-              </select>
-            </div>
-
-            {/* Urgency Filter */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Urgency Level
-              </label>
-              <select
-                value={selectedUrgency}
-                onChange={(e) => setSelectedUrgency(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-              >
-                <option value="all">All Deadlines</option>
-                <option value="critical">🔥 Critical (≤3 days)</option>
-                <option value="urgent">⚠️ Urgent (4-5 days)</option>
-                <option value="high">⏰ High Priority (6-7 days)</option>
-                <option value="normal">📅 Normal (8-14 days)</option>
-                <option value="comfortable">✓ Comfortable (15+ days)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Active Filters Display */}
-          {(selectedAgency !== 'all' || selectedSetAside !== 'all' || selectedNAICS !== 'all' || selectedUrgency !== 'all') && (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-slate-400 font-semibold">Active Filters:</span>
-              {selectedAgency !== 'all' && (
-                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold flex items-center gap-1">
-                  Agency: {selectedAgency.length > 25 ? selectedAgency.substring(0, 25) + '...' : selectedAgency}
-                  <button onClick={() => setSelectedAgency('all')} className="hover:text-blue-300">
-                    <XCircle className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedSetAside !== 'all' && (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold flex items-center gap-1">
-                  Set-Aside: {selectedSetAside}
-                  <button onClick={() => setSelectedSetAside('all')} className="hover:text-emerald-300">
-                    <XCircle className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedNAICS !== 'all' && (
-                <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-semibold flex items-center gap-1">
-                  NAICS: {selectedNAICS}
-                  <button onClick={() => setSelectedNAICS('all')} className="hover:text-purple-300">
-                    <XCircle className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedUrgency !== 'all' && (
-                <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-xs font-semibold flex items-center gap-1">
-                  Urgency: {selectedUrgency}
-                  <button onClick={() => setSelectedUrgency('all')} className="hover:text-orange-300">
-                    <XCircle className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              <button
-                onClick={() => {
-                  setSelectedAgency('all');
-                  setSelectedSetAside('all');
-                  setSelectedNAICS('all');
-                  setSelectedUrgency('all');
-                }}
-                className="px-3 py-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-full text-xs font-semibold transition-colors"
-              >
-                Clear All
-              </button>
-            </div>
-          )}
-        </div>
-
-
-        {/* ✅ NEW: Active Solicitations Statement */}
-        {dataLoaded && displayedOpportunities.length > 0 && (
-          <div className="mb-6 p-4 bg-emerald-500/10 border-l-4 border-emerald-500 rounded-r-xl">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Aptos, sans-serif' }}>
-                  Showing Active Solicitations Only
-                </h3>
-                <p className="text-sm text-slate-300" style={{ fontFamily: 'Aptos, sans-serif' }}>
-                  All <span className="font-bold text-emerald-400">{displayedOpportunities.length}</span> opportunities are currently accepting responses and sorted by deadline (earliest first)
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Results Header */}
-        <div ref={resultsRef} className="mb-6 flex items-center justify-between">
+              {/* EXPANDED URGENCY LEGEND - Positioned immediately above results */}
+              <div className="mb-6 p-6 bg-slate-800/60 rounded-xl border border-slate-700">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Timer className="w-6 h-6 text-cyan-400" />
+                    <h3 className="text-xl font-bold text-white">Submission Deadline</h3>
+                    <span className="px-3 py-1 bg-slate-900 rounded-full text-xs text-slate-400">
+                      Business Days Remaining
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setShowAllOpportunities(!showAllOpportunities)}
+                      className={`px-6 py-3 rounded-lg font-bold text-base transition-all ${
+                        showAllOpportunities
+                          ? 'bg-cyan-600 text-white hover:bg-cyan-700'
+                          : 'bg-slate-700 text-white hover:bg-slate-600'
+                      }`}
+                    >
+                      {showAllOpportunities ? 'Showing All Opportunities' : 'Show All Opportunities'}
+                    </button>
+                    {selectedUrgencyFilter && (
+                      <button
+                        onClick={() => setSelectedUrgencyFilter(null)}
+                        className="px-4 py-3 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm font-semibold text-red-400 flex items-center gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Clear Filter
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                  {[
+                    { label: 'CRITICAL', range: '≤3 days', days: 3, color: 'bg-red-600' },
+                    { label: 'URGENT', range: '4-5 days', days: 5, color: 'bg-orange-600' },
+                    { label: 'HIGH', range: '6-7 days', days: 7, color: 'bg-amber-600' },
+                    { label: 'ACT SOON', range: '8-10 days', days: 10, color: 'bg-yellow-600' },
+                    { label: 'NORMAL', range: '11-14 days', days: 14, color: 'bg-lime-600' },
+                    { label: 'COMFORTABLE', range: '15-21 days', days: 21, color: 'bg-green-600' },
+                    { label: 'AMPLE', range: '22-30 days', days: 30, color: 'bg-emerald-600' },
+                    { label: 'PLENTY', range: '31+ days', days: 31, color: 'bg-emerald-700' },
+                  ].map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => setSelectedUrgencyFilter(selectedUrgencyFilter === item.label ? null : item.label)}
+                      className={`${item.color} px-4 py-4 rounded-xl text-white font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all ${
+                        selectedUrgencyFilter === item.label ? 'ring-4 ring-cyan-400 ring-offset-2 ring-offset-slate-900' : ''
+                      }`}
+                    >
+                      <div>{item.label}</div>
+                      <div className="text-sm font-normal opacity-90 mt-1">{item.range}</div>
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-sm text-slate-400 text-center">
+                  {selectedUrgencyFilter
+                    ? `✓ Currently showing only ${selectedUrgencyFilter} opportunities (${selectedUrgencyFilter === 'No Deadline' ? 'no deadline' : `${selectedUrgencyFilter.split(' ')[0]} priority`})`
+                    : 'Click any deadline category to filter opportunities. Most urgent appear first in grid view.'}
+                </p>
+              </div>
+
+              {/* Results Header */}
+              <div ref={resultsRef} className="mb-6 flex items-center justify-between">
+
           <h3 className="text-xl font-bold text-white">
             {displayedOpportunities.length === 0 ? (
-              'No opportunities found'
+              'No opportunities match your criteria'
             ) : (
-              <>Showing <span className="text-cyan-400">{visibleOpportunities.length.toLocaleString()}</span> of <span className="text-cyan-400">{displayedOpportunities.length.toLocaleString()}</span> opportunities</>
+              <>
+                Showing <span className="text-cyan-400">{visibleOpportunities.length.toLocaleString()}</span> of{' '}
+                <span className="text-cyan-400">{displayedOpportunities.length.toLocaleString()}</span> curated opportunities
+                {activeFilter && (
+                  <span className="ml-2 text-base font-normal text-slate-400">
+                    (filtered by {activeFilter === 'setasides' ? 'set-asides' : activeFilter})
+                  </span>
+                )}
+              </>
             )}
           </h3>
           {activeFilter && (
@@ -1490,14 +1460,24 @@ Provide analysis in JSON format with:
           )}
         </div>
 
-        {/* 🎯 NEW: Opportunities Display with Multiple View Modes */}
+        {/* Opportunities Display */}
         {Object.entries(groupedOpportunities).map(([groupName, opportunities]) => {
-          // ✅ NEW: Sort inside each group so most urgent renders first -> left columns in grid
-          const sortedOpportunities = [...opportunities].sort((a, b) => {
-            const aBd = a.responseDeadLine ? getBusinessDaysUntil(a.responseDeadLine) : null;
-            const bBd = b.responseDeadLine ? getBusinessDaysUntil(b.responseDeadLine) : null;
-            return getUrgencyRank(aBd) - getUrgencyRank(bBd);
-          });
+          const sortedOpportunities =
+            viewMode === 'grid'
+              ? [...opportunities].sort((a, b) => {
+                  const aDeadline = a.responseDeadLine ? new Date(a.responseDeadLine) : null;
+                  const bDeadline = b.responseDeadLine ? new Date(b.responseDeadLine) : null;
+
+                  if (aDeadline && bDeadline) {
+                    return aDeadline.getTime() - bDeadline.getTime();
+                  }
+
+                  if (aDeadline && !bDeadline) return -1;
+                  if (!aDeadline && bDeadline) return 1;
+
+                  return 0;
+                })
+              : opportunities;
 
           return (
             <div key={groupName} className="mb-8">
@@ -1514,35 +1494,16 @@ Provide analysis in JSON format with:
                 <div className="space-y-2">
                   {sortedOpportunities.map((opp) => {
                     const isPlaceholder = opp.noticeId.startsWith('placeholder');
-                    const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
-                    const today = new Date();
+                    const deadline = isPlaceholder ? null : getEffectiveDeadline(opp);
+                    const postedDate = getEffectivePostedDate(opp);
                     const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
-                    const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
                     const isSaved = savedOpportunities.has(opp.noticeId);
                     const isViewed = viewedOpportunities.has(opp.noticeId);
-                    const hasAnalysis = opp.aiAnalysis !== undefined;
-                    const isAnalyzing = analyzingOpps.has(opp.noticeId);
+                    const hasRealDeadline = !!opp.responseDeadLine;
 
-                    // ✅ FIXED: No-deadline is neutral (not blue)
-                    const urgencyGradient =
-                      businessDays !== null
-                        ? getUrgencyGradient(businessDays)
-                        : getNoDeadlineGradient();
-
-                    const urgencyTextColor =
-                      businessDays !== null
-                        ? getUrgencyTextColor(businessDays)
-                        : getNoDeadlineTextColor();
-
-                    const urgencyLabel =
-                      businessDays !== null
-                        ? getUrgencyLabel(businessDays)
-                        : 'NO DEADLINE';
-
-                    const urgencyIcon =
-                      businessDays !== null
-                        ? getUrgencyIcon(businessDays)
-                        : '∞';
+                    const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getNoDeadlineGradient();
+                    const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : getNoDeadlineTextColor();
+                    const urgencyLabel = businessDays !== null ? getUrgencyLabel(businessDays) : 'NO DEADLINE';
 
                     return (
                       <div
@@ -1557,12 +1518,7 @@ Provide analysis in JSON format with:
                             <div className="flex flex-col gap-2 w-[190px] flex-shrink-0">
                               <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current inline-flex items-center justify-between`}>
                                 <span>{urgencyLabel}</span>
-                                <span className="ml-2">{urgencyIcon}</span>
-                              </div>
-
-                              <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/40 border border-slate-700 flex items-center justify-between`}>
-                                <span>Business Days</span>
-                                <span className="text-lg">{businessDays !== null ? `${businessDays}` : '—'}</span>
+                                <span className="ml-2">{businessDays !== null ? `${businessDays}bd` : '∞'}</span>
                               </div>
                             </div>
                           )}
@@ -1575,13 +1531,17 @@ Provide analysis in JSON format with:
                                 <span>Response Deadline</span>
                               </div>
                               <div className={`text-sm font-bold ${urgencyTextColor}`}>
-                                {deadline ? formatDate(opp.responseDeadLine) : 'No deadline'}
+                                {deadline ? formatDate(deadline) : 'No deadline'}
+                                {opp.updatedResponseDeadLine && (
+                                  <span className="ml-2 text-xs text-cyan-400">(Updated)</span>
+                                )}
                               </div>
-                              {deadline && businessDays !== null && calendarDays !== null && (
-                                <div className="text-xs text-slate-500 mt-1">
-                                  ({businessDays} business days • {calendarDays} calendar days)
-                                </div>
-                              )}
+                              <div className="mt-1 pt-1 border-t border-slate-700/50 text-xs text-slate-400">
+                                Posted: {formatDate(postedDate)}
+                                {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
+                                  <span className="ml-2 text-cyan-400">• Updated: {formatDate(opp.updatedPostedDate)}</span>
+                                )}
+                              </div>
                             </div>
                           )}
 
@@ -1603,14 +1563,13 @@ Provide analysis in JSON format with:
                                   opp.department
                                 )}
                               </span>
-                              <span className="flex items-center gap-1">
-                                <Target className="w-3 h-3" />
-                                {isPlaceholder ? (
-                                  <span className="inline-block h-3 w-16 bg-slate-700 rounded"></span>
-                                ) : (
-                                  `NAICS: ${opp.naicsCode}`
-                                )}
-                              </span>
+                              {!isPlaceholder && (
+                                <>
+                                  <span className="px-2 py-0.5 bg-slate-900/60 border border-slate-700 rounded text-xs text-white font-bold">
+                                    {getAgencyAbbreviation(opp.department)}
+                                  </span>
+                                </>
+                              )}
                               {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
                                 <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
                                   {opp.typeOfSetAsideDescription}
@@ -1652,43 +1611,20 @@ Provide analysis in JSON format with:
 
               {/* GRID VIEW */}
               {viewMode === 'grid' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                   {sortedOpportunities.map((opp) => {
                     const isPlaceholder = opp.noticeId.startsWith('placeholder');
-                    const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
-                    const today = new Date();
+                    const deadline = isPlaceholder ? null : getEffectiveDeadline(opp);
+                    const postedDate = getEffectivePostedDate(opp);
                     const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
-                    const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
                     const isSaved = savedOpportunities.has(opp.noticeId);
                     const isViewed = viewedOpportunities.has(opp.noticeId);
-                    const hasAnalysis = opp.aiAnalysis !== undefined;
-                    const isAnalyzing = analyzingOpps.has(opp.noticeId);
+                    const hasRealDeadline = !!opp.responseDeadLine;
 
-                    // ✅ FIXED: No-deadline is neutral (not blue)
-                    const urgencyGradient =
-                      businessDays !== null
-                        ? getUrgencyGradient(businessDays)
-                        : getNoDeadlineGradient();
-
-                    const urgencyTextColor =
-                      businessDays !== null
-                        ? getUrgencyTextColor(businessDays)
-                        : getNoDeadlineTextColor();
-
-                    const urgencyLabel =
-                      businessDays !== null
-                        ? getUrgencyLabel(businessDays)
-                        : 'NO DEADLINE';
-
-                    const urgencyIcon =
-                      businessDays !== null
-                        ? getUrgencyIcon(businessDays)
-                        : '∞';
-
-                    const urgencyBadge =
-                      businessDays !== null
-                        ? getUrgencyBadgeColor(businessDays)
-                        : getNoDeadlineBadgeColor();
+                    const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getNoDeadlineGradient();
+                    const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : getNoDeadlineTextColor();
+                    const urgencyLabel = businessDays !== null ? getUrgencyLabel(businessDays) : 'NO DEADLINE';
+                    const urgencyBadge = businessDays !== null ? getUrgencyBadgeColor(businessDays) : getNoDeadlineBadgeColor();
 
                     return (
                       <div
@@ -1700,7 +1636,7 @@ Provide analysis in JSON format with:
                         {/* Urgency Badge */}
                         {!isPlaceholder && (
                           <div className="flex items-center justify-between mb-3">
-                            <div className={`px-3 py-1 rounded-lg font-bold text-sm bg-slate-900/60 border border-current ${urgencyTextColor}`}>
+                            <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyBadge}`}>
                               {urgencyLabel}
                             </div>
                             <div className={`text-2xl font-bold ${urgencyTextColor}`}>
@@ -1709,7 +1645,7 @@ Provide analysis in JSON format with:
                           </div>
                         )}
 
-                        {/* ✅ NEW: Response Deadline on GRID cards */}
+                        {/* Response Deadline */}
                         {!isPlaceholder && (
                           <div className="mb-3 p-3 bg-slate-900/40 rounded-lg border border-slate-700">
                             <div className="flex items-center justify-between">
@@ -1717,20 +1653,31 @@ Provide analysis in JSON format with:
                                 <Calendar className="w-4 h-4" />
                                 <span>Response Deadline</span>
                               </div>
-                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${urgencyBadge}`}>
-                                {urgencyIcon}
-                              </span>
                             </div>
 
                             <div className={`mt-1 text-sm font-bold ${urgencyTextColor}`}>
-                              {deadline ? formatDate(opp.responseDeadLine) : 'No deadline provided'}
+                              {deadline ? formatDate(deadline) : 'No deadline'}
+                              {!hasRealDeadline && deadline && (
+                                <span className="ml-2 text-xs font-normal text-slate-400">(est.)</span>
+                              )}
                             </div>
-
-                            {deadline && businessDays !== null && calendarDays !== null && (
-                              <div className="mt-1 text-xs text-slate-500">
-                                {businessDays} business days • {calendarDays} calendar days
+                            
+                            {/* Posted Date */}
+                            <div className="mt-2 pt-2 border-t border-slate-700/50">
+                              <div className="flex flex-col gap-1 text-xs">
+                                <div className="flex items-center gap-2 text-slate-400">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>Posted: {formatDate(postedDate)}</span>
+                                </div>
+                                
+                                {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
+                                  <div className="flex items-center gap-2 text-cyan-400">
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span>Updated: {formatDate(opp.updatedPostedDate)}</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         )}
 
@@ -1756,17 +1703,30 @@ Provide analysis in JSON format with:
                           )}
                         </div>
 
-                        {/* NAICS and Set-Aside */}
-                        <div className="flex items-center gap-2 mb-3 text-xs text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Target className="w-3 h-3" />
-                            {isPlaceholder ? (
-                              <span className="inline-block h-3 w-16 bg-slate-700 rounded"></span>
-                            ) : (
-                              `NAICS: ${opp.naicsCode}`
-                            )}
-                          </span>
-                        </div>
+                        {/* Due Date + Agency Badge */}
+                        {!isPlaceholder && (
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-white font-semibold text-sm">
+                                {deadline ? (
+                                  <>
+                                    <span className="text-xs text-slate-400 mr-1">DUE:</span>
+                                    {formatDate(deadline)}
+                                    {opp.updatedResponseDeadLine && (
+                                      <span className="ml-2 text-xs text-cyan-400">(Updated)</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-slate-300">No Deadline</span>
+                                )}
+                              </div>
+
+                              <div className="px-2 py-1 bg-slate-900/70 border border-slate-700 rounded-md text-xs text-white font-bold">
+                                {getAgencyAbbreviation(opp.department)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
                           <div className="mb-3">
@@ -1809,33 +1769,23 @@ Provide analysis in JSON format with:
                 </div>
               )}
 
-              {/* LIST VIEW - Original detailed view */}
+              {/* LIST VIEW */}
               {viewMode === 'list' && (
                 <div className="space-y-4">
                   {sortedOpportunities.map((opp) => {
                     const isPlaceholder = opp.noticeId.startsWith('placeholder');
-                    const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
-                    const today = new Date();
+                    const deadline = isPlaceholder ? null : getEffectiveDeadline(opp);
+                    const postedDate = getEffectivePostedDate(opp);
                     const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
-                    const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
                     const isUrgent = businessDays !== null && businessDays <= 7;
                     const isSaved = savedOpportunities.has(opp.noticeId);
                     const isViewed = viewedOpportunities.has(opp.noticeId);
                     const hasAnalysis = opp.aiAnalysis !== undefined;
                     const isAnalyzing = analyzingOpps.has(opp.noticeId);
-                    const matchesUserProfile = userProfile.naicsCodes?.some(code => opp.naicsCode?.includes(code)) ||
-                      userProfile.certifications?.some(cert => opp.typeOfSetAsideDescription?.includes(cert));
+                    const hasRealDeadline = !!opp.responseDeadLine;
 
-                    // ✅ FIXED: No-deadline is neutral (not blue)
-                    const urgencyGradient =
-                      businessDays !== null
-                        ? getUrgencyGradient(businessDays)
-                        : getNoDeadlineGradient();
-
-                    const urgencyTextColor =
-                      businessDays !== null
-                        ? getUrgencyTextColor(businessDays)
-                        : getNoDeadlineTextColor();
+                    const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getNoDeadlineGradient();
+                    const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : getNoDeadlineTextColor();
 
                     return (
                       <div
@@ -1847,12 +1797,6 @@ Provide analysis in JSON format with:
                         <div className="flex items-start justify-between gap-6">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-3">
-                              {!isPlaceholder && matchesUserProfile && (
-                                <div className="px-3 py-1 bg-emerald-500/20 rounded-lg flex items-center gap-2 border border-emerald-500/40">
-                                  <Star className="w-4 h-4 text-emerald-400" />
-                                  <span className="text-xs font-bold text-emerald-400">Matched to {userName}!</span>
-                                </div>
-                              )}
                               {!isPlaceholder && isSaved && (
                                 <div className="px-3 py-1 bg-rose-500/20 rounded-lg flex items-center gap-2 border border-rose-500/40">
                                   <Bookmark className="w-4 h-4 text-rose-400" fill="currentColor" />
@@ -1908,7 +1852,12 @@ Provide analysis in JSON format with:
                                 {isPlaceholder ? (
                                   <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
                                 ) : (
-                                  `Posted: ${formatDate(opp.postedDate)}`
+                                  <>
+                                    <span>Posted: {formatDate(postedDate)}</span>
+                                    {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
+                                      <span className="text-cyan-400 ml-2">• Updated: {formatDate(opp.updatedPostedDate)}</span>
+                                    )}
+                                  </>
                                 )}
                               </span>
                             </div>
@@ -1916,17 +1865,26 @@ Provide analysis in JSON format with:
 
                           {!isPlaceholder && (
                             <div className="text-right flex-shrink-0">
-                              <div className={`text-2xl font-bold ${urgencyTextColor} mb-1`}>
-                                {businessDays !== null ? `${businessDays} bd` : '—'}
-                              </div>
-                              <div className="text-sm text-slate-400">
-                                {deadline ? formatDate(opp.responseDeadLine) : 'No deadline'}
-                              </div>
-                              {matchesUserProfile && businessDays !== null && businessDays <= 14 && (
-                                <div className="mt-1 text-xs text-emerald-400 font-semibold">
-                                  Good match for {userName}!
+                              {businessDays !== null ? (
+                                <>
+                                  <div className={`text-2xl font-bold ${urgencyTextColor} mb-1`}>
+                                    {businessDays}
+                                  </div>
+                                  <div className="text-xs text-slate-400 mb-2">
+                                    business {businessDays === 1 ? 'day' : 'days'}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="text-lg text-slate-400 mb-2">
+                                  No deadline
                                 </div>
                               )}
+                              <div className="text-sm text-slate-300">
+                                {deadline ? formatDate(deadline) : '—'}
+                                {opp.updatedResponseDeadLine && (
+                                  <span className="ml-1 text-xs text-cyan-400">(Updated)</span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1963,17 +1921,8 @@ Provide analysis in JSON format with:
                                 onClick={() => handleViewOpportunity(opp.noticeId)}
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all text-sm shadow-sm hover:shadow-md"
                               >
-                                {matchesUserProfile ? (
-                                  <>
-                                    <Target className="w-4 h-4" />
-                                    Pursue This Opportunity
-                                  </>
-                                ) : (
-                                  <>
-                                    View on SAM.gov
-                                    <ExternalLink className="w-4 h-4" />
-                                  </>
-                                )}
+                                View on SAM.gov
+                                <ExternalLink className="w-4 h-4" />
                               </a>
                             ) : (
                               <div className="w-full sm:w-auto px-5 py-3 bg-slate-700/50 rounded-xl animate-pulse">
@@ -2023,12 +1972,12 @@ Provide analysis in JSON format with:
           );
         })}
 
-        {/* Load More Button - Manual Control (No Auto-Scroll) */}
+        {/* Load More Button */}
         {hasMore && dataLoaded && (
           <div className="mt-12 mb-24 text-center">
             <div className="mb-6">
               <p className="text-slate-300 text-base mb-2 font-semibold">
-                Showing {displayCount} of {displayedOpportunities.length} opportunities
+                Showing {displayCount} of {displayedOpportunities.length.toLocaleString()} opportunities
               </p>
               <div className="h-1 w-64 mx-auto bg-slate-700 rounded-full overflow-hidden">
                 <div 
@@ -2045,23 +1994,18 @@ Provide analysis in JSON format with:
               {loadingMore ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  <span>Loading More Curated Opportunities...</span>
+                  <span>Loading More Opportunities...</span>
                 </>
               ) : (
                 <>
-                  <span>Load More Curated Opportunities{userName && ` for ${userName}`}</span>
+                  <span>Load More Opportunities</span>
                   <ChevronDown className="w-6 h-6 group-hover:translate-y-1 transition-transform" />
                   <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold">
-                    +{displayedOpportunities.length - displayCount} more
+                    +{(displayedOpportunities.length - displayCount).toLocaleString()} more
                   </span>
                 </>
               )}
             </button>
-            <p className="text-slate-400 text-sm mt-4 flex items-center justify-center gap-2">
-              <span>👆 Click button above to load 30 more</span>
-              <span className="text-slate-600">•</span>
-              <span>Scrolling won't auto-load</span>
-            </p>
           </div>
         )}
 
@@ -2070,25 +2014,25 @@ Provide analysis in JSON format with:
           <div className="mt-8 mb-8 text-center">
             <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-slate-400">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <span>{userName ? `${userName} has` : 'You have'} viewed all {displayedOpportunities.length.toLocaleString()} opportunities</span>
+              <span>You've viewed all {displayedOpportunities.length.toLocaleString()} opportunities</span>
             </div>
           </div>
         )}
 
-      {/* Opportunity Preferences Survey */}
-      <OpportunityPreferencesSurvey 
-        isOpen={surveyOpen}
-        onClose={() => setSurveyOpen(false)}
-        onComplete={(preferences) => {
-          setOpportunityPreferences(preferences);
-          setUserProfile(prev => ({
-            ...prev,
-            hasCompletedSurvey: true
-          }));
-          setSurveyOpen(false);
-          window.dispatchEvent(new Event('surveyCompleted'));
-        }}
-      />
+        {/* Opportunity Preferences Survey */}
+        <OpportunityPreferencesSurvey 
+          isOpen={surveyOpen}
+          onClose={() => setSurveyOpen(false)}
+          onComplete={(preferences) => {
+            setOpportunityPreferences(preferences);
+            setUserProfile(prev => ({
+              ...prev,
+              hasCompletedSurvey: true
+            }));
+            setSurveyOpen(false);
+            window.dispatchEvent(new Event('surveyCompleted'));
+          }}
+        />
       </div>
     </div>
   );

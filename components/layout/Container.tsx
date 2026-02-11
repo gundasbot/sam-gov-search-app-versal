@@ -1,5 +1,4 @@
 // components/layout/Container.tsx
-
 import React, { ReactNode } from 'react'
 
 interface ContainerProps {
@@ -7,6 +6,7 @@ interface ContainerProps {
   className?: string
   fullWidth?: boolean
   as?: keyof React.JSX.IntrinsicElements
+  maxWidth?: 'wide' | 'content'
 }
 
 export default function Container({
@@ -14,10 +14,14 @@ export default function Container({
   className = '',
   fullWidth = false,
   as: Component = 'div',
+  maxWidth = 'wide',
 }: ContainerProps) {
-  const containerClasses = fullWidth
+  const base = 'mx-auto px-4 sm:px-6 lg:px-10 2xl:px-12 w-full'
+  const width = fullWidth
     ? 'w-full'
-    : 'max-w-[1800px] mx-auto px-6 lg:px-10 xl:px-12'
+    : maxWidth === 'content'
+      ? `${base} max-w-[1440px]`
+      : `${base} max-w-[1920px]`
 
-  return <Component className={`${containerClasses} ${className}`}>{children}</Component>
+  return <Component className={`${width} ${className}`}>{children}</Component>
 }

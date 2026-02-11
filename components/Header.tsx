@@ -1,11 +1,11 @@
-// components/Header.tsx - FIXED: Ticker animation, Services highlighting, 5 services, Alerts & Searches
-
+// components/Header.tsx - Updated: safer nav behavior, single pathname source, Support link, less click-jank
 'use client'
 
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LogOut,
   LogIn,
@@ -13,15 +13,12 @@ import {
   X,
   ChevronDown,
   CreditCard,
-  Shield,
   Search,
   Award,
   TrendingUp,
-  BarChart3,
   Settings,
   Briefcase,
   ExternalLink,
-  Clock,
   LayoutDashboard,
   LineChart,
   Zap,
@@ -34,14 +31,12 @@ import {
   FileText,
   ShieldCheck,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
 import AccessControlModal from './AccessControlModal'
 
 /* ================= TYPES ================= */
 type NavItem = {
   label: string
   href: string
-  accent?: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'premium'
   icon?: React.ReactNode
 }
 
@@ -89,23 +84,23 @@ function getSamGovUrl(solicitationNumber: string): string {
 
 /* ================= MAIN COMPONENT ================= */
 export default function Header() {
-  // ? FIX: hooks must be inside the component body (never at module scope)
-  const router = useRouter()
-  const pathname = usePathname()
-  const redirectTo = pathname || '/dashboard'
-
+  const pathname = usePathname() || '/'
   const { data: session, status } = useSession()
   const isAuthed = status === 'authenticated'
+
+  // used only for AccessControlModal (when you later wire showSignInModal)
+  const redirectTo = pathname || '/dashboard'
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [tickerData, setTickerData] = useState<{ count: number; opportunities: TickerItem[] } | null>(null)
   const [loadingTicker, setLoadingTicker] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
   const [showSignInModal, setShowSignInModal] = useState(false)
-  const currentPath = usePathname() || '/'
   const [scrolled, setScrolled] = useState(false)
   const [tickerPaused, setTickerPaused] = useState(false)
   const [tickerError, setTickerError] = useState<string | null>(null)
+
   const accountRef = useRef<HTMLDivElement>(null)
   const servicesRef = useRef<HTMLDivElement>(null)
 
@@ -131,7 +126,6 @@ export default function Header() {
   }, [])
 
   /* ================= NAV ITEMS ================= */
-  // ? UPDATED: 5 services (removed Bid Search dropdown, removed Compliance)
   const serviceItems: ServiceItem[] = [
     {
       label: 'SAM Registration',
@@ -172,18 +166,21 @@ export default function Header() {
     { label: 'Search', href: '/search', icon: <Search className="w-5 h-5" /> },
     { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: 'Opportunities', href: '/opportunities', icon: <Briefcase className="w-5 h-5" /> },
-    { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> }, // ? UPDATED label
+    { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> },
     { label: 'Insights', href: '/insights', icon: <LineChart className="w-5 h-5" /> },
     { label: 'Pricing', href: '/pricing', icon: <CreditCard className="w-5 h-5" /> },
+    { label: 'Support', href: '/support', icon: <Mail className="w-5 h-5" /> },
   ]
 
   /* ================= LIVE TICKER (NON-FATAL) ================= */
   useEffect(() => {
     let mounted = true
+
     const fetchTicker = async () => {
       if (!mounted) return
       setLoadingTicker(true)
       setTickerError(null)
+
       try {
         const res = await fetch('/api/sam/live-ticker')
         if (!res.ok) {
@@ -209,6 +206,7 @@ export default function Header() {
 
     fetchTicker()
     const interval = setInterval(fetchTicker, 120000)
+
     return () => {
       mounted = false
       clearInterval(interval)
@@ -225,9 +223,11 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // helper: active route test
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
+
   return (
     <>
-      {/* ? FIXED: Added @keyframes for ticker animation */}
       <style jsx global>{`
         @keyframes scroll {
           0% {
@@ -242,7 +242,7 @@ export default function Header() {
         }
       `}</style>
 
-      {/* LIVE TICKER (STICKY) */}
+      {/* LIVE TICKER */}
       <div className="sticky top-0 z-50 bg-slate-800 text-white shadow-lg border-b border-slate-700">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-3">
@@ -298,7 +298,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* MAIN HEADER (LIGHTER BACKGROUND, STICKY UNDER TICKER) */}
+      {/* MAIN HEADER */}
       <header
         className={`sticky top-[52px] z-40 transition-all duration-300 ${
           scrolled ? 'bg-slate-800/95 backdrop-blur-lg shadow-2xl border-b border-white/10' : 'bg-slate-800'
@@ -306,18 +306,26 @@ export default function Header() {
       >
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-24 py-6">
-            {/* Logo - Exact match to precise-govcon-logo-light.png */}
-            <Link href={isAuthed ? '/dashboard' : '/'} className="flex items-center gap-3 group flex-shrink-0">
-              {/* Green globe icon */}
-              <Image 
-                src="/logo.png" 
-                alt="Precise GovCon Globe Icon" 
-                width={56} 
-                height={56} 
-                className="w-14 h-14 group-hover:scale-105 transition-transform" 
+            {/* Logo */}
+            <Link
+              href={isAuthed ? '/dashboard' : '/'}
+              className="flex items-center gap-3 group flex-shrink-0"
+              prefetch={false}
+              onClick={() => {
+                // close any open popovers to avoid click-jank
+                setAccountOpen(false)
+                setServicesOpen(false)
+                setMobileMenuOpen(false)
+              }}
+            >
+              <Image
+                src="/logo.png"
+                alt="Precise GovCon Globe Icon"
+                width={56}
+                height={56}
+                className="w-14 h-14 group-hover:scale-105 transition-transform"
               />
-              
-              {/* Text styled exactly like your logo image */}
+
               <div className="flex flex-col gap-0.5">
                 <div className="text-2xl lg:text-3xl font-black leading-none tracking-tight">
                   <span className="text-white">PRECISE</span>{' '}
@@ -333,8 +341,9 @@ export default function Header() {
             <nav className="hidden lg:flex items-center gap-1">
               <Link
                 href="/search"
+                prefetch={false}
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  currentPath === '/search'
+                  isActive('/search')
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
@@ -345,8 +354,9 @@ export default function Header() {
 
               <Link
                 href="/dashboard"
+                prefetch={false}
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  currentPath === '/dashboard'
+                  isActive('/dashboard')
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
@@ -357,8 +367,9 @@ export default function Header() {
 
               <Link
                 href="/opportunities"
+                prefetch={false}
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  currentPath === '/opportunities'
+                  isActive('/opportunities')
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
@@ -369,8 +380,9 @@ export default function Header() {
 
               <Link
                 href="/alerts"
+                prefetch={false}
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  currentPath === '/alerts'
+                  isActive('/alerts')
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
@@ -379,33 +391,39 @@ export default function Header() {
                 Alerts & Searches
               </Link>
 
-              {/* IMPROVED: Services - Clickable with Dropdown */}
+              {/* Services dropdown */}
               <div className="relative" ref={servicesRef}>
                 <div
                   className={`flex items-center rounded-xl overflow-hidden transition-all ${
-                    servicesOpen || currentPath.startsWith('/services')
+                    servicesOpen || pathname.startsWith('/services')
                       ? 'bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg'
                       : 'bg-transparent'
                   }`}
                 >
-                  {/* Main Services Link - Clickable */}
                   <Link
                     href="/services"
+                    prefetch={false}
                     className={`flex items-center gap-2 px-4 py-3 font-bold transition-all flex-1 ${
-                      servicesOpen || currentPath.startsWith('/services')
+                      servicesOpen || pathname.startsWith('/services')
                         ? 'text-white'
                         : 'text-slate-300 hover:text-white hover:bg-white/5'
                     }`}
+                    onClick={() => setServicesOpen(false)}
                   >
                     <Building className="w-4 h-4" />
                     Services
                   </Link>
-                  
-                  {/* Dropdown Toggle Button */}
+
                   <button
-                    onClick={() => setServicesOpen(!servicesOpen)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setServicesOpen((v) => !v)
+                      setAccountOpen(false)
+                    }}
                     className={`px-2 py-3 font-bold transition-all border-l ${
-                      servicesOpen || currentPath.startsWith('/services')
+                      servicesOpen || pathname.startsWith('/services')
                         ? 'text-white border-white/20 hover:bg-white/10'
                         : 'text-slate-300 hover:text-white hover:bg-white/5 border-transparent'
                     }`}
@@ -417,10 +435,10 @@ export default function Header() {
 
                 {servicesOpen && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
-                    <div className="p-2">
-                      {/* "View All Services" link at top */}
+                    <div className="p-2" onClick={(e) => e.stopPropagation()}>
                       <Link
                         href="/services"
+                        prefetch={false}
                         onClick={() => setServicesOpen(false)}
                         className="flex items-center gap-2 p-3 mb-1 rounded-xl bg-gradient-to-r from-orange-500/10 to-orange-600/10 hover:from-orange-500/20 hover:to-orange-600/20 transition-colors group border border-orange-500/20"
                       >
@@ -431,11 +449,11 @@ export default function Header() {
 
                       <div className="h-px bg-white/10 my-2" />
 
-                      {/* Individual service items */}
-                      {serviceItems.map((service, index) => (
+                      {serviceItems.map((service) => (
                         <Link
-                          key={index}
+                          key={service.href}
                           href={service.href}
+                          prefetch={false}
                           onClick={() => setServicesOpen(false)}
                           className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group"
                         >
@@ -464,8 +482,9 @@ export default function Header() {
 
               <Link
                 href="/insights"
+                prefetch={false}
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  currentPath === '/insights'
+                  isActive('/insights')
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
@@ -476,14 +495,28 @@ export default function Header() {
 
               <Link
                 href="/pricing"
+                prefetch={false}
                 className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  currentPath === '/pricing'
+                  isActive('/pricing')
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <CreditCard className="w-4 h-4" />
                 Pricing
+              </Link>
+
+              <Link
+                href="/support"
+                prefetch={false}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
+                  isActive('/support')
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                Support
               </Link>
             </nav>
 
@@ -492,7 +525,13 @@ export default function Header() {
               {isAuthed ? (
                 <div className="relative" ref={accountRef}>
                   <button
-                    onClick={() => setAccountOpen(!accountOpen)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setAccountOpen((v) => !v)
+                      setServicesOpen(false)
+                    }}
                     className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 rounded-xl transition-colors text-white font-bold"
                   >
                     <User className="w-4 h-4" />
@@ -502,17 +541,21 @@ export default function Header() {
 
                   {accountOpen && (
                     <div className="absolute top-full right-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
-                      <div className="p-2">
+                      <div className="p-2" onClick={(e) => e.stopPropagation()}>
+                        {/* NOTE: prefetch false here helps avoid “first click weirdness” */}
                         <Link
                           href="/account"
+                          prefetch={false}
                           onClick={() => setAccountOpen(false)}
                           className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
                         >
                           <User className="w-4 h-4" />
                           Account
                         </Link>
+
                         <Link
                           href="/account?tab=profile"
+                          prefetch={false}
                           onClick={() => setAccountOpen(false)}
                           className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
                         >
@@ -520,11 +563,11 @@ export default function Header() {
                           Settings
                         </Link>
 
-                        {/* ? NEW: Support & Contact */}
-                        <div className="my-2 border-t border-white/10"></div>
+                        <div className="my-2 border-t border-white/10" />
 
                         <Link
-                          href="/support"
+                          href="/support#contact"
+                          prefetch={false}
                           onClick={() => setAccountOpen(false)}
                           className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
                         >
@@ -534,6 +577,7 @@ export default function Header() {
 
                         <Link
                           href="/about"
+                          prefetch={false}
                           onClick={() => setAccountOpen(false)}
                           className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
                         >
@@ -556,9 +600,10 @@ export default function Header() {
                           (804) 404-4005
                         </a>
 
-                        <div className="my-2 border-t border-white/10"></div>
+                        <div className="my-2 border-t border-white/10" />
 
                         <button
+                          type="button"
                           onClick={() => {
                             setAccountOpen(false)
                             signOut({ callbackUrl: '/' })
@@ -575,6 +620,7 @@ export default function Header() {
               ) : (
                 <Link
                   href="/"
+                  prefetch={false}
                   className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg"
                 >
                   <LogIn className="w-4 h-4" />
@@ -584,7 +630,14 @@ export default function Header() {
 
               {/* Mobile Menu Button */}
               <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setMobileMenuOpen((v) => !v)
+                  setAccountOpen(false)
+                  setServicesOpen(false)
+                }}
                 className="lg:hidden p-2 rounded-xl hover:bg-white/5 transition-colors text-white"
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -604,6 +657,7 @@ export default function Header() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-black text-white">Menu</h2>
               <button
+                type="button"
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 rounded-xl hover:bg-white/5 transition-colors text-white"
               >
@@ -613,21 +667,22 @@ export default function Header() {
 
             <div className="space-y-2 mb-8">
               {navItems.map(({ label, href, icon }) => {
-                const isActive = currentPath === href
+                const active = pathname === href
                 return (
                   <Link
                     key={href}
                     href={href}
+                    prefetch={false}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-lg transition-colors group ${
-                      isActive
+                      active
                         ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                         : 'hover:bg-white/5 text-slate-200 hover:text-white'
                     }`}
                   >
                     {icon}
                     {label}
-                    {isActive && <Sparkles className="w-4 h-4 ml-auto" />}
+                    {active && <Sparkles className="w-4 h-4 ml-auto" />}
                   </Link>
                 )
               })}
@@ -636,10 +691,11 @@ export default function Header() {
             <div className="mb-6">
               <h3 className="text-sm font-bold text-slate-400 mb-3 px-4">Services</h3>
               <div className="space-y-1">
-                {serviceItems.map((service, index) => (
+                {serviceItems.map((service) => (
                   <Link
-                    key={index}
+                    key={service.href}
                     href={service.href}
+                    prefetch={false}
                     onClick={() => setMobileMenuOpen(false)}
                     className="block p-3 rounded-xl hover:bg-white/5 transition-colors"
                   >
@@ -664,6 +720,7 @@ export default function Header() {
               <div className="pt-6 border-t border-white/10">
                 <Link
                   href="/"
+                  prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg"
                 >
@@ -676,7 +733,7 @@ export default function Header() {
         </div>
       )}
 
-      {/* Auth Modal */}
+      {/* Auth Modal (kept as-is; you can wire showSignInModal from other flows) */}
       {showSignInModal && (
         <AccessControlModal
           isOpen={showSignInModal}
@@ -684,9 +741,7 @@ export default function Header() {
           featureName="Sign In"
           initialMode="signin"
           redirectTo={redirectTo}
-          onAccessGranted={() => {
-            setShowSignInModal(false)
-          }}
+          onAccessGranted={() => setShowSignInModal(false)}
         />
       )}
     </>

@@ -1,95 +1,166 @@
 // components/layout/CompactFooter.tsx
-// Updated: 50% larger fonts, bold text, same vertical space
+// Updated: Always-accessible footer handle after closing + localStorage dismissal
 
-"use client";
+'use client'
 
-import Link from "next/link";
-import Image from "next/image";
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
-import ContactModal from "./ContactModal";
-import { Mail, Clock, X } from "lucide-react";
+import Link from 'next/link'
+import Image from 'next/image'
+import { useState, useEffect, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
+import { usePathname, useRouter } from 'next/navigation'
+import ContactModal from './ContactModal'
+import { Mail, Clock, X, ChevronUp, MessageSquareText, LifeBuoy } from 'lucide-react'
+
+const STORAGE_KEY = 'pgc_footer_dismissed_v1'
 
 export default function CompactFooter() {
-  const year = new Date().getFullYear();
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [showFooter, setShowFooter] = useState(false);
+  const year = new Date().getFullYear()
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
-  const { status } = useSession();
-  const router = useRouter();
-  const pathname = usePathname();
+  // Controls actual visibility of slide-up footer
+  const [showFooter, setShowFooter] = useState(false)
 
-  // Show footer when user scrolls near bottom
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      const threshold = 300; // Show footer when within 300px of bottom
-      
-      setShowFooter(scrollPosition >= documentHeight - threshold);
-    };
+  // If user dismisses footer, do not auto-show until they manually open
+  const [dismissed, setDismissed] = useState(false)
 
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check initial position
-    
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const { status } = useSession()
+  const router = useRouter()
+  const pathname = usePathname()
 
-  const isProtected = (href: string) => href === "/search";
+  const isAuthed = status === 'authenticated'
+
+  const isProtected = (href: string) => href === '/search'
 
   const scrollTop = (smooth = true) => {
-    const mainContent = document.querySelector('main');
+    const mainContent = document.querySelector('main')
     if (mainContent) {
-      mainContent.scrollTo({ top: 0, left: 0, behavior: smooth ? "smooth" : "auto" });
+      mainContent.scrollTo({ top: 0, left: 0, behavior: smooth ? 'smooth' : 'auto' })
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: smooth ? 'smooth' : 'auto' })
     }
-  };
+  }
 
   const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (isProtected(href) && status !== "authenticated") {
-      e.preventDefault();
-      setShowLoginPrompt(true);
-      return;
+    if (isProtected(href) && !isAuthed) {
+      e.preventDefault()
+      setShowLoginPrompt(true)
+      return
     }
 
     if (pathname === href) {
-      e.preventDefault();
-      scrollTop(true);
-      return;
+      e.preventDefault()
+      scrollTop(true)
+      return
     }
 
-    e.preventDefault();
-    router.push(href);
-    setTimeout(() => scrollTop(false), 50);
-  };
+    e.preventDefault()
+    router.push(href)
+    setTimeout(() => scrollTop(false), 50)
+  }
+
+  // Load dismissal state
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(STORAGE_KEY)
+      if (v === '1') setDismissed(true)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Auto-show footer when near bottom (unless dismissed)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (dismissed) return
+
+      const scrollPosition = window.scrollY + window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+      const threshold = 300 // Show footer when within 300px of bottom
+
+      setShowFooter(scrollPosition >= documentHeight - threshold)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    handleScroll()
+
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [dismissed])
+
+  const closeFooter = () => {
+    setShowFooter(false)
+    setDismissed(true)
+    try {
+      localStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      // ignore
+    }
+  }
+
+  const openFooter = () => {
+    setDismissed(false)
+    setShowFooter(true)
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Show the floating handle when footer is not visible
+  const showHandle = useMemo(() => !showFooter, [showFooter])
 
   return (
     <div style={{ fontFamily: 'Aptos, system-ui, -apple-system, sans-serif' }}>
-      {/* Slide-up footer modal */}
-      <footer className={`fixed bottom-0 left-0 right-0 z-50 border-t border-slate-700 bg-slate-800 overflow-hidden transition-transform duration-500 ease-in-out ${
-        showFooter ? 'translate-y-0' : 'translate-y-full'
-      }`}>
+      {/* FLOATING HANDLE (Always allows reopening) */}
+      {showHandle && (
+        <div className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2">
+          <button
+            onClick={openFooter}
+            className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/80 backdrop-blur-xl px-4 py-2 shadow-xl hover:bg-slate-800/80 transition-all"
+            aria-label="Open footer"
+          >
+            <ChevronUp className="w-4 h-4 text-cyan-300 group-hover:text-cyan-200 transition-colors" />
+            <span className="text-sm font-black text-white/90">Open menu</span>
+          </button>
+
+          <Link
+            href="/support#contact"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-700 hover:to-emerald-700 px-4 py-2 shadow-xl transition-all"
+          >
+            <LifeBuoy className="w-4 h-4 text-white" />
+            <span className="text-sm font-black text-white">Support</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Slide-up footer */}
+      <footer
+        className={cx(
+          'fixed bottom-0 left-0 right-0 z-50 border-t border-slate-700 bg-slate-800 overflow-hidden transition-transform duration-500 ease-in-out',
+          showFooter ? 'translate-y-0' : 'translate-y-full'
+        )}
+      >
         {/* Decorative gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-emerald-500/5 pointer-events-none" />
 
         {/* Close button */}
         <button
-          onClick={() => setShowFooter(false)}
+          onClick={closeFooter}
           className="absolute top-4 right-4 p-2 rounded-full bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white transition-colors z-10"
           aria-label="Close footer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* 90% width container (5% margin each side) - 50% taller for more content */}
+        {/* Container */}
         <div className="relative w-[90%] mx-auto px-6 py-10 max-h-[80vh] overflow-y-auto">
-          <div className="grid grid-cols-4 gap-12 items-start">
-            {/* Brand Section - 50% larger fonts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-12 items-start">
+            {/* Brand */}
             <div>
               <Link
                 href="/"
-                onClick={(e) => handleNav(e, "/")}
+                onClick={(e) => handleNav(e, '/')}
                 className="flex items-center gap-2 mb-4 hover:opacity-90 transition-opacity cursor-pointer group"
               >
                 <Image
@@ -105,9 +176,7 @@ export default function CompactFooter() {
                     <span className="text-white">PRECISE</span>{' '}
                     <span className="text-[#f97316]">GOVCON</span>
                   </div>
-                  <div className="text-xs font-bold text-slate-400 tracking-wide">
-                    contracting intelligence
-                  </div>
+                  <div className="text-xs font-bold text-slate-400 tracking-wide">contracting intelligence</div>
                 </div>
               </Link>
 
@@ -123,14 +192,22 @@ export default function CompactFooter() {
                   <Clock className="w-4 h-4" />
                   Mon–Fri • 9am–5pm ET
                 </div>
+
+                <div className="pt-3">
+                  <Link
+                    href="/support#contact"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2 transition-all"
+                  >
+                    <MessageSquareText className="w-4 h-4 text-emerald-300" />
+                    <span className="text-sm font-black text-white">Help & Support</span>
+                  </Link>
+                </div>
               </div>
             </div>
 
-            {/* Quick Links - 50% larger, bold text */}
+            {/* Quick Links */}
             <div>
-              <h4 className="text-white font-black text-lg uppercase tracking-wider mb-4">
-                QUICK LINKS
-              </h4>
+              <h4 className="text-white font-black text-lg uppercase tracking-wider mb-4">QUICK LINKS</h4>
               <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {[
                   { href: '/', label: 'Home' },
@@ -138,8 +215,8 @@ export default function CompactFooter() {
                   { href: '/search', label: 'Contract Search' },
                   { href: '/dashboard', label: 'Dashboard' },
                   { href: '/about', label: 'About' },
-                  { href: '/help', label: 'Help Center' }
-                ].map(link => (
+                  { href: '/support', label: 'Help Center' },
+                ].map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
@@ -153,18 +230,16 @@ export default function CompactFooter() {
               </ul>
             </div>
 
-            {/* Legal Section - 50% larger, bold text */}
+            {/* Legal */}
             <div>
-              <h4 className="text-white font-black text-lg uppercase tracking-wider mb-4">
-                LEGAL
-              </h4>
+              <h4 className="text-white font-black text-lg uppercase tracking-wider mb-4">LEGAL</h4>
               <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {[
                   { href: '/privacy', label: 'Privacy Policy' },
                   { href: '/terms', label: 'Terms of Use' },
                   { href: '/security', label: 'Security' },
-                  { href: '/accessibility', label: 'Accessibility' }
-                ].map(link => (
+                  { href: '/accessibility', label: 'Accessibility' },
+                ].map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
@@ -178,25 +253,32 @@ export default function CompactFooter() {
               </ul>
             </div>
 
-            {/* Contact Section - 50% larger, bold text */}
+            {/* Contact */}
             <div>
-              <h4 className="text-white font-black text-lg uppercase tracking-wider mb-4">
-                GET IN TOUCH
-              </h4>
-              <button
-                onClick={() => setIsContactModalOpen(true)}
-                className="w-full rounded-lg bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-700 hover:to-emerald-700 text-white px-4 py-3 text-xl font-black transition-all shadow-lg uppercase tracking-wide mb-3"
-              >
-                Contact Us
-              </button>
-              <p className="text-sm text-slate-400 mt-2 font-black">
-                © {year} Precise Analytics
-              </p>
+              <h4 className="text-white font-black text-lg uppercase tracking-wider mb-4">GET IN TOUCH</h4>
+
+              <div className="grid gap-3">
+                <Link
+                  href="/support#book"
+                  className="w-full rounded-lg bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white px-4 py-3 text-xl font-black transition-all shadow-lg uppercase tracking-wide text-center"
+                >
+                  Book a Meeting
+                </Link>
+
+                <button
+                  onClick={() => setIsContactModalOpen(true)}
+                  className="w-full rounded-lg bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-700 hover:to-emerald-700 text-white px-4 py-3 text-xl font-black transition-all shadow-lg uppercase tracking-wide"
+                >
+                  Contact Us
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-400 mt-4 font-black">© {year} Precise Analytics</p>
             </div>
           </div>
         </div>
 
-        {/* Decorative bottom gradient - thinner */}
+        {/* Decorative bottom gradient */}
         <div className="h-0.5 bg-gradient-to-r from-cyan-500 via-emerald-500 to-orange-500" />
       </footer>
 
@@ -208,9 +290,7 @@ export default function CompactFooter() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
             <h3 className="text-xl font-bold text-white mb-3">Sign In Required</h3>
-            <p className="text-slate-300 mb-4 text-sm">
-              Please sign in to access Contract Search features.
-            </p>
+            <p className="text-slate-300 mb-4 text-sm">Please sign in to access Contract Search features.</p>
             <div className="flex gap-3">
               <Link
                 href="/login"
@@ -230,5 +310,9 @@ export default function CompactFooter() {
         </div>
       )}
     </div>
-  );
+  )
+}
+
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ')
 }
