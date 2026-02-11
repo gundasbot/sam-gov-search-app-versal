@@ -1,4 +1,4 @@
-﻿export type UpdateAlertSubscriptionInput = {
+export type UpdateAlertSubscriptionInput = {
   id: string
   name?: string
   keywords?: string
@@ -6,7 +6,7 @@
   placeOfPerformance?: string
   procurementType?: string
   naics?: string
-  deliveryTime?: string
+  delivery_time?: string
   format?: string
   isActive?: boolean
   frequency?: string

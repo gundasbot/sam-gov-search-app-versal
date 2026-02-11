@@ -1,4 +1,4 @@
-﻿// app/api/ai/analytics/route.ts
+// app/api/ai/analytics/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 

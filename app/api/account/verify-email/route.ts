@@ -1,4 +1,4 @@
-﻿// app/api/account/verify-email/route.ts
+// app/api/account/verify-email/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -68,7 +68,7 @@ export async function POST(_req: NextRequest) {
     // Store ONLY the hash in DB (confirm route looks up token_hash)
     await prisma.email_verification_tokens.create({
       data: {
-        id: crypto.randomUUID(), // ✅ REQUIRED by your Prisma schema
+        id: crypto.randomUUID(), // âœ… REQUIRED by your Prisma schema
         user_id: user.id,
         token_hash: tokenHash,
         expires_at: expiresAt,
@@ -103,12 +103,12 @@ export async function POST(_req: NextRequest) {
 
           <div style="margin:16px 0;">
             <a href="${verifyUrl}" style="display:inline-block;padding:12px 18px;border-radius:10px;background:#10b981;color:#0b1220;font-weight:800;text-decoration:none;">
-              Verify Email →
+              Verify Email â†’
             </a>
           </div>
 
           <p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.6;">
-            This link expires in 1 hour. If you didn’t request this, you can ignore this email.
+            This link expires in 1 hour. If you didnâ€™t request this, you can ignore this email.
           </p>
 
           <div style="margin-top:14px;color:#94a3b8;font-size:12px;">

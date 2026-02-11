@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { Pool } from 'pg'
@@ -73,13 +73,13 @@ export async function POST(req: NextRequest) {
     }
     
     console.log('ðŸ” Querying database for token hash...')
-    console.log('ðŸ” SQL Query: SELECT id, email, expires_at, used_at FROM password_reset_tokens WHERE token_hash = $1')
+    console.log('ðŸ” SQL Query: SELECT id, email, expires_at, used_at FROM password_reset_tokens WHERE tokenHash = $1')
     console.log('ðŸ” Query parameter (hash):', tokenHash)
     
     const r = await pool.query(
       `select id, email, expires_at, used_at
        from password_reset_tokens
-       where token_hash = $1
+       where tokenHash = $1
        limit 1`,
       [tokenHash]
     )

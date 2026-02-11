@@ -69,7 +69,7 @@ interface AlertEmailData {
     url: string
   }>
   csvAttachment?: {
-    filename: string
+    file_name: string
     content: string
   }
   date?: string
@@ -99,7 +99,7 @@ export async function sendAlertEmail({
     const attachments = csvAttachment
       ? [
           {
-            filename: csvAttachment.filename,
+            file_name: csvAttachment.file_name,
             content: csvAttachment.content,
           },
         ]
@@ -141,7 +141,13 @@ function generateAlertEmailHtml({
   date?: string
 }) {
   const formattedDate =
-    date || new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    date ||
+    new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
 
   // Generate criteria pills
   const criteriaPills = searchCriteria
@@ -343,9 +349,10 @@ function generateAlertEmailHtml({
 }
 
 // Helper functions
-function escapeHtml(text: string) {
-  if (!text) return ''
-  return text
+function escapeHtml(text?: string | null) {
+  const s = String(text ?? '')
+  if (!s) return ''
+  return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -409,14 +416,14 @@ export async function notifySupportNewAccessRequest({
 export async function sendTrialConfirmationEmail({
   to,
   name,
-  trialEndsAt,
+  trial_ends_at,
 }: {
   to: string
   name: string
-  trialEndsAt: Date
+  trial_ends_at: Date
 }) {
   try {
-    const formatted = trialEndsAt.toLocaleDateString('en-US', {
+    const formatted = trial_ends_at.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -490,15 +497,15 @@ export async function sendAdminTrialNotification({
   to,
   userEmail,
   userName,
-  trialEndsAt,
+  trial_ends_at,
 }: {
   to: string
   userEmail: string
   userName: string
-  trialEndsAt: Date
+  trial_ends_at: Date
 }) {
   try {
-    const formatted = trialEndsAt.toLocaleDateString('en-US', {
+    const formatted = trial_ends_at.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -592,14 +599,14 @@ export async function sendTrialExpired({
 export async function sendTrialReminder3Days({
   to,
   name,
-  trialEndsAt,
+  trial_ends_at,
 }: {
   to: string
   name: string
-  trialEndsAt: Date
+  trial_ends_at: Date
 }) {
   try {
-    const formatted = trialEndsAt.toLocaleDateString('en-US', {
+    const formatted = trial_ends_at.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -687,12 +694,20 @@ export async function sendAccessRequestConfirmation({
             </div>
 
             <div style="padding:30px;">
-              <h2 style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-size:22px;font-weight:800;">Thank you, ${escapeHtml(name)}!</h2>
+              <h2 style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-size:22px;font-weight:800;">Thank you, ${escapeHtml(
+                name,
+              )}!</h2>
               <p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
                 We've received your access request for ${BRAND_NAME}. Our team will review your request and get back to you within 1-2 business days.
               </p>
               
-              ${company ? `<p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;"><strong>Company:</strong> ${escapeHtml(company)}</p>` : ''}
+              ${
+                company
+                  ? `<p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;"><strong>Company:</strong> ${escapeHtml(
+                      company,
+                    )}</p>`
+                  : ''
+              }
 
               <div style="background:${BRAND_COLORS.lightGray};border-radius:16px;padding:18px;margin:18px 0;">
                 <p style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-weight:700;">What happens next?</p>

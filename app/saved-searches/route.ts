@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { randomBytes } from 'crypto'
 
 // Helper to sanitize string values
 const sanitize = (val: any): string | null => {
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate subscription-related fields
-    const subscriptionEnabled = Boolean(body.subscriptionEnabled)
+    const subscriptionEnabled = Boolean(body.subscription_enabled)
 
     // Only validate/set frequency if subscription is enabled
     let frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | null = null
@@ -71,51 +72,53 @@ export async function POST(req: NextRequest) {
     }
 
     // For email notifications (non-subscription saves), still allow recipients
-    const emailNotification = Boolean(body.emailNotification)
+    const emailNotification = Boolean(body.email_notification)
 
     const search = await prisma.saved_searches_new.create({
       data: {
-        userId: session.user.id,
+        id: randomBytes(16).toString('hex'),
+        user_id: session.user.id,
         name: sanitize(body.name) || 'Untitled Search',
         description: sanitize(body.description),
-        isPinned: Boolean(body.isPinned),
+        is_pinned: Boolean(body.is_pinned),
+        updated_at: new Date(),
 
-        // Search criteria - FIXED FIELD NAMES
+        // Search criteria - CORRECT SNAKE_CASE FIELD NAMES
         keywords: sanitize(body.keywords),
-        solicitationNumber: sanitize(body.solnum),
-        noticeId: sanitize(body.noticeid),
+        solicitation_number: sanitize(body.solnum),
+        notice_id: sanitize(body.noticeId),
         naics: sanitize(body.naics),
-        classificationCode: sanitize(body.ccode),
+        classification_code: sanitize(body.ccode),
         agency: sanitize(body.agency),
-        organizationCode: sanitize(body.organizationCode),
-        setAside: sanitize(body.setAside),
-        stateOfPerformance: sanitize(body.stateOfPerformance),
-        placeOfPerformanceZip: sanitize(body.zip),
-        opportunityStatus: sanitize(body.status),
-        procurementType: sanitize(body.procurementType) || 'o',
+        organization_code: sanitize(body.organization_code),
+        set_aside: sanitize(body.setAside),
+        state_of_performance: sanitize(body.stateOfPerformance),
+        place_of_performance_zip: sanitize(body.zip),
+        opportunity_status: sanitize(body.status),
+        procurement_type: sanitize(body.procurementType) || 'o',
         
-        // Date fields - FIXED: lowercase rdlfrom and rdlto
-        postedAfter: body.postedAfter ? new Date(body.postedAfter) : null,
-        postedBefore: body.postedBefore ? new Date(body.postedBefore) : null,
-        rdlfrom: body.rdlfrom ? new Date(body.rdlfrom) : null,
-        rdlto: body.rdlto ? new Date(body.rdlto) : null,
+        // Date fields - CORRECT SNAKE_CASE
+        posted_after: body.posted_after ? new Date(body.posted_after) : null,
+        posted_before: body.posted_before ? new Date(body.posted_before) : null,
+        rdl_from: body.rdlfrom ? new Date(body.rdlfrom) : null,
+        rdl_to: body.rdlto ? new Date(body.rdlto) : null,
 
-        // Subscription settings
-        subscriptionEnabled,
+        // Subscription settings - CORRECT SNAKE_CASE
+        subscription_enabled: subscriptionEnabled,
         frequency, // null if subscriptionEnabled is false
         recipients: recipientsString,
-        emailNotification,
-        sendEmptyResults: Boolean(body.sendEmptyResults),
-        maxResults: body.maxResults || 100,
-        deliveryTime: body.deliveryTime || null,
-        exportFormat: normalizeExportFormat(body.exportFormat),
-        includeLinks: Boolean(body.includeLinks ?? true),
+        email_notification: emailNotification,
+        send_empty_results: Boolean(body.send_empty_results),
+        max_results: body.max_results || 100,
+        delivery_time: body.delivery_time || null,
+        export_format: normalizeExportFormat(body.export_format),
+        include_links: Boolean(body.include_links ?? true),
       },
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
@@ -143,18 +146,18 @@ export async function GET(req: NextRequest) {
 
     const searches = await prisma.saved_searches_new.findMany({
       where: {
-        userId: session.user.id,
-        ...(onlySubscribed ? { subscriptionEnabled: true } : {}),
+        user_id: session.user.id,
+        ...(onlySubscribed ? { subscription_enabled: true } : {}),
       },
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
-      orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+      orderBy: [{ is_pinned: 'desc' }, { updated_at: 'desc' }],
     })
 
     return NextResponse.json({ success: true, searches })

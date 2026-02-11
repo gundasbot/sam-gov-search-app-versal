@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,7 +11,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    // Accept anything (donâ€™t throw) so callers never get HTML error responses.
+    // Accept anything (don’t throw) so callers never get HTML error responses.
     // You can later store these logs in DB if you want.
     const contentType = req.headers.get('content-type') || ''
     let payload: any = null
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
     // Optional: console log during dev
     if (process.env.NODE_ENV !== 'production') {
-      console.log('ðŸ“© /api/auth/log', payload)
+      console.log('📩 /api/auth/log', payload)
     }
 
     return NextResponse.json({ ok: true })

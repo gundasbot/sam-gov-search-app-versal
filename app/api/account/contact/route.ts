@@ -1,4 +1,4 @@
-﻿// app/api/contact/enterprise/route.ts
+// app/api/contact/enterprise/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       `,
     })
 
-    console.log('âœ… Enterprise inquiry emails sent:', {
+    console.log('✅ Enterprise inquiry emails sent:', {
       salesEmailId: salesEmail.data?.id,
       customerEmailId: customerEmail.data?.id,
     })

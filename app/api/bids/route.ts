@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
     //   }
     //
     //   const bids = await prisma.bid.findMany({
-    //     where: { userId: user.id },
-    //     orderBy: { createdAt: 'desc' },
+    //     where: { user_id: user.id },
+    //     orderBy: { created_at: 'desc' },
     //   })
     //
     //   return NextResponse.json(bids)
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     //
     //   const bid = await prisma.bid.create({
     //     data: {
-    //       userId: user.id,
+    //       user_id: user.id,
     //       opportunityId,
     //       opportunityTitle,
     //       dueDate: new Date(dueDate),

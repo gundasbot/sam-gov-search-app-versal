@@ -75,7 +75,7 @@ const PLACEHOLDER_STATS = {
 
 // 🎯 NEW: User profile interface
 interface UserProfile {
-  firstName: string;
+  first_name: string;
   lastName?: string;
   companyName?: string;
   naicsCodes?: string[];
@@ -101,6 +101,11 @@ const PERSONALIZED_TIPS = [
   "Consider expanding to include HUBZone opportunities",
   "You qualify for 8(a) program opportunities"
 ];
+
+// ✅ NEW: Neutral styling for opportunities with no response deadline
+const getNoDeadlineGradient = () => 'from-slate-800/60 to-slate-900/70 border-slate-700/70';
+const getNoDeadlineTextColor = () => 'text-slate-200';
+const getNoDeadlineBadgeColor = () => 'bg-slate-900/60 text-slate-200 border-slate-600/60';
 
 // 🎯 NEW: Utility function to get urgency gradient colors
 // ✅ FIXED: Proper red-to-green gradient based on business days
@@ -154,6 +159,19 @@ const getUrgencyIcon = (businessDays: number) => {
   if (businessDays <= 7) return '🟡';
   if (businessDays <= 10) return '🟡';
   return '🟢';
+};
+
+// ✅ NEW: Rank function so urgent cards sort LEFT in grid (and no-deadline goes far right)
+const getUrgencyRank = (businessDays: number | null) => {
+  if (businessDays === null || Number.isNaN(businessDays)) return 999; // No deadline last (furthest right)
+  if (businessDays <= 3) return 0;   // CRITICAL
+  if (businessDays <= 5) return 1;   // URGENT
+  if (businessDays <= 7) return 2;   // HIGH PRIORITY
+  if (businessDays <= 10) return 3;  // ACT SOON
+  if (businessDays <= 14) return 4;  // NORMAL
+  if (businessDays <= 21) return 5;  // COMFORTABLE
+  if (businessDays <= 30) return 6;  // AMPLE TIME
+  return 7;                          // PLENTY OF TIME
 };
 
 
@@ -251,7 +269,7 @@ export default function OpportunitiesClient() {
 
   // 🎯 FIXED: Create user profile from session
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    firstName: userName,
+    first_name: userName,
     companyName: 'Your Business',
     monthlyGoal: 10,
     achievedThisMonth: 7,
@@ -649,7 +667,7 @@ Provide analysis in JSON format with:
 
       setUserProfile(prev => ({
         ...prev,
-        firstName: userName
+        first_name: userName
       }));
     } else {
       // For unsigned users, use more generic achievements/tips
@@ -787,7 +805,7 @@ Provide analysis in JSON format with:
     };
 
     // Initial fetch
-    // DISABLED AUTO-FETCH:     fetchAllOpportunities();
+    fetchAllOpportunities();
 
     // Set up polling for periodic updates
     //     pollingIntervalRef.current = setInterval(() => {
@@ -883,10 +901,8 @@ Provide analysis in JSON format with:
           break;
         case 'urgency':
           if (opp.responseDeadLine) {
-            const deadline = new Date(opp.responseDeadLine);
-            const today = new Date();
-            const daysUntil = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            groupKey = getUrgencyLabel(daysUntil);
+            const bd = getBusinessDaysUntil(opp.responseDeadLine);
+            groupKey = getUrgencyLabel(bd);
           } else {
             groupKey = 'No Deadline';
           }
@@ -902,11 +918,22 @@ Provide analysis in JSON format with:
       groups[groupKey].push(opp);
     });
 
-    // Sort groups by urgency if grouping by urgency
+    // ✅ FIXED: Sort groups by the actual labels you produce
     if (groupMode === 'urgency') {
-      const urgencyOrder = ['URGENT', 'Closing Soon', 'Act Fast', 'Good Time', 'Ample Time', 'No Deadline'];
+      const urgencyOrder = [
+        'CRITICAL',
+        'URGENT',
+        'HIGH PRIORITY',
+        'ACT SOON',
+        'NORMAL',
+        'COMFORTABLE',
+        'AMPLE TIME',
+        'PLENTY OF TIME',
+        'No Deadline'
+      ];
+
       return Object.fromEntries(
-        Object.entries(groups).sort((a, b) => 
+        Object.entries(groups).sort((a, b) =>
           urgencyOrder.indexOf(a[0]) - urgencyOrder.indexOf(b[0])
         )
       );
@@ -1231,6 +1258,31 @@ Provide analysis in JSON format with:
           </div>
         </div>
 
+        {/* ✅ NEW: Urgency legend (matches hues + urgency order) */}
+        <div className="mb-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+              <Timer className="w-4 h-4 text-cyan-400" />
+              Urgency Legend
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(3)}`}>🔴 Critical (≤3bd)</span>
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(5)}`}>🟠 Urgent (4–5bd)</span>
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(7)}`}>🟡 High (6–7bd)</span>
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(10)}`}>🟡 Act Soon (8–10bd)</span>
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(14)}`}>🟢 Normal (11–14bd)</span>
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(21)}`}>🟢 Comfortable (15–21bd)</span>
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getUrgencyBadgeColor(30)}`}>🟢 Ample (22–30bd)</span>
+              <span className={`px-3 py-1 rounded-full border text-xs font-bold ${getNoDeadlineBadgeColor()}`}>∞ No Deadline</span>
+            </div>
+
+            <div className="ml-auto text-xs text-slate-400">
+              In grid view, most urgent cards will appear far-left.
+            </div>
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
@@ -1439,429 +1491,537 @@ Provide analysis in JSON format with:
         </div>
 
         {/* 🎯 NEW: Opportunities Display with Multiple View Modes */}
-        {Object.entries(groupedOpportunities).map(([groupName, opportunities]) => (
-          <div key={groupName} className="mb-8">
-            {groupMode !== 'none' && (
-              <div className="mb-4 flex items-center gap-3">
-                <h4 className="text-lg font-bold text-white">{groupName}</h4>
-                <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent"></div>
-                <span className="text-sm text-slate-400 font-semibold">{opportunities.length} opportunities</span>
-              </div>
-            )}
+        {Object.entries(groupedOpportunities).map(([groupName, opportunities]) => {
+          // ✅ NEW: Sort inside each group so most urgent renders first -> left columns in grid
+          const sortedOpportunities = [...opportunities].sort((a, b) => {
+            const aBd = a.responseDeadLine ? getBusinessDaysUntil(a.responseDeadLine) : null;
+            const bBd = b.responseDeadLine ? getBusinessDaysUntil(b.responseDeadLine) : null;
+            return getUrgencyRank(aBd) - getUrgencyRank(bBd);
+          });
 
-            {/* COMPACT VIEW */}
-            {viewMode === 'compact' && (
-              <div className="space-y-2">
-                {opportunities.map((opp) => {
-                  const isPlaceholder = opp.noticeId.startsWith('placeholder');
-                  const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
-                  const today = new Date();
-                  const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
-                  const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
-                  const isSaved = savedOpportunities.has(opp.noticeId);
-                  const isViewed = viewedOpportunities.has(opp.noticeId);
-                  const hasAnalysis = opp.aiAnalysis !== undefined;
-                  const isAnalyzing = analyzingOpps.has(opp.noticeId);
-                  const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getDepartmentGradient(opp.department);
-                  const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : 'text-cyan-400';
-                  const urgencyLabel = businessDays !== null ? getUrgencyLabel(businessDays) : '';
-                  const urgencyIcon = businessDays !== null ? getUrgencyIcon(businessDays) : '';
+          return (
+            <div key={groupName} className="mb-8">
+              {groupMode !== 'none' && (
+                <div className="mb-4 flex items-center gap-3">
+                  <h4 className="text-lg font-bold text-white">{groupName}</h4>
+                  <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent"></div>
+                  <span className="text-sm text-slate-400 font-semibold">{sortedOpportunities.length} opportunities</span>
+                </div>
+              )}
 
-                  return (
-                    <div
-                      key={opp.noticeId}
-                      className={`group p-3 bg-gradient-to-r ${urgencyGradient} rounded-lg border-2 hover:shadow-lg transition-all ${
-                        isPlaceholder ? 'animate-pulse' : ''
-                      } ${isViewed ? 'opacity-75' : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Urgency Badge */}
-                        {businessDays !== null && !isPlaceholder && (
-                          <div className={`flex-shrink-0 px-3 py-1.5 rounded-lg font-bold text-xs ${urgencyTextColor} bg-slate-900/60 border border-current`}>
-                            {businessDays}bd
-                          </div>
-                        )}
+              {/* COMPACT VIEW */}
+              {viewMode === 'compact' && (
+                <div className="space-y-2">
+                  {sortedOpportunities.map((opp) => {
+                    const isPlaceholder = opp.noticeId.startsWith('placeholder');
+                    const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
+                    const today = new Date();
+                    const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
+                    const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    const isSaved = savedOpportunities.has(opp.noticeId);
+                    const isViewed = viewedOpportunities.has(opp.noticeId);
+                    const hasAnalysis = opp.aiAnalysis !== undefined;
+                    const isAnalyzing = analyzingOpps.has(opp.noticeId);
 
-                        {/* Title and Department */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-white mb-0.5 truncate">
-                            {isPlaceholder ? (
-                              <span className="inline-block h-4 w-64 bg-slate-700 rounded"></span>
-                            ) : (
-                              opp.title
-                            )}
-                          </h4>
-                          <div className="flex items-center gap-3 text-xs text-slate-400">
-                            <span className="flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              {isPlaceholder ? (
-                                <span className="inline-block h-3 w-32 bg-slate-700 rounded"></span>
-                              ) : (
-                                opp.department
+                    // ✅ FIXED: No-deadline is neutral (not blue)
+                    const urgencyGradient =
+                      businessDays !== null
+                        ? getUrgencyGradient(businessDays)
+                        : getNoDeadlineGradient();
+
+                    const urgencyTextColor =
+                      businessDays !== null
+                        ? getUrgencyTextColor(businessDays)
+                        : getNoDeadlineTextColor();
+
+                    const urgencyLabel =
+                      businessDays !== null
+                        ? getUrgencyLabel(businessDays)
+                        : 'NO DEADLINE';
+
+                    const urgencyIcon =
+                      businessDays !== null
+                        ? getUrgencyIcon(businessDays)
+                        : '∞';
+
+                    return (
+                      <div
+                        key={opp.noticeId}
+                        className={`group p-3 bg-gradient-to-r ${urgencyGradient} rounded-lg border-2 hover:shadow-lg transition-all ${
+                          isPlaceholder ? 'animate-pulse' : ''
+                        } ${isViewed ? 'opacity-75' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Urgency Badge */}
+                          {!isPlaceholder && (
+                            <div className="flex flex-col gap-2 w-[190px] flex-shrink-0">
+                              <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current inline-flex items-center justify-between`}>
+                                <span>{urgencyLabel}</span>
+                                <span className="ml-2">{urgencyIcon}</span>
+                              </div>
+
+                              <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/40 border border-slate-700 flex items-center justify-between`}>
+                                <span>Business Days</span>
+                                <span className="text-lg">{businessDays !== null ? `${businessDays}` : '—'}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Response Deadline */}
+                          {!isPlaceholder && (
+                            <div className="mb-0 p-2 bg-slate-900/40 rounded-lg border border-slate-700 flex-shrink-0">
+                              <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>Response Deadline</span>
+                              </div>
+                              <div className={`text-sm font-bold ${urgencyTextColor}`}>
+                                {deadline ? formatDate(opp.responseDeadLine) : 'No deadline'}
+                              </div>
+                              {deadline && businessDays !== null && calendarDays !== null && (
+                                <div className="text-xs text-slate-500 mt-1">
+                                  ({businessDays} business days • {calendarDays} calendar days)
+                                </div>
                               )}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Target className="w-3 h-3" />
+                            </div>
+                          )}
+
+                          {/* Title and Department */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-semibold text-white mb-0.5 truncate">
                               {isPlaceholder ? (
-                                <span className="inline-block h-3 w-16 bg-slate-700 rounded"></span>
+                                <span className="inline-block h-4 w-64 bg-slate-700 rounded"></span>
                               ) : (
-                                `NAICS: ${opp.naicsCode}`
+                                opp.title
                               )}
-                            </span>
-                            {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
-                              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
-                                {opp.typeOfSetAsideDescription}
+                            </h4>
+                            <div className="flex items-center gap-3 text-xs text-slate-400">
+                              <span className="flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {isPlaceholder ? (
+                                  <span className="inline-block h-3 w-32 bg-slate-700 rounded"></span>
+                                ) : (
+                                  opp.department
+                                )}
                               </span>
+                              <span className="flex items-center gap-1">
+                                <Target className="w-3 h-3" />
+                                {isPlaceholder ? (
+                                  <span className="inline-block h-3 w-16 bg-slate-700 rounded"></span>
+                                ) : (
+                                  `NAICS: ${opp.naicsCode}`
+                                )}
+                              </span>
+                              {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
+                                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
+                                  {opp.typeOfSetAsideDescription}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {!isPlaceholder && (
+                              <>
+                                <button
+                                  onClick={() => handleSaveOpportunity(opp.noticeId)}
+                                  className="p-2 rounded-lg bg-slate-900/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                                  title={isSaved ? 'Remove bookmark' : 'Bookmark'}
+                                >
+                                  <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
+                                </button>
+                                <a
+                                  href={opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => handleViewOpportunity(opp.noticeId)}
+                                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all text-xs flex items-center gap-2"
+                                >
+                                  View
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </>
                             )}
                           </div>
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* GRID VIEW */}
+              {viewMode === 'grid' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {sortedOpportunities.map((opp) => {
+                    const isPlaceholder = opp.noticeId.startsWith('placeholder');
+                    const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
+                    const today = new Date();
+                    const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
+                    const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    const isSaved = savedOpportunities.has(opp.noticeId);
+                    const isViewed = viewedOpportunities.has(opp.noticeId);
+                    const hasAnalysis = opp.aiAnalysis !== undefined;
+                    const isAnalyzing = analyzingOpps.has(opp.noticeId);
+
+                    // ✅ FIXED: No-deadline is neutral (not blue)
+                    const urgencyGradient =
+                      businessDays !== null
+                        ? getUrgencyGradient(businessDays)
+                        : getNoDeadlineGradient();
+
+                    const urgencyTextColor =
+                      businessDays !== null
+                        ? getUrgencyTextColor(businessDays)
+                        : getNoDeadlineTextColor();
+
+                    const urgencyLabel =
+                      businessDays !== null
+                        ? getUrgencyLabel(businessDays)
+                        : 'NO DEADLINE';
+
+                    const urgencyIcon =
+                      businessDays !== null
+                        ? getUrgencyIcon(businessDays)
+                        : '∞';
+
+                    const urgencyBadge =
+                      businessDays !== null
+                        ? getUrgencyBadgeColor(businessDays)
+                        : getNoDeadlineBadgeColor();
+
+                    return (
+                      <div
+                        key={opp.noticeId}
+                        className={`group p-4 bg-gradient-to-br ${urgencyGradient} rounded-xl border-2 hover:shadow-xl transition-all ${
+                          isPlaceholder ? 'animate-pulse' : ''
+                        } ${isViewed ? 'opacity-75' : ''}`}
+                      >
+                        {/* Urgency Badge */}
+                        {!isPlaceholder && (
+                          <div className="flex items-center justify-between mb-3">
+                            <div className={`px-3 py-1 rounded-lg font-bold text-sm bg-slate-900/60 border border-current ${urgencyTextColor}`}>
+                              {urgencyLabel}
+                            </div>
+                            <div className={`text-2xl font-bold ${urgencyTextColor}`}>
+                              {businessDays !== null ? `${businessDays}bd` : '—'}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ✅ NEW: Response Deadline on GRID cards */}
+                        {!isPlaceholder && (
+                          <div className="mb-3 p-3 bg-slate-900/40 rounded-lg border border-slate-700">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <Calendar className="w-4 h-4" />
+                                <span>Response Deadline</span>
+                              </div>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${urgencyBadge}`}>
+                                {urgencyIcon}
+                              </span>
+                            </div>
+
+                            <div className={`mt-1 text-sm font-bold ${urgencyTextColor}`}>
+                              {deadline ? formatDate(opp.responseDeadLine) : 'No deadline provided'}
+                            </div>
+
+                            {deadline && businessDays !== null && calendarDays !== null && (
+                              <div className="mt-1 text-xs text-slate-500">
+                                {businessDays} business days • {calendarDays} calendar days
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Title */}
+                        <h4 className="text-base font-bold text-white mb-2 line-clamp-2 min-h-[3rem]">
+                          {isPlaceholder ? (
+                            <>
+                              <span className="inline-block h-4 w-full bg-slate-700 rounded mb-2"></span>
+                              <span className="inline-block h-4 w-3/4 bg-slate-700 rounded"></span>
+                            </>
+                          ) : (
+                            opp.title
+                          )}
+                        </h4>
+
+                        {/* Department */}
+                        <div className="flex items-center gap-2 text-sm text-slate-300 mb-2">
+                          <Building2 className="w-4 h-4 flex-shrink-0" />
+                          {isPlaceholder ? (
+                            <span className="inline-block h-4 w-40 bg-slate-700 rounded"></span>
+                          ) : (
+                            <span className="line-clamp-1">{opp.department}</span>
+                          )}
+                        </div>
+
+                        {/* NAICS and Set-Aside */}
+                        <div className="flex items-center gap-2 mb-3 text-xs text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Target className="w-3 h-3" />
+                            {isPlaceholder ? (
+                              <span className="inline-block h-3 w-16 bg-slate-700 rounded"></span>
+                            ) : (
+                              `NAICS: ${opp.naicsCode}`
+                            )}
+                          </span>
+                        </div>
+
+                        {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
+                          <div className="mb-3">
+                            <span className="inline-block px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
+                              {opp.typeOfSetAsideDescription}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Actions */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {!isPlaceholder && (
+                        <div className="flex items-center gap-2">
+                          {!isPlaceholder ? (
                             <>
-                              <button
-                                onClick={() => handleSaveOpportunity(opp.noticeId)}
-                                className="p-2 rounded-lg bg-slate-900/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
-                                title={isSaved ? 'Remove bookmark' : 'Bookmark'}
-                              >
-                                <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
-                              </button>
                               <a
                                 href={opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => handleViewOpportunity(opp.noticeId)}
-                                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all text-xs flex items-center gap-2"
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all text-sm"
                               >
                                 View
                                 <ExternalLink className="w-3 h-3" />
                               </a>
+                              <button
+                                onClick={() => handleSaveOpportunity(opp.noticeId)}
+                                className="p-2 rounded-lg bg-slate-900/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                              >
+                                <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
+                              </button>
                             </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* GRID VIEW */}
-            {viewMode === 'grid' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {opportunities.map((opp) => {
-                  const isPlaceholder = opp.noticeId.startsWith('placeholder');
-                  const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
-                  const today = new Date();
-                  const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
-                  const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
-                  const isSaved = savedOpportunities.has(opp.noticeId);
-                  const isViewed = viewedOpportunities.has(opp.noticeId);
-                  const hasAnalysis = opp.aiAnalysis !== undefined;
-                  const isAnalyzing = analyzingOpps.has(opp.noticeId);
-                  const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getDepartmentGradient(opp.department);
-                  const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : 'text-cyan-400';
-                  const urgencyLabel = businessDays !== null ? getUrgencyLabel(businessDays) : '';
-                  const urgencyIcon = businessDays !== null ? getUrgencyIcon(businessDays) : '';
-
-                  return (
-                    <div
-                      key={opp.noticeId}
-                      className={`group p-4 bg-gradient-to-br ${urgencyGradient} rounded-xl border-2 hover:shadow-xl transition-all ${
-                        isPlaceholder ? 'animate-pulse' : ''
-                      } ${isViewed ? 'opacity-75' : ''}`}
-                    >
-                      {/* Urgency Badge */}
-                      {businessDays !== null && !isPlaceholder && (
-                        <div className="flex items-center justify-between mb-3">
-                          <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current`}>
-                            {urgencyLabel}
-                          </div>
-                          <div className={`text-2xl font-bold ${urgencyTextColor}`}>
-                            {businessDays}bd
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Title */}
-                      <h4 className="text-base font-bold text-white mb-2 line-clamp-2 min-h-[3rem]">
-                        {isPlaceholder ? (
-                          <>
-                            <span className="inline-block h-4 w-full bg-slate-700 rounded mb-2"></span>
-                            <span className="inline-block h-4 w-3/4 bg-slate-700 rounded"></span>
-                          </>
-                        ) : (
-                          opp.title
-                        )}
-                      </h4>
-
-                      {/* Department */}
-                      <div className="flex items-center gap-2 text-sm text-slate-300 mb-2">
-                        <Building2 className="w-4 h-4 flex-shrink-0" />
-                        {isPlaceholder ? (
-                          <span className="inline-block h-4 w-40 bg-slate-700 rounded"></span>
-                        ) : (
-                          <span className="line-clamp-1">{opp.department}</span>
-                        )}
-                      </div>
-
-                      {/* NAICS and Set-Aside */}
-                      <div className="flex items-center gap-2 mb-3 text-xs text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Target className="w-3 h-3" />
-                          {isPlaceholder ? (
-                            <span className="inline-block h-3 w-16 bg-slate-700 rounded"></span>
                           ) : (
-                            `NAICS: ${opp.naicsCode}`
-                          )}
-                        </span>
-                      </div>
-
-                      {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
-                        <div className="mb-3">
-                          <span className="inline-block px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
-                            {opp.typeOfSetAsideDescription}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        {!isPlaceholder ? (
-                          <>
-                            <a
-                              href={opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => handleViewOpportunity(opp.noticeId)}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all text-sm"
-                            >
-                              View
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                            <button
-                              onClick={() => handleSaveOpportunity(opp.noticeId)}
-                              className="p-2 rounded-lg bg-slate-900/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
-                            >
-                              <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
-                            </button>
-                          </>
-                        ) : (
-                          <div className="flex-1 px-4 py-2 bg-slate-700/50 rounded-lg animate-pulse">
-                            <span className="text-transparent">Loading...</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* LIST VIEW - Original detailed view */}
-            {viewMode === 'list' && (
-              <div className="space-y-4">
-                {opportunities.map((opp) => {
-                  const isPlaceholder = opp.noticeId.startsWith('placeholder');
-                  const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
-                  const today = new Date();
-                  const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
-                  const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
-                  const isUrgent = businessDays !== null && businessDays <= 7;
-                  const isSaved = savedOpportunities.has(opp.noticeId);
-                  const isViewed = viewedOpportunities.has(opp.noticeId);
-                  const hasAnalysis = opp.aiAnalysis !== undefined;
-                  const isAnalyzing = analyzingOpps.has(opp.noticeId);
-                  const matchesUserProfile = userProfile.naicsCodes?.some(code => opp.naicsCode?.includes(code)) ||
-                    userProfile.certifications?.some(cert => opp.typeOfSetAsideDescription?.includes(cert));
-                  const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getDepartmentGradient(opp.department);
-                  const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : 'text-cyan-400';
-
-                  return (
-                    <div
-                      key={opp.noticeId}
-                      className={`group p-6 bg-gradient-to-br ${urgencyGradient} rounded-xl border-2 hover:shadow-xl transition-all ${
-                        isPlaceholder ? 'animate-pulse' : ''
-                      } ${isViewed ? 'opacity-75' : ''}`}
-                    >
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-3">
-                            {!isPlaceholder && matchesUserProfile && (
-                              <div className="px-3 py-1 bg-emerald-500/20 rounded-lg flex items-center gap-2 border border-emerald-500/40">
-                                <Star className="w-4 h-4 text-emerald-400" />
-                                <span className="text-xs font-bold text-emerald-400">Matched to {userName}!</span>
-                              </div>
-                            )}
-                            {!isPlaceholder && isSaved && (
-                              <div className="px-3 py-1 bg-rose-500/20 rounded-lg flex items-center gap-2 border border-rose-500/40">
-                                <Bookmark className="w-4 h-4 text-rose-400" fill="currentColor" />
-                                <span className="text-xs font-bold text-rose-400">Saved</span>
-                              </div>
-                            )}
-                            {!isPlaceholder && hasAnalysis && (
-                              <div className="px-3 py-1 bg-purple-500/20 rounded-lg flex items-center gap-2 border border-purple-500/40">
-                                <Sparkles className="w-4 h-4 text-purple-400" />
-                                <span className="text-xs font-bold text-purple-400">AI Analyzed</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <h3 className="text-xl font-bold text-white mb-3 leading-tight">
-                            {isPlaceholder ? (
-                              <>
-                                <span className="inline-block h-6 w-full max-w-2xl bg-slate-700 rounded mb-2"></span>
-                                <span className="inline-block h-6 w-3/4 max-w-xl bg-slate-700 rounded"></span>
-                              </>
-                            ) : (
-                              opp.title
-                            )}
-                          </h3>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-300">
-                            <span className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 flex-shrink-0" />
-                              {isPlaceholder ? (
-                                <span className="inline-block h-4 w-48 bg-slate-700 rounded"></span>
-                              ) : (
-                                opp.department
-                              )}
-                            </span>
-                            {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
-                              <span className="flex items-center gap-2">
-                                <Award className="w-4 h-4 flex-shrink-0" />
-                                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
-                                  {opp.typeOfSetAsideDescription}
-                                </span>
-                              </span>
-                            )}
-                            <span className="flex items-center gap-2">
-                              <Target className="w-4 h-4 flex-shrink-0" />
-                              {isPlaceholder ? (
-                                <span className="inline-block h-4 w-24 bg-slate-700 rounded"></span>
-                              ) : (
-                                `NAICS: ${opp.naicsCode || 'N/A'}`
-                              )}
-                            </span>
-                            <span className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 flex-shrink-0" />
-                              {isPlaceholder ? (
-                                <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
-                              ) : (
-                                `Posted: ${formatDate(opp.postedDate)}`
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        {opp.responseDeadLine && !isPlaceholder && (
-                          <div className="text-right flex-shrink-0">
-                            <div className={`text-2xl font-bold ${urgencyTextColor} mb-1`}>
-                              {businessDays} days
-                            </div>
-                            <div className="text-sm text-slate-400">
-                              {formatDate(opp.responseDeadLine)}
-                            </div>
-                            {matchesUserProfile && businessDays !== null && businessDays <= 14 && (
-                              <div className="mt-1 text-xs text-emerald-400 font-semibold">
-                                Good match for {userName}!
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {hasAnalysis && opp.aiAnalysis && (
-                        <div className="mt-4 p-4 bg-slate-900/60 rounded-lg border border-slate-700">
-                          <div className="grid grid-cols-3 gap-4 mb-3">
-                            <div>
-                              <div className="text-xs text-slate-400 mb-1">Competition</div>
-                              <div className="text-sm font-bold text-white">{opp.aiAnalysis.competitionLevel}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-slate-400 mb-1">Win Probability</div>
-                              <div className="text-sm font-bold text-white">{opp.aiAnalysis.winProbability}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-slate-400 mb-1">Match Score</div>
-                              <div className="text-sm font-bold text-white">{opp.aiAnalysis.matchScore}%</div>
-                            </div>
-                          </div>
-                          {opp.aiAnalysis.recommendation && (
-                            <p className="text-sm text-cyan-300 italic">{opp.aiAnalysis.recommendation}</p>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-slate-700 mt-4">
-                        <div className="flex items-center gap-2">
-                          {!isPlaceholder ? (
-                            <a
-                              href={opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => handleViewOpportunity(opp.noticeId)}
-                              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all text-sm shadow-sm hover:shadow-md"
-                            >
-                              {matchesUserProfile ? (
-                                <>
-                                  <Target className="w-4 h-4" />
-                                  Pursue This Opportunity
-                                </>
-                              ) : (
-                                <>
-                                  View on SAM.gov
-                                  <ExternalLink className="w-4 h-4" />
-                                </>
-                              )}
-                            </a>
-                          ) : (
-                            <div className="w-full sm:w-auto px-5 py-3 bg-slate-700/50 rounded-xl animate-pulse">
+                            <div className="flex-1 px-4 py-2 bg-slate-700/50 rounded-lg animate-pulse">
                               <span className="text-transparent">Loading...</span>
                             </div>
                           )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* LIST VIEW - Original detailed view */}
+              {viewMode === 'list' && (
+                <div className="space-y-4">
+                  {sortedOpportunities.map((opp) => {
+                    const isPlaceholder = opp.noticeId.startsWith('placeholder');
+                    const deadline = opp.responseDeadLine ? new Date(opp.responseDeadLine) : null;
+                    const today = new Date();
+                    const businessDays = deadline ? getBusinessDaysUntil(deadline) : null;
+                    const calendarDays = deadline ? Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+                    const isUrgent = businessDays !== null && businessDays <= 7;
+                    const isSaved = savedOpportunities.has(opp.noticeId);
+                    const isViewed = viewedOpportunities.has(opp.noticeId);
+                    const hasAnalysis = opp.aiAnalysis !== undefined;
+                    const isAnalyzing = analyzingOpps.has(opp.noticeId);
+                    const matchesUserProfile = userProfile.naicsCodes?.some(code => opp.naicsCode?.includes(code)) ||
+                      userProfile.certifications?.some(cert => opp.typeOfSetAsideDescription?.includes(cert));
+
+                    // ✅ FIXED: No-deadline is neutral (not blue)
+                    const urgencyGradient =
+                      businessDays !== null
+                        ? getUrgencyGradient(businessDays)
+                        : getNoDeadlineGradient();
+
+                    const urgencyTextColor =
+                      businessDays !== null
+                        ? getUrgencyTextColor(businessDays)
+                        : getNoDeadlineTextColor();
+
+                    return (
+                      <div
+                        key={opp.noticeId}
+                        className={`group p-6 bg-gradient-to-br ${urgencyGradient} rounded-xl border-2 hover:shadow-xl transition-all ${
+                          isPlaceholder ? 'animate-pulse' : ''
+                        } ${isViewed ? 'opacity-75' : ''}`}
+                      >
+                        <div className="flex items-start justify-between gap-6">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-3">
+                              {!isPlaceholder && matchesUserProfile && (
+                                <div className="px-3 py-1 bg-emerald-500/20 rounded-lg flex items-center gap-2 border border-emerald-500/40">
+                                  <Star className="w-4 h-4 text-emerald-400" />
+                                  <span className="text-xs font-bold text-emerald-400">Matched to {userName}!</span>
+                                </div>
+                              )}
+                              {!isPlaceholder && isSaved && (
+                                <div className="px-3 py-1 bg-rose-500/20 rounded-lg flex items-center gap-2 border border-rose-500/40">
+                                  <Bookmark className="w-4 h-4 text-rose-400" fill="currentColor" />
+                                  <span className="text-xs font-bold text-rose-400">Saved</span>
+                                </div>
+                              )}
+                              {!isPlaceholder && hasAnalysis && (
+                                <div className="px-3 py-1 bg-purple-500/20 rounded-lg flex items-center gap-2 border border-purple-500/40">
+                                  <Sparkles className="w-4 h-4 text-purple-400" />
+                                  <span className="text-xs font-bold text-purple-400">AI Analyzed</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <h3 className="text-xl font-bold text-white mb-3 leading-tight">
+                              {isPlaceholder ? (
+                                <>
+                                  <span className="inline-block h-6 w-full max-w-2xl bg-slate-700 rounded mb-2"></span>
+                                  <span className="inline-block h-6 w-3/4 max-w-xl bg-slate-700 rounded"></span>
+                                </>
+                              ) : (
+                                opp.title
+                              )}
+                            </h3>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-300">
+                              <span className="flex items-center gap-2">
+                                <Building2 className="w-4 h-4 flex-shrink-0" />
+                                {isPlaceholder ? (
+                                  <span className="inline-block h-4 w-48 bg-slate-700 rounded"></span>
+                                ) : (
+                                  opp.department
+                                )}
+                              </span>
+                              {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
+                                <span className="flex items-center gap-2">
+                                  <Award className="w-4 h-4 flex-shrink-0" />
+                                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
+                                    {opp.typeOfSetAsideDescription}
+                                  </span>
+                                </span>
+                              )}
+                              <span className="flex items-center gap-2">
+                                <Target className="w-4 h-4 flex-shrink-0" />
+                                {isPlaceholder ? (
+                                  <span className="inline-block h-4 w-24 bg-slate-700 rounded"></span>
+                                ) : (
+                                  `NAICS: ${opp.naicsCode || 'N/A'}`
+                                )}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 flex-shrink-0" />
+                                {isPlaceholder ? (
+                                  <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
+                                ) : (
+                                  `Posted: ${formatDate(opp.postedDate)}`
+                                )}
+                              </span>
+                            </div>
+                          </div>
+
                           {!isPlaceholder && (
-                            <button
-                              onClick={() => handleSaveOpportunity(opp.noticeId)}
-                              className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
-                            >
-                              <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
-                            </button>
-                          )}
-                          {!hasAnalysis && !isPlaceholder && process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY && (
-                            <button
-                              onClick={async () => {
-                                const analysis = await analyzeOpportunity(opp);
-                                if (analysis) {
-                                  setAllOpportunities(prev => prev.map(o => 
-                                    o.noticeId === opp.noticeId ? { ...o, aiAnalysis: analysis } : o
-                                  ));
-                                }
-                              }}
-                              disabled={isAnalyzing}
-                              className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
-                              title="Analyze with AI"
-                            >
-                              {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                            </button>
+                            <div className="text-right flex-shrink-0">
+                              <div className={`text-2xl font-bold ${urgencyTextColor} mb-1`}>
+                                {businessDays !== null ? `${businessDays} bd` : '—'}
+                              </div>
+                              <div className="text-sm text-slate-400">
+                                {deadline ? formatDate(opp.responseDeadLine) : 'No deadline'}
+                              </div>
+                              {matchesUserProfile && businessDays !== null && businessDays <= 14 && (
+                                <div className="mt-1 text-xs text-emerald-400 font-semibold">
+                                  Good match for {userName}!
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
-                        <span className="text-sm text-slate-500 font-mono">
-                          {isPlaceholder ? (
-                            <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
-                          ) : (
-                            opp.solicitationNumber
-                          )}
-                        </span>
+
+                        {hasAnalysis && opp.aiAnalysis && (
+                          <div className="mt-4 p-4 bg-slate-900/60 rounded-lg border border-slate-700">
+                            <div className="grid grid-cols-3 gap-4 mb-3">
+                              <div>
+                                <div className="text-xs text-slate-400 mb-1">Competition</div>
+                                <div className="text-sm font-bold text-white">{opp.aiAnalysis.competitionLevel}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-400 mb-1">Win Probability</div>
+                                <div className="text-sm font-bold text-white">{opp.aiAnalysis.winProbability}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-slate-400 mb-1">Match Score</div>
+                                <div className="text-sm font-bold text-white">{opp.aiAnalysis.matchScore}%</div>
+                              </div>
+                            </div>
+                            {opp.aiAnalysis.recommendation && (
+                              <p className="text-sm text-cyan-300 italic">{opp.aiAnalysis.recommendation}</p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-slate-700 mt-4">
+                          <div className="flex items-center gap-2">
+                            {!isPlaceholder ? (
+                              <a
+                                href={opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => handleViewOpportunity(opp.noticeId)}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all text-sm shadow-sm hover:shadow-md"
+                              >
+                                {matchesUserProfile ? (
+                                  <>
+                                    <Target className="w-4 h-4" />
+                                    Pursue This Opportunity
+                                  </>
+                                ) : (
+                                  <>
+                                    View on SAM.gov
+                                    <ExternalLink className="w-4 h-4" />
+                                  </>
+                                )}
+                              </a>
+                            ) : (
+                              <div className="w-full sm:w-auto px-5 py-3 bg-slate-700/50 rounded-xl animate-pulse">
+                                <span className="text-transparent">Loading...</span>
+                              </div>
+                            )}
+                            {!isPlaceholder && (
+                              <button
+                                onClick={() => handleSaveOpportunity(opp.noticeId)}
+                                className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                              >
+                                <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
+                              </button>
+                            )}
+                            {!hasAnalysis && !isPlaceholder && process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY && (
+                              <button
+                                onClick={async () => {
+                                  const analysis = await analyzeOpportunity(opp);
+                                  if (analysis) {
+                                    setAllOpportunities(prev => prev.map(o => 
+                                      o.noticeId === opp.noticeId ? { ...o, aiAnalysis: analysis } : o
+                                    ));
+                                  }
+                                }}
+                                disabled={isAnalyzing}
+                                className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
+                                title="Analyze with AI"
+                              >
+                                {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </div>
+                          <span className="text-sm text-slate-500 font-mono">
+                            {isPlaceholder ? (
+                              <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
+                            ) : (
+                              opp.solicitationNumber
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Load More Button - Manual Control (No Auto-Scroll) */}
         {hasMore && dataLoaded && (

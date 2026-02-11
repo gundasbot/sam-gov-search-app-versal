@@ -3,7 +3,6 @@
 
 export const dynamic = 'force-dynamic';
 
-
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -57,70 +56,81 @@ const TIERS: PricingTier[] = [
   {
     id: 'BASIC',
     name: 'Basic',
-    tagline: 'Get Started',
-    description: 'Essential tools for solo contractors',
+    tagline: 'For getting started',
+    description: 'Essential features to search and track opportunities.',
     monthlyPrice: 24.99,
-    annualPrice: 240,
+    annualPrice: 249.99,
     tierLevel: 1,
     icon: Shield,
-    gradient: 'from-blue-500 to-cyan-500',
-    border: 'border-blue-500/30',
-    glow: 'shadow-[0_0_40px_rgba(59,130,246,0.25)]',
-    bestFor: 'Solo contractors & consultants starting their GovCon journey',
+    gradient: 'from-slate-700 via-slate-800 to-slate-900',
+    border: 'border-slate-700/40',
+    glow: 'shadow-slate-900/30',
+    bestFor: 'New contractors exploring opportunities',
     features: [
-      '500 searches per month',
-      '10 exports per month',
-      '5 saved opportunities',
-      'Email alerts',
-      'Basic support',
+      'Search opportunities',
+      'Basic filters (NAICS, keywords)',
+      'Save up to 10 opportunities',
+      'Email support',
     ],
   },
   {
     id: 'PROFESSIONAL',
     name: 'Professional',
-    tagline: 'Most Popular',
-    description: 'Advanced features for growing teams',
-    monthlyPrice: 49,
-    annualPrice: 490,
+    tagline: 'For serious bidding teams',
+    description: 'Advanced tracking, alerts, and deeper analytics.',
+    monthlyPrice: 49.99,
+    annualPrice: 499.99,
     tierLevel: 2,
     highlight: true,
     icon: Zap,
-    gradient: 'from-emerald-500 to-teal-500',
-    border: 'border-emerald-500/30',
-    glow: 'shadow-[0_0_50px_rgba(16,185,129,0.25)]',
-    bestFor: 'Growing businesses & small teams winning multiple contracts',
+    gradient: 'from-cyan-500 via-blue-500 to-indigo-600',
+    border: 'border-cyan-500/30',
+    glow: 'shadow-cyan-500/20',
+    bestFor: 'Teams actively bidding every week',
     features: [
-      '5,000 searches per month',
-      '100 exports per month',
-      '50 saved opportunities',
-      'Real-time alerts',
+      'Everything in Basic',
+      'Unlimited saved opportunities',
+      'Saved searches & alerts',
+      'Export results (CSV)',
       'Priority support',
-      'API access',
     ],
   },
   {
     id: 'ENTERPRISE',
     name: 'Enterprise',
-    tagline: 'Full Power',
-    description: 'Complete solution for prime contractors',
-    monthlyPrice: 199,
-    annualPrice: 1990,
+    tagline: 'For organizations at scale',
+    description: 'Team features, admin controls, and maximum automation.',
+    monthlyPrice: 199.99,
+    annualPrice: 1999.99,
     tierLevel: 3,
     icon: Crown,
-    gradient: 'from-amber-500 to-orange-500',
+    gradient: 'from-amber-500 via-orange-500 to-rose-600',
     border: 'border-amber-500/30',
-    glow: 'shadow-[0_0_50px_rgba(245,158,11,0.22)]',
-    bestFor: 'Large contractors & primes managing complex pursuit strategies',
+    glow: 'shadow-amber-500/20',
+    bestFor: 'Organizations managing multiple bids',
     features: [
-      'Unlimited searches',
-      'Unlimited exports',
-      'Unlimited saved opportunities',
-      'Dedicated account manager',
-      'Custom integrations',
-      'Phone support',
+      'Everything in Professional',
+      'Team accounts & roles',
+      'Admin portal controls',
+      'Advanced reporting',
+      'Dedicated onboarding',
     ],
   },
 ]
+
+function formatDate(timestampOrISO?: string | number | null) {
+  if (!timestampOrISO) return null
+  try {
+    const d =
+      typeof timestampOrISO === 'number'
+        ? new Date(timestampOrISO * 1000)
+        : new Date(timestampOrISO)
+    if (Number.isNaN(d.getTime())) return null
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  } catch {
+    return null
+  }
+}
 
 export default function PricingClient() {
   const router = useRouter()
@@ -148,15 +158,19 @@ export default function PricingClient() {
   const [showChangeWarning, setShowChangeWarning] = useState<{
     tier: PricingTier
     type: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
-    message?: string
   } | null>(null)
 
-  const [showCancelWarning, setShowCancelWarning] = useState(false)
+  const [pendingAction, setPendingAction] = useState<{
+    tier: PricingTier
+    type: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
+  } | null>(null)
 
   const currentTier = useMemo(() => {
-    if (!subscription || subscription.tier === 'NONE') return null
+    if (!subscription?.tier || subscription.tier === 'NONE') return null
     return TIERS.find((t) => t.id === subscription.tier) || null
-  }, [subscription])
+  }, [subscription?.tier])
+
+  const selectedInterval = useMemo(() => (billingInterval === 'annual' ? 'year' : 'month'), [billingInterval])
 
   const formatPrice = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(2))
 
@@ -181,28 +195,44 @@ export default function PricingClient() {
 
       if (data.tier) {
         tier = data.tier
-      } else if (data.planTier) {
-        tier = data.planTier
+      } else if (data.plan_tier) {
+        tier = data.plan_tier
       } else if (data.plan && data.plan !== 'trial' && data.plan !== 'none') {
         tier = String(data.plan).toUpperCase() as PlanTier
-      } else if (data.plan === 'trial' && data.planTier) {
-        tier = data.planTier
+      } else if (data.plan === 'trial' && data.plan_tier) {
+        tier = data.plan_tier
       }
 
-      subscriptionId = data.subscriptionId || data.stripeSubscriptionId || null
-      subscriptionStatus = data.status || data.subscriptionStatus || data.planStatus || null
+      // Accept either snake_case or camelCase API keys
+      subscriptionId =
+        data.subscription_id ||
+        data.stripe_subscription_id ||
+        data.subscriptionId ||
+        data.stripeSubscriptionId ||
+        null
+
+      subscriptionStatus = data.status || data.subscription_status || data.plan_status || null
 
       if (data.interval) {
         interval = data.interval
+      } else if (data.billing_interval) {
+        interval = data.billing_interval === 'MONTHLY' ? 'month' : 'year'
       } else if (data.billingInterval) {
         interval = data.billingInterval === 'MONTHLY' ? 'month' : 'year'
       }
 
       const stripeCustomerId: string | null =
-        data.stripeCustomerId || data.stripe_customer_id || data.customerId || data.customer_id || null
+        data.stripe_customer_id ||
+        data.stripeCustomerId ||
+        data.customerId ||
+        data.customer_id ||
+        null
 
       const stripeSubscriptionId: string | null =
-        data.stripeSubscriptionId || data.stripe_subscription_id || subscriptionId || null
+        data.stripe_subscription_id ||
+        data.stripeSubscriptionId ||
+        subscriptionId ||
+        null
 
       console.log('🔍 EXTRACTED VALUES:', {
         tier,
@@ -229,8 +259,8 @@ export default function PricingClient() {
         interval,
         status: subscriptionStatus,
         subscriptionId,
-        cancelAtPeriodEnd: data.cancelAtPeriodEnd || false,
-        currentPeriodEnd: data.currentPeriodEnd || null,
+        cancelAtPeriodEnd: data.cancel_at_period_end || data.cancelAtPeriodEnd || false,
+        currentPeriodEnd: data.current_period_end || data.currentPeriodEnd || null,
         hasSubscription: hasActiveSubscription,
         stripeCustomerId,
         stripeSubscriptionId,
@@ -269,30 +299,33 @@ export default function PricingClient() {
         const result = await loadPlan()
         const statusLower = String(result?.subscriptionStatus || '').toLowerCase()
 
-        const isDone =
-          Boolean(result) &&
-          result!.tier !== 'NONE' &&
+        const done =
+          Boolean(result?.subscriptionId) &&
           (statusLower === 'active' || statusLower === 'trialing' || statusLower === 'trial')
 
-        if (isDone) return
-
-        if (statusLower === 'canceled' || statusLower === 'incomplete_expired') {
-          setError('Your Stripe subscription did not activate (canceled/expired). Please try again.')
+        if (done) {
+          setSuccess('✅ Subscription synced successfully.')
+          if (syncTimerRef.current) {
+            clearTimeout(syncTimerRef.current)
+            syncTimerRef.current = null
+          }
           return
         }
 
-        if (syncAttemptsRef.current >= 15) {
-          setError(
-            'Payment succeeded, but your subscription is still syncing. Please refresh in a minute—if it still doesn’t update, your Stripe webhook is likely not updating the database.'
-          )
+        if (syncAttemptsRef.current >= 12) {
+          setError('⚠️ We could not confirm your subscription yet. Please refresh in a minute.')
+          if (syncTimerRef.current) {
+            clearTimeout(syncTimerRef.current)
+            syncTimerRef.current = null
+          }
           return
         }
 
-        syncTimerRef.current = setTimeout(tick, 2000)
+        syncTimerRef.current = setTimeout(tick, 2500)
       }
 
-      console.log('🔄 Starting plan sync polling:', source)
-      await tick()
+      console.log('🔁 Starting plan sync polling:', { source })
+      syncTimerRef.current = setTimeout(tick, 750)
     },
     [loadPlan]
   )
@@ -302,7 +335,7 @@ export default function PricingClient() {
   }, [status, loadPlan])
 
   useEffect(() => {
-  const successParam = searchParams?.get('success')
+    const successParam = searchParams?.get('success')
     if (successParam === 'true') {
       setSuccess('✅ Payment received — syncing your subscription…')
       startPlanSyncPolling('return-from-checkout')
@@ -388,430 +421,402 @@ export default function PricingClient() {
 
     switch (changeType) {
       case 'upgrade':
-        return 'Upgrade Now'
+        return 'Upgrade'
       case 'downgrade':
         return 'Downgrade'
+      case 'new':
+        return 'Start 7-Day Free Trial'
       default:
-        return 'Select Plan'
+        return 'Select'
     }
   }
 
-  async function handlePlanAction(tier: PricingTier) {
+  function getButtonStyle(tier: PricingTier): string {
     const changeType = getChangeType(tier)
 
-    if (status === 'unauthenticated') {
-      sessionStorage.setItem(
-        'pendingPlanSelection',
-        JSON.stringify({
-          tierId: tier.id,
-          interval: billingInterval,
-        })
-      )
-      router.push('/login?callbackUrl=/pricing')
-      return
+    if (changeType === 'current') {
+      return 'bg-slate-900 text-white border border-slate-700/50 cursor-default'
     }
 
-    if (changeType === 'current') return
-
-    if (changeType === 'interval-change') {
-      setShowChangeWarning({
-        tier,
-        type: 'interval-change',
-        message: `Switch from ${subscription.interval || 'month'}ly to ${billingInterval} billing?`,
-      })
-      return
+    if (tier.highlight) {
+      return 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-95'
     }
 
-    if (changeType === 'new' || changeType === 'downgrade') {
-      setShowChangeWarning({ tier, type: changeType })
-    } else if (changeType === 'upgrade') {
-      await executePlanChange(tier, 'upgrade')
-    }
+    return 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50'
   }
 
-  async function executePlanChange(
-    tier: PricingTier,
-    changeType: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
-  ) {
-    setShowChangeWarning(null)
-    setLoading(tier.id)
-    setError(null)
-    setSuccess(null)
-
+  async function executePlanChange(tier: PricingTier, type: 'upgrade' | 'downgrade' | 'new' | 'interval-change') {
     try {
-      if (changeType === 'downgrade') {
-        const res = await fetch('/api/billing/schedule-downgrade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newTier: tier.id }),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || 'Failed to schedule downgrade')
-        }
-
-        setSuccess(`Your plan will downgrade to ${tier.name} at the end of your current billing period.`)
-        await loadPlan()
-      } else {
-        const res = await fetch('/api/stripe/create-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tier: tier.id,
-            interval: billingInterval,
-            successUrl: `${window.location.origin}/pricing?success=true`,
-            cancelUrl: `${window.location.origin}/pricing`,
-          }),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || 'Failed to create checkout session')
-        }
-
-        const { url } = await res.json()
-        if (url) window.location.href = url
-        else throw new Error('No checkout URL received')
-      }
-    } catch (err: any) {
-      console.error('Plan change error:', err)
-      setError(err?.message || 'Failed to change plan. Please try again.')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  async function openStripePortal() {
-    try {
+      setLoading(tier.id)
       setSaving(true)
       setError(null)
       setSuccess(null)
 
-      const res = await fetch('/api/stripe/portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to open billing portal')
+      if (status !== 'authenticated') {
+        // Store pending selection for after signup/login
+        sessionStorage.setItem(
+          'pendingPlanSelection',
+          JSON.stringify({ tierId: tier.id, interval: billingInterval })
+        )
+        router.push('/auth/signup')
+        return
       }
 
-      const { url } = await res.json()
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
-      else throw new Error('No portal URL received')
+      const payload = {
+        tier: tier.id,
+        billingInterval,
+      }
+
+      // If you already have an active subscription and are changing plan/interval,
+      // your backend should interpret this appropriately.
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        const msg = data?.error || data?.message || 'Failed to start checkout.'
+        setError(String(msg))
+        return
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url
+        return
+      }
+
+      // Fallback: if backend does inline update, poll
+      setSuccess('✅ Request received — syncing your subscription…')
+      startPlanSyncPolling('checkout-no-url')
     } catch (err: any) {
-      console.error('Stripe portal error:', err)
-      setError(err?.message || 'Failed to open billing portal. Please try again.')
+      console.error(err)
+      setError(err?.message || 'Something went wrong.')
     } finally {
+      setLoading(null)
       setSaving(false)
     }
   }
 
-  async function cancelSubscriptionAtPeriodEnd() {
-    const subId = subscription.subscriptionId || subscription.stripeSubscriptionId
-    if (!subId) return
+  function handleSelect(tier: PricingTier) {
+    const type = getChangeType(tier)
 
-    setShowCancelWarning(false)
-    setSaving(true)
-    setError(null)
-    setSuccess(null)
+    if (type === 'current') return
 
-    try {
-      const res = await fetch('/api/stripe/subscription/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ atPeriodEnd: true }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to cancel subscription')
-      }
-
-      setSuccess('Subscription cancelled. You will keep access until the end of your billing period.')
-      await loadPlan()
-    } catch (err: any) {
-      console.error('Cancel subscription error:', err)
-      setError(err?.message || 'Failed to cancel subscription. Please try again.')
-    } finally {
-      setSaving(false)
+    // For downgrades and interval changes, show a warning confirmation modal
+    if (type === 'downgrade' || type === 'interval-change') {
+      setShowChangeWarning({ tier, type })
+      setPendingAction({ tier, type })
+      return
     }
+
+    // For upgrades/new, go directly
+    executePlanChange(tier, type)
   }
 
-  const tierCardStyles = (tier: PricingTier) => {
-    const isCurrent = subscription.tier === tier.id
-    const isHighlighted = tier.highlight
-    const base =
-      'relative rounded-3xl border bg-white/70 backdrop-blur-xl p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl'
-
-    if (isCurrent) return `${base} border-orange-500 shadow-[0_0_60px_rgba(249,115,22,0.25)]`
-    if (isHighlighted) return `${base} ${tier.border} ${tier.glow}`
-    return `${base} border-gray-200/70 hover:border-gray-300/80`
+  function closeWarning() {
+    setShowChangeWarning(null)
+    setPendingAction(null)
   }
 
-  const priceLabel = (tier: PricingTier) => {
-    const price = billingInterval === 'annual' ? tier.annualPrice : tier.monthlyPrice
-    const period = billingInterval === 'annual' ? 'year' : 'month'
-    return { price, period }
+  function confirmWarning() {
+    if (!pendingAction) return
+    executePlanChange(pendingAction.tier, pendingAction.type)
+    closeWarning()
   }
 
-  const showInCardBillingActions = status === 'authenticated' && subscription.hasSubscription
+  const currentPeriodEndLabel = useMemo(() => {
+    const formatted = formatDate(subscription.currentPeriodEnd)
+    return formatted ? `Renews / ends on ${formatted}` : null
+  }, [subscription.currentPeriodEnd])
 
+  const planStatusLabel = useMemo(() => {
+    const st = String(subscription.status || '').toLowerCase()
+    if (!st) return null
+    if (st === 'active') return 'Active'
+    if (st === 'trialing' || st === 'trial') return 'Trial'
+    if (st === 'canceled' || st === 'cancelled') return 'Canceled'
+    if (st === 'past_due') return 'Past Due'
+    if (st === 'unpaid') return 'Unpaid'
+    if (st === 'incomplete') return 'Incomplete'
+    if (st === 'incomplete_expired') return 'Expired'
+    if (st === 'paused') return 'Paused'
+    if (st === 'pending') return 'Pending'
+    return st
+  }, [subscription.status])
+
+  // ----- UI -----
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-white">
+      <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
               Pricing
-              <span className="ml-3 inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-700">
-                7-Day Free Trial
-              </span>
             </h1>
-            <p className="mt-3 max-w-2xl text-slate-600">
-              Choose a plan that fits your contracting workflow. Upgrade, downgrade, or cancel anytime.
+            <p className="mt-2 text-slate-300">
+              Choose the plan that fits your workflow. Upgrade or downgrade anytime.
             </p>
+
+            {planStatusLabel && (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-200 ring-1 ring-white/10">
+                <CreditCard className="h-4 w-4 text-slate-200" />
+                <span>
+                  Current: <span className="font-semibold">{subscription.tier}</span>
+                  {subscription.interval ? (
+                    <span className="text-slate-300">
+                      {' '}
+                      ({subscription.interval === 'month' ? 'Monthly' : 'Annual'})
+                    </span>
+                  ) : null}
+                  {subscription.cancelAtPeriodEnd ? (
+                    <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-300 ring-1 ring-amber-500/20">
+                      Canceling at period end
+                    </span>
+                  ) : null}
+                </span>
+                <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-300 ring-1 ring-emerald-500/20">
+                  {planStatusLabel}
+                </span>
+                {currentPeriodEndLabel ? (
+                  <span className="ml-2 text-slate-400">{currentPeriodEndLabel}</span>
+                ) : null}
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center rounded-2xl border border-slate-200 bg-white px-2 py-2 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center rounded-full bg-white/5 p-1 ring-1 ring-white/10">
               <button
+                type="button"
                 onClick={() => setBillingInterval('monthly')}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                className={[
+                  'rounded-full px-4 py-2 text-sm font-semibold transition',
                   billingInterval === 'monthly'
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
+                    ? 'bg-white text-slate-900'
+                    : 'text-slate-200 hover:bg-white/10',
+                ].join(' ')}
               >
                 Monthly
               </button>
               <button
+                type="button"
                 onClick={() => setBillingInterval('annual')}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                  billingInterval === 'annual' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
-                }`}
+                className={[
+                  'rounded-full px-4 py-2 text-sm font-semibold transition',
+                  billingInterval === 'annual'
+                    ? 'bg-white text-slate-900'
+                    : 'text-slate-200 hover:bg-white/10',
+                ].join(' ')}
               >
                 Annual
               </button>
             </div>
 
-            <Link
-              href="/account"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              Manage Account <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="hidden md:flex items-center gap-2 text-sm text-slate-300">
+              <Gift className="h-4 w-4" />
+              <span>7-day free trial included</span>
+            </div>
           </div>
         </div>
 
-        {/* Alerts */}
-        {error && (
-          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-800">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5" />
-              <div>
-                <p className="font-semibold">Something went wrong</p>
-                <p className="mt-1 text-sm">{error}</p>
+        {(error || success) && (
+          <div className="mt-6 space-y-3">
+            {error && (
+              <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-200">
+                <AlertCircle className="mt-0.5 h-5 w-5" />
+                <div className="text-sm leading-relaxed">{error}</div>
               </div>
-            </div>
+            )}
+            {success && (
+              <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                <Check className="mt-0.5 h-5 w-5" />
+                <div className="text-sm leading-relaxed">{success}</div>
+              </div>
+            )}
           </div>
         )}
 
-        {success && (
-          <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900">
-            <div className="flex items-start gap-3">
-              <Gift className="mt-0.5 h-5 w-5" />
-              <div>
-                <p className="font-semibold">Status</p>
-                <p className="mt-1 text-sm">{success}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Pricing cards */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
           {TIERS.map((tier) => {
-            const { price, period } = priceLabel(tier)
-            const isCurrent = subscription.tier === tier.id
+            const Icon = tier.icon
+            const changeType = getChangeType(tier)
+            const isLoading = loading === tier.id
+
+            const price =
+              billingInterval === 'annual' ? tier.annualPrice : tier.monthlyPrice
+
+            const suffix = billingInterval === 'annual' ? '/yr' : '/mo'
 
             return (
-              <div key={tier.id} className={tierCardStyles(tier)}>
-                {tier.highlight && (
-                  <div className="absolute -top-3 right-6 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-1 text-xs font-bold text-white shadow">
-                    Most Popular
-                  </div>
-                )}
+              <div
+                key={tier.id}
+                className={[
+                  'relative overflow-hidden rounded-3xl border bg-white/5 p-6 ring-1 ring-white/10',
+                  tier.border,
+                  tier.glow,
+                  tier.highlight ? 'scale-[1.01] md:scale-[1.02]' : '',
+                ].join(' ')}
+              >
+                <div
+                  className={[
+                    'absolute inset-0 opacity-30',
+                    'bg-gradient-to-br',
+                    tier.gradient,
+                  ].join(' ')}
+                />
+                <div className="relative">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100 ring-1 ring-white/10">
+                        <Icon className="h-4 w-4" />
+                        {tier.name}
+                      </div>
+                      <div className="mt-3 text-lg font-semibold text-white">
+                        {tier.tagline}
+                      </div>
+                      <p className="mt-2 text-sm text-slate-200/80">
+                        {tier.description}
+                      </p>
+                    </div>
 
-                {isCurrent && (
-                  <div className="absolute -top-3 right-6 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-1 text-xs font-bold text-white shadow">
-                    Current Plan
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3">
-                  <div className={`rounded-2xl bg-gradient-to-r ${tier.gradient} p-3 text-white shadow`}>
-                    <tier.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">{tier.name}</h3>
-                    <p className="text-sm font-semibold text-slate-600">{tier.tagline}</p>
-                  </div>
-                </div>
-
-                <p className="mt-4 text-sm text-slate-600">{tier.description}</p>
-
-                <div className="mt-6 flex items-end gap-2">
-                  <div className="text-4xl font-extrabold text-slate-900">${formatPrice(price)}</div>
-                  <div className="pb-1 text-sm font-semibold text-slate-500">/ {period}</div>
-                </div>
-
-                {billingInterval === 'annual' && (
-                  <p className="mt-2 text-xs font-semibold text-emerald-700">Save ~2 months vs monthly</p>
-                )}
-
-                {/* Main plan button */}
-                <div className="mt-6">
-                  <button
-                    onClick={() => handlePlanAction(tier)}
-                    disabled={loading === tier.id || isCurrent}
-                    className={`w-full rounded-2xl px-4 py-3 text-sm font-bold shadow-sm transition ${
-                      isCurrent
-                        ? 'cursor-default bg-slate-200 text-slate-600'
-                        : `bg-gradient-to-r ${tier.gradient} text-white hover:opacity-95`
-                    }`}
-                  >
-                    {loading === tier.id ? (
-                      <span className="inline-flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing…
-                      </span>
-                    ) : (
-                      getButtonText(tier)
-                    )}
-                  </button>
-                </div>
-
-                {/* ✅ In-card actions for CURRENT PLAN */}
-                {isCurrent && showInCardBillingActions && (
-                  <div className="mt-3 grid grid-cols-1 gap-2">
-                    <button
-                      onClick={openStripePortal}
-                      disabled={saving}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
-                    >
-                      <CreditCard className="h-4 w-4" />
-                      Manage Billing
-                    </button>
-
-                    {!subscription.cancelAtPeriodEnd ? (
-                      <button
-                        onClick={() => setShowCancelWarning(true)}
-                        disabled={saving}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 hover:bg-red-100 disabled:opacity-60"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Cancel Subscription
-                      </button>
-                    ) : (
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                        Cancellation scheduled (ends at period close).
+                    {tier.highlight && (
+                      <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/10">
+                        Most Popular
                       </div>
                     )}
                   </div>
-                )}
 
-                <div className="mt-6">
-                  <p className="text-sm font-semibold text-slate-800">Best for</p>
-                  <p className="mt-1 text-sm text-slate-600">{tier.bestFor}</p>
-                </div>
+                  <div className="mt-6 flex items-end gap-2">
+                    <div className="text-4xl font-bold text-white">
+                      ${formatPrice(price)}
+                    </div>
+                    <div className="pb-1 text-sm text-slate-200/80">{suffix}</div>
+                  </div>
 
-                <div className="mt-6">
-                  <p className="text-sm font-semibold text-slate-800">Includes</p>
-                  <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                  <div className="mt-2 text-sm text-slate-200/80">
+                    Best for: <span className="text-white">{tier.bestFor}</span>
+                  </div>
+
+                  <ul className="mt-6 space-y-3 text-sm text-slate-100/90">
                     {tier.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2">
-                        <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
-                        <span>{f}</span>
+                      <li key={f} className="flex items-start gap-3">
+                        <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/10">
+                          <Check className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="leading-relaxed">{f}</span>
                       </li>
                     ))}
                   </ul>
+
+                  <button
+                    type="button"
+                    disabled={changeType === 'current' || saving}
+                    onClick={() => handleSelect(tier)}
+                    className={[
+                      'mt-8 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition',
+                      getButtonStyle(tier),
+                      saving ? 'opacity-80' : '',
+                    ].join(' ')}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing…
+                      </>
+                    ) : (
+                      <>
+                        {getButtonText(tier)}
+                        {changeType !== 'current' && <ArrowRight className="h-4 w-4" />}
+                      </>
+                    )}
+                  </button>
+
+                  {changeType === 'downgrade' && (
+                    <div className="mt-3 text-xs text-slate-200/70">
+                      Downgrades take effect at the end of your current billing period.
+                    </div>
+                  )}
                 </div>
               </div>
             )
           })}
         </div>
 
-        {/* Confirmation modal */}
-        {showChangeWarning && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
-              <h3 className="text-lg font-extrabold text-slate-900">Confirm change</h3>
-              <p className="mt-2 text-sm text-slate-600">
-                {showChangeWarning.message ||
-                  `Are you sure you want to ${showChangeWarning.type} to ${showChangeWarning.tier.name}?`}
-              </p>
-
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={() => setShowChangeWarning(null)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={() => executePlanChange(showChangeWarning.tier, showChangeWarning.type)}
-                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
-                >
-                  Confirm
-                </button>
+        <div className="mt-12 rounded-3xl border border-white/10 bg-white/5 p-6 ring-1 ring-white/10">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-lg font-semibold text-white">Need help choosing?</div>
+              <div className="mt-1 text-sm text-slate-300">
+                Contact support and we’ll help you pick the right tier.
               </div>
             </div>
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+            >
+              Contact Support
+            </Link>
           </div>
-        )}
-
-        {/* Cancel modal */}
-        {showCancelWarning && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
-              <h3 className="text-lg font-extrabold text-slate-900">Cancel subscription</h3>
-              <p className="mt-2 text-sm text-slate-600">
-                Are you sure? You’ll keep access until the end of your current billing period.
-              </p>
-
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={() => setShowCancelWarning(false)}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Keep Subscription
-                </button>
-
-                <button
-                  onClick={cancelSubscriptionAtPeriodEnd}
-                  disabled={saving}
-                  className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
-                >
-                  {saving ? 'Cancelling…' : 'Confirm Cancel'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="mt-12 text-center text-sm text-slate-500">
-          Need help?{' '}
-          <Link href="/account" className="font-semibold text-slate-800 hover:underline">
-            Visit your account page
-          </Link>{' '}
-          to manage billing or contact support.
         </div>
       </div>
+
+      {/* Warning Modal */}
+      {showChangeWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl ring-1 ring-white/10">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-2xl bg-amber-500/10 p-2 ring-1 ring-amber-500/20">
+                  <AlertCircle className="h-5 w-5 text-amber-300" />
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-white">Confirm change</div>
+                  <div className="mt-1 text-sm text-slate-300">
+                    {showChangeWarning.type === 'downgrade' ? (
+                      <>
+                        Downgrades usually take effect at the end of your current billing period.
+                      </>
+                    ) : (
+                      <>
+                        Switching billing intervals may change your next renewal date.
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeWarning}
+                className="rounded-2xl p-2 text-slate-300 hover:bg-white/5"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={closeWarning}
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmWarning}
+                className="flex-1 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getToken } from 'next-auth/jwt'
 
@@ -9,7 +9,7 @@ async function authedEmail(req: NextRequest) {
   const secret = process.env.NEXTAUTH_SECRET
   if (!secret) return null
   const token = await getToken({ req, secret })
-  const email = (token as any)?.email || (token as any)?.user?.email || (token as any)?.sub
+  const email = (token as any)?.email || (token as any)?.users?.email || (token as any)?.sub
   return typeof email === 'string' && email.length ? email : null
 }
 

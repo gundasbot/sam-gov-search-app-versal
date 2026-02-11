@@ -97,7 +97,7 @@ export function getErrorMessage(error: any, context: 'search' | 'export' | 'save
     case 'export':
       return {
         title: 'Export Failed',
-        message: 'We couldn\'t export your search results. Please try again.',
+        message: "We couldn't export your search results. Please try again.",
         details: errorMessage,
         showRetryButton: true,
         showUpgradeButton: false,
@@ -106,7 +106,7 @@ export function getErrorMessage(error: any, context: 'search' | 'export' | 'save
     case 'save':
       return {
         title: 'Save Failed',
-        message: 'We couldn\'t save your search. Please try again.',
+        message: "We couldn't save your search. Please try again.",
         details: errorMessage,
         showRetryButton: true,
         showUpgradeButton: false,

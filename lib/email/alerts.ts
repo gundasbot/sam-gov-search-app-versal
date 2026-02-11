@@ -7,7 +7,7 @@ export interface AlertEmailData {
   alertName: string
   resultCount: number
   results: any[]
-  alertId: string
+  alert_id: string
   frequency: string
   recipientName?: string
 }
@@ -74,7 +74,7 @@ function sanitizeFilename(name: string): string {
 }
 
 export async function sendAlertEmail(data: AlertEmailData) {
-  const { to, alertName, resultCount, results, alertId, frequency, recipientName } = data
+  const { to, alertName, resultCount, results, alert_id: alertId, frequency, recipientName } = data
 
   const recipients = normalizeRecipients(to)
   if (!recipients.length) {
@@ -86,19 +86,15 @@ export async function sendAlertEmail(data: AlertEmailData) {
   const filename = `${sanitizeFilename(alertName)}_${new Date().toISOString().split('T')[0]}.xlsx`
 
   const html = generateAlertEmailHTML({
-    alertName,
-    resultCount,
-    results: (results || []).slice(0, 10),
-    alertId,
+    alertName, resultCount,
+    results: (results || []).slice(0, 10), alert_id: alertId,
     frequency,
     recipientName,
   })
 
   const text = generateAlertEmailText({
-    alertName,
-    resultCount,
-    results: (results || []).slice(0, 10),
-    alertId,
+    alertName, resultCount,
+    results: (results || []).slice(0, 10), alert_id: alertId,
     recipientName,
   })
 
@@ -109,7 +105,7 @@ export async function sendAlertEmail(data: AlertEmailData) {
     text,
     attachments: resultCount > 0
       ? [{
-          filename,
+          file_name: filename,
           content: excelBuffer.toString('base64'),
           contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         }]
@@ -123,11 +119,11 @@ function generateAlertEmailHTML(data: {
   alertName: string
   resultCount: number
   results: any[]
-  alertId: string
+  alert_id: string
   frequency: string
   recipientName?: string
 }): string {
-  const { alertName, resultCount, results, alertId, frequency, recipientName } = data
+  const { alertName, resultCount, results, alert_id: alertId, frequency, recipientName } = data
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const greeting = getTimeOfDayGreeting()
   const name = recipientName ? `, ${escapeHtml(recipientName.split(' ')[0])}` : ''
@@ -160,9 +156,9 @@ function generateAlertEmailHTML(data: {
                   📍 ${escapeHtml(opp.fullParentPathName || opp.department || 'Agency Not Specified')}
                 </div>
 
-                ${opp.solicitationNumber ? `
+                ${opp.solicitation_number ? `
                 <div style="margin-top: 5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #64748b; font-size: 12px;">
-                  📋 Solicitation: ${escapeHtml(opp.solicitationNumber)}
+                  📋 Solicitation: ${escapeHtml(opp.solicitation_number)}
                 </div>` : ''}
 
                 <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 14px;">
@@ -389,7 +385,7 @@ function generateAlertEmailText(data: {
   alertName: string
   resultCount: number
   results: any[]
-  alertId: string
+  alert_id: string
   recipientName?: string
 }): string {
   const { alertName, resultCount, results, recipientName } = data
@@ -409,8 +405,8 @@ function generateAlertEmailText(data: {
   results.forEach((opp, index) => {
     text += `${index + 1}. ${opp.title || 'Untitled Opportunity'}\n`
     text += `   Agency: ${opp.fullParentPathName || opp.department || 'Not specified'}\n`
-    if (opp.solicitationNumber) {
-      text += `   Solicitation: ${opp.solicitationNumber}\n`
+    if (opp.solicitation_number) {
+      text += `   Solicitation: ${opp.solicitation_number}\n`
     }
     text += `   Posted: ${safeDateLabel(opp.postedDate)}\n`
     text += `   Deadline: ${safeDateLabel(opp.responseDeadLine)}\n`

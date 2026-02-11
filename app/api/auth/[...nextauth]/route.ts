@@ -1,4 +1,4 @@
-// app/api/auth/[...nextauth]/route.ts 
+// app/api/auth/[...nextauth]/route.ts - FIXED
 
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
@@ -126,9 +126,9 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        autoLoginUserId: { label: "Auto Login User ID", type: "text" }, // ✅ ADD THIS
+        auto_login_user_id: { label: "Auto Login User ID", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email) {
           throw new Error("Email is required")
         }
@@ -162,10 +162,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Account not found")
         }
 
-        // ✅ AUTO-LOGIN FLOW CHECK
+        // AUTO-LOGIN FLOW CHECK
         if (
-          credentials.autoLoginUserId &&
-          credentials.autoLoginUserId === user.id
+          credentials.auto_login_user_id &&
+          credentials.auto_login_user_id === user.id
         ) {
           // Auto-login flow - token already validated by /api/auth/auto-login
           console.log(`✅ Auto-login authorize for ${user.email}`)
@@ -192,57 +192,22 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email not verified. Please check your inbox.")
         }
 
-        // ✅ Normalize tier to one of three tiers
-        let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
-        const rawTier = (user.plan_tier || user.plan || "BASIC").toUpperCase()
-
-        if (rawTier === "PROFESSIONAL" || rawTier === "PRO") {
-          tier = "PROFESSIONAL"
-        } else if (rawTier === "ENTERPRISE") {
-          tier = "ENTERPRISE"
-        } else {
-          tier = "BASIC"
-        }
-
-        // ✅ Normalize interval
-        const rawInterval = user.billing_interval || null
-        let interval: "month" | "year" | null = null
-        if (rawInterval) {
-          const lower = String(rawInterval).toLowerCase()
-          if (lower === "monthly" || lower === "month") interval = "month"
-          if (lower === "annual" || lower === "year") interval = "year"
-        }
-
-        // ✅ Use subscription_status as primary, fallback to plan_status
-        const status = user.subscription_status || user.plan_status || "trialing"
-
-        // ✅ Check if user has active subscription
-        const hasSubscription = Boolean(
-          user.stripe_subscription_id &&
-            (status === "active" ||
-              status === "trialing" ||
-              status === "trial" ||
-              status === "past_due")
-        )
-
+        // Return a User object with type assertion
         return {
           id: user.id,
           email: user.email,
-          name:
-            user.name ||
-            `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() ||
-            email.split("@")[0],
+          name: user.name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || email.split("@")[0],
+          // Add custom properties with type assertion
           role: user.role ?? "user",
-          tier,
-          interval,
-          status,
-          hasSubscription,
-          trial_active: user.trial_active || false,
-          currentPeriodEnd:
-            user.trial_expires_at?.toISOString() ||
-            user.trial_ends_at?.toISOString() ||
-            new Date().toISOString(),
-        }
+          plan: user.plan,
+          plan_tier: user.plan_tier,
+          plan_status: user.plan_status,
+          subscription_status: user.subscription_status,
+          billing_interval: user.billing_interval,
+          trial_active: user.trial_active,
+          trial_ends_at: user.trial_ends_at,
+          stripe_subscription_id: user.stripe_subscription_id,
+        } as any
       },
     }),
   ],
@@ -260,7 +225,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    // ✅ Force sane post-login landing
+    // Force sane post-login landing
     async redirect({ url, baseUrl }) {
       try {
         const u = new URL(url, baseUrl)
@@ -296,17 +261,51 @@ export const authOptions: NextAuthOptions = {
         token.id = (user as any).id
         token.email = user.email
         token.name = user.name
+        
+        // Pass custom properties from user object
         token.role = (user as any).role ?? "user"
-        token.tier = (user as any).tier || "BASIC"
-        token.interval = (user as any).interval || null
-        token.status = (user as any).status || "trialing"
-        token.hasSubscription = (user as any).hasSubscription || false
-        token.trial_active = (user as any).trial_active || false
-        token.currentPeriodEnd = (user as any).currentPeriodEnd
+        token.plan = (user as any).plan
+        token.plan_tier = (user as any).plan_tier
+        token.plan_status = (user as any).plan_status
+        token.subscription_status = (user as any).subscription_status
+        token.billing_interval = (user as any).billing_interval
+        token.trial_active = (user as any).trial_active
+        token.trial_ends_at = (user as any).trial_ends_at
+        token.stripe_subscription_id = (user as any).stripe_subscription_id
+
+        // Also set normalized tier, interval, etc. for backward compatibility
+        const rawTier = ((user as any).plan_tier || (user as any).plan || "BASIC").toUpperCase()
+        token.tier = (() => {
+          if (rawTier === "PROFESSIONAL" || rawTier === "PRO") return "PROFESSIONAL"
+          if (rawTier === "ENTERPRISE") return "ENTERPRISE"
+          return "BASIC"
+        })()
+
+        const rawInterval = (user as any).billing_interval || null
+        token.interval = (() => {
+          if (rawInterval) {
+            const lower = String(rawInterval).toLowerCase()
+            if (lower === "monthly" || lower === "month") return "month"
+            if (lower === "annual" || lower === "year") return "year"
+          }
+          return null
+        })()
+
+        token.status = (user as any).subscription_status || (user as any).plan_status || "trialing"
+        token.hasSubscription = Boolean(
+          (user as any).stripe_subscription_id &&
+          (token.status === "active" ||
+            token.status === "trialing" ||
+            token.status === "trial" ||
+            token.status === "past_due")
+        )
+        token.current_period_end = (user as any).trial_expires_at?.toISOString() ||
+          (user as any).trial_ends_at?.toISOString() ||
+          new Date().toISOString()
       }
 
       // If session update is triggered, fetch fresh data from database
-      if (token.email && (trigger === "update" || !user)) {
+      if (token.email && trigger === "update") {
         try {
           const dbUser = await prisma.users.findUnique({
             where: { email: token.email as string },
@@ -335,53 +334,49 @@ export const authOptions: NextAuthOptions = {
               `${dbUser.first_name || ""} ${dbUser.last_name || ""}`.trim() ||
               (token.email as string).split("@")[0]
             token.role = dbUser.role ?? "user"
+            token.plan = dbUser.plan
+            token.plan_tier = dbUser.plan_tier
+            token.plan_status = dbUser.plan_status
+            token.subscription_status = dbUser.subscription_status
+            token.billing_interval = dbUser.billing_interval
+            token.trial_active = dbUser.trial_active ?? false  // Convert null to false
+            token.trial_ends_at = dbUser.trial_ends_at
+            token.stripe_subscription_id = dbUser.stripe_subscription_id
 
             // Normalize tier
-            let tier: "BASIC" | "PROFESSIONAL" | "ENTERPRISE" = "BASIC"
             const rawTier = (dbUser.plan_tier || dbUser.plan || "BASIC").toUpperCase()
-
-            if (rawTier === "PROFESSIONAL" || rawTier === "PRO") {
-              tier = "PROFESSIONAL"
-            } else if (rawTier === "ENTERPRISE") {
-              tier = "ENTERPRISE"
-            } else {
-              tier = "BASIC"
-            }
-
-            token.tier = tier
+            token.tier = (() => {
+              if (rawTier === "PROFESSIONAL" || rawTier === "PRO") return "PROFESSIONAL"
+              if (rawTier === "ENTERPRISE") return "ENTERPRISE"
+              return "BASIC"
+            })()
 
             // Normalize interval
             const rawInterval = dbUser.billing_interval || null
-            let interval: "month" | "year" | null = null
-            if (rawInterval) {
-              const lower = String(rawInterval).toLowerCase()
-              if (lower === "monthly" || lower === "month") interval = "month"
-              if (lower === "annual" || lower === "year") interval = "year"
-            }
-
-            token.interval = interval
+            token.interval = (() => {
+              if (rawInterval) {
+                const lower = String(rawInterval).toLowerCase()
+                if (lower === "monthly" || lower === "month") return "month"
+                if (lower === "annual" || lower === "year") return "year"
+              }
+              return null
+            })()
 
             // Use subscription_status as primary
-            const status = dbUser.subscription_status || dbUser.plan_status || "trialing"
-            token.status = status
+            token.status = dbUser.subscription_status || dbUser.plan_status || "trialing"
 
             // Check if user has active subscription
-            const hasSubscription = Boolean(
+            token.hasSubscription = Boolean(
               dbUser.stripe_subscription_id &&
-                (status === "active" ||
-                  status === "trialing" ||
-                  status === "trial" ||
-                  status === "past_due")
+                (token.status === "active" ||
+                  token.status === "trialing" ||
+                  token.status === "trial" ||
+                  token.status === "past_due")
             )
 
-            token.hasSubscription = hasSubscription
-            token.trial_active = dbUser.trial_active ?? false
-            token.currentPeriodEnd =
-              dbUser.trial_expires_at?.toISOString() ||
+            token.current_period_end = dbUser.trial_expires_at?.toISOString() ||
               dbUser.trial_ends_at?.toISOString() ||
-              (typeof token.currentPeriodEnd === "string"
-                ? token.currentPeriodEnd
-                : new Date().toISOString())
+              token.current_period_end
           }
         } catch (err) {
           console.error("JWT refresh error:", err)
@@ -397,13 +392,24 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).id = token.id as string
         session.user.email = token.email as string
         session.user.name = token.name as string
+        
+        // Pass all custom properties
         ;(session.user as any).role = token.role as string
+        ;(session.user as any).plan = token.plan as string
+        ;(session.user as any).plan_tier = token.plan_tier as string
+        ;(session.user as any).plan_status = token.plan_status as string
+        ;(session.user as any).subscription_status = token.subscription_status as string
+        ;(session.user as any).billing_interval = token.billing_interval as string
+        ;(session.user as any).trial_active = token.trial_active as boolean
+        ;(session.user as any).trial_ends_at = token.trial_ends_at as Date
+        ;(session.user as any).stripe_subscription_id = token.stripe_subscription_id as string
+        
+        // Normalized properties for backward compatibility
         ;(session.user as any).tier = token.tier as string
         ;(session.user as any).interval = token.interval as string | null
         ;(session.user as any).status = token.status as string
         ;(session.user as any).hasSubscription = token.hasSubscription as boolean
-        ;(session.user as any).trial_active = token.trial_active as boolean
-        ;(session.user as any).currentPeriodEnd = token.currentPeriodEnd as string
+        ;(session.user as any).current_period_end = token.current_period_end as string
       }
 
       return session

@@ -13,7 +13,7 @@ export async function sendPasswordReset(to: string, resetUrl: string) {
     subject: "Reset your Precise GovCon password",
     html: `
       <p>Hello,</p>
-      <p>Click below to reset your passwordHash:</p>
+      <p>Click below to reset your password_hash:</p>
       <p><a href="${resetUrl}">Reset Password</a></p>
       <p>This link expires in 30 minutes. If you didn’t request it, ignore this email.</p>
     `,

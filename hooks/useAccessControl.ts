@@ -136,8 +136,8 @@ export function useAccessControl(): AccessControlState {
           interval: data.interval || null,
           status: data.status || 'inactive',
           hasSubscription: Boolean(data.hasSubscription),
-          currentPeriodEnd: data.currentPeriodEnd || null,
-          cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
+          currentPeriodEnd: data.current_period_end || null,
+          cancelAtPeriodEnd: Boolean(data.cancel_at_period_end),
         })
       } catch (err: any) {
         // Ignore aborts

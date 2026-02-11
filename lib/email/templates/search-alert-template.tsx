@@ -27,10 +27,8 @@ interface EmailTemplateProps {
 }
 
 export function generateSearchAlertEmail({
-  searchName,
-  resultCount,
-  opportunities,
-  searchParams,
+  searchName, resultCount,
+  opportunities, searchParams,
   runDate,
   recipientName = 'Valued User',
 }: EmailTemplateProps): string {

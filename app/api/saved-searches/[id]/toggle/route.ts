@@ -29,7 +29,7 @@ export async function POST(
       return NextResponse.json({ error: 'Search not found' }, { status: 404 })
     }
 
-    const newStatus = !search.subscriptionEnabled
+    const newStatus = !search.subscription_enabled
 
     // If enabling, ensure required fields exist
     if (newStatus) {
@@ -45,7 +45,7 @@ export async function POST(
         await prisma.saved_searches_new.update({
           where: { id },
           data: {
-            subscriptionEnabled: true,
+            subscription_enabled: true,
             frequency: 'DAILY',
           },
         })
@@ -55,12 +55,12 @@ export async function POST(
           include: {
             _count: {
               select: {
-                searchRuns: true,
-                searchExports: true,
+                search_runs: true,
+                search_exports: true,
               },
             },
-            searchRuns: {
-              orderBy: { createdAt: 'desc' },
+            search_runs: {
+              orderBy: { created_at: 'desc' },
               take: 1,
             },
           },
@@ -77,18 +77,18 @@ export async function POST(
     const updated = await prisma.saved_searches_new.update({
       where: { id },
       data: {
-        subscriptionEnabled: newStatus,
+        subscription_enabled: newStatus,
         ...(newStatus === false && { frequency: null }),
       },
       include: {
         _count: {
           select: {
-            searchRuns: true,
-            searchExports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
-        searchRuns: {
-          orderBy: { createdAt: 'desc' },
+        search_runs: {
+          orderBy: { created_at: 'desc' },
           take: 1,
         },
       },

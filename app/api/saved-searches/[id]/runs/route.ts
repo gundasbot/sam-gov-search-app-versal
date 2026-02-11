@@ -20,7 +20,7 @@ export async function GET(
     const search = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        user_id: session.user.id,
       },
       select: { 
         id: true,
@@ -38,41 +38,38 @@ export async function GET(
     const limit = parseInt(url.searchParams.get('limit') || '10')
 
     // Fetch runs from both SearchRun and AlertRun tables
-    const searchRuns = await prisma.searchRun.findMany({
+    const searchRuns = await prisma.search_runs.findMany({
       where: {
-        savedSearchId: id,
+        saved_search_id: id,
       },
       orderBy: {
-        createdAt: 'desc',
+        created_at: 'desc',
       },
       take: Math.min(limit, 100), // Max 100
       select: {
         id: true,
-        createdAt: true,
+        created_at: true,
         status: true,
-        resultCount: true,
-        emailSent: true,
-        errorMessage: true,
+        result_count: true,
+        email_sent: true,
+        error_message: true,
       },
     })
 
-    const alertRuns = await prisma.alertRun.findMany({
+    const alertRuns = await prisma.alert_runs.findMany({
       where: {
-        searchId: id,
+        alert_id: id,
       },
       orderBy: {
-        startedAt: 'desc',
+        ran_at: 'desc',
       },
       take: Math.min(limit, 100), // Max 100
       select: {
         id: true,
-        startedAt: true,
-        completedAt: true,
+        ran_at: true,
         status: true,
-        resultCount: true,
-        emailsSent: true,
-        emailRecipients: true,
-        error: true,
+        result_count: true,
+        error_message: true,
       },
     })
 
@@ -80,25 +77,24 @@ export async function GET(
     const combinedRuns = [
       ...searchRuns.map(run => ({
         id: run.id,
-        createdAt: run.createdAt,
+        created_at: run.created_at,
         status: run.status,
-        resultCount: run.resultCount,
-        emailsSent: run.emailSent ? 1 : 0,
-        errorMessage: run.errorMessage,
+        result_count: run.result_count,
+        emails_sent: run.email_sent ? 1 : 0,
+        error_message: run.error_message,
         type: 'search' as const,
       })),
       ...alertRuns.map(run => ({
         id: run.id,
-        createdAt: run.startedAt,
-        completedAt: run.completedAt,
+        created_at: run.ran_at,
         status: run.status,
-        resultCount: run.resultCount || 0,
-        emailsSent: run.emailsSent,
-        emailRecipients: run.emailRecipients,
-        errorMessage: run.error,
+        result_count: run.result_count || 0,
+        emails_sent: 0,  // alert_runs does not track emails_sent
+        emailRecipients: null,  // alert_runs does not have emailRecipients
+        error_message: run.error_message,
         type: 'alert' as const,
       })),
-    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, limit)
+    ].sort((a, b) => b.created_at.getTime() - a.created_at.getTime()).slice(0, limit)
 
     return NextResponse.json({ 
       success: true,

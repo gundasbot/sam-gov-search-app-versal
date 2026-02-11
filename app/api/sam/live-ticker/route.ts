@@ -1,4 +1,4 @@
-﻿// app/api/sam/live-ticker/route.ts - Enhanced with graceful 429 handling
+// app/api/sam/live-ticker/route.ts - Enhanced with graceful 429 handling
 import { NextResponse } from 'next/server';
 
 const SAM_API_KEY = process.env.SAMGOVAPIKEY || process.env.SAM_API_KEY || '';
@@ -21,7 +21,7 @@ function truncate(str: string, maxLength: number): string {
 
 export async function GET() {
   if (!SAM_API_KEY) {
-    console.error('❌ No SAM API key found. Check .env.local');
+    console.error('? No SAM API key found. Check .env.local');
     return NextResponse.json({
       count: 0,
       opportunities: [],
@@ -44,7 +44,7 @@ export async function GET() {
     });
 
     const apiUrl = `${SAM_BASE_URL}?${params.toString()}`;
-    console.log('🎫 Fetching ticker from SAM.gov...');
+    console.log('?? Fetching ticker from SAM.gov...');
     console.log('Date range:', getDateDaysAgo(7), 'to', todayFormatted);
 
     const response = await fetch(apiUrl, {
@@ -60,7 +60,7 @@ export async function GET() {
       const errorData = await response.json().catch(() => ({}));
       const nextAccessTime = errorData.nextAccessTime || 'Unknown';
       
-      console.warn('⚠️ SAM API Rate Limit Exceeded');
+      console.warn('?? SAM API Rate Limit Exceeded');
       console.warn('Next access time:', nextAccessTime);
       
       return NextResponse.json({
@@ -80,7 +80,7 @@ export async function GET() {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ SAM API Error (Ticker):', response.status, errorText);
+      console.error('? SAM API Error (Ticker):', response.status, errorText);
       
       // Return graceful error instead of throwing
       return NextResponse.json({
@@ -93,12 +93,12 @@ export async function GET() {
     }
 
     const data = await response.json();
-    console.log('✅ Ticker received:', data.totalRecords || 0, 'total records');
+    console.log('? Ticker received:', data.totalRecords || 0, 'total records');
 
     const opportunities = (data.opportunitiesData || []).map((opp: any) => ({
       id: opp.noticeId || '',
       title: truncate(opp.title || 'Untitled Opportunity', 60),
-      solicitationNumber: opp.solicitationNumber || opp.noticeId || 'N/A',
+      solicitationNumber: opp.solicitation_number || opp.noticeId || 'N/A',
       agency: truncate(opp.departmentName || opp.department || opp.fullParentPathName?.split('.')[0] || 'Unknown', 40),
       postedDate: opp.postedDate || opp.publishDate || new Date().toISOString(),
       type: opp.type || opp.noticeType || 'Solicitation',
@@ -109,7 +109,7 @@ export async function GET() {
       state: opp.placeOfPerformance?.state?.code || opp.officeAddress?.state || '',
     }));
 
-    console.log('✅ Transformed', opportunities.length, 'ticker items');
+    console.log('? Transformed', opportunities.length, 'ticker items');
 
     return NextResponse.json({
       count: data.totalRecords || opportunities.length,
@@ -123,7 +123,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching ticker data:', error);
+    console.error('? Error fetching ticker data:', error);
     
     // Return graceful error response instead of 500
     return NextResponse.json({

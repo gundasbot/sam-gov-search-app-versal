@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 import bcrypt from "bcryptjs"
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     // Find the reset token
     const resetToken = await prisma.password_reset_tokens.findUnique({
-      where: { tokenHash },
+      where: { token_hash: tokenHash },
     })
 
     if (!resetToken) {
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     }
 
     // Check if token is expired
-    if (resetToken.expiresAt < new Date()) {
+    if (resetToken.expires_at < new Date()) {
       return NextResponse.json(
         { error: "Reset token has expired" },
         { status: 400 }
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     }
 
     // Check if token was already used
-    if (resetToken.usedAt) {
+    if (resetToken.used_at) {
       return NextResponse.json(
         { error: "Reset token has already been used" },
         { status: 400 }
@@ -55,29 +55,29 @@ export async function POST(req: Request) {
 
     // Hash the new password
     const passwordHash = await bcrypt.hash(password, 12)
-    console.log('ðŸ”’ Reset password for:', resetToken.email)
-    console.log('ðŸ”‘ New hash starts with:', passwordHash.substring(0, 10))
+    console.log('🔒 Reset password for:', resetToken.email)
+    console.log('🔑 New hash starts with:', passwordHash.substring(0, 10))
 
     // Update the user's password
     const updatedUser = await prisma.users.update({
       where: { email: resetToken.email },
       data: { 
-        passwordHash,
-        updatedAt: new Date()
+        password_hash: passwordHash,
+        updated_at: new Date()
       },
     })
-    console.log('âœ… User updated:', updatedUser.email, 'at', updatedUser.updatedAt)
+    console.log('✅ User updated:', updatedUser.email, 'at', updatedUser.updated_at)
 
     // Mark the token as used
     await prisma.password_reset_tokens.update({
-      where: { tokenHash },
-      data: { usedAt: new Date() },
+      where: { token_hash: tokenHash },
+      data: { used_at: new Date() },
     })
 
     // Send security notification email
     try {
       await sendPasswordChangedNotification(resetToken.email)
-      console.log('ðŸ“§ Password change notification sent to:', resetToken.email)
+      console.log('📧 Password change notification sent to:', resetToken.email)
     } catch (emailError) {
       console.error('Failed to send notification email:', emailError)
       // Don't fail the password reset if email fails

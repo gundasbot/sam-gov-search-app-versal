@@ -86,8 +86,8 @@ export function useSubscription() {
           interval: data.interval || null,
           status: data.status || 'inactive',
           hasSubscription: Boolean(data.hasSubscription),
-          currentPeriodEnd: data.currentPeriodEnd || null,
-          cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
+          currentPeriodEnd: data.current_period_end || null,
+          cancelAtPeriodEnd: Boolean(data.cancel_at_period_end),
           loading: false,
           error: null,
         })
@@ -131,7 +131,7 @@ export function useSubscription() {
     interval: planData?.interval || (session?.user as any)?.interval || null,
     status: planData?.status || (session?.user as any)?.status || 'inactive',
     hasSubscription: planData?.hasSubscription || (session?.user as any)?.hasSubscription || false,
-    currentPeriodEnd: planData?.currentPeriodEnd || (session?.user as any)?.currentPeriodEnd || null,
+    currentPeriodEnd: planData?.currentPeriodEnd || (session?.user as any)?.current_period_end || null,
     cancelAtPeriodEnd: planData?.cancelAtPeriodEnd || false,
 
     // Loading states

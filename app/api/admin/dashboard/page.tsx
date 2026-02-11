@@ -7,17 +7,17 @@ import { useRouter } from 'next/navigation'
 interface User {
   id: string
   email: string
-  firstName: string | null
-  lastName: string | null
+  first_name: string | null
+  last_name: string | null
   role: string
-  createdAt: Date
-  updatedAt: Date
+  created_at: Date
+  updated_at: Date
   phone: string | null
   company: string | null
   city: string | null
   state: string | null
   country: string | null
-  postalCode: string | null
+  postal_code: string | null
 }
 
 export default function AdminDashboard() {
@@ -71,7 +71,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, role: newRole })
+        body: JSON.stringify({ user_id: userId, role: newRole })
       })
       
       if (res.ok) {
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
                 <p className="text-xl sm:text-2xl font-bold">
                   {users.filter(u => {
                     const today = new Date()
-                    const userDate = new Date(u.createdAt)
+                    const userDate = new Date(u.created_at)
                     return userDate.toDateString() === today.toDateString()
                   }).length}
                 </p>
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
                   {users.filter(u => {
                     const weekAgo = new Date()
                     weekAgo.setDate(weekAgo.getDate() - 7)
-                    return new Date(u.createdAt) > weekAgo
+                    return new Date(u.created_at) > weekAgo
                   }).length}
                 </p>
               </div>
@@ -217,8 +217,8 @@ export default function AdminDashboard() {
                     <td className="p-3 sm:p-4">
                       <div>
                         <p className="font-medium text-sm sm:text-base">
-                          {user.firstName && user.lastName 
-                            ? `${user.firstName} ${user.lastName}`
+                          {user.first_name && user.last_name 
+                            ? `${user.first_name} ${user.last_name}`
                             : <span className="text-slate-500">No Name</span>
                           }
                         </p>
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
                       </div>
                     </td>
                     <td className="p-3 sm:p-4 text-xs sm:text-sm text-slate-400">
-                      {new Date(user.createdAt).toLocaleDateString('en-US', {
+                      {new Date(user.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'

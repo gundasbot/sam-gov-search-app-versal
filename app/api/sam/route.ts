@@ -1,4 +1,4 @@
-﻿//sam/api/sam/route.ts
+//sam/api/sam/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -81,27 +81,27 @@ function ensurePostedDateRange(params: URLSearchParams) {
     if (!isNaN(parsed.getTime())) {
       resolvedFrom = midnight(parsed)
     } else {
-      // unparseable â€” fall back to 364-day window
+      // unparseable — fall back to 364-day window
       const fallback = midnight(new Date(resolvedTo))
       fallback.setDate(fallback.getDate() - 364)
       resolvedFrom = fallback
     }
   } else {
-    // ðŸ†• No postedFrom supplied â€” default to 364 DAYS back (SAM.gov maximum, ~1 year)
+    // 🆕 No postedFrom supplied — default to 364 DAYS back (SAM.gov maximum, ~1 year)
     // This captures most relevant opportunities while respecting API limits
     const fallback = midnight(new Date(resolvedTo))
     fallback.setDate(fallback.getDate() - 364)
     resolvedFrom = fallback
-    console.log('ðŸ“… No posted date filter - using max 364-day range (SAM.gov limit)')
+    console.log('📅 No posted date filter - using max 364-day range (SAM.gov limit)')
   }
 
-  // âœ… Validate date range is <= 364 days (SAM.gov requirement)
+  // ✅ Validate date range is <= 364 days (SAM.gov requirement)
   const diffMs = resolvedTo.getTime() - resolvedFrom.getTime()
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
   
   if (diffDays > 364) {
     // If range exceeds 364 days, adjust to exactly 364 days
-    console.log(`ðŸ“… Date range too large (${diffDays} days). Adjusting to 364 days max.`)
+    console.log(`📅 Date range too large (${diffDays} days). Adjusting to 364 days max.`)
     const adjusted = midnight(new Date(resolvedTo))
     adjusted.setDate(adjusted.getDate() - 364)
     resolvedFrom = adjusted
@@ -152,16 +152,16 @@ async function fetchSAM(upstreamUrl: string) {
 }
 
 /**
- * ðŸ” DEBUG: Show what SAM.gov actually returns
+ * 🔍 DEBUG: Show what SAM.gov actually returns
  */
 function debugSAMResponse(data: any, requestedSetAside: string | null) {
   if (!data?.opportunitiesData?.length) {
-    console.log('âš ï¸  SAM.gov returned 0 opportunities')
+    console.log('⚠️  SAM.gov returned 0 opportunities')
     return
   }
   
   const firstOpp = data.opportunitiesData[0]
-  console.log('ðŸ” SAM.gov Response DEBUG:')
+  console.log('🔍 SAM.gov Response DEBUG:')
   console.log('  Total returned:', data.opportunitiesData.length)
   console.log('  Looking for set-aside:', requestedSetAside || 'N/A')
   console.log('  First opportunity:')
@@ -317,7 +317,7 @@ function mapParametersToSAMAPI(params: URLSearchParams): URLSearchParams {
   return samParams
 }
 /**
- * ðŸ” Filter opportunities by set-aside code (backend filtering)
+ * 🔍 Filter opportunities by set-aside code (backend filtering)
  * SAM.gov API ignores typeOfSetAsideCode parameter, so we filter manually
  */
 function filterBySetAside(data: any, requestedSetAside: string | null): any {
@@ -330,7 +330,7 @@ function filterBySetAside(data: any, requestedSetAside: string | null): any {
 
   // Filter opportunities that match the requested set-aside
   data.opportunitiesData = data.opportunitiesData.filter((opp: any) => {
-    // âœ… CORRECT FIELD NAMES: SAM.gov returns typeOfSetAside and typeOfSetAsideDescription
+    // ✅ CORRECT FIELD NAMES: SAM.gov returns typeOfSetAside and typeOfSetAsideDescription
     const oppSetAsideCode = (opp.typeOfSetAside || opp.setAsideCode || '').toString().trim().toUpperCase()
     const oppSetAsideDesc = (opp.typeOfSetAsideDescription || opp.setAside || '').toString().trim().toUpperCase()
     
@@ -345,7 +345,7 @@ function filterBySetAside(data: any, requestedSetAside: string | null): any {
   })
 
   const filteredCount = data.opportunitiesData.length
-  console.log(`âœ… Backend Set-Aside filter: "${requestedSetAside}" | SAM.gov returned: ${originalCount} â†’ After filter: ${filteredCount}`)
+  console.log(`✅ Backend Set-Aside filter: "${requestedSetAside}" | SAM.gov returned: ${originalCount} → After filter: ${filteredCount}`)
 
   // Update total count to reflect filtered results
   data.totalRecords = filteredCount
@@ -355,7 +355,7 @@ function filterBySetAside(data: any, requestedSetAside: string | null): any {
 
 export async function GET(req: NextRequest) {
   try {
-    // ðŸ”’ Auth check
+    // 🔒 Auth check
     // Unauthenticated users still inside their free 15-minute browse window
     // send X-Browsing-Session: true.  Skip auth for those requests.
     const isBrowsingSession = req.headers.get('x-browsing-session') === 'true'
@@ -372,7 +372,7 @@ export async function GET(req: NextRequest) {
     const upstreamUrl = new URL(SAM_UPSTREAM_BASE)
 
     // Map frontend parameters to SAM.gov API parameters
-    console.log('ðŸ“¥ Frontend params received:', Array.from(requestUrl.searchParams.entries()).slice(0, 10))
+    console.log('📥 Frontend params received:', Array.from(requestUrl.searchParams.entries()).slice(0, 10))
     const mappedParams = mapParametersToSAMAPI(requestUrl.searchParams)
     
     // Apply mapped parameters to upstream URL
@@ -380,19 +380,19 @@ export async function GET(req: NextRequest) {
       upstreamUrl.searchParams.set(key, value)
     }
 
-    // âœ… Ensure required postedFrom/postedTo and correct date format
+    // ✅ Ensure required postedFrom/postedTo and correct date format
     ensurePostedDateRange(upstreamUrl.searchParams)
 
-    // ðŸ” Log the exact URL for debugging
-    console.log('ðŸ“¤ SAM.gov params:', Array.from(upstreamUrl.searchParams.entries()).slice(0, 10))
-    console.log('ðŸ” SAM.gov URL:', upstreamUrl.toString().replace(/api_key=[^&]+/, 'api_key=***'))
+    // 🔍 Log the exact URL for debugging
+    console.log('📤 SAM.gov params:', Array.from(upstreamUrl.searchParams.entries()).slice(0, 10))
+    console.log('🔍 SAM.gov URL:', upstreamUrl.toString().replace(/api_key=[^&]+/, 'api_key=***'))
 
-    // ðŸ” Capture the requested set-aside for backend filtering
+    // 🔍 Capture the requested set-aside for backend filtering
     const requestedSetAside = requestUrl.searchParams.get('typeOfSetAsideCode') || 
                                requestUrl.searchParams.get('setAside') ||
                                requestUrl.searchParams.get('typeOfSetAside')
     
-    // ðŸ”Ž Optional: broader keyword search by fanning out title searches per token and merging results.
+    // 🔎 Optional: broader keyword search by fanning out title searches per token and merging results.
     // The SAM Opportunities API doesn't support full-text keyword search across description like sam.gov UI.
     // For multi-word searches, we approximate "ANY word" by querying title for each token and merging/deduping.
     const keywordMode = (upstreamUrl.searchParams.get('keywordMode') || '').toLowerCase()
@@ -434,7 +434,7 @@ export async function GET(req: NextRequest) {
         for (const it of items) {
           const key =
             (it as any)?.noticeId ||
-            (it as any)?.noticeID ||
+            (it as any)?.noticeId ||
             (it as any)?.id ||
             JSON.stringify([it?.solnum, it?.title, it?.postedDate])
           if (seen.has(key)) continue
@@ -452,7 +452,7 @@ export async function GET(req: NextRequest) {
       responsePayload.totalRecords = merged.length
       responsePayload.hasMoreResults = merged.length > limit
 
-      // ðŸ” DEBUG & Filter
+      // 🔍 DEBUG & Filter
       debugSAMResponse(responsePayload, requestedSetAside)
       return NextResponse.json(filterBySetAside(responsePayload, requestedSetAside))
     }
@@ -460,10 +460,10 @@ export async function GET(req: NextRequest) {
     // Execute query
     let data = await fetchSAM(upstreamUrl.toString())
     
-    // ðŸ” DEBUG: Show what SAM.gov returned
+    // 🔍 DEBUG: Show what SAM.gov returned
     debugSAMResponse(data, requestedSetAside)
     
-    // ðŸ” Apply set-aside filtering before returning
+    // 🔍 Apply set-aside filtering before returning
     data = filterBySetAside(data, requestedSetAside)
     
     return NextResponse.json(data)

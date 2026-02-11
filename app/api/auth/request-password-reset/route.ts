@@ -1,4 +1,6 @@
-﻿import { NextResponse } from "next/server"
+//app/api/auth/request-password-reset/route.ts
+
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 import { brandedEmail } from "@/lib/email/template"
@@ -31,14 +33,21 @@ export async function POST(req: Request) {
     const ttlMin = Number(process.env.RESET_TOKEN_TTL_MINUTES || "30")
     const expiresAt = new Date(Date.now() + ttlMin * 60 * 1000)
 
-    // invalidate prior tokens
+    // Invalidate prior tokens (use snake_case field names)
     await prisma.password_reset_tokens.updateMany({
-      where: { email, usedAt: null },
-      data: { usedAt: new Date() },
+      where: { email, used_at: null },
+      data: { used_at: new Date() },
     })
 
+    // Create new token (use snake_case field names and include id)
     await prisma.password_reset_tokens.create({
-      data: { email, tokenHash, expiresAt },
+      data: { 
+        id: crypto.randomUUID(),
+        email, 
+        token_hash: tokenHash, 
+        expires_at: expiresAt,
+        created_at: new Date(),
+      },
     })
 
     const resetUrl = `${getAppUrl()}/reset-password?token=${raw}`
@@ -47,7 +56,7 @@ export async function POST(req: Request) {
       title: "Reset your Precise GovCon password",
       preheader: `Reset your password (link expires in ${ttlMin} minutes).`,
       intro:
-        "We received a request to reset your password for your Precise GovCon account. If you didnâ€™t request this, you can safely ignore this email.",
+        "We received a request to reset your password for your Precise GovCon account. If you didn't request this, you can safely ignore this email.",
       ctaText: "Reset Password",
       ctaUrl: resetUrl,
       note: `This reset link expires in ${ttlMin} minutes and can only be used once.`,

@@ -1,4 +1,4 @@
-﻿// app/api/saved-searches/route.ts
+// app/saved-searches/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -31,61 +31,6 @@ const normalizeExportFormat = (val: any): string => {
   return s.toUpperCase()
 }
 
-// Generate a unique ID
-function generateId(): string {
-  return randomBytes(12).toString('hex')
-}
-
-// Convert Date to MM/DD/YYYY format for frontend
-const formatDateForFrontend = (date: Date | null): string | null => {
-  if (!date) return null
-  const d = new Date(date)
-  if (isNaN(d.getTime())) return null
-  
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const year = d.getFullYear()
-  return `${month}/${day}/${year}`
-}
-
-// Transform database record to frontend format
-const transformSearchForFrontend = (search: any) => {
-  return {
-    ...search,
-    // Map snake_case to camelCase
-    userId: search.user_id,
-    isPinned: search.is_pinned,
-    solicitationNumber: search.solicitation_number,
-    noticeId: search.notice_id,
-    classificationCode: search.classification_code,
-    organizationCode: search.organization_code,
-    setAside: search.set_aside,
-    stateOfPerformance: search.state_of_performance,
-    placeOfPerformanceZip: search.place_of_performance_zip,
-    opportunityStatus: search.opportunity_status,
-    procurementType: search.procurement_type,
-    subscriptionEnabled: search.subscription_enabled,
-    emailNotification: search.email_notification,
-    sendEmptyResults: search.send_empty_results,
-    maxResults: search.max_results,
-    deliveryTime: search.delivery_time,
-    exportFormat: search.export_format,
-    includeLinks: search.include_links,
-    lastRunAt: search.last_run_at,
-    lastResultCount: search.last_result_count,
-    createdAt: search.created_at,
-    updatedAt: search.updated_at,
-    
-    // Date fields - convert to MM/DD/YYYY format
-    postedAfter: formatDateForFrontend(search.posted_after),
-    postedBefore: formatDateForFrontend(search.posted_before),
-    postedFrom: formatDateForFrontend(search.posted_after), // Alias
-    postedTo: formatDateForFrontend(search.posted_before), // Alias
-    rdlfrom: formatDateForFrontend(search.rdl_from),
-    rdlto: formatDateForFrontend(search.rdl_to),
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -101,11 +46,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate subscription-related fields
-    const subscription_enabled = Boolean(body.subscriptionEnabled)
+    const subscriptionEnabled = Boolean(body.subscription_enabled)
 
     // Only validate/set frequency if subscription is enabled
     let frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | null = null
-    if (subscription_enabled) {
+    if (subscriptionEnabled) {
       frequency = validateFrequency(body.frequency) || 'DAILY'
     }
 
@@ -127,62 +72,59 @@ export async function POST(req: NextRequest) {
     }
 
     // For email notifications (non-subscription saves), still allow recipients
-    const email_notification = Boolean(body.emailNotification)
+    const emailNotification = Boolean(body.email_notification)
 
     const search = await prisma.saved_searches_new.create({
       data: {
-        id: generateId(),
+        id: randomBytes(16).toString('hex'),
         user_id: session.user.id,
         name: sanitize(body.name) || 'Untitled Search',
         description: sanitize(body.description),
-        is_pinned: Boolean(body.isPinned),
+        is_pinned: Boolean(body.is_pinned),
+        updated_at: new Date(),
 
-        // Search criteria - snake_case field names
+        // Search criteria - CORRECT SNAKE_CASE FIELD NAMES
         keywords: sanitize(body.keywords),
         solicitation_number: sanitize(body.solnum),
-        notice_id: sanitize(body.noticeid),
+        notice_id: sanitize(body.noticeId),
         naics: sanitize(body.naics),
         classification_code: sanitize(body.ccode),
         agency: sanitize(body.agency),
-        organization_code: sanitize(body.organizationCode),
+        organization_code: sanitize(body.organization_code),
         set_aside: sanitize(body.setAside),
         state_of_performance: sanitize(body.stateOfPerformance),
         place_of_performance_zip: sanitize(body.zip),
         opportunity_status: sanitize(body.status),
         procurement_type: sanitize(body.procurementType) || 'o',
         
-        // Date fields - snake_case
-        posted_after: body.postedAfter ? new Date(body.postedAfter) : null,
-        posted_before: body.postedBefore ? new Date(body.postedBefore) : null,
+        // Date fields - CORRECT SNAKE_CASE
+        posted_after: body.posted_after ? new Date(body.posted_after) : null,
+        posted_before: body.posted_before ? new Date(body.posted_before) : null,
         rdl_from: body.rdlfrom ? new Date(body.rdlfrom) : null,
         rdl_to: body.rdlto ? new Date(body.rdlto) : null,
 
-        // Subscription settings - snake_case
-        subscription_enabled,
-        frequency,
+        // Subscription settings - CORRECT SNAKE_CASE
+        subscription_enabled: subscriptionEnabled,
+        frequency, // null if subscriptionEnabled is false
         recipients: recipientsString,
-        email_notification,
-        send_empty_results: Boolean(body.sendEmptyResults),
-        max_results: body.maxResults || 100,
-        delivery_time: body.deliveryTime || null,
-        export_format: normalizeExportFormat(body.exportFormat),
-        include_links: Boolean(body.includeLinks ?? true),
-        
-        // Timestamps
-        created_at: new Date(),
-        updated_at: new Date(),
+        email_notification: emailNotification,
+        send_empty_results: Boolean(body.send_empty_results),
+        max_results: body.max_results || 100,
+        delivery_time: body.delivery_time || null,
+        export_format: normalizeExportFormat(body.export_format),
+        include_links: Boolean(body.include_links ?? true),
       },
       include: {
         _count: {
           select: {
-            searchRuns: true,
-            searchExports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
     })
 
-    return NextResponse.json({ success: true, search: transformSearchForFrontend(search) })
+    return NextResponse.json({ success: true, search })
   } catch (error) {
     console.error('Error creating saved search:', error)
     return NextResponse.json({ error: 'Failed to create saved search' }, { status: 500 })
@@ -202,9 +144,6 @@ export async function GET(req: NextRequest) {
     const onlySubscribed =
       subscribedParam === 'true' || subscribedParam === '1' || subscribedParam === 'yes'
 
-    console.log('📋 Fetching saved searches for user:', session.user.id)
-    console.log('   Subscribed only:', onlySubscribed)
-
     const searches = await prisma.saved_searches_new.findMany({
       where: {
         user_id: session.user.id,
@@ -213,25 +152,17 @@ export async function GET(req: NextRequest) {
       include: {
         _count: {
           select: {
-            searchRuns: true,
-            searchExports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
       orderBy: [{ is_pinned: 'desc' }, { updated_at: 'desc' }],
     })
 
-    console.log('✅ Found', searches.length, 'saved searches')
-
-    // Transform all searches to frontend format
-    const transformedSearches = searches.map(transformSearchForFrontend)
-
-    return NextResponse.json({ success: true, searches: transformedSearches })
+    return NextResponse.json({ success: true, searches })
   } catch (error) {
-    console.error('❌ Error fetching saved searches:', error)
-    return NextResponse.json({ 
-      error: 'Failed to fetch saved searches',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    console.error('Error fetching saved searches:', error)
+    return NextResponse.json({ error: 'Failed to fetch saved searches' }, { status: 500 })
   }
 }

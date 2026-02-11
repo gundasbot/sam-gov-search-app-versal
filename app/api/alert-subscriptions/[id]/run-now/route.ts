@@ -137,7 +137,7 @@ export async function POST(
     await prisma.saved_searches_new.update({
       where: { id: subscription.id },
       data: {
-        last_run_at: new Date(),
+        lastRunAt: new Date(),
         last_result_count: resultCount,
       },
     })
@@ -206,11 +206,10 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-      subscriptionId: subscription.id,
+      subscription_id: subscription.id,
       runId: searchRun.id,
-      status: searchRun.status,
-      resultCount,
-      emailSent,
+      status: searchRun.status, resultCount,
+      email_sent: emailSent,
       error: errorMessage,
     })
   } catch (error) {

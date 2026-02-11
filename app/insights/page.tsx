@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, {
   useEffect,
@@ -180,9 +180,9 @@ const PLACEHOLDER_INSIGHTS: AIInsight[] = [
 ];
 
 const WELCOME_MESSAGES = [
-  "Here's what matters most in today’s federal market.",
+  "Here's what matters most in today�s federal market.",
   'Your GovCon intelligence dashboard is ready.',
-  'Let’s prioritize your next bids and alerts.',
+  'Let�s prioritize your next bids and alerts.',
   'Fresh signals, clear next steps.',
 ];
 
@@ -756,7 +756,7 @@ export default function InsightsPage() {
         ).length,
       },
       {
-        label: '1–3d',
+        label: '1�3d',
         count: expiringSorted.filter(
           (o: any) =>
             o.daysToDeadline > 1 &&
@@ -764,7 +764,7 @@ export default function InsightsPage() {
         ).length,
       },
       {
-        label: '4–7d',
+        label: '4�7d',
         count: expiringSorted.filter(
           (o: any) =>
             o.daysToDeadline > 3 &&
@@ -1139,7 +1139,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Expiring ≤7d
+                  Expiring =7d
                 </div>
                 <div className="mt-1 text-3xl font-extrabold text-gray-900">
                   {formatCompact(stats.expiringSoon)}
@@ -1303,7 +1303,7 @@ export default function InsightsPage() {
                     <span className="text-orange-600">
                       {dashboard.expiring24h}
                     </span>{' '}
-                    &lt;24h ·{' '}
+                    &lt;24h �{' '}
                     <span className="text-orange-600">
                       {dashboard.expiring72h}
                     </span>{' '}
@@ -1358,7 +1358,7 @@ export default function InsightsPage() {
                     <span>Quick rule</span>
                   </div>
                   <div className="text-sm text-gray-600 mt-1">
-                    If it’s a good fit and &lt;72 hours to
+                    If it�s a good fit and &lt;72 hours to
                     deadline, assign an owner and decide today.
                   </div>
                 </div>
@@ -1408,7 +1408,7 @@ export default function InsightsPage() {
                           }
                         : days <= 7
                         ? {
-                            label: '≤7d',
+                            label: '=7d',
                             cls: 'bg-amber-50 text-amber-800 border-amber-200',
                           }
                         : {
@@ -1599,7 +1599,7 @@ export default function InsightsPage() {
                     <span>Market trends</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    What’s rising or falling in your opportunity
+                    What�s rising or falling in your opportunity
                     stream.
                   </div>
                 </div>
@@ -1816,7 +1816,7 @@ export default function InsightsPage() {
               </div>
               <div className="text-sm text-gray-600">
                 Quick preview of recent opportunities; tap
-                “Open” to view in the explorer.
+                �Open� to view in the explorer.
               </div>
             </div>
             <button
@@ -1897,7 +1897,7 @@ export default function InsightsPage() {
             <div className="mt-6 rounded-2xl bg-gray-50 border border-gray-200 p-5 flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
               <div className="text-sm text-gray-700">
-                Loading live data; you’ll see real analytics
+                Loading live data; you�ll see real analytics
                 once the SAM feed arrives.
               </div>
             </div>

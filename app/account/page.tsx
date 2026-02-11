@@ -1,3 +1,5 @@
+//app/account/page.tsx
+
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
@@ -46,26 +48,26 @@ type Plan = {
   tier: PlanTier
   status: string
   interval: 'month' | 'year' | null
-  currentPeriodEnd: string | null
-  cancelAtPeriodEnd: boolean
-  subscriptionId: string | null
+  current_period_end: string | null
+  cancel_at_period_end: boolean
+  subscription_id: string | null
   price?: number
 }
 
 type ProfileData = {
   email: string
-  emailVerified: boolean
-  firstName: string
-  lastName: string
+  email_verified: boolean
+  first_name: string
+  last_name: string
   phone: string
-  phoneVerified: boolean
+  phone_verified: boolean
   company: string
   title: string
-  addressLine1: string
-  addressLine2: string
+  address_line1: string
+  address_line2: string
   city: string
   state: string
-  postalCode: string
+  postal_code: string
   country: string
 }
 
@@ -167,18 +169,18 @@ function AccountPageContent() {
   // Data state
   const [profile, setProfile] = useState<ProfileData>({
     email: session?.user?.email || '',
-    emailVerified: false,
-    firstName: '',
-    lastName: '',
+    email_verified: false,
+    first_name: '',
+    last_name: '',
     phone: '',
-    phoneVerified: false,
+    phone_verified: false,
     company: '',
     title: '',
-    addressLine1: '',
-    addressLine2: '',
+    address_line1: '',
+    address_line2: '',
     city: '',
     state: '',
-    postalCode: '',
+    postal_code: '',
     country: 'United States',
   })
   
@@ -335,7 +337,7 @@ function AccountPageContent() {
   }
 
   const handleCancelSubscription = async () => {
-    if (!plan?.subscriptionId) return
+    if (!plan?.subscription_id) return
 
     if (
       !confirm(
@@ -351,7 +353,7 @@ function AccountPageContent() {
       const res = await fetch('/api/stripe/subscription/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscriptionId: plan.subscriptionId }),
+        body: JSON.stringify({ subscription_id: plan.subscription_id }),
       })
 
       if (res.ok) {
@@ -599,14 +601,14 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
               <div>
                 <p className="text-sm text-slate-400">Profile</p>
                 <p className="text-xl font-bold text-white">
-                  {profile.firstName || profile.lastName
-                    ? `${profile.firstName} ${profile.lastName}`.trim()
+                  {profile.first_name || profile.last_name
+                    ? `${profile.first_name} ${profile.last_name}`.trim()
                     : 'Incomplete'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              {profile.emailVerified ? (
+              {profile.email_verified ? (
                 <>
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                   <span className="text-emerald-400">Email Verified</span>
@@ -740,7 +742,7 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
           description="Verify your email address to enable all features"
           buttonText="Verify Now"
           buttonAction={() => setActiveTab('profile')}
-          show={!profile.emailVerified}
+          show={!profile.email_verified}
         />
 
         <QuickActionCard
@@ -758,7 +760,7 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
           description="Add your contact information and company details"
           buttonText="Update Profile"
           buttonAction={() => setActiveTab('profile')}
-          show={!profile.firstName || !profile.company}
+          show={!profile.first_name || !profile.company}
         />
 
         <QuickActionCard
@@ -853,8 +855,8 @@ function ProfileTab({
             <label className="block text-sm font-medium text-slate-300 mb-2">First Name</label>
             <input
               type="text"
-              value={profile.firstName || ''}
-              onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+              value={profile.first_name || ''}
+              onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
               disabled={editMode !== 'personal'}
               className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
             />
@@ -864,8 +866,8 @@ function ProfileTab({
             <label className="block text-sm font-medium text-slate-300 mb-2">Last Name</label>
             <input
               type="text"
-              value={profile.lastName || ''}
-              onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+              value={profile.last_name || ''}
+              onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
               disabled={editMode !== 'personal'}
               className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
             />
@@ -881,13 +883,13 @@ function ProfileTab({
                 disabled={editMode !== 'personal'}
                 className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed pr-12"
               />
-              {profile.emailVerified ? (
+              {profile.email_verified ? (
                 <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-400" />
               ) : (
                 <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-400" />
               )}
             </div>
-            {!profile.emailVerified && (
+            {!profile.email_verified && (
               <button
                 onClick={sendEmailVerification}
                 disabled={verificationSent}
@@ -910,7 +912,7 @@ function ProfileTab({
                 placeholder="+1 (555) 123-4567"
                 className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed pr-12"
               />
-              {profile.phoneVerified ? (
+              {profile.phone_verified ? (
                 <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-400" />
               ) : (
                 <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
@@ -1022,8 +1024,8 @@ function ProfileTab({
             <label className="block text-sm font-medium text-slate-300 mb-2">Address Line 1</label>
             <input
               type="text"
-              value={profile.addressLine1 || ''}
-              onChange={(e) => setProfile({ ...profile, addressLine1: e.target.value })}
+              value={profile.address_line1 || ''}
+              onChange={(e) => setProfile({ ...profile, address_line1: e.target.value })}
               disabled={editMode !== 'address'}
               className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
             />
@@ -1033,8 +1035,8 @@ function ProfileTab({
             <label className="block text-sm font-medium text-slate-300 mb-2">Address Line 2</label>
             <input
               type="text"
-              value={profile.addressLine2 || ''}
-              onChange={(e) => setProfile({ ...profile, addressLine2: e.target.value })}
+              value={profile.address_line2 || ''}
+              onChange={(e) => setProfile({ ...profile, address_line2: e.target.value })}
               disabled={editMode !== 'address'}
               placeholder="Apartment, suite, etc. (optional)"
               className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -1068,8 +1070,8 @@ function ProfileTab({
               <label className="block text-sm font-medium text-slate-300 mb-2">Postal Code</label>
               <input
                 type="text"
-                value={profile.postalCode || ''}
-                onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
+                value={profile.postal_code || ''}
+                onChange={(e) => setProfile({ ...profile, postal_code: e.target.value })}
                 disabled={editMode !== 'address'}
                 className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
               />
@@ -1116,9 +1118,9 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
                     ${plan.interval === 'year' ? currentPlanDetails.annualPrice : currentPlanDetails.monthlyPrice}
                     /{plan.interval === 'year' ? 'year' : 'month'}
                   </p>
-                  {plan.currentPeriodEnd && (
+                  {plan.current_period_end && (
                     <p className="text-sm text-slate-500 mt-1">
-                      {plan.cancelAtPeriodEnd ? 'Cancels' : 'Renews'} on {new Date(plan.currentPeriodEnd).toLocaleDateString()}
+                      {plan.cancel_at_period_end ? 'Cancels' : 'Renews'} on {new Date(plan.current_period_end).toLocaleDateString()}
                     </p>
                   )}
                 </div>
@@ -1131,19 +1133,19 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
               </button>
             </div>
 
-            {plan.cancelAtPeriodEnd && (
+            {plan.cancel_at_period_end && (
               <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
                 <div className="flex items-center gap-2 text-red-400">
                   <AlertCircle className="h-5 w-5" />
                   <p className="text-sm">
-                    Your subscription will cancel on {new Date(plan.currentPeriodEnd).toLocaleDateString()}. 
+                    Your subscription will cancel on {new Date(plan.current_period_end).toLocaleDateString()}. 
                     You'll have access until then.
                   </p>
                 </div>
               </div>
             )}
 
-            {!plan.cancelAtPeriodEnd && (
+            {!plan.cancel_at_period_end && (
               <button
                 onClick={handleCancelSubscription}
                 className="text-sm text-red-400 hover:text-red-300"
@@ -1374,7 +1376,7 @@ function SupportTab({ profile, plan }: any) {
           priority,
           userInfo: {
             email: profile.email,
-            name: `${profile.firstName} ${profile.lastName}`.trim(),
+            name: `${profile.first_name} ${profile.last_name}`.trim(),
             plan: plan?.tier || 'NONE',
           },
         }),

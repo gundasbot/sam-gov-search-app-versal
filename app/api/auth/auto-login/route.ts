@@ -1,4 +1,4 @@
-﻿// app/api/auth/auto-login/route.ts
+// app/api/auth/auto-login/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
       ok: true, users: {
         id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
+        first_name: user.first_name,
+        last_name: user.last_name,
         name: user.name,
       },
     })

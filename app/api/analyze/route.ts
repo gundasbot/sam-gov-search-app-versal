@@ -1,4 +1,4 @@
-﻿// app/api/analyze/route.ts
+// app/api/analyze/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

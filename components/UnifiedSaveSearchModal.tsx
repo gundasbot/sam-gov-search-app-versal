@@ -285,7 +285,7 @@ export default function UnifiedSaveSearchModal({
       setSearchDescription(existingSearch.description || '')
       setKeywords(existingSearch.title || '')
       setSolicitationNumber(existingSearch.solnum || '')
-      setNoticeId(existingSearch.noticeid || '')
+      setNoticeId(existingSearch.noticeId || '')
       setProcurementType(existingSearch.ptype || '')
       setSetAsideType(existingSearch.typeOfSetAside || '')
       setOpportunityStatus(existingSearch.status || '')
@@ -294,7 +294,7 @@ export default function UnifiedSaveSearchModal({
       setClassificationCode(existingSearch.ccode || '')
       setZip(existingSearch.zip || '')
       setOrganizationName(existingSearch.organizationName || '')
-      setOrganizationCode(existingSearch.organizationCode || '')
+      setOrganizationCode(existingSearch.organization_code || '')
       
       // Use saved dates OR defaults
       setPostedFrom(existingSearch.postedFrom || freshDefaults.postedFrom)

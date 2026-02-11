@@ -10,6 +10,9 @@ import {
   FileText, Award, ShieldCheck, Zap, TrendingUp, Search as SearchIcon, Calendar
 } from 'lucide-react'
 import Link from 'next/link'
+import { Suspense } from 'react'
+
+export const dynamic = 'force-dynamic'
 
 // Service configurations for dynamic hero
 const serviceConfigs: Record<string, {
@@ -105,7 +108,7 @@ const serviceConfigs: Record<string, {
   },
 }
 
-export default function ContactPage() {
+function ContactPageContent() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -438,5 +441,17 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <ContactPageContent />
+    </Suspense>
   )
 }

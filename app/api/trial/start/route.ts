@@ -1,4 +1,6 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+// app/api/trial/start/route.ts
+
+import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import bcrypt from 'bcryptjs'
 import { sendTrialConfirmationEmail, sendAdminTrialNotification } from '@/lib/email'
@@ -18,8 +20,8 @@ function isValidEmail(email: string) {
 type Body = {
   featureName?: string
   contactContext?: string
-  firstName: string
-  lastName: string
+  first_name: string
+  last_name: string
   company?: string
   email: string
   phone: string
@@ -33,8 +35,8 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => null)) as Body | null
     if (!body) return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
 
-    const firstName = clamp(body.firstName, 80)
-    const lastName = clamp(body.lastName, 80)
+    const firstName = clamp(body.first_name, 80)
+    const lastName = clamp(body.last_name, 80)
     const company = clamp(body.company, 120)
     const email = clamp(body.email, 254).toLowerCase()
     const phone = clamp(body.phone, 50)
@@ -122,33 +124,30 @@ export async function POST(req: NextRequest) {
     `
 
     const trial_ends_at = (inserted?.[0] as any)?.trial_ends_at
-    
+
     // Send confirmation email to user
     try {
       await sendTrialConfirmationEmail({
-        email,
-        firstName,
-        lastName,
-        trial_ends_at: new Date(trial_ends_at)
+        to: email,
+        name: `${firstName} ${lastName}`.trim() || email.split('@')[0],
+        trial_ends_at: new Date(trial_ends_at),
       })
     } catch (emailError) {
       console.error('Failed to send trial confirmation email:', emailError)
     }
-    
+
     // Send notification to admin
     try {
       await sendAdminTrialNotification({
-        firstName,
-        lastName,
-        email,
-        phone,
-        company,
-        position,
-        trial_ends_at: new Date(trial_ends_at)
+        to: process.env.ADMIN_EMAIL || 'admin@example.com', // Admin email address
+        userEmail: email,
+        userName: `${firstName} ${lastName}`.trim(),
+        trial_ends_at: new Date(trial_ends_at),
       })
     } catch (emailError) {
       console.error('Failed to send admin notification:', emailError)
     }
+
     return NextResponse.json({ ok: true, trial_ends_at })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Server error.' }, { status: 500 })

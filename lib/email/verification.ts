@@ -6,17 +6,18 @@ import { sendEmail } from '@/lib/email/send'
 import { getVerificationEmailHtml, getVerificationEmailText } from '@/lib/email/verification-email'
 
 import { randomBytes } from 'crypto'
+
 export async function createVerificationToken(userId: string, email: string) {
   const token = crypto.randomBytes(32).toString('hex')
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+  const token_hash = crypto.createHash('sha256').update(token).digest('hex')
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
-  await prisma.emailVer
-        id: randomBytes(12).toString('hex'),ificationToken.create({
+  await prisma.email_verification_tokens.create({
     data: {
-      userId,
-      tokenHash,
-      expiresAt: expires,
+      id: randomBytes(12).toString('hex'),
+      user_id: userId,
+      token_hash,
+      expires_at: expires,
     },
   })
 
@@ -27,12 +28,12 @@ export async function sendVerificationEmail(email: string, name: string, token: 
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${token}`
 
   const html = getVerificationEmailHtml({
-    firstName: name.split(' ')[0],
+    first_name: name.split(' ')[0],
     verificationUrl,
   })
 
   const text = getVerificationEmailText({
-    firstName: name.split(' ')[0],
+    first_name: name.split(' ')[0],
     verificationUrl,
   })
 
@@ -45,22 +46,22 @@ export async function sendVerificationEmail(email: string, name: string, token: 
 }
 
 export async function verifyEmailToken(token: string) {
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+  const token_hash = crypto.createHash('sha256').update(token).digest('hex')
 
   const verificationToken = await prisma.email_verification_tokens.findUnique({
-    where: { tokenHash },
+    where: { token_hash },
   })
 
   if (!verificationToken) {
     return { success: false, error: 'Invalid verification token' }
   }
 
-  if (new Date() > verificationToken.expiresAt) {
+  if (new Date() > verificationToken.expires_at) {
     return { success: false, error: 'This verification link has expired' }
   }
 
   const user = await prisma.users.findUnique({
-    where: { id: verificationToken.userId },
+    where: { id: verificationToken.user_id },
   })
 
   if (!user) {
@@ -69,19 +70,20 @@ export async function verifyEmailToken(token: string) {
 
   await prisma.$transaction([
     prisma.users.update({
-      where: { id: verificationToken.userId },
+      where: { id: verificationToken.user_id },
       data: {
-        emailVerified: new Date(),
-        isActive: true,
+        email_verified: new Date(),
+        is_active: true,
       },
     }),
     prisma.email_verification_tokens.delete({
-      where: { tokenHash },
+      where: { token_hash },
     }),
   ])
 
   return {
-    success: true, users: {
+    success: true,
+    users: {
       id: user.id,
       email: user.email,
       name: user.name,

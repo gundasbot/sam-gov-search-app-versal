@@ -6,12 +6,12 @@ import { Shield, Users, Activity, Settings, Key, Mail, Calendar, CheckCircle, XC
 interface User {
   id: string
   email: string
-  firstName: string | null
-  lastName: string | null
+  first_name: string | null
+  last_name: string | null
   role: string
-  emailVerified: Date | null
-  createdAt: Date
-  updatedAt: Date
+  email_verified: Date | null
+  created_at: Date
+  updated_at: Date
 }
 
 export default function AdminDashboard() {
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, role: newRole })
+        body: JSON.stringify({ user_id: userId, role: newRole })
       })
       
       if (res.ok) {
@@ -118,7 +118,7 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-slate-400 text-sm mb-1">Verified Emails</p>
                 <p className="text-2xl font-bold">
-                  {users.filter(u => u.emailVerified).length}
+                  {users.filter(u => u.email_verified).length}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-400" />
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
                 <p className="text-2xl font-bold">
                   {users.filter(u => {
                     const today = new Date()
-                    const userDate = new Date(u.createdAt)
+                    const userDate = new Date(u.created_at)
                     return userDate.toDateString() === today.toDateString()
                   }).length}
                 </p>
@@ -174,8 +174,8 @@ export default function AdminDashboard() {
                       <td className="p-4">
                         <div>
                           <p className="font-medium">
-                            {user.firstName && user.lastName 
-                              ? `${user.firstName} ${user.lastName}`
+                            {user.first_name && user.last_name 
+                              ? `${user.first_name} ${user.last_name}`
                               : 'No Name Set'
                             }
                           </p>
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          {user.emailVerified ? (
+                          {user.email_verified ? (
                             <>
                               <CheckCircle className="w-4 h-4 text-green-400" />
                               <span className="text-sm text-green-400">Verified</span>
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="p-4 text-sm text-slate-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {new Date(user.created_at).toLocaleDateString()}
                       </td>
                       <td className="p-4">
                         <div className="flex gap-2">

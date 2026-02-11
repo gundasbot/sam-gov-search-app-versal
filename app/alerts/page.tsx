@@ -56,12 +56,12 @@ type SearchAlert = {
   description?: string
   frequency: AlertFrequency
   recipients: string
-  emailNotification?: boolean
-  fileFormat?: FileFormat
-  includeLinks?: boolean
-  sendEmptyResults?: boolean
-  maxResults?: number
-  deliveryTime?: string
+  email_notification?: boolean
+  file_format?: FileFormat
+  include_links?: boolean
+  send_empty_results?: boolean
+  max_results?: number
+  delivery_time?: string
 }
 
 type AlertFrequency = 'AS_CHANGES' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'MANUAL'
@@ -89,18 +89,18 @@ interface SavedSearch {
   postedBefore?: string | null
   rdlfrom?: string | null
   rdlto?: string | null
-  useCount?: number
-  lastUsedAt?: string | null
-  createdAt?: string
-  subscriptionEnabled?: boolean
+  use_count?: number
+  last_used_at?: string | null
+  created_at?: string
+  subscription_enabled?: boolean
   frequency?: string | null
   recipients?: string | null
-  emailNotification?: boolean
-  sendEmptyResults?: boolean
-  maxResults?: number
-  deliveryTime?: string | null
-  exportFormat?: string | null
-  includeLinks?: boolean
+  email_notification?: boolean
+  send_empty_results?: boolean
+  max_results?: number
+  delivery_time?: string | null
+  export_format?: string | null
+  include_links?: boolean
   _count?: {
     runs: number
     exports: number
@@ -114,16 +114,16 @@ interface AlertSubscription {
   frequency: AlertFrequency
   active: boolean
   recipients: string
-  fileFormat?: FileFormat | null
-  exportFormat?: string | null
-  includeLinks: boolean
-  sendEmptyResults: boolean
-  maxResults: number
-  deliveryTime?: string | null
-  emailNotification?: boolean
-  lastRunAt?: string | null
-  lastResultCount?: number | null
-  createdAt?: string
+  file_format?: FileFormat | null
+  export_format?: string | null
+  include_links: boolean
+  send_empty_results: boolean
+  max_results: number
+  delivery_time?: string | null
+  email_notification?: boolean
+  last_run_at?: string | null
+  last_result_count?: number | null
+  created_at?: string
   savedSearch: {
     id: string
     name: string
@@ -359,7 +359,7 @@ export default function AlertsPage() {
     recipients: string[]
     timestamp: string
     frequency: string
-    emailSent: boolean
+    email_sent: boolean
   } | null>(null)
   const [runningAlertName, setRunningAlertName] = useState<string>('')
   const [abortController, setAbortController] = useState<AbortController | null>(null)
@@ -371,7 +371,7 @@ export default function AlertsPage() {
   const activeCount = useMemo(() => subscriptions.filter((s) => s.active).length, [subscriptions])
   const pausedCount = useMemo(() => subscriptions.filter((s) => !s.active).length, [subscriptions])
   const deliveredCount = useMemo(
-    () => subscriptions.reduce((acc, s) => acc + (s.lastResultCount || 0), 0),
+    () => subscriptions.reduce((acc, s) => acc + (s.last_result_count || 0), 0),
     [subscriptions]
   )
 
@@ -432,24 +432,24 @@ async function fetchAll() {
           name: sub.name,
           description: sub.description,
           frequency: sub.frequency || 'DAILY',
-          active: sub.subscriptionEnabled || false,
+          active: sub.subscription_enabled || false,
           recipients: sub.recipients || '',
-          fileFormat: sub.exportFormat?.toLowerCase() || 'csv',
-          exportFormat: sub.exportFormat || 'CSV',
-          includeLinks: sub.includeLinks ?? true,
-          sendEmptyResults: sub.sendEmptyResults ?? false,
-          maxResults: sub.maxResults || 100,
-          deliveryTime: sub.deliveryTime || '09:00',
-          emailNotification: sub.emailNotification ?? true,
-          lastRunAt: sub.lastRunAt,
-          lastResultCount: sub.lastResultCount,
-          createdAt: sub.createdAt,
+          file_format: sub.export_format?.toLowerCase() || 'csv',
+          export_format: sub.export_format || 'CSV',
+          include_links: sub.include_links ?? true,
+          send_empty_results: sub.send_empty_results ?? false,
+          max_results: sub.max_results || 100,
+          delivery_time: sub.delivery_time || '09:00',
+          email_notification: sub.email_notification ?? true,
+          last_run_at: sub.last_run_at,
+          last_result_count: sub.last_result_count,
+          created_at: sub.created_at,
           savedSearch: {
             id: sub.id,
             name: sub.name,
             keywords: sub.keywords,
             solnum: sub.solicitationNumber,
-            noticeid: sub.noticeId,
+            noticeid: sub.noticeid,
             naics: sub.naics,
             ncode: sub.naics,
             ccode: sub.classificationCode,
@@ -470,7 +470,7 @@ async function fetchAll() {
             postedTo: sub.postedBefore,
             rdlfrom: sub.rdlfrom,
             rdlto: sub.rdlto,
-            limit: sub.maxResults,
+            limit: sub.max_results,
           },
         }))
         setSubscriptions(formatted)
@@ -524,13 +524,13 @@ async function fetchAll() {
     setExpandedAlertId(alert.id)
     setEditingAlert({
       ...alert,
-      fileFormat: (alert.fileFormat || alert.exportFormat || 'csv') as FileFormat,
-      exportFormat: alert.exportFormat || alert.fileFormat || 'csv',
-      emailNotification: alert.emailNotification ?? true,
-      includeLinks: alert.includeLinks ?? true,
-      sendEmptyResults: alert.sendEmptyResults ?? false,
-      maxResults: alert.maxResults || 100,
-      deliveryTime: alert.deliveryTime || '09:00',
+      file_format: (alert.file_format || alert.export_format || 'csv') as FileFormat,
+      export_format: alert.export_format || alert.file_format || 'csv',
+      email_notification: alert.email_notification ?? true,
+      include_links: alert.include_links ?? true,
+      send_empty_results: alert.send_empty_results ?? false,
+      max_results: alert.max_results || 100,
+      delivery_time: alert.delivery_time || '09:00',
       savedSearch: {
         ...s,
         keywords: s.keywords ?? null,
@@ -598,7 +598,7 @@ async function fetchAll() {
     try {
       setBusyId(editingAlert.id)
       
-      console.log('💾 Saving alert with data:', {
+      console.log('Saving alert with data:', {
         name: editingAlert.name,
         status: editingAlert.savedSearch?.status,
         procurementType: editingAlert.savedSearch?.procurementType,
@@ -609,15 +609,15 @@ async function fetchAll() {
         // Alert metadata + subscription settings
         name: editingAlert.name,
         description: editingAlert.description,
-        subscriptionEnabled: editingAlert.active,
+        subscription_enabled: editingAlert.active,
         frequency: normalizeApiFrequency(editingAlert.frequency) || 'DAILY',
         recipients: editingAlert.recipients,
-        emailNotification: editingAlert.emailNotification ?? true,
-        exportFormat: (editingAlert.exportFormat || editingAlert.fileFormat || 'csv').toUpperCase(),
-        includeLinks: editingAlert.includeLinks ?? true,
-        sendEmptyResults: editingAlert.sendEmptyResults ?? false,
-        maxResults: editingAlert.maxResults || 100,
-        deliveryTime: editingAlert.deliveryTime || null,
+        email_notification: editingAlert.email_notification ?? true,
+        export_format: (editingAlert.export_format || editingAlert.file_format || 'csv').toUpperCase(),
+        include_links: editingAlert.include_links ?? true,
+        send_empty_results: editingAlert.send_empty_results ?? false,
+        max_results: editingAlert.max_results || 100,
+        delivery_time: editingAlert.delivery_time || null,
 
         // Saved-search criteria - ALL FIELDS INCLUDING FIXES
         keywords: editingAlert.savedSearch?.keywords ?? null,
@@ -656,12 +656,12 @@ async function fetchAll() {
       const j = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        console.error('❌ Save failed:', j)
+        console.error('Save failed:', j)
         setToast({ type: 'error', message: j?.error || 'Failed to update alert' })
         return
       }
 
-      console.log('✅ Save response:', j)
+      console.log('Save response:', j)
       
       const updated = j?.search
       setSubscriptions((prev) =>
@@ -673,18 +673,18 @@ async function fetchAll() {
                 description: updated?.description ?? s.description,
                 recipients: updated?.recipients ?? s.recipients,
                 frequency: updated?.frequency ?? s.frequency,
-                active: updated?.subscriptionEnabled ?? s.active,
-                includeLinks: updated?.includeLinks ?? s.includeLinks,
-                sendEmptyResults: updated?.sendEmptyResults ?? s.sendEmptyResults,
-                maxResults: updated?.maxResults ?? s.maxResults,
-                deliveryTime: updated?.deliveryTime ?? s.deliveryTime,
-                exportFormat: updated?.exportFormat ?? s.exportFormat,
-                emailNotification: updated?.emailNotification ?? s.emailNotification,
+                active: updated?.subscription_enabled ?? s.active,
+                include_links: updated?.include_links ?? s.include_links,
+                send_empty_results: updated?.send_empty_results ?? s.send_empty_results,
+                max_results: updated?.max_results ?? s.max_results,
+                delivery_time: updated?.delivery_time ?? s.delivery_time,
+                export_format: updated?.export_format ?? s.export_format,
+                email_notification: updated?.email_notification ?? s.email_notification,
                 savedSearch: {
                   ...s.savedSearch,
                   keywords: updated?.keywords ?? s.savedSearch?.keywords ?? null,
                   solnum: updated?.solicitationNumber ?? s.savedSearch?.solnum ?? null,
-                  noticeid: updated?.noticeId ?? s.savedSearch?.noticeid ?? null,
+                  noticeid: updated?.noticeid ?? s.savedSearch?.noticeid ?? null,
                   naics: updated?.naics ?? s.savedSearch?.naics ?? null,
                   ncode: updated?.naics ?? s.savedSearch?.ncode ?? null,
                   ccode: updated?.classificationCode ?? s.savedSearch?.ccode ?? null,
@@ -721,7 +721,7 @@ async function fetchAll() {
       // Refresh from server to confirm persistence
       await fetchAll()
     } catch (err: any) {
-      console.error('❌ Save error:', err)
+      console.error('Save error:', err)
       setToast({ type: 'error', message: err.message || 'Failed to update alert' })
     } finally {
       setBusyId(null)
@@ -758,7 +758,7 @@ async function fetchAll() {
     try {
       setBusyId(editingSearch.id)
       
-      console.log('💾 Saving search with data:', {
+      console.log('Saving search with data:', {
         name: editingSearch.name,
         status: editingSearch.status,
         procurementType: editingSearch.procurementType,
@@ -800,7 +800,7 @@ async function fetchAll() {
 
       if (!res.ok) {
         const j = await res.json().catch(() => ({ error: 'Failed to update search' }))
-        console.error('❌ Save failed:', j)
+        console.error('Save failed:', j)
         setToast({ type: 'error', message: j?.error || 'Failed to update search' })
         return
       }
@@ -808,7 +808,7 @@ async function fetchAll() {
       const j = await res.json().catch(() => ({}))
       const updated = j?.search
       
-      console.log('✅ Save response:', updated)
+      console.log('Save response:', updated)
 
       if (updated) {
         setSearches((prev) => 
@@ -826,7 +826,7 @@ async function fetchAll() {
       // Refresh from server to confirm persistence
       await fetchAll()
     } catch (err: any) {
-      console.error('❌ Save error:', err)
+      console.error('Save error:', err)
       setToast({ type: 'error', message: err.message || 'Failed to update search' })
     } finally {
       setBusyId(null)
@@ -860,7 +860,7 @@ async function fetchAll() {
 
   // Delete saved search
   async function deleteSavedSearch(id: string) {
-    console.log('🗑️ deleteSavedSearch called:', id)
+    console.log('deleteSavedSearch called:', id)
     
     try {
       setBusyId(id)
@@ -912,7 +912,7 @@ async function fetchAll() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          subscriptionEnabled: false,
+          subscription_enabled: false,
         }),
       })
 
@@ -947,7 +947,7 @@ async function fetchAll() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          subscriptionEnabled: true,
+          subscription_enabled: true,
           frequency: data.frequency || 'DAILY',
         }),
       })
@@ -995,7 +995,7 @@ async function fetchAll() {
           postedAfter: search.postedAfter,
           postedBefore: search.postedBefore,
           rdlfrom: search.rdlfrom,
-          subscriptionEnabled: false,
+          subscription_enabled: false,
         }),
       })
       const j = await res.json().catch(() => ({}))
@@ -1035,10 +1035,10 @@ async function fetchAll() {
       }
 
       setSubscriptions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, active: j?.search?.subscriptionEnabled ?? !s.active } : s))
+        prev.map((s) => (s.id === id ? { ...s, active: j?.search?.subscription_enabled ?? !s.active } : s))
       )
 
-      const enabled = (j?.search?.subscriptionEnabled ?? true) as boolean
+      const enabled = (j?.search?.subscription_enabled ?? true) as boolean
       setToast({ type: 'success', message: enabled ? 'Alert activated' : 'Alert paused' })
     } catch (e) {
       console.error(e)
@@ -1080,8 +1080,8 @@ async function fetchAll() {
           s.id === id
             ? {
                 ...s,
-                lastRunAt: j?.timestamp || new Date().toISOString(),
-                lastResultCount: j?.resultCount ?? s.lastResultCount ?? 0,
+                last_run_at: j?.timestamp || new Date().toISOString(),
+                last_result_count: j?.result_count ?? s.last_result_count ?? 0,
               }
             : s
         )
@@ -1094,11 +1094,11 @@ async function fetchAll() {
         id,
         alertName: j?.searchName || subscriptionName,
         keywords: j?.keywords || 'All',
-        count: j?.resultCount ?? 0,
+        count: j?.result_count ?? 0,
         recipients: j?.recipients || [],
         timestamp: j?.timestamp || new Date().toISOString(),
         frequency: j?.frequency || subscription?.frequency || 'Manual',
-        emailSent: j?.emailSent || false,
+        email_sent: j?.email_sent || false,
       })
     } catch (e: any) {
       if (e.name === 'AbortError') {
@@ -1131,25 +1131,25 @@ async function fetchAll() {
   // Replace your deleteSubscription function (around line 1056) with this version:
 
 async function deleteSubscription(id: string) {
-  console.log('🗑️ DELETE FUNCTION CALLED - ID:', id)
+  console.log('DELETE FUNCTION CALLED - ID:', id)
   try {
     setBusyId(id)
     const url = `/api/alert-subscriptions/${id}`
-    console.log('🗑️ Making DELETE request to:', url)
+    console.log('Making DELETE request to:', url)
     
     const res = await fetch(url, { method: 'DELETE' })
     
-    console.log('🗑️ Response status:', res.status, 'ok:', res.ok)
+    console.log('Response status:', res.status, 'ok:', res.ok)
     
     if (!res.ok) {
       const j = await res.json().catch(() => ({ error: 'Failed to delete alert' }))
-      console.error('❌ Delete failed with response:', j)
+      console.error('Delete failed with response:', j)
       setToast({ type: 'error', message: j?.error || 'Failed to delete alert.' })
       return
     }
 
     const j = await res.json().catch(() => ({ success: true }))
-    console.log('✅ Delete successful, response:', j)
+    console.log('Delete successful, response:', j)
 
     setSubscriptions((prev) => prev.filter((s) => s.id !== id))
     setToast({ 
@@ -1157,10 +1157,10 @@ async function deleteSubscription(id: string) {
       message: j?.message || 'Alert deleted successfully' 
     })
   } catch (e) {
-    console.error('❌ Delete exception:', e)
+    console.error('Delete exception:', e)
     setToast({ type: 'error', message: 'Failed to delete alert.' })
   } finally {
-    console.log('🗑️ Cleaning up - resetting busyId and deleteConfirmId')
+    console.log('Cleaning up - resetting busyId and deleteConfirmId')
     setBusyId(null)
     setDeleteConfirmId(null)
   }
@@ -1323,7 +1323,7 @@ async function deleteSubscription(id: string) {
                 <p className="text-sm font-medium text-slate-300">Alert Subscriptions</p>
                 <p className="mt-2 text-3xl font-bold text-white">{subscriptions.length}</p>
                 <p className="mt-1 text-sm text-slate-400">
-                  {activeCount} running, {pausedCount} paused
+                  {activeCount} active • {pausedCount} paused
                 </p>
               </div>
               <div className="rounded-full bg-emerald-500/10 p-3">
@@ -1820,8 +1820,8 @@ async function deleteSubscription(id: string) {
                               <div>
                                 <label className={LABEL_CLASS}>Delivery Time (UTC)</label>
                                 <select
-                                  value={editingAlert.deliveryTime || '09:00'}
-                                  onChange={(e) => setEditingAlert({ ...editingAlert, deliveryTime: e.target.value })}
+                                  value={editingAlert.delivery_time || '09:00'}
+                                  onChange={(e) => setEditingAlert({ ...editingAlert, delivery_time: e.target.value })}
                                   className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white text-base"
                                 >
                                   {DELIVERY_TIME_OPTIONS.map((t) => (
@@ -1843,12 +1843,12 @@ async function deleteSubscription(id: string) {
                             <div>
                               <label className={LABEL_CLASS}>File Format</label>
                               <select
-                                value={editingAlert.fileFormat || editingAlert.exportFormat || 'csv'}
+                                value={editingAlert.file_format || editingAlert.export_format || 'csv'}
                                 onChange={(e) =>
                                   setEditingAlert({
                                     ...editingAlert,
-                                    fileFormat: e.target.value as FileFormat,
-                                    exportFormat: e.target.value,
+                                    file_format: e.target.value as FileFormat,
+                                    export_format: e.target.value,
                                   })
                                 }
                                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white text-base"
@@ -1865,11 +1865,11 @@ async function deleteSubscription(id: string) {
                               <label className={LABEL_CLASS}>Max Results</label>
                               <input
                                 type="number"
-                                value={editingAlert.maxResults || 100}
+                                value={editingAlert.max_results || 100}
                                 onChange={(e) =>
                                   setEditingAlert({
                                     ...editingAlert,
-                                    maxResults: parseInt(e.target.value) || 100,
+                                    max_results: parseInt(e.target.value) || 100,
                                   })
                                 }
                                 min="1"
@@ -1901,14 +1901,14 @@ async function deleteSubscription(id: string) {
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setEditingAlert({ ...editingAlert, includeLinks: !editingAlert.includeLinks })}
+                                  onClick={() => setEditingAlert({ ...editingAlert, include_links: !editingAlert.include_links })}
                                   className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                                    editingAlert.includeLinks ? 'bg-emerald-500' : 'bg-slate-700'
+                                    editingAlert.include_links ? 'bg-emerald-500' : 'bg-slate-700'
                                   }`}
                                 >
                                   <span
                                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                                      editingAlert.includeLinks ? 'translate-x-6' : 'translate-x-1'
+                                      editingAlert.include_links ? 'translate-x-6' : 'translate-x-1'
                                     }`}
                                   />
                                 </button>
@@ -1922,15 +1922,15 @@ async function deleteSubscription(id: string) {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    setEditingAlert({ ...editingAlert, sendEmptyResults: !editingAlert.sendEmptyResults })
+                                    setEditingAlert({ ...editingAlert, send_empty_results: !editingAlert.send_empty_results })
                                   }
                                   className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                                    editingAlert.sendEmptyResults ? 'bg-emerald-500' : 'bg-slate-700'
+                                    editingAlert.send_empty_results ? 'bg-emerald-500' : 'bg-slate-700'
                                   }`}
                                 >
                                   <span
                                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                                      editingAlert.sendEmptyResults ? 'translate-x-6' : 'translate-x-1'
+                                      editingAlert.send_empty_results ? 'translate-x-6' : 'translate-x-1'
                                     }`}
                                   />
                                 </button>
@@ -1944,15 +1944,15 @@ async function deleteSubscription(id: string) {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    setEditingAlert({ ...editingAlert, emailNotification: !editingAlert.emailNotification })
+                                    setEditingAlert({ ...editingAlert, email_notification: !editingAlert.email_notification })
                                   }
                                   className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                                    editingAlert.emailNotification !== false ? 'bg-emerald-500' : 'bg-slate-700'
+                                    editingAlert.email_notification !== false ? 'bg-emerald-500' : 'bg-slate-700'
                                   }`}
                                 >
                                   <span
                                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                                      editingAlert.emailNotification !== false ? 'translate-x-6' : 'translate-x-1'
+                                      editingAlert.email_notification !== false ? 'translate-x-6' : 'translate-x-1'
                                     }`}
                                   />
                                 </button>
@@ -2034,19 +2034,19 @@ async function deleteSubscription(id: string) {
                                 </div>
                                 <div>
                                   <p className="text-slate-400 mb-1">Last Run</p>
-                                  <p className="text-slate-200 font-medium">{formatRelative(alert.lastRunAt)}</p>
+                                  <p className="text-slate-200 font-medium">{formatRelative(alert.last_run_at)}</p>
                                 </div>
                                 <div>
                                   <p className="text-slate-400 mb-1">Format</p>
                                   <p className="text-slate-200 font-medium">
-                                    {(alert.exportFormat || alert.fileFormat || 'CSV').toUpperCase()}
+                                    {(alert.export_format || alert.file_format || 'CSV').toUpperCase()}
                                   </p>
                                 </div>
                                 <div>
                                   <p className="text-slate-400 mb-1">Last Results</p>
                                   <span className="text-slate-200 font-medium">
-                                    {alert.lastResultCount !== null && alert.lastResultCount !== undefined
-                                      ? `${alert.lastResultCount} ${alert.lastResultCount === 1 ? 'result' : 'results'}`
+                                    {alert.last_result_count !== null && alert.last_result_count !== undefined
+                                      ? `${alert.last_result_count} ${alert.last_result_count === 1 ? 'result' : 'results'}`
                                       : '-'}
                                   </span>
                                 </div>
@@ -2521,7 +2521,7 @@ async function deleteSubscription(id: string) {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h3 className="text-lg font-semibold text-white">{search.name}</h3>
-                                {search.subscriptionEnabled && (
+                                {search.subscription_enabled && (
                                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 text-xs font-semibold">
                                     Alert Enabled
                                   </span>
@@ -2576,11 +2576,11 @@ async function deleteSubscription(id: string) {
                                 </div>
                                 <div>
                                   <p className="text-slate-400 mb-1">Last Used</p>
-                                  <p className="text-slate-200 font-medium">{formatRelative(search.lastUsedAt)}</p>
+                                  <p className="text-slate-200 font-medium">{formatRelative(search.last_used_at)}</p>
                                 </div>
                                 <div>
                                   <p className="text-slate-400 mb-1">Created</p>
-                                  <p className="text-slate-200 font-medium">{formatRelative(search.createdAt)}</p>
+                                  <p className="text-slate-200 font-medium">{formatRelative(search.created_at)}</p>
                                 </div>
                                 <div>
                                   <p className="text-slate-400 mb-1">Alerts Status</p>
@@ -2803,7 +2803,7 @@ async function deleteSubscription(id: string) {
                       </div>
                       <p className="text-sm text-slate-300 mb-2 font-medium">Search SAM.gov</p>
                       <p className="text-lg font-bold text-white">
-                        Up to {alert?.maxResults || search?.limit || 100}
+                        Up to {alert?.max_results || search?.limit || 100}
                       </p>
                       <p className="text-xs text-slate-400 mt-1">max results</p>
                     </div>
@@ -2911,17 +2911,17 @@ async function deleteSubscription(id: string) {
                 </div>
 
                 {/* Last Run Info */}
-                {alert?.lastRunAt && (
+                {alert?.last_run_at && (
                   <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                       <Calendar className="h-6 w-6 text-blue-400" />
                       <h4 className="text-lg font-bold text-white">Last Execution</h4>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-base text-slate-300">{formatRelative(alert.lastRunAt)}</span>
-                      {alert.lastResultCount !== null && alert.lastResultCount !== undefined && (
+                      <span className="text-base text-slate-300">{formatRelative(alert.last_run_at)}</span>
+                      {alert.last_result_count !== null && alert.last_result_count !== undefined && (
                         <span className="text-lg font-bold text-emerald-400">
-                          {alert.lastResultCount} result{alert.lastResultCount !== 1 ? 's' : ''} found
+                          {alert.last_result_count} result{alert.last_result_count !== 1 ? 's' : ''} found
                         </span>
                       )}
                     </div>
@@ -3113,15 +3113,15 @@ async function deleteSubscription(id: string) {
             const requestData = {
               name: alertData.name,
               description: alertData.description || createAlertFromSearch.description || '',
-              subscriptionEnabled: true,
+              subscription_enabled: true,
               frequency: alertData.frequency || 'DAILY',
               recipients: alertData.recipients,
-              emailNotification: alertData.emailNotification ?? true,
-              sendEmptyResults: alertData.sendEmptyResults ?? false,
-              maxResults: alertData.maxResults || 100,
-              deliveryTime: alertData.deliveryTime || '09:00',
-              exportFormat: (alertData.fileFormat || 'csv').toUpperCase(),
-              includeLinks: alertData.includeLinks ?? true,
+              email_notification: alertData.email_notification ?? true,
+              send_empty_results: alertData.send_empty_results ?? false,
+              max_results: alertData.max_results || 100,
+              delivery_time: alertData.delivery_time || '09:00',
+              export_format: (alertData.file_format || 'csv').toUpperCase(),
+              include_links: alertData.include_links ?? true,
               
               // Search criteria from the saved search
               keywords: createAlertFromSearch.keywords,
@@ -3309,14 +3309,14 @@ async function deleteSubscription(id: string) {
                         <div className="text-xs text-slate-400">Recipients</div>
                         <div className="font-semibold text-white flex items-center gap-2">
                           {runSuccess.recipients.length} recipient{runSuccess.recipients.length !== 1 ? 's' : ''}
-                          {runSuccess.emailSent && (
+                          {runSuccess.email_sent && (
                             <span className="bg-emerald-500/20 px-2 py-0.5 rounded text-xs text-emerald-400">
                               ✓ Sent
                             </span>
                           )}
-                          {!runSuccess.emailSent && runSuccess.recipients.length > 0 && (
+                          {!runSuccess.email_sent && runSuccess.recipients.length > 0 && (
                             <span className="bg-orange-500/20 px-2 py-0.5 rounded text-xs text-orange-400">
-                              ⚠ Failed
+                              ✗ Failed
                             </span>
                           )}
                         </div>
@@ -3378,12 +3378,12 @@ async function deleteSubscription(id: string) {
             description: editing.description || '',
             frequency: editing.frequency,
             recipients: editing.recipients,
-            emailNotification: editing.emailNotification ?? true,
-            fileFormat: editing.fileFormat || 'csv',
-            includeLinks: editing.includeLinks,
-            sendEmptyResults: editing.sendEmptyResults,
-            maxResults: editing.maxResults,
-            deliveryTime: editing.deliveryTime,
+            email_notification: editing.email_notification ?? true,
+            file_format: editing.file_format || 'csv',
+            include_links: editing.include_links,
+            send_empty_results: editing.send_empty_results,
+            max_results: editing.max_results,
+            delivery_time: editing.delivery_time,
           }}
           onSave={async (alertData) => {
             if (!alertData.name?.trim()) {
@@ -3401,15 +3401,15 @@ async function deleteSubscription(id: string) {
                 body: JSON.stringify({
                   name: alertData.name,
                   description: alertData.description,
-                  subscriptionEnabled: true,
+                  subscription_enabled: true,
                   frequency: alertData.frequency,
                   recipients: alertData.recipients,
-                  emailNotification: alertData.emailNotification ?? true,
-                  sendEmptyResults: alertData.sendEmptyResults ?? false,
-                  maxResults: alertData.maxResults || 100,
-                  deliveryTime: alertData.deliveryTime || null,
-                  exportFormat: (alertData.fileFormat || 'csv').toUpperCase(),
-                  includeLinks: alertData.includeLinks ?? true,
+                  email_notification: alertData.email_notification ?? true,
+                  send_empty_results: alertData.send_empty_results ?? false,
+                  max_results: alertData.max_results || 100,
+                  delivery_time: alertData.delivery_time || null,
+                  export_format: (alertData.file_format || 'csv').toUpperCase(),
+                  include_links: alertData.include_links ?? true,
                 }),
               })
 
@@ -3489,24 +3489,24 @@ async function deleteSubscription(id: string) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-medium text-slate-400 mb-2">Export Format</h3>
-                  <p className="text-white">{(viewingAlert.exportFormat || viewingAlert.fileFormat || 'CSV').toUpperCase()}</p>
+                  <p className="text-white">{(viewingAlert.export_format || viewingAlert.file_format || 'CSV').toUpperCase()}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-slate-400 mb-2">Max Results</h3>
-                  <p className="text-white">{viewingAlert.maxResults || 100}</p>
+                  <p className="text-white">{viewingAlert.max_results || 100}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-medium text-slate-400 mb-2">Last Run</h3>
-                  <p className="text-white">{formatRelative(viewingAlert.lastRunAt)}</p>
+                  <p className="text-white">{formatRelative(viewingAlert.last_run_at)}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-slate-400 mb-2">Last Results</h3>
                   <p className="text-white">
-                    {viewingAlert.lastResultCount !== null && viewingAlert.lastResultCount !== undefined
-                      ? `${viewingAlert.lastResultCount} ${viewingAlert.lastResultCount === 1 ? 'result' : 'results'}`
+                    {viewingAlert.last_result_count !== null && viewingAlert.last_result_count !== undefined
+                      ? `${viewingAlert.last_result_count} ${viewingAlert.last_result_count === 1 ? 'result' : 'results'}`
                       : '-'}
                   </p>
                 </div>
@@ -3582,7 +3582,7 @@ async function deleteSubscription(id: string) {
               </div>
 
               {/* Subscription Info if enabled */}
-              {viewingSearch.subscriptionEnabled && (
+              {viewingSearch.subscription_enabled && (
                 <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-500/20">
                   <h3 className="text-sm font-medium text-emerald-400 mb-3">Alert Subscription</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">

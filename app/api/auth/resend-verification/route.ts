@@ -1,11 +1,10 @@
-﻿//app/api/auth/resend-verification/route.ts
+//app/api/auth/resend-verification/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import crypto from 'crypto'
 
-import { randomBytes } from 'crypto'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 function sha256Hex(input: string) {
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If already verified, nothing to do (still return ok)
-    if ((user as any).emailVerified) {
+    if (user.email_verified) {
       return NextResponse.json({ ok: true, alreadyVerified: true })
     }
 
@@ -51,10 +50,15 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
     // Keep it simple: remove previous tokens for this user, then create a fresh one
-    await prisma.email_verification_tokens.deleteMany({ where: { userId: user.id } })
-    await prisma.e
-        id: randomBytes(12).toString('hex'),mailVerificationToken.create({
-      data: { userId: user.id, tokenHash, expiresAt },
+    await prisma.email_verification_tokens.deleteMany({ where: { user_id: user.id } })
+    await prisma.email_verification_tokens.create({
+      data: { 
+        id: crypto.randomUUID(),
+        user_id: user.id, 
+        token_hash: tokenHash, 
+        expires_at: expiresAt,
+        created_at: new Date(),
+      },
     })
 
     const appUrl = getAppUrl()
@@ -71,7 +75,7 @@ export async function POST(req: NextRequest) {
               </div>
             </div>
             <div style="padding:26px 24px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111827;">
-              <p style="margin:0 0 10px;font-size:15px;line-height:1.6;">Hi${user.firstName ? ` ${user.firstName}` : ''},</p>
+              <p style="margin:0 0 10px;font-size:15px;line-height:1.6;">Hi${user.first_name ? ` ${user.first_name}` : ''},</p>
               <p style="margin:0 0 18px;font-size:15px;line-height:1.6;">
                 Click the button below to verify your email address and finish setting up your Precise GovCon account.
               </p>
@@ -85,12 +89,12 @@ export async function POST(req: NextRequest) {
                 ${verificationUrl}
               </p>
               <p style="margin:0;font-size:12px;color:#6b7280;">
-                This link expires in 24 hours. If you didnâ€™t request this, you can safely ignore this email.
+                This link expires in 24 hours. If you didn't request this, you can safely ignore this email.
               </p>
             </div>
             <div style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#6b7280;font-size:12px;">
               Need help? Contact us at <a href="mailto:support@precisegovcon.com" style="color:#06b6d4;text-decoration:none;">support@precisegovcon.com</a>.
-              <div style="margin-top:8px;">Â© ${new Date().getFullYear()} Precise GovCon. All rights reserved.</div>
+              <div style="margin-top:8px;">© ${new Date().getFullYear()} Precise GovCon. All rights reserved.</div>
             </div>
           </div>
         </div>
@@ -104,9 +108,10 @@ export async function POST(req: NextRequest) {
       html,
     })
 
-    return NextResponse.json({ ok: true, emailSent: true })
+    return NextResponse.json({ ok: true, email_sent: true })
   } catch (err: any) {
-    console.error('âŒ Resend verification error:', err)
+    console.error('❌ Resend verification error:', err)
     return NextResponse.json({ ok: false, error: 'Failed to send verification email' }, { status: 500 })
   }
 }
+

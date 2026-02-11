@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
 export const runtime = 'nodejs' // Resend uses node APIs; keep it on node runtime
@@ -10,12 +10,28 @@ function isValidEmail(email: string) {
 }
 
 export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({} as any))
+  const {
+    firstName,
+    lastName,
+    company,
+    email,
+    phone,
+    position,
+  } = body as {
+    firstName?: string
+    lastName?: string
+    company?: string
+    email?: string
+    phone?: string
+    position?: string
+  }
   try {
     const body = await req.json()
 
     const {
-      firstName,
-      lastName,
+      first_name,
+      last_name,
       company,
       email,
       phone,

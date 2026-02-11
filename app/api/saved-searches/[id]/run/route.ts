@@ -15,7 +15,7 @@ const MAX_DATE_RANGE_DAYS = 364
  */
 function extractFirstName(user: any): string | undefined {
   // Try to get first name from different possible fields
-  if (user.firstName) return user.firstName
+  if (user.first_name) return user.first_name
   if (user.first_name) return user.first_name
   
   // Try to extract from full name
@@ -40,41 +40,38 @@ function extractFirstName(user: any): string | undefined {
 function buildSearchParams(savedSearch: any): URLSearchParams {
   const params = new URLSearchParams()
 
-  // Map savedSearchNew fields to SAM.gov API parameters
   if (savedSearch.keywords) params.set('q', savedSearch.keywords)
-  if (savedSearch.solicitationNumber) params.set('solnum', savedSearch.solicitationNumber)
+  if (savedSearch.solicitation_number) params.set('solnum', savedSearch.solicitation_number)
   if (savedSearch.noticeId) params.set('noticeid', savedSearch.noticeId)
   if (savedSearch.naics) params.set('naics', savedSearch.naics)
-  if (savedSearch.classificationCode) params.set('ccode', savedSearch.classificationCode)
+  if (savedSearch.classification_code) params.set('ccode', savedSearch.classification_code)
   if (savedSearch.agency) params.set('agency', savedSearch.agency)
-  if (savedSearch.organizationCode) params.set('orgcode', savedSearch.organizationCode)
-  if (savedSearch.setAside) params.set('setaside', savedSearch.setAside)
-  if (savedSearch.stateOfPerformance) params.set('state', savedSearch.stateOfPerformance)
-  if (savedSearch.placeOfPerformanceZip) params.set('zip', savedSearch.placeOfPerformanceZip)
-  if (savedSearch.opportunityStatus) params.set('status', savedSearch.opportunityStatus)
-  if (savedSearch.procurementType) params.set('ptype', savedSearch.procurementType)
+  if (savedSearch.organization_code) params.set('orgcode', savedSearch.organization_code)
+  if (savedSearch.set_aside) params.set('setaside', savedSearch.set_aside)
+  if (savedSearch.state_of_performance) params.set('state', savedSearch.state_of_performance)
+  if (savedSearch.place_of_performance_zip) params.set('zip', savedSearch.place_of_performance_zip)
+  if (savedSearch.opportunity_status) params.set('status', savedSearch.opportunity_status)
+  if (savedSearch.procurement_type) params.set('ptype', savedSearch.procurement_type)
 
-  // Date fields
-  if (savedSearch.postedAfter) {
-    const date = new Date(savedSearch.postedAfter)
+  if (savedSearch.posted_after) {
+    const date = new Date(savedSearch.posted_after)
     params.set('postedFrom', date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))
   }
-  if (savedSearch.postedBefore) {
-    const date = new Date(savedSearch.postedBefore)
+  if (savedSearch.posted_before) {
+    const date = new Date(savedSearch.posted_before)
     params.set('postedTo', date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))
   }
-  if (savedSearch.rdlfrom) {
-    const date = new Date(savedSearch.rdlfrom)
+  if (savedSearch.rdl_from) {
+    const date = new Date(savedSearch.rdl_from)
     params.set('rdlfrom', date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))
   }
-  if (savedSearch.rdlto) {
-    const date = new Date(savedSearch.rdlto)
+  if (savedSearch.rdl_to) {
+    const date = new Date(savedSearch.rdl_to)
     params.set('rdlto', date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))
   }
 
-  // Max results
-  if (savedSearch.maxResults) {
-    params.set('limit', String(savedSearch.maxResults))
+  if (savedSearch.max_results) {
+    params.set('limit', String(savedSearch.max_results))
   }
 
   return params
@@ -89,7 +86,6 @@ function validateAndAdjustDateRange(params: URLSearchParams): URLSearchParams {
   let postedFrom = adjustedParams.get('postedFrom')
   let postedTo = adjustedParams.get('postedTo')
 
-  // If both dates are missing, add default range (last 364 days)
   if (!postedFrom || !postedTo) {
     const today = new Date()
     postedTo = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
@@ -194,13 +190,14 @@ function generateCSV(opportunities: any[]): string {
 
 export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   let alertRun: any = null
+  let savedSearchId: string | null = null
   
   try {
     const { id } = await ctx.params
+    savedSearchId = id
 
     console.log('🔍 Running search with ID:', id)
 
-    // Auth
     const session = await getServerSession(authOptions)
     const sessionEmail = session?.user?.email || null
     const sessionUserId = (session?.user as any)?.id || null
@@ -208,7 +205,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     console.log('👤 Session user:', sessionEmail, 'User ID:', sessionUserId)
 
     if (!sessionEmail || !sessionUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error_message: 'Unauthorized' }, { status: 401 })
     }
 
     const savedSearch = await prisma.saved_searches_new.findUnique({
@@ -219,16 +216,15 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     console.log('📋 Saved search found:', savedSearch ? savedSearch.name : 'NOT FOUND')
 
     if (!savedSearch) {
-      return NextResponse.json({ error: 'Saved search not found' }, { status: 404 })
+      return NextResponse.json({ error_message: 'Saved search not found' }, { status: 404 })
     }
 
-    // Ownership check
-    const ownsById = !!sessionUserId && savedSearch.userId === sessionUserId
-    const ownsByEmail = !!savedSearch.user?.email && savedSearch.user.email === sessionEmail
+    const ownsById = !!sessionUserId && savedSearch.user_id === sessionUserId
+    const ownsByEmail = !!savedSearch.users?.email && savedSearch.users.email === sessionEmail
 
     if (!ownsById && !ownsByEmail) {
       console.warn('🚫 Saved search ownership mismatch')
-      return NextResponse.json({ error: 'Saved search not found' }, { status: 404 })
+      return NextResponse.json({ error_message: 'Saved search not found' }, { status: 404 })
     }
 
     console.log('🔍 Running search:', savedSearch.name)
@@ -236,15 +232,13 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     const searchParams = buildSearchParams(savedSearch)
     const validatedParams = validateAndAdjustDateRange(searchParams)
 
-    // ✅ CREATE ALERT RUN RECORD (status: running)
-    alertRun = await prisma.alertRun.create({
+    alertRun = await prisma.search_runs.create({
       data: {
-        searchId: id,
-        userId: sessionUserId,
-        status: 'running',
-        startedAt: new Date(),
-        searchParams: validatedParams.toString(),
-        emailRecipients: [],
+        id: crypto.randomUUID(),
+        saved_search_id: id,
+        created_at: new Date(),
+        search_params: validatedParams.toString(),
+        results_snapshot: {},
       },
     })
 
@@ -264,32 +258,24 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
       const errorText = await samResponse.text()
       console.error('SAM.gov API error response:', errorText)
 
-      // ✅ UPDATE ALERT RUN (status: failed)
-      await prisma.alertRun.update({
+      await prisma.search_runs.update({
         where: { id: alertRun.id },
         data: {
-          status: 'failed',
-          completedAt: new Date(),
-          error: `SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`,
+          error_message: `SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`,
         },
       })
 
-      // ✅ UPDATE SAVED SEARCH
       await prisma.saved_searches_new.update({
         where: { id },
-        data: {
-          lastRunAt: new Date(),
-          lastRunStatus: 'failed',
-          totalRuns: { increment: 1 },
-        },
+        data: { lastRunAt: new Date() },
       })
 
       return NextResponse.json(
         {
-          error: `SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`,
+          error_message: `SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`,
           details: errorText,
           success: false,
-          resultCount: 0,
+          result_count: 0,
         },
         { status: 200 }
       )
@@ -300,31 +286,28 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
 
     console.log('✅ SAM.gov responded with', opportunities.length, 'opportunities')
 
-    // Email notification logic with personalization
-    const shouldSendEmail = savedSearch.subscriptionEnabled || savedSearch.emailNotification
+    const shouldSendEmail = savedSearch.subscription_enabled || savedSearch.email_notification
     const hasRecipients = savedSearch.recipients && savedSearch.recipients.trim().length > 0
-    const shouldSend = shouldSendEmail && (hasRecipients || savedSearch.user?.email)
+    const shouldSend = shouldSendEmail && (hasRecipients || savedSearch.users?.email)
 
     let emailsSentCount = 0
-    let emailRecipients: string[] = []
-
+    let resultsSnapshot: string[] = []
+    
     if (shouldSend) {
-      const firstName = extractFirstName(savedSearch.user)
+      const firstName = extractFirstName(savedSearch.users)
       console.log('👤 Extracted first name:', firstName || 'none')
 
-      // Determine recipients
       let recipients: string[] = []
       if (hasRecipients) {
         recipients = savedSearch.recipients!.split(',').map((e: string) => e.trim()).filter((e: string) => e.length > 0)
-      } else if (savedSearch.user?.email) {
-        recipients = [savedSearch.user.email]
+      } else if (savedSearch.users?.email) {
+        recipients = [savedSearch.users.email]
       }
 
       console.log('📧 Sending email to:', recipients.join(', '))
       console.log('📊 Results:', opportunities.length)
 
-      // Only send if we have opportunities OR sendEmptyResults is enabled
-      if (opportunities.length > 0 || savedSearch.sendEmptyResults) {
+      if (opportunities.length > 0 || savedSearch.send_empty_results) {
         try {
           const emailHtml = generateAlertEmailHTML({
             searchName: savedSearch.name,
@@ -334,7 +317,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
               keywords: savedSearch.keywords,
               agency: savedSearch.agency,
               naics: savedSearch.naics,
-              setAside: savedSearch.setAside,
+              setAside: savedSearch.set_aside,
             },
             runDate: new Date(),
             recipientName: firstName,
@@ -348,14 +331,14 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
               keywords: savedSearch.keywords,
               agency: savedSearch.agency,
               naics: savedSearch.naics,
-              setAside: savedSearch.setAside,
+              setAside: savedSearch.set_aside,
             },
             runDate: new Date(),
             recipientName: firstName,
           })
 
           const attachments: any[] = []
-          const fmt = savedSearch.exportFormat?.toUpperCase()
+          const fmt = savedSearch.export_format?.toUpperCase()
 
           if ((fmt === 'CSV') && opportunities.length > 0) {
             const csvContent = generateCSV(opportunities)
@@ -371,7 +354,6 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
             })
           }
 
-          // Send to all recipients
           for (const recipient of recipients) {
             const emailResult = await resend.emails.send({
               from: process.env.EMAIL_FROM || 'alerts@precisegov.com',
@@ -384,10 +366,9 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
 
             console.log('✅ Alert email sent to', recipient, ':', emailResult)
             if ((emailResult as any)?.error) {
-              console.error('❌ Email sending error:', (emailResult as any).error)
+              console.error('❌ Email sending error: ', (emailResult as any).error)
             } else {
               emailsSentCount++
-              emailRecipients.push(recipient)
             }
           }
         } catch (emailError) {
@@ -398,44 +379,36 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
       }
     }
 
-    // ✅ UPDATE ALERT RUN (status: completed)
-    await prisma.alertRun.update({
+    await prisma.search_runs.update({
       where: { id: alertRun.id },
       data: {
-        status: 'completed',
-        completedAt: new Date(),
-        resultCount: opportunities.length,
-        emailsSent: emailsSentCount,
-        emailRecipients,
+        result_count: opportunities.length,
+        email_sent: (emailsSentCount > 0),
       },
     })
 
-    // ✅ UPDATE SAVED SEARCH with tracking
     await prisma.saved_searches_new.update({
       where: { id },
       data: {
         lastRunAt: new Date(),
-        lastRunStatus: 'success',
-        lastResultCount: opportunities.length,
-        totalRuns: { increment: 1 },
+        last_result_count: opportunities.length,
         totalEmailsSent: { increment: emailsSentCount },
-        updatedAt: new Date(),
+        updated_at: new Date(),
       },
     })
 
-    // Also create SearchRun for backward compatibility
     try {
-      await prisma.searchRun.cr
-        id: randomBytes(12).toString('hex'),eate({
+      await prisma.search_runs.create({
         data: {
-          savedSearchId: id,
-          status: 'SUCCESS',
-          resultCount: opportunities.length,
-          newResultsCount: 0,
-          searchParams: validatedParams.toString(),
-          resultsSnapshot: opportunities,
-          errorMessage: null,
-          emailSent: emailsSentCount > 0,
+          id: crypto.randomUUID(),
+          saved_search_id: id,
+          result_count: opportunities.length,
+          new_results_count: 0,
+          search_params: validatedParams.toString(),
+          results_snapshot: opportunities,
+          error_message: null,
+          email_sent: emailsSentCount > 0,
+          created_at: new Date(),
         },
       })
     } catch (runError) {
@@ -444,46 +417,41 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
 
     return NextResponse.json({
       success: true,
-      resultCount: opportunities.length,
+      result_count: opportunities.length,
       count: opportunities.length,
       opportunities,
-      emailsSent: emailsSentCount,
+      email_sent: emailsSentCount > 0,
       message: `Search completed successfully. Found ${opportunities.length} opportunities.${emailsSentCount > 0 ? ` Sent ${emailsSentCount} email(s).` : ''}`,
     })
   } catch (error) {
     console.error('❌ Error running saved search:', error)
 
-    // ✅ UPDATE ALERT RUN if it exists (status: failed)
     if (alertRun) {
       try {
-        await prisma.alertRun.update({
+        await prisma.search_runs.update({
           where: { id: alertRun.id },
           data: {
-            status: 'failed',
-            completedAt: new Date(),
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error_message: error instanceof Error ? error.message : 'Unknown error',
           },
         })
 
-        await prisma.saved_searches_new.update({
-          where: { id: alertRun.searchId },
-          data: {
-            lastRunAt: new Date(),
-            lastRunStatus: 'failed',
-            totalRuns: { increment: 1 },
-          },
-        })
+        if (savedSearchId) {
+          await prisma.saved_searches_new.update({
+            where: { id: savedSearchId },
+            data: { lastRunAt: new Date() },
+          })
+        }
       } catch (updateError) {
-        console.error('Failed to update AlertRun on error:', updateError)
+        console.error('Failed to update AlertRun on error: ', updateError)
       }
     }
 
     return NextResponse.json(
       {
-        error: 'Failed to run search',
+        error_message: 'Failed to run search',
         details: error instanceof Error ? error.message : 'Unknown error',
         success: false,
-        resultCount: 0,
+        result_count: 0,
       },
       { status: 500 }
     )

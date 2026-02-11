@@ -1,4 +1,4 @@
-﻿// lib/prisma.ts
+// lib/prisma.ts
 import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
@@ -31,7 +31,7 @@ function isRetryablePrismaError(e: unknown): boolean {
 function getClient() {
   if (globalForPrisma.prisma) return globalForPrisma.prisma
 
-  console.log('🔍 [PRISMA] Creating new Prisma client...')
+  console.log('?? [PRISMA] Creating new Prisma client...')
 
   const client = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
@@ -41,7 +41,7 @@ function getClient() {
   })
 
   globalForPrisma.prisma = client
-  console.log('✅ [PRISMA] Prisma client created successfully')
+  console.log('? [PRISMA] Prisma client created successfully')
 
   return client
 }
@@ -64,18 +64,18 @@ if (!globalForPrisma.prismaMiddlewareInstalled) {
         attempt += 1
 
         if (attempt >= maxAttempts || !isRetryablePrismaError(e)) {
-          console.error(`❌ [PRISMA] Query failed after ${attempt} attempts:`, e)
+          console.error(`? [PRISMA] Query failed after ${attempt} attempts:`, e)
           throw e
         }
 
         const backoff = baseDelayMs * Math.pow(2, attempt - 1)
         const jitter = Math.floor(Math.random() * 75)
-        console.warn(`⚠️ [PRISMA] Retrying query (attempt ${attempt}/${maxAttempts})...`)
+        console.warn(`?? [PRISMA] Retrying query (attempt ${attempt}/${maxAttempts})...`)
         await sleep(backoff + jitter)
       }
     }
   })
 }
 
-// ✅ DO NOT disconnect automatically in dev (causes "Closed" during hot reload)
+// ? DO NOT disconnect automatically in dev (causes "Closed" during hot reload)
 export default prisma

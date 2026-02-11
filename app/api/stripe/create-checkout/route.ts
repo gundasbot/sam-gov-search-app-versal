@@ -1,4 +1,4 @@
-﻿// app/api/stripe/create-checkout/route.ts
+// app/api/stripe/create-checkout/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
+  apiVersion: '2026-01-28.clover',
 })
 
 type Tier = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (!customerId) {
       const customer = await stripe.customers.create({
         email,
-        metadata: { userId: user.id },
+        metadata: { user_id: user.id },
       })
       customerId = customer.id
 
@@ -131,13 +131,13 @@ export async function POST(req: NextRequest) {
       allow_promotion_codes: true,
       client_reference_id: user.id,
       metadata: {
-        userId: user.id,
+        user_id: user.id,
         tier,
         interval,
       },
       subscription_data: {
         metadata: {
-          userId: user.id,
+          user_id: user.id,
           tier,
           interval,
         },

@@ -1,7 +1,7 @@
-﻿// app/api/sam/opportunities/route.ts
+// app/api/sam/opportunities/route.ts
 import { NextResponse } from 'next/server'
 
-// 🚫 Disable all Next.js caching for this route
+// ?? Disable all Next.js caching for this route
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
 
-    // ✅ HARD SAFETY LIMIT (keep payload small)
+    // ? HARD SAFETY LIMIT (keep payload small)
     const limit = clampInt(Number(searchParams.get('limit') || 200), 1, 250)
     const offset = clampInt(Number(searchParams.get('offset') || 0), 0, 1_000_000)
 
@@ -73,14 +73,14 @@ export async function GET(req: Request) {
     if (keyword) params.append('q', keyword)
 
     const apiUrl = `${SAM_BASE_URL}?${params.toString()}`
-    console.log('🔍 SAM.gov fetch:', apiUrl)
+    console.log('?? SAM.gov fetch:', apiUrl)
 
-    // ✅ Timeout to avoid hanging requests
+    // ? Timeout to avoid hanging requests
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 20_000)
 
     const response = await fetch(apiUrl, {
-      cache: 'no-store', // ✅ critical fix
+      cache: 'no-store', // ? critical fix
       headers: { Accept: 'application/json' },
       signal: controller.signal,
     }).finally(() => clearTimeout(timeout))
@@ -116,7 +116,7 @@ export async function GET(req: Request) {
     const opportunities = (data.opportunitiesData || []).map((opp: any) => ({
       noticeId: opp.noticeId ?? '',
       title: opp.title ?? 'Untitled Opportunity',
-      solicitationNumber: opp.solicitationNumber ?? opp.noticeId ?? 'N/A',
+      solicitationNumber: opp.solicitation_number ?? opp.noticeId ?? 'N/A',
       department: opp.departmentName ?? opp.department ?? 'Unknown',
       postedDate: opp.postedDate ?? opp.publishDate ?? null,
       responseDeadline: opp.responseDeadLine ?? opp.responseDate ?? null,
@@ -145,7 +145,7 @@ export async function GET(req: Request) {
     )
   } catch (e: any) {
     const isAbort = String(e?.name || '').toLowerCase().includes('abort')
-    console.error('❌ SAM route error:', e)
+    console.error('? SAM route error:', e)
 
     return NextResponse.json(
       {

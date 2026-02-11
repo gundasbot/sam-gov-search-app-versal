@@ -1,4 +1,4 @@
-﻿// app/api/contact/route.ts
+// app/api/contact/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
@@ -215,7 +215,7 @@ Submitted: ${new Date().toLocaleString()}
                     ` : ''}
                     ${preferredDate && preferredTime ? `
                     <p style="margin: 12px 0 0 0; padding: 12px; background-color: #fef9c3; border-radius: 4px; color: #854d0e; font-size: 13px;">
-                      <strong>ðŸ“… Calendar invite attached</strong> - Add this meeting to your calendar!
+                      <strong>📅 Calendar invite attached</strong> - Add this meeting to your calendar!
                     </p>
                     ` : ''}
                   </td>
@@ -256,7 +256,7 @@ Submitted: ${new Date().toLocaleString()}
           <tr>
             <td style="background-color: #065f46; padding: 20px; text-align: center;">
               <p style="margin: 0; color: #d1fae5; font-size: 13px;">
-                Â© ${new Date().getFullYear()} Precise GovCon. All rights reserved.
+                © ${new Date().getFullYear()} Precise GovCon. All rights reserved.
               </p>
             </td>
           </tr>
@@ -302,7 +302,7 @@ Submitted: ${new Date().toLocaleString()}
             <td style="padding: 40px;">
               <div style="text-align: center; margin-bottom: 30px;">
                 <div style="width: 80px; height: 80px; background-color: #d1fae5; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-                  <span style="font-size: 40px;">âœ…</span>
+                  <span style="font-size: 40px;">✅</span>
                 </div>
                 <h2 style="margin: 0 0 12px 0; color: #065f46; font-size: 32px; font-weight: 900;">
                   Request Received!
@@ -317,14 +317,14 @@ Submitted: ${new Date().toLocaleString()}
                 <tr>
                   <td style="padding: 24px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 8px;">
                     <h3 style="margin: 0 0 16px 0; color: #065f46; font-size: 18px; font-weight: 700;">
-                      ðŸ“§ Confirmation sent to: ${email}
+                      📧 Confirmation sent to: ${email}
                     </h3>
                     <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
                       We've received your inquiry about <strong>${certifications || 'set-aside certifications'}</strong> and will contact you within 24 hours.
                     </p>
                     ${preferredDate && preferredTime ? `
                     <p style="margin: 12px 0 0 0; padding: 16px; background-color: #fef3c7; border-radius: 6px; color: #92400e; font-size: 14px; font-weight: 600;">
-                      ðŸ“… <strong>Meeting Request:</strong><br/>
+                      📅 <strong>Meeting Request:</strong><br/>
                       ${new Date(preferredDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${preferredTime}<br/>
                       <span style="font-size: 13px; color: #78350f;">Calendar invite attached - add this to your calendar!</span>
                     </p>
@@ -394,7 +394,7 @@ Submitted: ${new Date().toLocaleString()}
           <tr>
             <td style="background-color: #065f46; padding: 24px; text-align: center;">
               <p style="margin: 0 0 8px 0; color: #d1fae5; font-size: 13px; font-weight: 600;">
-                Â© ${new Date().getFullYear()} Precise GovCon. All rights reserved.
+                © ${new Date().getFullYear()} Precise GovCon. All rights reserved.
               </p>
               <p style="margin: 0; color: #a7f3d0; font-size: 12px;">
                 Helping businesses unlock federal contracting opportunities
@@ -419,7 +419,7 @@ Submitted: ${new Date().toLocaleString()}
     let icsContent: string | null = null
     if (preferredDate && preferredTime) {
       icsContent = generateICS(name, email, preferredDate, preferredTime, certifications || 'Set-aside certifications')
-      console.log('ðŸ“… Calendar invite generated')
+      console.log('📅 Calendar invite generated')
     }
 
     // Send email using Resend
@@ -438,14 +438,14 @@ Submitted: ${new Date().toLocaleString()}
         if (icsContent) {
           teamEmailData.attachments = [
             {
-              filename: 'meeting.ics',
+              file_name: 'meeting.ics',
               content: Buffer.from(icsContent).toString('base64'),
             }
           ]
         }
 
         const teamResult = await resend.emails.send(teamEmailData)
-        console.log('âœ… Team notification sent:', teamResult)
+        console.log('✅ Team notification sent:', teamResult)
 
         // 2. Send confirmation to customer
         const customerEmailData: any = {
@@ -460,21 +460,21 @@ Submitted: ${new Date().toLocaleString()}
         if (icsContent) {
           customerEmailData.attachments = [
             {
-              filename: 'consultation.ics',
+              file_name: 'consultation.ics',
               content: Buffer.from(icsContent).toString('base64'),
             }
           ]
         }
 
         const customerResult = await resend.emails.send(customerEmailData)
-        console.log('âœ… Customer confirmation sent:', customerResult)
+        console.log('✅ Customer confirmation sent:', customerResult)
 
       } catch (emailError) {
-        console.error('âŒ Email sending failed:', emailError)
+        console.error('❌ Email sending failed:', emailError)
         // Don't fail the request if email fails - still return success to user
       }
     } else {
-      console.warn('âš ï¸ RESEND_API_KEY not found - email not sent (only logged to console)')
+      console.warn('⚠️ RESEND_API_KEY not found - email not sent (only logged to console)')
       console.warn('Add RESEND_API_KEY to .env.local to enable email sending')
     }
 
@@ -509,11 +509,11 @@ export async function GET(req: NextRequest) {
         phone: true,
         company: true,
         title: true,
-        addressLine1: true,
-        addressLine2: true,
+        address_line1: true,
+        address_line2: true,
         city: true,
         state: true,
-        postalCode: true,
+        postal_code: true,
         country: true,
       },
     })
@@ -546,11 +546,11 @@ export async function PUT(req: NextRequest) {
     if (body.phone !== undefined) updateData.phone = clamp(body.phone, 40) || null
     if (body.company !== undefined) updateData.company = clamp(body.company, 120) || null
     if (body.title !== undefined) updateData.title = clamp(body.title, 120) || null
-    if (body.addressline1 !== undefined) updateData.addressLine1 = clamp(body.addressline1, 160) || null
-    if (body.addressline2 !== undefined) updateData.addressLine2 = clamp(body.addressline2, 160) || null
+    if (body.address_line1 !== undefined) updateData.address_line1 = clamp(body.address_line1, 160) || null
+    if (body.address_line2 !== undefined) updateData.address_line2 = clamp(body.address_line2, 160) || null
     if (body.city !== undefined) updateData.city = clamp(body.city, 80) || null
     if (body.state !== undefined) updateData.state = clamp(body.state, 40) || null
-    if (body.zip !== undefined) updateData.postalCode = clamp(body.zip, 20) || null
+    if (body.zip !== undefined) updateData.postal_code = clamp(body.zip, 20) || null
     if (body.country !== undefined) updateData.country = clamp(body.country, 60) || null
 
     console.log('Contact PUT - Update data:', JSON.stringify(updateData, null, 2))
@@ -572,11 +572,11 @@ export async function PUT(req: NextRequest) {
         phone: true,
         company: true,
         title: true,
-        addressLine1: true,
-        addressLine2: true,
+        address_line1: true,
+        address_line2: true,
         city: true,
         state: true,
-        postalCode: true,
+        postal_code: true,
         country: true,
       },
     })

@@ -33,7 +33,7 @@ export function generateCacheKey(params: URLSearchParams): string {
  */
 export async function getCachedSearch(cacheKey: string): Promise<SAMApiResponse | null> {
   try {
-    const cached = await prisma.samCachedSearch.findFirst({
+    const cached = await prisma.sam_cached_searches.findFirst({
       where: {
         search_key: cacheKey,
         expires_at: {
@@ -77,7 +77,7 @@ export async function setCachedSearch(
     const now = new Date()
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000)
 
-    await prisma.samCachedSearch.upsert({
+    await prisma.sam_cached_searches.upsert({
       where: {
         search_key: cacheKey
       },
@@ -113,7 +113,7 @@ export async function setCachedSearch(
  */
 export async function cleanExpiredCache(): Promise<number> {
   try {
-    const result = await prisma.samCachedSearch.deleteMany({
+    const result = await prisma.sam_cached_searches.deleteMany({
       where: {
         expires_at: {
           lt: new Date()
@@ -135,15 +135,15 @@ export async function cleanExpiredCache(): Promise<number> {
 export async function getCacheStats() {
   try {
     const [total, expired, valid] = await Promise.all([
-      prisma.samCachedSearch.count(),
-      prisma.samCachedSearch.count({
+      prisma.sam_cached_searches.count(),
+      prisma.sam_cached_searches.count({
         where: {
           expires_at: {
             lt: new Date()
           }
         }
       }),
-      prisma.samCachedSearch.count({
+      prisma.sam_cached_searches.count({
         where: {
           expires_at: {
             gt: new Date()

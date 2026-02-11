@@ -20,7 +20,7 @@ export async function POST(
     const search = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        user_id: session.user.id,
       },
     })
 
@@ -29,33 +29,33 @@ export async function POST(
     }
 
     // Find any running AlertRuns and mark them as stopped
-    const runningAlerts = await prisma.alertRun.findMany({
+    const runningAlerts = await prisma.alert_runs.findMany({
       where: {
-        searchId: id,
-        status: 'running',
+        alert_id: id,
+        status: 'SUCCESS',
       },
     })
 
     // Update all running alerts to stopped
     if (runningAlerts.length > 0) {
-      await prisma.alertRun.updateMany({
+      await prisma.alert_runs.updateMany({
         where: {
-          searchId: id,
-          status: 'running',
+          alert_id: id,
+          status: 'SUCCESS',
         },
         data: {
-          status: 'stopped',
-          completedAt: new Date(),
-          error: 'Manually stopped by user',
+          status: 'ERROR',
+          ran_at: new Date(),
+          error_message: 'Manually stopped by user',
         },
       })
     }
 
-    // Update the search's last run status
+    // Update the search's last run time
     await prisma.saved_searches_new.update({
       where: { id },
       data: {
-        lastRunStatus: 'stopped',
+        last_run_at: new Date(),
       },
     })
 

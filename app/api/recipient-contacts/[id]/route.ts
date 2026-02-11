@@ -26,10 +26,10 @@ export async function PATCH(
     const body = await req.json()
     const { email, name, organization, notes } = body
 
-    const contact = await prisma.recipientContact.updateMany({
+    const contact = await prisma.recipient_contacts.updateMany({
       where: {
         id,
-        userId: user.id,
+        user_id: user.id,
       },
       data: {
         ...(email && { email }),
@@ -73,10 +73,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const result = await prisma.recipientContact.deleteMany({
+    const result = await prisma.recipient_contacts.deleteMany({
       where: {
         id,
-        userId: user.id,
+        user_id: user.id,
       },
     })
 

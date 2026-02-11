@@ -1,4 +1,4 @@
-﻿///app/api/password/change/route.ts
+///app/api/password/change/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
@@ -32,16 +32,16 @@ export async function POST(req: NextRequest) {
       where: { email },
       select: {
         id: true,
-        passwordHash: true,
+        password_hash: true,
       },
     })
 
-    if (!user || !user.passwordHash) {
+    if (!user || !user.password_hash) {
       return NextResponse.json({ error: 'User not found or no password set' }, { status: 404 })
     }
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash)
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash)
     
     if (!isPasswordValid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 })
@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
     await prisma.users.update({
       where: { email },
       data: { 
-        passwordHash: hashedPassword,
-        updatedAt: new Date(),
+        password_hash: hashedPassword,
+        updated_at: new Date(),
       },
     })
 

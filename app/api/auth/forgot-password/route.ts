@@ -1,4 +1,4 @@
-﻿// app/api/auth/forgot-password/route.ts
+// app/api/auth/forgot-password/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { Resend } from 'resend'
@@ -135,12 +135,13 @@ export async function POST(req: NextRequest) {
     await prisma.password_reset_tokens.deleteMany({ where: { email } })
 
     // âœ… IMPORTANT: use Prisma field names (not mapped column names)
-    await prisma.password_reset_tokens.create({
+        await prisma.password_reset_tokens.create({
       data: {
+        id: crypto.randomUUID(),
         email,
-        tokenHash,
-        expiresAt,
-        usedAt: null,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        used_at: null,
       },
     })
 

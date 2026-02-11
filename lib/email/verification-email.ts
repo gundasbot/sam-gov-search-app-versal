@@ -1,7 +1,7 @@
 // lib/email/templates/verification-email.ts
 // lib/email/templates/verification-email.ts
 export function getVerificationEmailHtml(params: {
-  firstName: string;
+  first_name: string;
   verificationUrl: string;
 }) {
   return `
@@ -78,7 +78,7 @@ export function getVerificationEmailHtml(params: {
             <td style="padding: 40px 40px 30px; background-color: #1e293b;">
               <!-- Greeting -->
               <p style="margin: 0 0 20px; color: #f1f5f9; font-size: 18px; line-height: 1.6; font-weight: 500;">
-                Hi ${params.firstName},
+                Hi ${params.first_name},
               </p>
               
               <!-- Main message -->
@@ -263,7 +263,7 @@ export function getVerificationEmailHtml(params: {
 }
 
 export function getVerificationEmailText(params: {
-  firstName: string;
+  first_name: string;
   verificationUrl: string;
 }) {
   return `
@@ -272,7 +272,7 @@ contracting intelligence and procurement experts
 
 Welcome to Precise GovCon!
 
-Hi ${params.firstName},
+Hi ${params.first_name},
 
 Thanks for signing up! You're one step away from accessing thousands of federal contract opportunities.
 

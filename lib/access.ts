@@ -120,7 +120,8 @@ export async function requireActiveAccess(req: NextRequest): Promise<AccessGate>
   }
 
   return { 
-    ok: true, users: {
+    ok: true, 
+    user: {
       id: u.id,
       email: u.email,
       subscription_tier: u.subscription_tier,

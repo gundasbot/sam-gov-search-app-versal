@@ -149,8 +149,8 @@ function useSubscription() {
           interval: data.interval || null,
           status: data.status || 'inactive',
           hasSubscription: data.hasSubscription || false,
-          currentPeriodEnd: data.currentPeriodEnd || null,
-          cancelAtPeriodEnd: data.cancelAtPeriodEnd || false,
+          current_period_end: data.current_period_end || null,
+          cancel_at_period_end: data.cancel_at_period_end || false,
         })
         setLoading(false)
       })
@@ -188,7 +188,7 @@ function useSubscription() {
     interval: planData?.interval || (session?.user as any)?.interval || null,
     status: planData?.status || (session?.user as any)?.status || 'inactive',
     hasSubscription: planData?.hasSubscription || (session?.user as any)?.hasSubscription || false,
-    currentPeriodEnd: planData?.currentPeriodEnd || (session?.user as any)?.currentPeriodEnd || null,
+    current_period_end: planData?.current_period_end || (session?.user as any)?.current_period_end || null,
     loading: loading || sessionStatus === 'loading',
     error,
     hasActiveSubscription,
@@ -203,7 +203,7 @@ function useSubscription() {
 // --- ACCESS CONTROL HOOK (Fixed) ---
 function useBrowsingSession() {
   const { data: session, status } = useSession()
-  const { hasActiveSubscription, tier, status: planStatus, loading: planLoading } = useSubscription()
+  const { hasActiveSubscription, tier, status: plan_status, loading: planLoading } = useSubscription()
   const [browsingStartTime, setBrowsingStartTime] = useState<number | null>(null)
   const [showReminderModal, setShowReminderModal] = useState(false)
   const [showLockoutModal, setShowLockoutModal] = useState(false)
@@ -273,7 +273,7 @@ function useBrowsingSession() {
       console.log('🔍 Access Check - Complete user data:', {
         role: user?.role,
         tier,
-        planStatus,
+        plan_status,
         hasActiveSubscription: hasActiveSubscription(),
         session_tier: user?.tier,
         session_status: user?.status,
@@ -288,7 +288,7 @@ function useBrowsingSession() {
       
       // ✅ FIXED: Use the centralized subscription check
       if (hasActiveSubscription()) {
-        console.log('✅ Access granted: Active subscription', { tier, status: planStatus })
+        console.log('✅ Access granted: Active subscription', { tier, status: plan_status })
         return true
       }
       
@@ -298,7 +298,7 @@ function useBrowsingSession() {
     
     console.log('❌ Access denied: Not authenticated')
     return false
-  }, [status, session, hasActiveSubscription, tier, planStatus, planLoading])
+  }, [status, session, hasActiveSubscription, tier, plan_status, planLoading])
 
   const canBrowse = useMemo(() => {
     if (hasValidAccess) return true
@@ -315,7 +315,7 @@ function useBrowsingSession() {
     setShowLockoutModal,
     isAuthenticated: status === 'authenticated',
     tier,
-    planStatus,
+    plan_status,
     planLoading,
   }
 }
@@ -1233,7 +1233,7 @@ async function fetchWithRetry(
   maxRetries = 3,
   initialDelay = 2000
 ): Promise<Response> {
-  let lastError: Error | null = null;
+  let last_error: Error | null = null;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -1258,19 +1258,19 @@ async function fetchWithRetry(
       
       return response;
     } catch (error) {
-      lastError = error as Error;
+      last_error = error as Error;
       
       // Check if it's a network error or timeout
       if (attempt < maxRetries && !options.signal?.aborted) {
         const delay = initialDelay * Math.pow(2, attempt);
-        console.log(`❌ Request failed: ${lastError.message}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+        console.log(`❌ Request failed: ${last_error.message}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
   
-  console.error(`🚫 Max retries (${maxRetries}) exceeded. Last error:`, lastError);
-  throw lastError || new Error('Max retries exceeded');
+  console.error(`🚫 Max retries (${maxRetries}) exceeded. Last error:`, last_error);
+  throw last_error || new Error('Max retries exceeded');
 }
 
 function clamp(str: string, max: number) {
@@ -1687,7 +1687,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
   const [successData, setSuccessData] = useState({
     searchName: '',
     isSubscription: false,
-    savedSearchId: null as string | null
+    saved_search_id: null as string | null
   })
 
   // Results limit and pagination
@@ -1806,8 +1806,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
           posted_before: search.posted_before,
           rdl_from: search.rdl_from,
           rdl_to: search.rdl_to,
-          postedAfter: search.postedAfter,
-          postedBefore: search.postedBefore,
+          postedAfter: search.posted_after,
+          postedBefore: search.posted_before,
         });
 
         // Helper to convert DateTime to date string (YYYY-MM-DD)
@@ -1831,17 +1831,17 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
           keywords: search.keywords || '',
           naics: search.naics || '',
           agency: search.agency || '',
-          setAside: search.set_aside || '',  // Database uses set_aside
-          stateOfPerformance: search.state_of_performance || '',  // Database uses state_of_performance
-          procurementType: search.procurement_type || '',  // Database uses procurement_type
+          setAside: search.setAside || '',  // Database uses set_aside
+          stateOfPerformance: search.stateOfPerformance || '',  // Database uses state_of_performance
+          procurementType: search.procurementType || '',  // Database uses procurement_type
           postedAfter: toDateString(search.posted_after),  // Convert DateTime to date string
           postedBefore: toDateString(search.posted_before),  // Convert DateTime to date string
-          isActive: search.is_active !== null && search.is_active !== undefined && search.is_active !== 'undefined' ? search.is_active : '',
+          is_active: search.is_active !== null && search.is_active !== undefined && search.is_active !== 'undefined' ? search.is_active : '',
           solicitationNumber: search.solicitation_number || '',  // Database uses solicitation_number
           classificationCode: search.classification_code || '',  // Database uses classification_code
           responseDeadlineFrom: toDateString(search.rdl_from),  // Database uses rdl_from
           responseDeadlineTo: toDateString(search.rdl_to),  // Database uses rdl_to
-          noticeId: search.notice_id || '',  // Database uses notice_id
+          noticeId: search.noticeId || '',  // Database uses notice_id
           opportunityStatus: search.opportunity_status || '',  // Database uses opportunity_status
           placeOfPerformanceZip: search.place_of_performance_zip || '',  // Database uses place_of_performance_zip
           organizationCode: search.organization_code || '',  // Database uses organization_code
@@ -1857,7 +1857,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         setProcurementType(mappedParams.procurementType);
         setPostedAfter(mappedParams.postedAfter);
         setPostedBefore(mappedParams.postedBefore);
-        setIsActive(mappedParams.isActive);
+        setIsActive(mappedParams.is_active);
         setSolicitationNumber(mappedParams.solicitationNumber);
         setClassificationCode(mappedParams.classificationCode);
         // Note: Currently UI only supports single deadline field, using rdl_to
@@ -1977,7 +1977,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
     try {
       console.log('💾 Saving search with payload:', payload)
       
-      const endpoint = payload.subscriptionEnabled 
+      const endpoint = payload.subscription_enabled 
         ? '/api/saved-searches/with-subscription' 
         : '/api/saved-searches'
       
@@ -1998,8 +1998,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
       setShowSaveModal(false)
       setSuccessData({
         searchName: result.search?.name || payload.name,
-        isSubscription: Boolean(payload.subscriptionEnabled),
-        savedSearchId: result.search?.id || null
+        isSubscription: Boolean(payload.subscription_enabled),
+        saved_search_id: result.search?.id || null
       })
       setShowSuccessModal(true)
       router.refresh()
@@ -2140,8 +2140,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
       if (params.opportunityStatus?.trim()) {
         qs.set('status', params.opportunityStatus.trim());
       }
-      if (params.isActive && params.isActive !== '' && params.isActive !== 'undefined') {
-        qs.set('isActive', params.isActive);
+      if (params.is_active && params.is_active !== '' && params.is_active !== 'undefined') {
+        qs.set('isActive', params.is_active);
       }
       if (params.postedAfter?.trim()) {
         qs.set('postedFrom', formatDateForAPI(params.postedAfter.trim()));

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { sendTrialExpired } from "@/lib/email";
 
@@ -32,7 +32,7 @@ export async function GET() {
         WHERE id = ${u.id}
       `;
 
-      await sendTrialExpired({ email: u.email, firstName: u.first_name });
+      await sendTrialExpired({ to: u.email, name: u.first_name });
 
       await sql`
         INSERT INTO email_events (user_id, event_type)

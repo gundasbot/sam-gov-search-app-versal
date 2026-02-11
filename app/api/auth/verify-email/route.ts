@@ -1,6 +1,6 @@
-﻿// app/api/auth/verify-email/route.ts
+// app/api/auth/verify-email/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 
 const TRIAL_DAYS = 7
@@ -31,13 +31,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(errorUrl)
     }
 
-    const tokenHash = sha256Hex(token)
+    const token_hash = sha256Hex(token)
     const now = new Date()
 
     const tokenRecord = await prisma.email_verification_tokens.findFirst({
       where: {
-        tokenHash,
-        expiresAt: { gt: now },
+        token_hash,
+        expires_at: { gt: now },
       },
       include: { users: true,
       },
@@ -50,11 +50,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(errorUrl)
     }
 
-    const user = tokenRecord.user
-    const isFirstTimeVerification = !user.emailVerified
+    const user = tokenRecord.users
+    const isFirstTimeVerification = !user.email_verified
 
-    // Already verified â€” just issue an auto-login token
-    if (user.emailVerified) {
+    // Already verified — just issue an auto-login token
+    if (user.email_verified) {
       const autoLoginToken = crypto.randomBytes(32).toString('hex')
       const autoLoginHash = sha256Hex(autoLoginToken)
       const autoLoginExpiry = new Date(Date.now() + 30 * 60 * 1000)
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
         where: { id: tokenRecord.id },
       })
 
-      console.log(`âœ… Already verified user ${user.email} - Auto-login token created`)
+      console.log(`✅ Already verified user ${user.email} - Auto-login token created`)
 
       const successUrl = new URL('/verify-email', req.url)
       successUrl.searchParams.set('status', 'success')
@@ -82,21 +82,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(successUrl)
     }
 
-    // First time â€” verify email + start trial
+    // First time — verify email + start trial
     const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
 
     await prisma.users.update({
       where: { id: user.id },
       data: {
-        emailVerified: now,
+        email_verified: now,
         trial_active: true,
-        trialStartedAt: now,
+        trial_started_at: now,
         trial_expires_at: trialExpires,
         trial_ends_at: trialExpires,
         plan: 'BASIC',
         plan_tier: 'BASIC',
         plan_status: 'trialing',
-        isActive: true,
+        is_active: true,
       },
     })
 
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    console.log(`âœ… Email verified for ${user.email} - Trial started - Auto-login token created`)
+    console.log(`✅ Email verified for ${user.email} - Trial started - Auto-login token created`)
 
     const successUrl = new URL('/verify-email', req.url)
     successUrl.searchParams.set('status', 'success')
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(successUrl)
     
   } catch (error: any) {
-    console.error('âŒ Email verification error:', error)
+    console.error('❌ Email verification error:', error)
     const errorUrl = new URL('/verify-email', req.url)
     errorUrl.searchParams.set('status', 'error')
     errorUrl.searchParams.set('message', 'Verification failed. Please try again.')

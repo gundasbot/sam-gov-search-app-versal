@@ -65,28 +65,28 @@ export async function GET(req: NextRequest) {
     const users = rows.map((u) => ({
       id: u.id,
       email: u.email,
-      firstName: u.first_name,
-      lastName: u.last_name,
+      first_name: u.first_name,
+      last_name: u.last_name,
       role: u.role,
-      createdAt: u.created_at,
-      updatedAt: u.updated_at,
+      created_at: u.created_at,
+      updated_at: u.updated_at,
       phone: u.phone,
       company: u.company,
       city: u.city,
       state: u.state,
       country: u.country,
-      postalCode: u.postal_code,
+      postal_code: u.postal_code,
 
-      planTier: u.plan_tier,
-      planStatus: u.plan_status,
-      accountStatus: u.account_status,
-      lastLoginAt: u.last_login_at,
-      isActive: u.is_active,
-      isSuspended: u.is_suspended,
-      trialActive: u.trial_active,
-      trialExpiresAt: u.trial_expires_at,
-      stripeCustomerId: u.stripe_customer_id,
-      stripeSubscriptionId: u.stripe_subscription_id,
+      plan_tier: u.plan_tier,
+      plan_status: u.plan_status,
+      account_status: u.account_status,
+      last_login_at: u.last_login_at,
+      is_active: u.is_active,
+      is_suspended: u.is_suspended,
+      trial_active: u.trial_active,
+      trial_expires_at: u.trial_expires_at,
+      stripe_customer_id: u.stripe_customer_id,
+      stripe_subscription_id: u.stripe_subscription_id,
     }))
 
     return NextResponse.json({ users })
@@ -119,7 +119,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { userId, role } = body as { userId?: string; role?: string }
+    const { user_id: userId, role } = body as { user_id?: string; role?: string }
 
     if (!userId || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -143,7 +143,7 @@ export async function PUT(req: NextRequest) {
         id: updated.id,
         email: updated.email,
         role: updated.role,
-        updatedAt: updated.updated_at,
+        updated_at: updated.updated_at,
       },
     })
   } catch (error: any) {
@@ -154,3 +154,4 @@ export async function PUT(req: NextRequest) {
     )
   }
 }
+

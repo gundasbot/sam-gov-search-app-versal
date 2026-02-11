@@ -1,4 +1,4 @@
-﻿// app/api/stripe/change-subscription/route.ts
+// app/api/stripe/change-subscription/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -10,7 +10,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
+  apiVersion: '2026-01-28.clover',
 })
 
 type Tier = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     // Stripe typings in your version may not declare snake_case fields.
     const updated = updatedSub as Stripe.Subscription & {
-      current_period_end?: number | null
+      currentPeriodEnd?: number | null
     }
 
     return NextResponse.json({
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       subscription: {
         id: updated.id,
         status: updated.status,
-        current_period_end: updated.current_period_end ?? null,
+        current_period_end: updated.currentPeriodEnd ?? null,
       },
     })
   } catch (error: any) {

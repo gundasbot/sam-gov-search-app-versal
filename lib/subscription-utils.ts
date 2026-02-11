@@ -199,9 +199,9 @@ export function parseSubscriptionData(data: any): SubscriptionData {
     tier: normalizeTier(data?.tier),
     status: normalizeStatus(data?.status),
     billing: (data?.billing === 'annual' ? 'annual' : 'monthly') as BillingInterval,
-    currentPeriodEnd: data?.currentPeriodEnd,
+    currentPeriodEnd: data?.currentPeriodEnd ?? data?.current_period_end,
     cancelAt: data?.cancelAt,
-    cancelAtPeriodEnd: data?.cancelAtPeriodEnd,
+    cancelAtPeriodEnd: data?.cancelAtPeriodEnd ?? data?.cancel_at_period_end,
     scheduledChange: data?.scheduledChange,
   }
 }

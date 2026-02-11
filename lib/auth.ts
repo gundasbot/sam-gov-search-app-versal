@@ -1,19 +1,24 @@
 // lib/auth.ts
 import { compare, hash } from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { randomBytes } from 'crypto'
+
+function generateId(): string {
+  return randomBytes(16).toString('hex')
+}
 
 export type User = {
   id: string
   name: string | null
   email: string
-  passwordHash: string | null
+  password_hash: string | null
   role: string | null
-  firstName: string | null
-  lastName: string | null
+  first_name: string | null
+  last_name: string | null
   phone: string | null
   company: string | null
   plan: string | null
-  trialEndsAt: Date | null
+  trial_ends_at: Date | null
   image: string | null
 }
 
@@ -21,10 +26,10 @@ const userSelect = {
   id: true,
   name: true,
   email: true,
-  passwordHash: true,
+  password_hash: true,
   role: true,
-  firstName: true,
-  lastName: true,
+  first_name: true,
+  last_name: true,
   phone: true,
   company: true,
   plan: true,
@@ -50,13 +55,13 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 
 export async function createUser(userData: {
   email: string
-  firstName: string
-  lastName: string
+  first_name: string
+  last_name: string
   password: string
   phone?: string
   company?: string
 }): Promise<User> {
-  const { email, firstName, lastName, password, phone, company } = userData
+  const { email, first_name, last_name, password, phone, company } = userData
 
   const e = email.toLowerCase().trim()
   if (!e) throw new Error('Email is required')
@@ -71,16 +76,19 @@ export async function createUser(userData: {
 
   const user = await prisma.users.create({
     data: {
+      id: generateId(),
       email: e,
-      firstName,
-      lastName,
-      name: `${firstName} ${lastName}`.trim(),
-      passwordHash: passwordHash,
+      first_name,
+      last_name,
+      name: `${first_name} ${last_name}`.trim(),
+      password_hash: passwordHash,
       phone: phone || null,
       company: company || null,
       plan: 'trial',
-      trialEndsAt,
+      trial_ends_at: trialEndsAt,
       role: 'user',
+      updated_at: new Date(),
+      created_at: new Date(),
     },
     select: userSelect,
   })
@@ -108,23 +116,30 @@ export async function createGoogleUser(googleData: {
 
   const user = await prisma.users.create({
     data: {
+      id: generateId(),
       email: e,
-      firstName,
-      lastName,
+      first_name: firstName,
+      last_name: lastName,
       name: name || null,
       image: profileImage || null,
       plan: 'trial',
-      trialEndsAt,
+      trial_ends_at: trialEndsAt,
       role: 'user',
-      accounts: {
-        create: {
-          type: 'oauth',
-          provider: 'google',
-          providerAccountId: googleId,
-        },
-      },
+      updated_at: new Date(),
+      created_at: new Date(),
     },
     select: userSelect,
+  })
+
+  // Create account record
+  await prisma.accounts.create({
+    data: {
+      id: generateId(),
+      user_id: user.id,
+      type: 'oauth',
+      provider: 'google',
+      provider_account_id: googleId,
+    },
   })
 
   return user
@@ -138,23 +153,24 @@ export async function linkGoogleAccount(
   const user = await findUserByEmail(email)
   if (!user) return
 
-  const existingAccount = await prisma.account.findUnique({
+  const existingAccount = await prisma.accounts.findUnique({
     where: {
-      provider_providerAccountId: {
+      provider_provider_account_id: {
         provider: 'google',
-        providerAccountId: googleId,
+        provider_account_id: googleId,
       },
     },
     select: { id: true },
   })
 
   if (!existingAccount) {
-    await prisma.account.create({
+    await prisma.accounts.create({
       data: {
-        userId: user.id,
+        id: generateId(),
+        user_id: user.id,
         type: 'oauth',
         provider: 'google',
-        providerAccountId: googleId,
+        provider_account_id: googleId,
       },
     })
   }
@@ -162,7 +178,7 @@ export async function linkGoogleAccount(
   if (profileImage && !user.image) {
     await prisma.users.update({
       where: { id: user.id },
-      data: { image: profileImage },
+      data: { image: profileImage, updated_at: new Date() },
       select: { id: true },
     })
   }

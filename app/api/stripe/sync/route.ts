@@ -1,4 +1,4 @@
-﻿// app/api/stripe/sync/route.ts
+// app/api/stripe/sync/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import Stripe from 'stripe'
@@ -8,13 +8,13 @@ import { prisma } from '@/lib/prisma'
 export const runtime = 'nodejs'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
+  apiVersion: '2026-01-28.clover',
 })
 
-type plan_tier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
-type billing_interval = 'MONTHLY' | 'YEARLY'
+type PlanTier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
+type BillingInterval = 'MONTHLY' | 'YEARLY'
 
-function tierFromPrice(priceId?: string | null): plan_tier {
+function tierFromPrice(priceId?: string | null): PlanTier {
   if (!priceId) return 'NONE'
 
   if (
@@ -43,7 +43,7 @@ function tierFromPrice(priceId?: string | null): plan_tier {
 
 export async function POST(_req: NextRequest) {
   try {
-    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ═══════════════════════ AUTH ═══════════════════════ */
     const session = await getServerSession(authOptions)
     const email = session?.user?.email
     if (!email) {
@@ -62,7 +62,7 @@ export async function POST(_req: NextRequest) {
       })
     }
 
-    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ FETCH STRIPE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ═══════════════════════ FETCH STRIPE ═══════════════════════ */
     const subscriptions = await stripe.subscriptions.list({
       customer: user.stripe_customer_id,
       status: 'all',
@@ -98,15 +98,15 @@ export async function POST(_req: NextRequest) {
       })
     }
 
-    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ DERIVE PLAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ═══════════════════════ DERIVE PLAN ═══════════════════════ */
     const item = subscription.items.data[0]
     const price = item?.price
 
-    const tier: plan_tier =
-      (subscription.metadata?.tier as plan_tier) ||
+    const tier: PlanTier =
+      (subscription.metadata?.tier as PlanTier) ||
       tierFromPrice(price?.id)
 
-    const billing_interval: billing_interval | null =
+    const billingInterval: BillingInterval | null =
       subscription.metadata?.interval === 'annual'
         ? 'YEARLY'
         : subscription.metadata?.interval === 'monthly'
@@ -117,42 +117,42 @@ export async function POST(_req: NextRequest) {
               ? 'MONTHLY'
               : null
 
-    const current_period_end =
+    const currentPeriodEnd =
       typeof (subscription as any).current_period_end === 'number'
         ? new Date((subscription as any).current_period_end * 1000)
         : null
 
-    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ UPDATE DB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ═══════════════════════ UPDATE DB ═══════════════════════ */
     await prisma.users.update({
       where: { id: user.id },
       data: {
         plan_tier: tier,
-        billing_interval,
+        billing_interval: billingInterval, // ✅ FIXED: Use correct variable name
         stripe_subscription_id: subscription.id,
         subscription_status: subscription.status,
         cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-        current_period_end,
+        current_period_end: currentPeriodEnd, // ✅ FIXED: Use correct variable name
       },
     })
 
-    /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ RESPONSE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    /* ═══════════════════════ RESPONSE ═══════════════════════ */
     return NextResponse.json({
       ok: true,
       synced: true,
       plan: {
         tier,
-        billing_interval,
+        billingInterval,
         status: subscription.status,
         stripe_subscription_id: subscription.id,
         cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-        current_period_end: current_period_end?.toISOString() ?? null,
+        current_period_end: currentPeriodEnd?.toISOString() ?? null,
         hasSubscription:
           subscription.status === 'active' ||
           subscription.status === 'trialing',
       },
     })
   } catch (err: any) {
-    console.error('âŒ Stripe sync failed:', err)
+    console.error('❌ Stripe sync failed:', err)
     return NextResponse.json(
       { error: 'Failed to sync subscription' },
       { status: 500 }

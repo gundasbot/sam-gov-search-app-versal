@@ -37,12 +37,12 @@ function VerifyEmailContent() {
         .then((res) => res.json())
         .then(async (data) => {
           if (data.ok && data.user) {
-            setUserName(data.user.firstName || data.user.name || '');
+            setUserName(data.user.first_name || data.user.name || '');
 
             const result = await signIn('credentials', {
               email: data.user.email,
               password: '',
-              autoLoginUserId: data.user.id,
+              auto_login_user_id: data.user.id,
               redirect: false,
             });
 

@@ -48,17 +48,17 @@ export async function GET(
       frequency: subscription.frequency,
       active: subscription.subscription_enabled,
       recipients: subscription.recipients,
-      emailNotification: subscription.email_notification,
-      sendEmptyResults: subscription.send_empty_results,
-      maxResults: subscription.max_results,
-      deliveryTime: subscription.delivery_time,
-      exportFormat: subscription.export_format,
-      fileFormat: subscription.export_format,
-      includeLinks: subscription.include_links,
+      email_notification: subscription.email_notification,
+      send_empty_results: subscription.send_empty_results,
+      max_results: subscription.max_results,
+      delivery_time: subscription.delivery_time,
+      export_format: subscription.export_format,
+      file_format: subscription.export_format,
+      include_links: subscription.include_links,
       lastRunAt: subscription.last_run_at,
-      lastResultCount: subscription.last_result_count,
-      createdAt: subscription.created_at,
-      updatedAt: subscription.updated_at,
+      last_result_count: subscription.last_result_count,
+      created_at: subscription.created_at,
+      updated_at: subscription.updated_at,
       savedSearch: {
         id: subscription.id,
         name: subscription.name,
@@ -133,13 +133,13 @@ export async function PUT(
     if (body.description !== undefined) updateData.description = body.description
     if (body.frequency !== undefined) updateData.frequency = body.frequency
     if (body.recipients !== undefined) updateData.recipients = body.recipients
-    if (body.emailNotification !== undefined) updateData.email_notification = body.emailNotification
-    if (body.sendEmptyResults !== undefined) updateData.send_empty_results = body.sendEmptyResults
-    if (body.maxResults !== undefined) updateData.max_results = body.maxResults
-    if (body.deliveryTime !== undefined) updateData.delivery_time = body.deliveryTime
-    if (body.exportFormat !== undefined) updateData.export_format = body.exportFormat
-    if (body.fileFormat !== undefined) updateData.export_format = body.fileFormat // Support both names
-    if (body.includeLinks !== undefined) updateData.include_links = body.includeLinks
+    if (body.email_notification !== undefined) updateData.email_notification = body.email_notification
+    if (body.send_empty_results !== undefined) updateData.send_empty_results = body.send_empty_results
+    if (body.max_results !== undefined) updateData.max_results = body.max_results
+    if (body.delivery_time !== undefined) updateData.delivery_time = body.delivery_time
+    if (body.export_format !== undefined) updateData.export_format = body.export_format
+    if (body.file_format !== undefined) updateData.export_format = body.file_format // Support both names
+    if (body.include_links !== undefined) updateData.include_links = body.include_links
 
     const updated = await prisma.saved_searches_new.update({
       where: { id },
@@ -162,17 +162,17 @@ export async function PUT(
       frequency: updated.frequency,
       active: updated.subscription_enabled,
       recipients: updated.recipients,
-      emailNotification: updated.email_notification,
-      sendEmptyResults: updated.send_empty_results,
-      maxResults: updated.max_results,
-      deliveryTime: updated.delivery_time,
-      exportFormat: updated.export_format,
-      fileFormat: updated.export_format,
-      includeLinks: updated.include_links,
+      email_notification: updated.email_notification,
+      send_empty_results: updated.send_empty_results,
+      max_results: updated.max_results,
+      delivery_time: updated.delivery_time,
+      export_format: updated.export_format,
+      file_format: updated.export_format,
+      include_links: updated.include_links,
       lastRunAt: updated.last_run_at,
-      lastResultCount: updated.last_result_count,
-      createdAt: updated.created_at,
-      updatedAt: updated.updated_at,
+      last_result_count: updated.last_result_count,
+      created_at: updated.created_at,
+      updated_at: updated.updated_at,
       savedSearch: {
         id: updated.id,
         name: updated.name,

@@ -1,4 +1,4 @@
-﻿// lib/email/send.ts
+// lib/email/send.ts
 import { Resend } from 'resend'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
@@ -7,7 +7,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
 
 export interface EmailAttachment {
-  filename: string
+  file_name: string
   content: string // base64 encoded string
   contentType?: string
 }
@@ -84,10 +84,10 @@ export async function sendEmail({
     if (ccList.length) payload.cc = ccList
     if (bccList.length) payload.bcc = bccList
 
-    // Resend attachments: { filename, content, content_type }
+    // Resend attachments: { file_name, content, content_type }
     if (attachments?.length) {
       payload.attachments = attachments.map((a) => ({
-        filename: a.filename,
+        file_name: a.file_name,
         content: a.content,
         content_type: a.contentType,
       }))

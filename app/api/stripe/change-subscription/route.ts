@@ -1,4 +1,4 @@
-﻿// app/api/stripe/change-subscription/route.ts - SECURE VERSION
+// app/api/stripe/change-subscription/route.ts - SECURE VERSION
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
+  apiVersion: '2026-01-28.clover',
 })
 
 type Tier = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     const currentInterval = currentPrice.recurring?.interval
     const newInterval = newPrice.recurring?.interval
     
-    // Check if interval is changing (monthly â†” annual)
+    // Check if interval is changing (monthly ↔ annual)
     const isIntervalChange = currentInterval !== newInterval
     
     // Prepare update parameters
@@ -137,8 +137,8 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Extract current_period_end safely
-    const periodEnd = (updatedSubscription as any).current_period_end
+    // Extract currentPeriodEnd safely
+    const periodEnd = (updatedSubscription as any).currentPeriodEnd
     const current_period_end = typeof periodEnd === 'number' 
       ? new Date(periodEnd * 1000).toISOString()
       : new Date().toISOString()
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       subscription: {
         id: updatedSubscription.id,
         status: updatedSubscription.status,
-        current_period_end,
+        current_period_end, // ✅ FIXED: Use the correct variable name
       },
     })
   } catch (error: any) {

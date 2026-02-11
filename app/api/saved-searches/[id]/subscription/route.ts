@@ -23,7 +23,7 @@ export async function PATCH(
     const search = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        user_id: session.user.id,
       },
       select: { id: true },
     })
@@ -40,14 +40,14 @@ export async function PATCH(
 
     // Handle enabling/disabling subscription
     if (typeof body.enabled === 'boolean') {
-      data.subscriptionEnabled = body.enabled
+      data.subscription_enabled = body.enabled
 
       if (body.enabled) {
         // Enabling subscription
         data.frequency = body.frequency || 'DAILY'
-        data.emailNotification = body.emailNotification ?? true
-        data.sendEmptyResults = body.sendEmptyResults ?? false
-        data.maxResults = body.maxResults ?? 100
+        data.email_notification = body.email_notification ?? true
+        data.send_empty_results = body.send_empty_results ?? false
+        data.max_results = body.max_results ?? 100
       } else {
         // Disabling subscription
         data.frequency = null
@@ -57,19 +57,19 @@ export async function PATCH(
     // Update individual subscription settings
     if (body.frequency) {
       data.frequency = body.frequency
-      data.subscriptionEnabled = true
+      data.subscription_enabled = true
     }
 
-    if (typeof body.emailNotification === 'boolean') {
-      data.emailNotification = body.emailNotification
+    if (typeof body.email_notification === 'boolean') {
+      data.email_notification = body.email_notification
     }
 
-    if (typeof body.sendEmptyResults === 'boolean') {
-      data.sendEmptyResults = body.sendEmptyResults
+    if (typeof body.send_empty_results === 'boolean') {
+      data.send_empty_results = body.send_empty_results
     }
 
-    if (typeof body.maxResults === 'number') {
-      data.maxResults = body.maxResults
+    if (typeof body.max_results === 'number') {
+      data.max_results = body.max_results
     }
 
     const updated = await prisma.saved_searches_new.update({
@@ -78,13 +78,13 @@ export async function PATCH(
       select: {
         id: true,
         name: true,
-        subscriptionEnabled: true,
+        subscription_enabled: true,
         frequency: true,
-        emailNotification: true,
-        sendEmptyResults: true,
-        maxResults: true,
+        email_notification: true,
+        send_empty_results: true,
+        max_results: true,
         lastRunAt: true,
-        lastResultCount: true,
+        last_result_count: true,
       },
     })
 
@@ -116,7 +116,7 @@ export async function DELETE(
     const search = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        user_id: session.user.id,
       },
       select: { id: true },
     })
@@ -131,13 +131,13 @@ export async function DELETE(
     const updated = await prisma.saved_searches_new.update({
       where: { id },
       data: {
-        subscriptionEnabled: false,
+        subscription_enabled: false,
         frequency: null,
       },
       select: {
         id: true,
         name: true,
-        subscriptionEnabled: true,
+        subscription_enabled: true,
         frequency: true,
       },
     })

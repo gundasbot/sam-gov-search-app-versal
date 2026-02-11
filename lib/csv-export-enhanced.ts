@@ -3,8 +3,8 @@
 
 interface CSVExportOptions {
   searchName: string
-  resultCount: number
-  searchParams: {
+  result_count: number
+  search_params: {
     keywords?: string | null
     solicitationNumber?: string | null
     noticeId?: string | null
@@ -26,9 +26,7 @@ interface CSVExportOptions {
 }
 
 export function generateEnhancedCSV({
-  searchName,
-  resultCount,
-  searchParams,
+  searchName, result_count: resultCount, search_params: searchParams,
   opportunities,
   runDate,
 }: CSVExportOptions): string {
@@ -101,7 +99,7 @@ export function generateEnhancedCSV({
     return [
       escapeCSV(opp.noticeId),
       escapeCSV(opp.title),
-      escapeCSV(opp.solicitationNumber),
+      escapeCSV(opp.solicitation_number),
       escapeCSV(opp.fullParentPathName || opp.departmentName),
       escapeCSV(opp.subtierName || opp.officeName),
       escapeCSV(opp.type),
@@ -131,13 +129,13 @@ export function generateEnhancedCSV({
 }
 
 // Function to download CSV
-export function downloadEnhancedCSV(csvContent: string, filename: string) {
+export function downloadEnhancedCSV(csvContent: string, file_name: string) {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   
   link.setAttribute('href', url)
-  link.setAttribute('download', filename)
+  link.setAttribute('download', file_name)
   link.style.visibility = 'hidden'
   
   document.body.appendChild(link)

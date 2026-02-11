@@ -5,6 +5,10 @@ import { generateTOTP } from '@otplib/uri'
 import QRCode from 'qrcode'
 import { prisma } from '@/lib/prisma'
 
+function generateId(): string {
+  return crypto.randomBytes(16).toString('hex')
+}
+
 // Use default TOTP instance
 const totp = new TOTP()
 
@@ -43,7 +47,7 @@ export async function generateTwoFactorSecret(userId: string, email: string) {
   // Store secret temporarily (not enabled until verified)
   await prisma.users.update({
     where: { id: userId },
-    data: { twoFactorSecret: secret },
+    data: { two_factor_secret: secret },
   })
 
   return {
@@ -68,14 +72,14 @@ export async function verifyTwoFactorToken(secret: string, token: string): Promi
 export async function enableTwoFactor(userId: string, token: string) {
   const user = await prisma.users.findUnique({
     where: { id: userId },
-    select: { twoFactorSecret: true },
+    select: { two_factor_secret: true },
   })
 
-  if (!user?.twoFactorSecret) {
+  if (!user?.two_factor_secret) {
     return { success: false, error: '2FA secret not found' }
   }
 
-  const isValid = await verifyTwoFactorToken(user.twoFactorSecret, token)
+  const isValid = await verifyTwoFactorToken(user.two_factor_secret, token)
 
   if (!isValid) {
     return { success: false, error: 'Invalid verification code' }
@@ -86,13 +90,14 @@ export async function enableTwoFactor(userId: string, token: string) {
   await prisma.$transaction([
     prisma.users.update({
       where: { id: userId },
-      data: { twoFactorEnabled: true },
+      data: { two_factor_enabled: true },
     }),
 
     ...backupCodes.map(code =>
-      prisma.twoFactorBackupCode.create({
+      prisma.two_factor_backup_codes.create({
         data: {
-          userId,
+          id: generateId(),
+          user_id: userId,
           code: hashBackupCode(code),
         },
       })
@@ -110,13 +115,13 @@ export async function disableTwoFactor(userId: string, password: string) {
     prisma.users.update({
       where: { id: userId },
       data: {
-        twoFactorEnabled: false,
-        twoFactorSecret: null,
+        two_factor_enabled: false,
+        two_factor_secret: null,
       },
     }),
 
-    prisma.twoFactorBackupCode.deleteMany({
-      where: { userId },
+    prisma.two_factor_backup_codes.deleteMany({
+      where: { user_id: userId },
     }),
   ])
 
@@ -126,9 +131,8 @@ export async function disableTwoFactor(userId: string, password: string) {
 export async function verifyBackupCode(userId: string, code: string) {
   const hashedCode = hashBackupCode(code)
 
-  const backupCode = await prisma.twoFactorBackupCode.findFirst({
-    where: {
-      userId,
+  const backupCode = await prisma.two_factor_backup_codes.findFirst({
+    where: { user_id: userId,
       code: hashedCode,
       used: false,
     },
@@ -136,11 +140,11 @@ export async function verifyBackupCode(userId: string, code: string) {
 
   if (!backupCode) return false
 
-  await prisma.twoFactorBackupCode.update({
+  await prisma.two_factor_backup_codes.update({
     where: { id: backupCode.id },
     data: {
       used: true,
-      usedAt: new Date(),
+      used_at: new Date(),
     },
   })
 

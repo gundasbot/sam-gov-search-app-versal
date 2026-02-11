@@ -22,13 +22,13 @@ const toDateTime = (val: any): Date | null => {
   if (!val || typeof val !== 'string') return null
   const trimmed = val.trim()
   if (!trimmed) return null
-  
+
   // If it's already a full ISO string, parse it
   if (trimmed.includes('T')) {
     const date = new Date(trimmed)
     return isNaN(date.getTime()) ? null : date
   }
-  
+
   // If it's just a date (YYYY-MM-DD), convert to DateTime at midnight UTC
   const date = new Date(trimmed + 'T00:00:00.000Z')
   return isNaN(date.getTime()) ? null : date
@@ -39,7 +39,7 @@ const formatDateForFrontend = (date: Date | null): string | null => {
   if (!date) return null
   const d = new Date(date)
   if (isNaN(d.getTime())) return null
-  
+
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   const year = d.getFullYear()
@@ -48,45 +48,62 @@ const formatDateForFrontend = (date: Date | null): string | null => {
 
 // Transform database record to frontend format
 const transformSearchForFrontend = (search: any) => {
+  // Normalize likely DB fields
+  const noticeId =
+    search.noticeId ?? search.notice_id ?? null
+
+  const postedAfterDate: Date | null =
+    search.posted_after ?? search.postedAfter ?? null
+  const postedBeforeDate: Date | null =
+    search.posted_before ?? search.postedBefore ?? null
+
+  const rdlFromDate: Date | null =
+    search.rdl_from ?? search.rdlfrom ?? null
+  const rdlToDate: Date | null =
+    search.rdl_to ?? search.rdlto ?? null
+
   return {
+    // Base fields
     ...search,
-    // Map snake_case to camelCase
-    userId: search.user_id,
-    isPinned: search.is_pinned,
-    solicitationNumber: search.solicitation_number,
-    noticeId: search.notice_id,
-    classificationCode: search.classification_code,
-    organizationCode: search.organization_code,
-    setAside: search.set_aside,
-    stateOfPerformance: search.state_of_performance,
-    placeOfPerformanceZip: search.place_of_performance_zip,
-    opportunityStatus: search.opportunity_status,
-    procurementType: search.procurement_type,
-    subscriptionEnabled: search.subscription_enabled,
-    emailNotification: search.email_notification,
-    sendEmptyResults: search.send_empty_results,
-    maxResults: search.max_results,
-    deliveryTime: search.delivery_time,
-    exportFormat: search.export_format,
-    includeLinks: search.include_links,
-    lastRunAt: search.last_run_at,
-    lastResultCount: search.last_result_count,
-    createdAt: search.created_at,
-    updatedAt: search.updated_at,
-    
-    // Date fields - convert to MM/DD/YYYY format
-    postedAfter: formatDateForFrontend(search.posted_after),
-    postedBefore: formatDateForFrontend(search.posted_before),
-    postedFrom: formatDateForFrontend(search.posted_after), // Alias
-    postedTo: formatDateForFrontend(search.posted_before), // Alias
-    rdlfrom: formatDateForFrontend(search.rdl_from),
-    rdlto: formatDateForFrontend(search.rdl_to),
-    
-    // Keep original snake_case for backwards compatibility
+
+    /* ---------- camelCase for frontend ---------- */
+    solicitationNumber: search.solicitation_number ?? search.solicitationNumber ?? null,
+    noticeId,
+    classificationCode: search.classification_code ?? search.classificationCode ?? null,
+    organizationCode: search.organization_code ?? search.organizationCode ?? null,
+    setAside: search.set_aside ?? search.setAside ?? null,
+    stateOfPerformance: search.state_of_performance ?? search.stateOfPerformance ?? null,
+    placeOfPerformanceZip:
+      search.place_of_performance_zip ?? search.placeOfPerformanceZip ?? null,
+    opportunityStatus: search.opportunity_status ?? search.opportunityStatus ?? null,
+    procurementType: search.procurement_type ?? search.procurementType ?? null,
+
+    subscriptionEnabled: search.subscription_enabled ?? search.subscriptionEnabled ?? null,
+    emailNotification: search.email_notification ?? search.emailNotification ?? null,
+    sendEmptyResults: search.send_empty_results ?? search.sendEmptyResults ?? null,
+    maxResults: search.max_results ?? search.maxResults ?? null,
+    deliveryTime: search.delivery_time ?? search.deliveryTime ?? null,
+    exportFormat: search.export_format ?? search.exportFormat ?? null,
+    includeLinks: search.include_links ?? search.includeLinks ?? null,
+
+    lastRunAt: search.last_run_at ?? search.lastRunAt ?? null,
+    lastResultCount: search.last_result_count ?? search.lastResultCount ?? null,
+    createdAt: search.created_at ?? search.createdAt ?? null,
+    updatedAt: search.updated_at ?? search.updatedAt ?? null,
+
+    // Date fields -> MM/DD/YYYY strings
+    postedAfter: formatDateForFrontend(postedAfterDate),
+    postedBefore: formatDateForFrontend(postedBeforeDate),
+    postedFrom: formatDateForFrontend(postedAfterDate), // alias
+    postedTo: formatDateForFrontend(postedBeforeDate), // alias
+    rdlfrom: formatDateForFrontend(rdlFromDate),
+    rdlto: formatDateForFrontend(rdlToDate),
+
+    /* ---------- snake_case for backwards compatibility (ONLY ONCE EACH) ---------- */
     user_id: search.user_id,
     is_pinned: search.is_pinned,
     solicitation_number: search.solicitation_number,
-    notice_id: search.notice_id,
+    notice_id: search.notice_id ?? null,
     classification_code: search.classification_code,
     organization_code: search.organization_code,
     set_aside: search.set_aside,
@@ -137,21 +154,26 @@ function handlePrismaError(error: unknown, operation: string) {
   }
 
   if (error instanceof Prisma.PrismaClientRustPanicError) {
-    return NextResponse.json(
-      { error: 'Database error occurred' },
-      { status: 503 }
-    )
+    return NextResponse.json({ error: 'Database error occurred' }, { status: 503 })
   }
 
   // Generic error
   return NextResponse.json(
-    { 
+    {
       error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? String(error) : undefined 
+      details: process.env.NODE_ENV === 'development' ? String(error) : undefined,
     },
     { status: 500 }
   )
 }
+
+/* =========================================================
+   POST – RUN SAVED SEARCH IMMEDIATELY
+   ========================================================= */
+
+/* =========================================================
+   POST – RUN SAVED SEARCH IMMEDIATELY
+   ========================================================= */
 
 /* =========================================================
    POST – RUN SAVED SEARCH IMMEDIATELY
@@ -161,17 +183,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
+
     // Fetch user details to get their profile name for email greeting
     const user = await prisma.users.findUnique({
       where: { id: session.user.id },
-      select: { name: true }
+      select: { name: true },
     })
 
     const savedSearch = await prisma.saved_searches_new.findFirst({
@@ -199,18 +222,26 @@ export async function POST(
 
     // SAM.gov requires PostedFrom and PostedTo - use max 364-day range
     const today = new Date()
-    const postedTo = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+    const postedTo = today.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    })
     const postedFromDate = new Date(today)
     postedFromDate.setDate(postedFromDate.getDate() - 364)
-    const postedFrom = postedFromDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-    
+    const postedFrom = postedFromDate.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    })
+
     searchParams.set('postedTo', postedTo)
     searchParams.set('postedFrom', postedFrom)
 
     const runDate = new Date()
     const runId = randomBytes(12).toString('hex')
 
-    const run = await prisma.searchRun.create({
+    const run = await prisma.search_runs.create({
       data: {
         id: runId,
         saved_search_id: id,
@@ -243,7 +274,7 @@ export async function POST(
 
       console.log(`✅ SAM.gov returned ${results.length} results`)
 
-      await prisma.searchRun.update({
+      await prisma.search_runs.update({
         where: { id: run.id },
         data: {
           result_count: results.length,
@@ -254,7 +285,7 @@ export async function POST(
       await prisma.saved_searches_new.update({
         where: { id },
         data: {
-          last_run_at: runDate,
+          lastRunAt: runDate,
           last_result_count: results.length,
           totalRuns: { increment: 1 },
         },
@@ -267,34 +298,43 @@ export async function POST(
       if (savedSearch.recipients && savedSearch.recipients.trim()) {
         recipientList = savedSearch.recipients
           .split(',')
-          .map(r => r.trim())
-          .filter(r => r.length > 0)
+          .map((r) => r.trim())
+          .filter((r) => r.length > 0)
 
         if (recipientList.length > 0) {
           console.log('📧 Preparing to send email...')
           console.log('Recipients:', recipientList)
           console.log('Results count:', results.length)
-          
+
           try {
+            // Build search criteria for email
+            const searchCriteria: Array<{ label: string; value: string }> = []
+            if (savedSearch.keywords) searchCriteria.push({ label: 'Keywords', value: savedSearch.keywords })
+            if (savedSearch.naics) searchCriteria.push({ label: 'NAICS', value: savedSearch.naics })
+            if (savedSearch.agency) searchCriteria.push({ label: 'Agency', value: savedSearch.agency })
+            if (savedSearch.set_aside) searchCriteria.push({ label: 'Set-Aside', value: savedSearch.set_aside })
+            if (savedSearch.state_of_performance) searchCriteria.push({ label: 'State', value: savedSearch.state_of_performance })
+            if (savedSearch.procurement_type) searchCriteria.push({ label: 'Type', value: savedSearch.procurement_type })
+
+            // Transform results for email
+            const topResults = results.slice(0, 10).map((opp: any) => ({
+              title: opp.title || 'Untitled',
+              agency: opp.fullParentPathName || opp.departmentName || 'Unknown',
+              solicitationNumber: opp.solicitationNumber || opp.noticeId,
+              naics: opp.naicsCode || '',
+              responseDeadline: opp.responseDeadLine || '',
+              url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`
+            }))
+
             await sendAlertEmail({
               to: recipientList,
               searchName: savedSearch.name,
-              resultCount: results.length,
-              opportunities: results,
-              searchParams: {
-                keywords: savedSearch.keywords,
-                naics: savedSearch.naics,
-                agency: savedSearch.agency,
-                setAside: savedSearch.set_aside,
-                stateOfPerformance: savedSearch.state_of_performance,
-                postedAfter: savedSearch.posted_after,
-                postedBefore: savedSearch.posted_before,
-                procurementType: savedSearch.procurement_type,
-              },
-              runDate,
-              recipientName: user?.name || undefined,
+              totalResults: results.length,
+              searchCriteria,
+              topResults,
+              date: runDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
             })
-            
+
             emailSent = true
             console.log('✅ Email sent successfully to:', recipientList.join(', '))
 
@@ -326,7 +366,7 @@ export async function POST(
           recipients: recipientList,
           timestamp: runDate.toISOString(),
           frequency: savedSearch.frequency || 'Manual',
-          emailSent,
+          email_sent: emailSent,
           runId: run.id,
         },
         // Legacy format for backward compatibility
@@ -336,14 +376,14 @@ export async function POST(
         recipients: recipientList,
         timestamp: runDate.toISOString(),
         frequency: savedSearch.frequency || 'Manual',
-        emailSent,
+        email_sent: emailSent,
       })
     } catch (err: any) {
       // Handle SAM.gov fetch errors
       console.error('❌ [API] SAM.gov fetch error:', err)
-      
+
       try {
-        await prisma.searchRun.update({
+        await prisma.search_runs.update({
           where: { id: run.id },
           data: {
             status: 'ERROR',
@@ -354,28 +394,18 @@ export async function POST(
         console.error('❌ [API] Failed to update searchRun with error:', updateError)
       }
 
-      return NextResponse.json(
-        { error: err.message || 'Run failed' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: err.message || 'Run failed' }, { status: 500 })
     }
   } catch (error) {
     return handlePrismaError(error, 'POST /api/saved-searches/[id]')
   }
 }
 
-/* =========================================================
-   PATCH – UPDATE SAVED SEARCH
-   ========================================================= */
-/* =========================================================
-   PATCH – UPDATE SAVED SEARCH - COMPLETE WITH ALL FIXES
-   ========================================================= */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
     const session = await getServerSession(authOptions)
     const body = await req.json()
 
@@ -385,6 +415,8 @@ export async function PATCH(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const { id } = await params
 
     const existing = await prisma.saved_searches_new.findUnique({ where: { id } })
 
@@ -402,7 +434,7 @@ export async function PATCH(
     if (body.description !== undefined) {
       updateData.description = sanitize(body.description)
     }
-    
+
     // Search criteria fields
     if (body.keywords !== undefined) {
       updateData.keywords = sanitize(body.keywords)
@@ -416,10 +448,10 @@ export async function PATCH(
     if (body.setAside !== undefined) {
       updateData.set_aside = sanitize(body.setAside)
     }
-    if (body.maxResults !== undefined) {
-      updateData.max_results = toIntOrDefault(body.maxResults, existing.max_results ?? 100)
+    if (body.max_results !== undefined) {
+      updateData.max_results = toIntOrDefault(body.max_results, existing.max_results ?? 100)
     }
-    
+
     // Date fields - convert to DateTime
     if (body.postedAfter !== undefined) {
       updateData.posted_after = toDateTime(body.postedAfter)
@@ -427,7 +459,7 @@ export async function PATCH(
     if (body.postedBefore !== undefined) {
       updateData.posted_before = toDateTime(body.postedBefore)
     }
-    
+
     // CRITICAL FIX: Use lowercase field names that frontend actually sends
     if (body.rdlfrom !== undefined) {
       updateData.rdl_from = toDateTime(body.rdlfrom)
@@ -435,22 +467,21 @@ export async function PATCH(
     if (body.rdlto !== undefined) {
       updateData.rdl_to = toDateTime(body.rdlto)
     }
-    
+
     // Additional search fields
     if (body.stateOfPerformance !== undefined) {
       updateData.state_of_performance = sanitize(body.stateOfPerformance)
     }
-    
+
     // CRITICAL FIX: procurement_type - only update if non-empty value provided
     if (body.procurementType !== undefined) {
       const sanitizedType = sanitize(body.procurementType)
-      // Only update if there's an actual value, otherwise leave unchanged
       if (sanitizedType !== null && sanitizedType !== '') {
         updateData.procurement_type = sanitizedType
       }
       // If empty/null, don't include in update - leaves existing value unchanged
     }
-    
+
     if (body.solicitationNumber !== undefined) {
       updateData.solicitation_number = sanitize(body.solicitationNumber)
     }
@@ -458,16 +489,15 @@ export async function PATCH(
       updateData.classification_code = sanitize(body.classificationCode)
     }
     if (body.noticeId !== undefined) {
-      updateData.notice_id = sanitize(body.noticeId)
+      updateData.noticeId = sanitize(body.noticeId)
     }
-    
+
     // CRITICAL FIX: opportunity_status - DON'T apply defaults, allow null
     if (body.opportunityStatus !== undefined) {
       const sanitizedStatus = sanitize(body.opportunityStatus)
-      // Empty string should be saved as null (no filter)
       updateData.opportunity_status = sanitizedStatus === '' ? null : sanitizedStatus
     }
-    
+
     if (body.placeOfPerformanceZip !== undefined) {
       updateData.place_of_performance_zip = sanitize(body.placeOfPerformanceZip)
     }
@@ -476,8 +506,8 @@ export async function PATCH(
     }
 
     // Handle subscription fields
-    if (body.subscriptionEnabled !== undefined) {
-      updateData.subscription_enabled = Boolean(body.subscriptionEnabled)
+    if (body.subscription_enabled !== undefined) {
+      updateData.subscription_enabled = Boolean(body.subscription_enabled)
     }
 
     if (body.frequency !== undefined) {
@@ -503,21 +533,21 @@ export async function PATCH(
       }
     }
 
-    if (body.emailNotification !== undefined) {
-      updateData.email_notification = Boolean(body.emailNotification)
+    if (body.email_notification !== undefined) {
+      updateData.email_notification = Boolean(body.email_notification)
     }
 
-    if (body.sendEmptyResults !== undefined) {
-      updateData.send_empty_results = Boolean(body.sendEmptyResults)
+    if (body.send_empty_results !== undefined) {
+      updateData.send_empty_results = Boolean(body.send_empty_results)
     }
 
-    if (body.deliveryTime !== undefined) {
-      updateData.delivery_time = sanitize(body.deliveryTime)
+    if (body.delivery_time !== undefined) {
+      updateData.delivery_time = sanitize(body.delivery_time)
     }
 
     // CRITICAL FIX: export_format - handle empty strings properly
-    if (body.exportFormat !== undefined) {
-      const sanitizedFormat = sanitize(body.exportFormat)
+    if (body.export_format !== undefined) {
+      const sanitizedFormat = sanitize(body.export_format)
       if (sanitizedFormat && sanitizedFormat.trim()) {
         updateData.export_format = sanitizedFormat.toUpperCase()
       } else {
@@ -525,8 +555,8 @@ export async function PATCH(
       }
     }
 
-    if (body.includeLinks !== undefined) {
-      updateData.include_links = Boolean(body.includeLinks)
+    if (body.include_links !== undefined) {
+      updateData.include_links = Boolean(body.include_links)
     }
 
     console.log('📊 Update data prepared:', JSON.stringify(updateData, null, 2))
@@ -549,6 +579,7 @@ export async function PATCH(
     return handlePrismaError(error, 'PATCH /api/saved-searches/[id]')
   }
 }
+
 /* =========================================================
    DELETE – DELETE SAVED SEARCH
    ========================================================= */
@@ -557,12 +588,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const { id } = await params
 
     const existing = await prisma.saved_searches_new.findUnique({ where: { id } })
 
@@ -586,16 +618,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
+
     const search = await prisma.saved_searches_new.findUnique({
       where: { id },
-      include: { searchRuns: true },
+      include: { search_runs: true },
     })
 
     if (!search || search.user_id !== session.user.id) {

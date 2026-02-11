@@ -1,4 +1,4 @@
-﻿// app/api/browsing-status/route.ts
+// app/api/browsing-status/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
 /**

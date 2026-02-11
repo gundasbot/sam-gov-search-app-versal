@@ -1,11 +1,10 @@
-﻿// app/api/auth/signup/route.ts
+// app/api/auth/signup/route.ts
 import { NextResponse } from 'next/server'
 import { hash } from 'bcryptjs'
 import crypto from 'crypto'
 import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
 
-import { randomBytes } from 'crypto'
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const TRIAL_DAYS = 7
@@ -25,10 +24,10 @@ function addDays(from: Date, days: number) {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { email, password, firstName, lastName, phone, company } = body
+    const { email, password, first_name, last_name, phone, company } = body
 
     // Validation
-    if (!email || !password || !firstName || !lastName) {
+    if (!email || !password || !first_name || !last_name) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -59,24 +58,26 @@ export async function POST(req: Request) {
     // Create user - IMPORTANT: Trial does NOT start until email is verified
     const user = await prisma.users.create({
       data: {
+        id: crypto.randomUUID(),
         email: normalizedEmail,
-        passwordHash,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        password_hash: passwordHash,
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
         phone: phone?.trim() || null,
         company: company?.trim() || null,
-        name: `${firstName.trim()} ${lastName.trim()}`,
+        name: `${first_name.trim()} ${last_name.trim()}`,
         role: 'user',
         plan: 'trial',
         plan_tier: 'trial',
         plan_status: 'pending', // â† Not 'trialing' yet!
         trial_active: false,    // â† Not active yet!
-        trialStartedAt: null,  // â† Null until verified
+        trial_started_at: null,  // â† Null until verified
         trial_expires_at: null,  // â† Null until verified
         trial_ends_at: null,     // â† Null until verified
-        emailVerified: null,   // â† Must verify email
-        isActive: false,       // â† Not active yet
-        isSuspended: false,
+        email_verified: null,   // â† Must verify email
+        is_active: false,       // â† Not active yet
+        is_suspended: false,
+        updated_at: new Date(),
       },
     })
 
@@ -86,12 +87,13 @@ export async function POST(req: Request) {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Create verification token
-    await prisma.emailVerif
-        id: randomBytes(12).toString('hex'),icationToken.create({
+    await prisma.email_verification_tokens.create({
       data: {
-        userId: user.id,
-        tokenHash,
-        expiresAt,
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        created_at: new Date(),
       },
     })
 
@@ -134,7 +136,7 @@ export async function POST(req: Request) {
                       <tr>
                         <td style="padding: 40px;">
                           <p style="margin: 0 0 16px; color: #374151; font-size: 16px; line-height: 1.6;">
-                            Hi ${firstName},
+                            Hi ${first_name},
                           </p>
                           
                           <p style="margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;">
@@ -213,7 +215,7 @@ export async function POST(req: Request) {
       { 
         success: true,
         message: 'Account created successfully! Please check your email to verify your account.',
-        userId: user.id 
+        user_id: user.id 
       },
       { status: 201 }
     )

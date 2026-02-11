@@ -1,4 +1,4 @@
-﻿//app/api/recipient-contacts/route.ts
+//app/api/recipient-contacts/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -29,11 +29,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const contacts = await prisma.recipientContact.findMany({
-      where: { userId: user.id },
+    const contacts = await prisma.recipient_contacts.findMany({
+      where: { user_id: user.id },
       orderBy: [
-        { useCount: 'desc' },
-        { lastUsedAt: 'desc' },
+        { use_count: 'desc' },
+        { last_used_at: 'desc' },
         { email: 'asc' },
       ],
     })
@@ -68,10 +68,10 @@ export async function POST(req: NextRequest) {
     const validated = createContactSchema.parse(body)
 
     // Check for duplicate
-    const existing = await prisma.recipientContact.findUnique({
+    const existing = await prisma.recipient_contacts.findUnique({
       where: {
-        userId_email: {
-          userId: user.id,
+        user_id_email: {
+          user_id: user.id,
           email: validated.email,
         },
       },
@@ -84,9 +84,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const contact = await prisma.recipientContact.create({
+    const contact = await prisma.recipient_contacts.create({
       data: {
-        userId: user.id,
+        id: crypto.randomUUID(),
+        updated_at: new Date(),
+        user_id: user.id,
         email: validated.email,
         name: validated.name,
         organization: validated.organization,

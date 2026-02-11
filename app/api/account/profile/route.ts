@@ -1,4 +1,4 @@
-﻿// app/api/account/profile/route.ts
+// app/api/account/profile/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -6,16 +6,16 @@ import { prisma } from '@/lib/prisma'
 
 type ProfilePayload = {
   email?: string
-  firstName?: string
-  lastName?: string
+  first_name?: string
+  last_name?: string
   phone?: string
   company?: string
   title?: string
-  addressLine1?: string
-  addressLine2?: string
+  address_line1?: string
+  address_line2?: string
   city?: string
   state?: string
-  postalCode?: string
+  postal_code?: string
   country?: string
 }
 
@@ -70,25 +70,25 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json({
       id: user.id,
       email: user.email,
-      emailVerified: !!user.email_verified,
+      email_verified: !!user.email_verified,
 
-      firstName: user.first_name || '',
-      lastName: user.last_name || '',
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
       phone: user.phone || '',
-      phoneVerified: !!user.phone_verified,
+      phone_verified: !!user.phone_verified,
 
       company: user.company || '',
       title: user.title || '',
 
-      addressLine1: user.address_line1 || '',
-      addressLine2: user.address_line2 || '',
+      address_line1: user.address_line1 || '',
+      address_line2: user.address_line2 || '',
       city: user.city || '',
       state: user.state || '',
-      postalCode: user.postal_code || '',
+      postal_code: user.postal_code || '',
       country: user.country || 'United States',
 
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
     })
   } catch (error: any) {
     console.error('Error fetching user profile:', error)
@@ -129,8 +129,8 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const firstName = pickString(body.firstName)
-    const lastName = pickString(body.lastName)
+    const firstName = pickString(body.first_name)
+    const lastName = pickString(body.last_name)
 
     // Optional: keep name in sync if you want (you also have `name` field on User)
     // We'll set name to "First Last" when either is provided.
@@ -146,11 +146,11 @@ export async function PUT(request: NextRequest) {
       company: pickString(body.company),
       title: pickString(body.title),
 
-      address_line1: pickString(body.addressLine1),
-      address_line2: pickString(body.addressLine2),
+      address_line1: pickString(body.address_line1),
+      address_line2: pickString(body.address_line2),
       city: pickString(body.city),
       state: pickString(body.state),
-      postal_code: pickString(body.postalCode),
+      postal_code: pickString(body.postal_code),
       country: pickString(body.country),
 
       // keep timestamps consistent with your schema
@@ -195,25 +195,25 @@ export async function PUT(request: NextRequest) {
       profile: {
         id: updated.id,
         email: updated.email,
-        emailVerified: !!updated.email_verified,
+        email_verified: !!updated.email_verified,
 
-        firstName: updated.first_name || '',
-        lastName: updated.last_name || '',
+        first_name: updated.first_name || '',
+        last_name: updated.last_name || '',
         phone: updated.phone || '',
-        phoneVerified: !!updated.phone_verified,
+        phone_verified: !!updated.phone_verified,
 
         company: updated.company || '',
         title: updated.title || '',
 
-        addressLine1: updated.address_line1 || '',
-        addressLine2: updated.address_line2 || '',
+        address_line1: updated.address_line1 || '',
+        address_line2: updated.address_line2 || '',
         city: updated.city || '',
         state: updated.state || '',
-        postalCode: updated.postal_code || '',
+        postal_code: updated.postal_code || '',
         country: updated.country || 'United States',
 
-        createdAt: updated.created_at,
-        updatedAt: updated.updated_at,
+        created_at: updated.created_at,
+        updated_at: updated.updated_at,
       },
     })
   } catch (error: any) {

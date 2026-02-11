@@ -403,8 +403,8 @@ function LoginPageContent() {
       ['/api/auth/register', '/api/auth/signup'],
       { 
         name: `${firstName} ${lastName}`.trim(),
-        firstName,
-        lastName,
+        first_name: firstName,
+        last_name: lastName,
         email, 
         password,
         company: company || undefined,

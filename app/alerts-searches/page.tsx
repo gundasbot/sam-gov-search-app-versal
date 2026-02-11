@@ -24,29 +24,29 @@ interface SavedSearch {
   id: string
   name: string
   description?: string
-  isPinned: boolean
+  is_pinned: boolean
   keywords?: string
   naics?: string
   agency?: string
   setAside?: string
   stateOfPerformance?: string
   procurementType: string
-  subscriptionEnabled: boolean
+  subscription_enabled: boolean
   frequency?: string
-  emailNotification: boolean
-  lastRunAt?: string
-  lastResultCount?: number
-  createdAt: string
-  updatedAt: string
+  email_notification: boolean
+  last_run_at?: string
+  last_result_count?: number
+  created_at: string
+  updated_at: string
   _count: {
     runs: number
     exports: number
   }
   runs?: Array<{
     id: string
-    createdAt: string
+    created_at: string
     status: string
-    resultCount: number
+    result_count: number
   }>
 }
 
@@ -107,7 +107,7 @@ export default function AlertsSearchesPage() {
       if (!response.ok) throw new Error('Failed to run search')
       
       const data = await response.json()
-      alert(`Search completed: ${data.resultCount} results found`)
+      alert(`Search completed: ${data.result_count} results found`)
       loadSearches() // Refresh to show updated lastRunAt
     } catch (error) {
       console.error('Error running search:', error)
@@ -129,8 +129,8 @@ export default function AlertsSearchesPage() {
       
       // Download the file
       const link = document.createElement('a')
-      link.href = data.fileUrl
-      link.download = data.fileName
+      link.href = data.file_url
+      link.download = data.file_name
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -177,8 +177,8 @@ export default function AlertsSearchesPage() {
   }
 
   const filteredSearches = searches.filter((search) => {
-    if (viewFilter === 'subscribed') return search.subscriptionEnabled
-    if (viewFilter === 'saved') return !search.subscriptionEnabled
+    if (viewFilter === 'subscribed') return search.subscription_enabled
+    if (viewFilter === 'saved') return !search.subscription_enabled
     return true
   })
 
@@ -223,8 +223,8 @@ export default function AlertsSearchesPage() {
                 }`}
               >
                 {filter === 'all' && `All Searches (${searches.length})`}
-                {filter === 'subscribed' && `Active Alerts (${searches.filter(s => s.subscriptionEnabled).length})`}
-                {filter === 'saved' && `Saved Only (${searches.filter(s => !s.subscriptionEnabled).length})`}
+                {filter === 'subscribed' && `Active Alerts (${searches.filter(s => s.subscription_enabled).length})`}
+                {filter === 'saved' && `Saved Only (${searches.filter(s => !s.subscription_enabled).length})`}
               </button>
             ))}
           </div>
@@ -264,7 +264,7 @@ export default function AlertsSearchesPage() {
                       <h3 className="text-xl font-bold text-white truncate">
                         {search.name}
                       </h3>
-                      {search.subscriptionEnabled && (
+                      {search.subscription_enabled && (
                         <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold">
                           <Bell className="h-4 w-4" />
                           {search.frequency}
@@ -302,11 +302,11 @@ export default function AlertsSearchesPage() {
 
                     {/* Metadata - Larger text */}
                     <div className="flex items-center gap-6 text-sm text-slate-400 font-medium">
-                      {search.lastRunAt && (
+                      {search.last_run_at && (
                         <span className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
-                          Last run: {new Date(search.lastRunAt).toLocaleDateString()}
-                          {search.lastResultCount !== undefined && ` (${search.lastResultCount} results)`}
+                          Last run: {new Date(search.last_run_at).toLocaleDateString()}
+                          {search.last_result_count !== undefined && ` (${search.last_result_count} results)`}
                         </span>
                       )}
                       <span className="flex items-center gap-2">
@@ -360,15 +360,15 @@ export default function AlertsSearchesPage() {
                     </button>
 
                     <button
-                      onClick={() => handleToggleSubscription(search.id, search.subscriptionEnabled)}
+                      onClick={() => handleToggleSubscription(search.id, search.subscription_enabled)}
                       className={`p-3.5 rounded-xl border-2 transition-all ${
-                        search.subscriptionEnabled
+                        search.subscription_enabled
                           ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
                           : 'bg-slate-800/50 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white'
                       }`}
-                      title={search.subscriptionEnabled ? 'Disable alerts' : 'Enable alerts'}
+                      title={search.subscription_enabled ? 'Disable alerts' : 'Enable alerts'}
                     >
-                      {search.subscriptionEnabled ? (
+                      {search.subscription_enabled ? (
                         <Bell className="h-5 w-5" />
                       ) : (
                         <BellOff className="h-5 w-5" />

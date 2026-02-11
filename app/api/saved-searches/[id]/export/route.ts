@@ -85,15 +85,15 @@ export async function PATCH(
       )
     }
 
-    if (existing.userId !== session.user.id) {
+    if (existing.user_id !== session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // Validate subscription-related fields
     const subscriptionEnabled =
-      body.subscriptionEnabled !== undefined
-        ? Boolean(body.subscriptionEnabled)
-        : existing.subscriptionEnabled
+      body.subscription_enabled !== undefined
+        ? Boolean(body.subscription_enabled)
+        : existing.subscription_enabled
 
     // Only validate/set frequency if subscription is enabled
     // Convert existing frequency to allowed types
@@ -139,7 +139,7 @@ export async function PATCH(
     // Basic fields
     if (body.name !== undefined) updateData.name = sanitize(body.name) || existing.name
     if (body.description !== undefined) updateData.description = sanitize(body.description)
-    if (body.isPinned !== undefined) updateData.isPinned = Boolean(body.isPinned)
+    if (body.is_pinned !== undefined) updateData.is_pinned = Boolean(body.is_pinned)
 
     // Search criteria - support both old and new field names
     if (body.keywords !== undefined) updateData.keywords = sanitize(body.keywords)
@@ -183,27 +183,27 @@ export async function PATCH(
     }
 
     // Subscription settings
-    updateData.subscriptionEnabled = subscriptionEnabled
+    updateData.subscription_enabled = subscriptionEnabled
     updateData.frequency = frequency
     updateData.recipients = recipientsString
 
-    if (body.emailNotification !== undefined) {
-      updateData.emailNotification = Boolean(body.emailNotification)
+    if (body.email_notification !== undefined) {
+      updateData.email_notification = Boolean(body.email_notification)
     }
-    if (body.sendEmptyResults !== undefined) {
-      updateData.sendEmptyResults = Boolean(body.sendEmptyResults)
+    if (body.send_empty_results !== undefined) {
+      updateData.send_empty_results = Boolean(body.send_empty_results)
     }
-    if (body.maxResults !== undefined) {
-      updateData.maxResults = toIntOrDefault(body.maxResults, 100)
+    if (body.max_results !== undefined) {
+      updateData.max_results = toIntOrDefault(body.max_results, 100)
     }
-    if (body.deliveryTime !== undefined) {
-      updateData.deliveryTime = sanitize(body.deliveryTime)
+    if (body.delivery_time !== undefined) {
+      updateData.delivery_time = sanitize(body.delivery_time)
     }
-    if (body.exportFormat !== undefined) {
-      updateData.exportFormat = normalizeExportFormat(body.exportFormat)
+    if (body.export_format !== undefined) {
+      updateData.export_format = normalizeExportFormat(body.export_format)
     }
-    if (body.includeLinks !== undefined) {
-      updateData.includeLinks = Boolean(body.includeLinks)
+    if (body.include_links !== undefined) {
+      updateData.include_links = Boolean(body.include_links)
     }
 
     // Update the search
@@ -213,8 +213,8 @@ export async function PATCH(
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
@@ -255,7 +255,7 @@ export async function DELETE(
       )
     }
 
-    if (existing.userId !== session.user.id) {
+    if (existing.user_id !== session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -293,8 +293,8 @@ export async function GET(
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },
@@ -307,7 +307,7 @@ export async function GET(
       )
     }
 
-    if (search.userId !== session.user.id) {
+    if (search.user_id !== session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

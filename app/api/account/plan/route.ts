@@ -1,4 +1,4 @@
-﻿// app/api/account/plan/route.ts 
+// app/api/account/plan/route.ts 
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 
 // Fixed: Use valid Stripe API version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
+  apiVersion: '2026-01-28.clover',
 })
 
 type DbUser = {
@@ -248,7 +248,7 @@ export async function GET(request: NextRequest) {
           updates.subscription_status = bestSub.status
           updates.cancel_at_period_end = bestSub.cancel_at_period_end
           
-          const current_period_end = (bestSub as any).current_period_end as number | undefined
+          const current_period_end = (bestSub as any).currentPeriodEnd as number | undefined
           if (typeof current_period_end === 'number') {
             updates.stripe_current_period_end = new Date(current_period_end * 1000)
           }
@@ -257,12 +257,12 @@ export async function GET(request: NextRequest) {
           if (priceId) {
             const tier = getTierFromPriceId(priceId)
             updates.stripe_price_id = priceId
-            updates.plan_tier = tier
+            updates.planTier = tier
             updates.plan = tier.toLowerCase()
             
             const interval = bestSub.items?.data?.[0]?.price?.recurring?.interval || null
             const newBillingInterval = normalizeBillingIntervalToDb(interval)
-            if (newBillingInterval) updates.billing_interval = newBillingInterval
+            if (newBillingInterval) updates.billingInterval = newBillingInterval
 
             if (priceId !== user.stripe_price_id) shouldUpdateUser = true
             if (tier !== (user.plan_tier || '').toUpperCase()) shouldUpdateUser = true
@@ -287,8 +287,8 @@ export async function GET(request: NextRequest) {
         const priceId = subscription.items.data[0]?.price?.id || null
         if (priceId) {
           const tier = getTierFromPriceId(priceId)
-          if (tier !== (updates.plan_tier || user.plan_tier || '').toUpperCase()) {
-            updates.plan_tier = tier
+          if (tier !== (updates.planTier || user.plan_tier || '').toUpperCase()) {
+            updates.planTier = tier
             updates.plan = tier.toLowerCase()
             shouldUpdateUser = true
           }
@@ -300,8 +300,8 @@ export async function GET(request: NextRequest) {
 
           const stripeInterval = subscription.items.data[0]?.price?.recurring?.interval
           const newBillingInterval = normalizeBillingIntervalToDb(stripeInterval)
-          if (newBillingInterval && (updates.billing_interval || user.billing_interval) !== newBillingInterval) {
-            updates.billing_interval = newBillingInterval
+          if (newBillingInterval && (updates.billingInterval || user.billing_interval) !== newBillingInterval) {
+            updates.billingInterval = newBillingInterval
             shouldUpdateUser = true
           }
         }
@@ -311,9 +311,9 @@ export async function GET(request: NextRequest) {
           shouldUpdateUser = true
         }
 
-        const current_period_end = (subscription as any).current_period_end as number | undefined
+        const current_period_end = (subscription as any).currentPeriodEnd as number | undefined
         const stripePeriodEnd = typeof current_period_end === 'number' ? new Date(current_period_end * 1000) : null
-        const dbPeriodEnd = updates.stripe_current_period_end || user.stripe_current_period_end || user.current_period_end
+        const dbPeriodEnd = updates.stripe_current_period_end || user.current_period_end
         const dbTime = dbPeriodEnd ? new Date(dbPeriodEnd).getTime() : null
         const stripeTime = stripePeriodEnd ? stripePeriodEnd.getTime() : null
 
@@ -411,7 +411,7 @@ export async function GET(request: NextRequest) {
       current_period_end = new Date(trialExpiryDate!).toISOString()
     } else {
       const periodEndDate: Date | null =
-        finalUser?.stripe_current_period_end || finalUser?.current_period_end || user.stripe_current_period_end || user.current_period_end
+        finalUser?.stripe_current_period_end || finalUser?.current_period_end || user.current_period_end
       if (periodEndDate) current_period_end = new Date(periodEndDate).toISOString()
     }
 
@@ -422,7 +422,7 @@ export async function GET(request: NextRequest) {
       current_period_end,
       cancel_at_period_end: finalUser?.cancel_at_period_end || false,
       hasSubscription,
-      subscriptionId: finalUser?.stripe_subscription_id || null,
+      subscription_id: finalUser?.stripe_subscription_id || null,
       stripe_subscription_id: finalUser?.stripe_subscription_id || null,
       stripe_customer_id: finalUser?.stripe_customer_id || null,
     }

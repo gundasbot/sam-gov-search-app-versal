@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       // Include other useful fields
       title: data.title,
       description: data.description,
-      solicitationNumber: data.solicitationNumber,
+      solicitationNumber: data.solicitation_number,
       responseDeadLine: data.responseDeadLine,
       postedDate: data.postedDate,
     }

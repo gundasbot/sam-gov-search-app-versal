@@ -1,11 +1,11 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { sendAccessRequestConfirmation } from "@/lib/email";
 import { dbQuery } from "@/lib/db";
 
 export async function GET() {
   const to = "YOUR_EMAIL@gmail.com";
 
-  const result = await sendAccessRequestConfirmation(to, "TEST-REQ-EMAIL");
+  const result = await sendAccessRequestConfirmation({ to, name: "Test User", company: "Precise GovCon" });
 
   const messageId = (result as any)?.data?.id ?? null;
 

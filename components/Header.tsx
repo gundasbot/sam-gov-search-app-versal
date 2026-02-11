@@ -1,4 +1,4 @@
-﻿// components/Header.tsx - FIXED: Ticker animation, Services highlighting, 5 services, Alerts & Searches
+// components/Header.tsx - FIXED: Ticker animation, Services highlighting, 5 services, Alerts & Searches
 
 'use client'
 
@@ -89,7 +89,7 @@ function getSamGovUrl(solicitationNumber: string): string {
 
 /* ================= MAIN COMPONENT ================= */
 export default function Header() {
-  // ✅ FIX: hooks must be inside the component body (never at module scope)
+  // ? FIX: hooks must be inside the component body (never at module scope)
   const router = useRouter()
   const pathname = usePathname()
   const redirectTo = pathname || '/dashboard'
@@ -131,7 +131,7 @@ export default function Header() {
   }, [])
 
   /* ================= NAV ITEMS ================= */
-  // ✅ UPDATED: 5 services (removed Bid Search dropdown, removed Compliance)
+  // ? UPDATED: 5 services (removed Bid Search dropdown, removed Compliance)
   const serviceItems: ServiceItem[] = [
     {
       label: 'SAM Registration',
@@ -172,7 +172,7 @@ export default function Header() {
     { label: 'Search', href: '/search', icon: <Search className="w-5 h-5" /> },
     { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: 'Opportunities', href: '/opportunities', icon: <Briefcase className="w-5 h-5" /> },
-    { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> }, // ✅ UPDATED label
+    { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> }, // ? UPDATED label
     { label: 'Insights', href: '/insights', icon: <LineChart className="w-5 h-5" /> },
     { label: 'Pricing', href: '/pricing', icon: <CreditCard className="w-5 h-5" /> },
   ]
@@ -227,7 +227,7 @@ export default function Header() {
 
   return (
     <>
-      {/* ✅ FIXED: Added @keyframes for ticker animation */}
+      {/* ? FIXED: Added @keyframes for ticker animation */}
       <style jsx global>{`
         @keyframes scroll {
           0% {
@@ -379,24 +379,59 @@ export default function Header() {
                 Alerts & Searches
               </Link>
 
-              {/* ✅ FIXED: Services Dropdown - highlights when on /services/* */}
+              {/* IMPROVED: Services - Clickable with Dropdown */}
               <div className="relative" ref={servicesRef}>
-                <button
-                  onClick={() => setServicesOpen(!servicesOpen)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
+                <div
+                  className={`flex items-center rounded-xl overflow-hidden transition-all ${
                     servicesOpen || currentPath.startsWith('/services')
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg'
+                      : 'bg-transparent'
                   }`}
                 >
-                  <Building className="w-4 h-4" />
-                  Services
-                  <ChevronDown className={`w-4 h-4 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
-                </button>
+                  {/* Main Services Link - Clickable */}
+                  <Link
+                    href="/services"
+                    className={`flex items-center gap-2 px-4 py-3 font-bold transition-all flex-1 ${
+                      servicesOpen || currentPath.startsWith('/services')
+                        ? 'text-white'
+                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Building className="w-4 h-4" />
+                    Services
+                  </Link>
+                  
+                  {/* Dropdown Toggle Button */}
+                  <button
+                    onClick={() => setServicesOpen(!servicesOpen)}
+                    className={`px-2 py-3 font-bold transition-all border-l ${
+                      servicesOpen || currentPath.startsWith('/services')
+                        ? 'text-white border-white/20 hover:bg-white/10'
+                        : 'text-slate-300 hover:text-white hover:bg-white/5 border-transparent'
+                    }`}
+                    aria-label="Toggle services menu"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
 
                 {servicesOpen && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
                     <div className="p-2">
+                      {/* "View All Services" link at top */}
+                      <Link
+                        href="/services"
+                        onClick={() => setServicesOpen(false)}
+                        className="flex items-center gap-2 p-3 mb-1 rounded-xl bg-gradient-to-r from-orange-500/10 to-orange-600/10 hover:from-orange-500/20 hover:to-orange-600/20 transition-colors group border border-orange-500/20"
+                      >
+                        <Building className="w-5 h-5 text-orange-400" />
+                        <span className="font-bold text-white flex-1">View All Services</span>
+                        <ChevronDown className="w-4 h-4 text-orange-400 -rotate-90" />
+                      </Link>
+
+                      <div className="h-px bg-white/10 my-2" />
+
+                      {/* Individual service items */}
                       {serviceItems.map((service, index) => (
                         <Link
                           key={index}
@@ -485,7 +520,7 @@ export default function Header() {
                           Settings
                         </Link>
 
-                        {/* ✅ NEW: Support & Contact */}
+                        {/* ? NEW: Support & Contact */}
                         <div className="my-2 border-t border-white/10"></div>
 
                         <Link

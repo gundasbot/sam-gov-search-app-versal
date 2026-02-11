@@ -1,4 +1,4 @@
-﻿﻿// app/dashboard/page.tsx - Dashboard with Dynamic User Name + Actionable Stats
+// app/dashboard/page.tsx - Dashboard with Dynamic User Name + Actionable Stats
 'use client';
 
 import { useSession } from 'next-auth/react';
@@ -94,7 +94,7 @@ export default function DashboardPage() {
    * Replace these with real data later:
    * - active searches: from DB saved searches table
    * - saved opportunities: from DB saved opportunities table
-   * - match: computed score (see “matchInfo” drawer)
+   * - match: computed score (see �matchInfo� drawer)
    */
   const activeSearches: ActiveSearch[] = [
     { id: 's1', name: 'IT Services (Federal)', query: 'IT services', filters: { naics: '541512', level: 'federal' }, resultsCount: 142, newCount: 12 },
@@ -225,7 +225,7 @@ export default function DashboardPage() {
       icon: TrendingUp,
       gradient: 'from-orange-500 to-red-600',
       onClick: () => router.push(`/opportunities${buildQueryString({ postedRange: '7d' })}`),
-      hint: 'View this week’s postings',
+      hint: 'View this week�s postings',
     },
   ];
 
@@ -247,7 +247,7 @@ export default function DashboardPage() {
       setaside: s.filters?.setaside,
       type: s.filters?.type,
       agency: s.filters?.agency,
-      savedSearchId: s.id, // helpful for analytics/restore
+      saved_search_id: s.id, // helpful for analytics/restore
     });
     router.push(`/search${qs}`);
     closeDrawer();
@@ -433,17 +433,17 @@ export default function DashboardPage() {
               {drawer === 'matchInfo' && (
                 <div className="space-y-4">
                   <p className="text-slate-300 text-sm">
-                    <span className="text-white font-semibold">Match</span> is a score (0–100) that estimates how well an opportunity fits your business and saved search intent.
+                    <span className="text-white font-semibold">Match</span> is a score (0�100) that estimates how well an opportunity fits your business and saved search intent.
                   </p>
 
                   <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
                     <div className="text-white font-semibold mb-2">What it represents</div>
                     <ul className="text-sm text-slate-300 space-y-2">
-                      <li>• NAICS alignment (your selected NAICS vs solicitation NAICS)</li>
-                      <li>• Keyword relevance (title + description vs your search terms)</li>
-                      <li>• Agency preference (e.g., DoD, DHS, etc.)</li>
-                      <li>• Set-aside fit (if you filter small business, SDVOSB, etc.)</li>
-                      <li>• Recency and deadline urgency (optional weighting)</li>
+                      <li>� NAICS alignment (your selected NAICS vs solicitation NAICS)</li>
+                      <li>� Keyword relevance (title + description vs your search terms)</li>
+                      <li>� Agency preference (e.g., DoD, DHS, etc.)</li>
+                      <li>� Set-aside fit (if you filter small business, SDVOSB, etc.)</li>
+                      <li>� Recency and deadline urgency (optional weighting)</li>
                     </ul>
                   </div>
 
@@ -533,7 +533,7 @@ export default function DashboardPage() {
                         <p className="text-slate-300">Name: <span className="text-white font-semibold">{welcomeName}</span></p>
                         <p className="text-slate-300">Email: <span className="text-white font-semibold">{session?.user?.email}</span></p>
                         <button className="mt-2 text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
-                          Edit Profile →
+                          Edit Profile ?
                         </button>
                       </div>
                     </div>
@@ -573,7 +573,7 @@ export default function DashboardPage() {
                         }}
                         className="w-full text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
                       >
-                        Update Preferences →
+                        Update Preferences ?
                       </button>
                     </div>
 

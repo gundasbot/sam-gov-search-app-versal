@@ -20,7 +20,7 @@ export async function POST(
     const search = await prisma.saved_searches_new.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        user_id: session.user.id,
       },
     })
 
@@ -47,8 +47,8 @@ export async function POST(
       include: {
         _count: {
           select: {
-            runs: true,
-            exports: true,
+            search_runs: true,
+            search_exports: true,
           },
         },
       },

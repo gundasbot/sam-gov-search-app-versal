@@ -1,5 +1,5 @@
-﻿// app/api/stripe/checkout/route.ts
-// âœ… FIXED: Remove blocking check - let client-side routing handle plan changes
+// app/api/stripe/checkout/route.ts
+// ✅ FIXED: Remove blocking check - let client-side routing handle plan changes
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Stripe from 'stripe'
 
-console.log('âœ… Stripe checkout route.ts loaded')
+console.log('✅ Stripe checkout route.ts loaded')
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,7 @@ function jsonError(message: string, status = 500, extra?: Record<string, any>) {
   return NextResponse.json({ error: message, ...(extra || {}) }, { status })
 }
 
-type billing_interval = 'monthly' | 'annual'
+type BillingInterval = 'monthly' | 'annual' // ✅ FIXED: Correct type name
 
 function normalizePlan(raw: any): 'basic' | 'professional' | 'enterprise' | null {
   const v = String(raw || '').toLowerCase().trim()
@@ -30,7 +30,7 @@ function normalizePlan(raw: any): 'basic' | 'professional' | 'enterprise' | null
   return null
 }
 
-function normalizeBilling(raw: any): billing_interval | null {
+function normalizeBilling(raw: any): BillingInterval | null { // ✅ FIXED: Use correct type
   const v = String(raw || '').toLowerCase().trim()
   if (!v) return null
   if (v === 'month' || v === 'monthly') return 'monthly'
@@ -38,12 +38,12 @@ function normalizeBilling(raw: any): billing_interval | null {
   return null
 }
 
-function priceFromEnv(plan: 'basic' | 'professional' | 'enterprise', billing: billing_interval): string | null {
+function priceFromEnv(plan: 'basic' | 'professional' | 'enterprise', billing: BillingInterval): string | null { // ✅ FIXED: Use correct type
   const envKey = `STRIPE_PRICE_${plan.toUpperCase()}_${billing === 'annual' ? 'ANNUAL' : 'MONTHLY'}`
   const envVal = process.env[envKey]
   if (envVal) return String(envVal)
 
-  const fallback: Record<string, Record<billing_interval, string>> = {
+  const fallback: Record<string, Record<BillingInterval, string>> = {
     basic: {
       monthly: 'price_1SrX4iPBeHrQUcEBcCNR77ti',
       annual: 'price_1SrX5JPBeHrQUcEBp36HLtHq',
@@ -109,14 +109,14 @@ async function findActiveSubscription(customerId: string, existingSubId?: string
 }
 
 export async function POST(req: NextRequest) {
-  console.log('ðŸ“— [STRIPE] POST /api/stripe/checkout called')
+  console.log('🔔 [STRIPE] POST /api/stripe/checkout called')
 
   try {
     const session = await getServerSession(authOptions)
-    console.log('ðŸ” Session:', session?.user?.email || 'Not authenticated')
+    console.log('👤 Session:', session?.user?.email || 'Not authenticated')
     
     if (!session?.user?.email) {
-      console.log('âŒ No session - returning 401')
+      console.log('❌ No session - returning 401')
       return jsonError('You must be signed in to manage a subscription.', 401)
     }
 
@@ -126,9 +126,9 @@ export async function POST(req: NextRequest) {
     let body: any = {}
     try {
       body = await req.json()
-      console.log('ðŸ“¦ Request body:', body)
+      console.log('📦 Request body:', body)
     } catch {
-      console.log('âš ï¸ Failed to parse request body')
+      console.log('⚠️ Failed to parse request body')
       body = {}
     }
 
@@ -136,27 +136,27 @@ export async function POST(req: NextRequest) {
     const requestedBilling = normalizeBilling(body?.billing ?? body?.interval) || 'monthly'
     const explicitPriceId = String(body?.priceId || '').trim() || null
 
-    console.log('ðŸ“‹ Plan:', requestedPlan, 'Billing:', requestedBilling)
+    console.log('📋 Plan:', requestedPlan, 'Billing:', requestedBilling)
 
     if (!requestedPlan && !explicitPriceId) {
-      console.log('âŒ Missing plan')
+      console.log('❌ Missing plan')
       return jsonError('Missing plan. Provide { plan, billing } or { priceId }.', 400)
     }
 
     const finalPriceId = explicitPriceId || (requestedPlan ? priceFromEnv(requestedPlan, requestedBilling) : null)
-    console.log('ðŸ’° Price ID:', finalPriceId)
+    console.log('💰 Price ID:', finalPriceId)
     
     if (!finalPriceId) {
-      console.log('âŒ Could not determine price ID')
+      console.log('❌ Could not determine price ID')
       return jsonError('Could not determine Stripe price ID.', 400)
     }
 
     // Verify price exists
     try {
       await stripe.prices.retrieve(finalPriceId)
-      console.log('âœ… Price verified in Stripe')
+      console.log('✅ Price verified in Stripe')
     } catch (err: any) {
-      console.log('âŒ Price not found in Stripe:', finalPriceId)
+      console.log('❌ Price not found in Stripe:', finalPriceId)
       return jsonError(`Price ID not found in Stripe: ${finalPriceId}`, 400, { hint: 'Check Stripe dashboard price IDs.' })
     }
 
@@ -167,20 +167,20 @@ export async function POST(req: NextRequest) {
     })
     
     if (!user) {
-      console.log('âŒ User not found in database')
+      console.log('❌ User not found in database')
       return jsonError('User not found', 404)
     }
     
-    console.log('ðŸ‘¤ User found:', user.id)
+    console.log('👤 User found:', user.id)
 
     // Ensure customer exists
     const customerId = await ensureCustomerId(email, name, user.stripe_customer_id || null)
     if (!customerId) {
-      console.log('âŒ Failed to create customer')
+      console.log('❌ Failed to create customer')
       return jsonError('Failed to create or find Stripe customer', 500)
     }
     
-    console.log('âœ… Customer ID:', customerId)
+    console.log('✅ Customer ID:', customerId)
 
     // Persist customer id if missing
     if (!user.stripe_customer_id || user.stripe_customer_id !== customerId) {
@@ -195,18 +195,18 @@ export async function POST(req: NextRequest) {
     const appUrl =
       process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || req.nextUrl.origin
 
-    console.log('ðŸŒ App URL:', appUrl)
+    console.log('🌐 App URL:', appUrl)
 
     const successUrl = `${appUrl}/pricing?success=true&session_id={CHECKOUT_SESSION_ID}`
     const cancelUrl = `${appUrl}/pricing?canceled=true`
 
-    // âœ… FIXED: Check for existing subscription but don't block
+    // ✅ FIXED: Check for existing subscription but don't block
     // Instead, inform client that they should use change-plan API
     const existingSub = await findActiveSubscription(customerId, user.stripe_subscription_id || null)
     
     if (existingSub?.id) {
-      console.log('âš ï¸ User already has active subscription:', existingSub.id)
-      console.log('ðŸ’¡ Client should have routed to change-plan API instead')
+      console.log('⚠️ User already has active subscription:', existingSub.id)
+      console.log('💡 Client should have routed to change-plan API instead')
       
       // Return informative error that client can handle
       return jsonError(
@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create new subscription with Checkout
-    console.log('ðŸŽ« Creating checkout session...')
+    console.log('🎫 Creating checkout session...')
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -233,7 +233,7 @@ export async function POST(req: NextRequest) {
       billing_address_collection: 'auto',
       customer_update: { address: 'auto', name: 'auto' },
       metadata: {
-        userId: user.id,
+        user_id: user.id,
         email,
         plan: requestedPlan || 'unknown',
         billing: requestedBilling,
@@ -242,12 +242,12 @@ export async function POST(req: NextRequest) {
       },
       subscription_data: {
         trial_period_days: TRIAL_DAYS,
-        metadata: { userId: user.id, email },
+        metadata: { user_id: user.id, email },
       },
     })
 
-    console.log('âœ… Checkout session created:', checkoutSession.id)
-    console.log('ðŸ”— Checkout URL:', checkoutSession.url)
+    console.log('✅ Checkout session created:', checkoutSession.id)
+    console.log('🔗 Checkout URL:', checkoutSession.url)
     
     return NextResponse.json({ 
       url: checkoutSession.url, 
@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
       mode: 'checkout_new' 
     })
   } catch (error: any) {
-    console.error('âŒ [STRIPE] Checkout fatal error:', error)
+    console.error('❌ [STRIPE] Checkout fatal error:', error)
     console.error('Stack trace:', error.stack)
     return jsonError('Failed to create Stripe checkout session', 500, {
       details: error?.message,
@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
 
 // Test endpoint for debugging
 export async function GET(req: NextRequest) {
-  console.log('ðŸ” [STRIPE] GET /api/stripe/checkout called (test endpoint)')
+  console.log('👋 [STRIPE] GET /api/stripe/checkout called (test endpoint)')
   return NextResponse.json({ 
     status: 'ok',
     message: 'Stripe checkout API route is working!',

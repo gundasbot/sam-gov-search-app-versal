@@ -1,4 +1,4 @@
-﻿//app/api/admin/verify/route.ts
+//app/api/admin/verify/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'

@@ -44,8 +44,8 @@ export async function hasAccess(userId: string): Promise<boolean> {
       where: { id: userId },
       select: {
         role: true,
-        stripeSubscriptionId: true,
-        stripeCurrentPeriodEnd: true
+        stripe_subscription_id: true,
+        stripe_current_period_end: true
       }
     })
     
@@ -55,8 +55,8 @@ export async function hasAccess(userId: string): Promise<boolean> {
     if (user.role === 'admin') return true
     
     // Check subscription status
-    if (user.stripeSubscriptionId && user.stripeCurrentPeriodEnd) {
-      const isActive = new Date(user.stripeCurrentPeriodEnd) > new Date()
+    if (user.stripe_subscription_id && user.stripe_current_period_end) {
+      const isActive = new Date(user.stripe_current_period_end) > new Date()
       return isActive
     }
     

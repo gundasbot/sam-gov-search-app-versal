@@ -1,4 +1,4 @@
-﻿// app/api/account/usage/route.ts
+// app/api/account/usage/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -53,7 +53,7 @@ export async function GET(_request: NextRequest) {
     const tier = (user.plan_tier || user.plan || 'FREE').toString().toUpperCase()
 
     return NextResponse.json({
-      userId: user.id,
+      user_id: user.id,
       email: user.email,
       name: user.name,
       tier,

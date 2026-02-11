@@ -1,10 +1,10 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const maxDuration = 60 // Maximum execution time
 
-// âœ… Simple in-memory cache to prevent hammering SAM.gov
+// ✅ Simple in-memory cache to prevent hammering SAM.gov
 let lastFetchAt = 0
 let lastPayload: any = null
 const MIN_INTERVAL_MS = 30_000 // 30 seconds
@@ -42,7 +42,7 @@ async function fetchWithTimeout(
       // Retry on server errors (5xx) if we have attempts left
       if (attempt < maxRetries) {
         const backoffMs = 1000 * Math.pow(2, attempt) // Exponential backoff
-        console.log(`âš ï¸ SAM.gov API error ${response.status}, retrying in ${backoffMs}ms... (attempt ${attempt + 1}/${maxRetries})`)
+        console.log(`⚠️ SAM.gov API error ${response.status}, retrying in ${backoffMs}ms... (attempt ${attempt + 1}/${maxRetries})`)
         await new Promise(resolve => setTimeout(resolve, backoffMs))
         continue
       }
@@ -55,7 +55,7 @@ async function fetchWithTimeout(
       if (error.name === 'AbortError') {
         if (attempt < maxRetries) {
           const backoffMs = 1000 * Math.pow(2, attempt)
-          console.log(`â±ï¸ Request timeout, retrying in ${backoffMs}ms... (attempt ${attempt + 1}/${maxRetries})`)
+          console.log(`⏱️ Request timeout, retrying in ${backoffMs}ms... (attempt ${attempt + 1}/${maxRetries})`)
           await new Promise(resolve => setTimeout(resolve, backoffMs))
           continue
         }
@@ -65,7 +65,7 @@ async function fetchWithTimeout(
       // Handle other errors
       if (attempt < maxRetries) {
         const backoffMs = 1000 * Math.pow(2, attempt)
-        console.log(`âŒ Fetch error: ${error.message}, retrying in ${backoffMs}ms... (attempt ${attempt + 1}/${maxRetries})`)
+        console.log(`❌ Fetch error: ${error.message}, retrying in ${backoffMs}ms... (attempt ${attempt + 1}/${maxRetries})`)
         await new Promise(resolve => setTimeout(resolve, backoffMs))
         continue
       }
@@ -83,14 +83,14 @@ export async function GET(request: NextRequest) {
 
     // Return cached result if called too frequently
     if (lastPayload && now - lastFetchAt < MIN_INTERVAL_MS) {
-      console.log('ðŸ“¦ Returning cached ticker data')
+      console.log('📦 Returning cached ticker data')
       return NextResponse.json(lastPayload)
     }
 
     const apiKey = process.env.SAMGOVAPIKEY
 
     if (!apiKey) {
-      console.error('âŒ SAM.gov API key not found')
+      console.error('❌ SAM.gov API key not found')
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
 
@@ -110,8 +110,8 @@ export async function GET(request: NextRequest) {
     const postedFrom = formatDate(yesterday)
     const postedTo = formatDate(today)
 
-    console.log('ðŸ“¡ Fetching ticker data from SAM.gov...')
-    console.log(`ðŸ“… Date range: ${postedFrom} - ${postedTo}`)
+    console.log('📡 Fetching ticker data from SAM.gov...')
+    console.log(`📅 Date range: ${postedFrom} - ${postedTo}`)
 
     // Build SAM.gov search URL
     const url = new URL('https://api.sam.gov/prod/opportunities/v2/search')
@@ -134,11 +134,11 @@ export async function GET(request: NextRequest) {
     })
 
     if (!response.ok) {
-      console.error('âŒ SAM.gov API error:', response.status, response.statusText)
+      console.error('❌ SAM.gov API error:', response.status, response.statusText)
       
       // Return last cached data if available on error
       if (lastPayload) {
-        console.log('ðŸ“¦ Returning stale cached data due to API error')
+        console.log('📦 Returning stale cached data due to API error')
         return NextResponse.json({
           ...lastPayload,
           warning: 'Using cached data due to API issues'
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
       ? data.opportunitiesData
       : []
 
-    console.log('âœ… Ticker data fetched:', opportunities.length, 'new opportunities')
+    console.log('✅ Ticker data fetched:', opportunities.length, 'new opportunities')
 
     const payload = {
       success: true,
@@ -166,17 +166,17 @@ export async function GET(request: NextRequest) {
       lastUpdated: new Date().toISOString(),
     }
 
-    // âœ… update cache
+    // ✅ update cache
     lastFetchAt = now
     lastPayload = payload
 
     return NextResponse.json(payload)
   } catch (error: any) {
-    console.error('âŒ Ticker API error:', error)
+    console.error('❌ Ticker API error:', error)
     
     // Return last cached data if available on error
     if (lastPayload) {
-      console.log('ðŸ“¦ Returning stale cached data due to error')
+      console.log('📦 Returning stale cached data due to error')
       return NextResponse.json({
         ...lastPayload,
         warning: 'Using cached data due to temporary issues'

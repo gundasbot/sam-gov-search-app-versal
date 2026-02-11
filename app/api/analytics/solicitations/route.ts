@@ -1,4 +1,4 @@
-﻿//C:\Users\owner\Documents\sam-gov-search-app\app\api\analytics\solicitations\route
+//C:\Users\owner\Documents\sam-gov-search-app\app\api\analytics\solicitations\route
 
 import { NextResponse } from 'next/server'
 
@@ -134,7 +134,7 @@ function extractTitle(rec: any): string {
 }
 
 function extractUiLink(rec: any): string {
-  const id = safeString(rec?.noticeId || rec?.noticeID || rec?.id).trim()
+  const id = safeString(rec?.noticeId || rec?.noticeId || rec?.id).trim()
   // Prefer the public listing URL (works without a SAM.gov login).
   if (id) return `https://sam.gov/opp/${encodeURIComponent(id)}/view`
 
@@ -258,7 +258,7 @@ export async function GET(req: Request) {
       }
 
       for (const rec of data) {
-        const activeRaw = safeString((rec as any)?.active || (rec as any)?.isActive || (rec as any)?.status)
+        const activeRaw = safeString((rec as any)?.active || (rec as any)?.is_active || (rec as any)?.status)
         const activeNorm = activeRaw.trim().toLowerCase()
         if (activeNorm && !['yes', 'y', 'true', 'active'].includes(activeNorm)) {
           continue
@@ -273,7 +273,7 @@ export async function GET(req: Request) {
 
         if (sample.length < sampleLimit) {
           sample.push({
-            noticeId: rec?.noticeId || rec?.id || rec?.noticeID || null,
+            noticeId: rec?.noticeId || rec?.id || rec?.noticeId || null,
             title: extractTitle(rec),
             postedDate: extractPostedDate(rec),
             organizationName: safeString(rec?.organizationName || rec?.orgName || ''),
@@ -281,7 +281,7 @@ export async function GET(req: Request) {
             setAside,
             state,
             uiLink: extractUiLink(rec),
-            solicitationNumber: safeString(rec?.solicitationNumber || rec?.solNum || ''),
+            solicitationNumber: safeString(rec?.solicitation_number || rec?.solNum || ''),
             noticeType: safeString(rec?.noticeType || rec?.type || ''),
           })
         }

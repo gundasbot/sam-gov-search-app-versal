@@ -1,10 +1,12 @@
+//app/api/payment-methods/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
+  apiVersion: '2026-01-28.clover',
 })
 
 export async function GET(req: NextRequest) {
@@ -22,22 +24,22 @@ export async function GET(req: NextRequest) {
     try {
       const user = await prisma.users.findUnique({
         where: { email: session.user.email },
-        select: { stripeCustomerId: true },
+        select: { stripe_customer_id: true },
       })
 
-      if (!user?.stripeCustomerId) {
+      if (!user?.stripe_customer_id) {
         // No Stripe customer yet, return empty array
         return NextResponse.json([])
       }
 
       // Fetch payment methods from Stripe
       const paymentMethods = await stripe.paymentMethods.list({
-        customer: user.stripeCustomerId,
+        customer: user.stripe_customer_id,
         type: 'card',
       })
 
       // Get default payment method from customer
-      const customer = await stripe.customers.retrieve(user.stripeCustomerId)
+      const customer = await stripe.customers.retrieve(user.stripe_customer_id)
       const defaultPaymentMethodId =
         'deleted' in customer && !customer.deleted ? customer.invoice_settings.default_payment_method : null
 

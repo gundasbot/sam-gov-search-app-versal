@@ -1,4 +1,4 @@
-﻿// app/api/stripe/catalog/route.ts
+// app/api/stripe/catalog/route.ts
 
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
@@ -12,7 +12,7 @@ function getStripe() {
     throw new Error('STRIPE_SECRET_KEY is not configured')
   }
   return new Stripe(key, {
-    apiVersion: '2025-12-15.clover',
+    apiVersion: '2026-01-28.clover',
   })
 }
 

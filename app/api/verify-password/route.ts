@@ -1,4 +1,4 @@
-﻿// app/api/verify-password/route.ts
+// app/api/verify-password/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         id: true,
         email: true,
         role: true,
-        passwordHash: true,
+        password_hash: true,
       },
     })
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     // Check passwordHash (not password)
-    if (!user.passwordHash) {
+    if (!user.password_hash) {
       return NextResponse.json(
         {
           success: false,
@@ -50,14 +50,14 @@ export async function POST(request: Request) {
     }
 
     const { compare } = await import("bcryptjs")
-    const isValid = await compare(password, user.passwordHash)
+    const isValid = await compare(password, user.password_hash)
 
     return NextResponse.json({
       success: true,
       email: user.email,
       role: user.role,
       passwordValid: isValid,
-      message: isValid ? "âœ… Password is VALID!" : "âŒ Password is INVALID",
+      message: isValid ? "✅ Password is VALID!" : "❌ Password is INVALID",
     })
   } catch (error: any) {
     return NextResponse.json(

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { dbQuery } from "@/lib/db";
 import {
   sendAccessRequestConfirmation,

@@ -2,9 +2,9 @@
 
 export interface EmailTemplateProps {
   searchName: string
-  resultCount: number
+  resultCount: number  // Changed from result_count to resultCount
   opportunities: any[]
-  searchParams: Record<string, any>
+  searchParams: Record<string, any>  // Changed from search_params to searchParams
   runDate: Date
   companyName?: string
   logoUrl?: string
@@ -150,10 +150,8 @@ const getSupportEmail = () => {
  */
 export function generateAlertEmailHTML(props: EmailTemplateProps): string {
   const {
-    searchName,
-    resultCount,
-    opportunities,
-    searchParams,
+    searchName, resultCount,
+    opportunities, searchParams,
     runDate,
     recipientName,
   } = props
@@ -191,7 +189,7 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
   // Generate opportunities table
   const opportunitiesHTML = opportunities.slice(0, 10).map((opp, index) => {
     const title = opp.title || 'Untitled Opportunity'
-    const solNumber = opp.solicitationNumber || 'N/A'
+    const solNumber = opp.solicitation_number || 'N/A'
     const agency = opp.department || opp.agency || 'N/A'
     const postedDate = opp.postedDate ? new Date(opp.postedDate).toLocaleDateString() : 'N/A'
     const responseDeadline = opp.responseDeadLine ? new Date(opp.responseDeadLine).toLocaleDateString() : 'N/A'
@@ -431,10 +429,8 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
  */
 export function generateAlertEmailText(props: EmailTemplateProps): string {
   const {
-    searchName,
-    resultCount,
-    opportunities,
-    searchParams,
+    searchName, resultCount,
+    opportunities, searchParams,
     runDate,
     recipientName,
   } = props
@@ -487,7 +483,7 @@ ${marketing.message}
 
     opportunities.slice(0, 10).forEach((opp, index) => {
       const title = opp.title || 'Untitled Opportunity'
-      const solNumber = opp.solicitationNumber || 'N/A'
+      const solNumber = opp.solicitation_number || 'N/A'
       const agency = opp.department || opp.agency || 'N/A'
       const postedDate = opp.postedDate ? new Date(opp.postedDate).toLocaleDateString() : 'N/A'
       const responseDeadline = opp.responseDeadLine ? new Date(opp.responseDeadLine).toLocaleDateString() : 'N/A'

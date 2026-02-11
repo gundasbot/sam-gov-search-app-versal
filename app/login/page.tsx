@@ -2,13 +2,12 @@
 
 import { redirect } from 'next/navigation'
 
-export default async function LoginPage({
-  searchParams,
+export default async function LoginPage({ search_params,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>
+  search_params: Promise<{ callbackUrl?: string }>
 }) {
-  // ✅ Await searchParams in Next.js 15+
-  const params = await searchParams
+  // ✅ Await search_params in Next.js 15+
+  const params = await search_params
   const callbackUrl = params?.callbackUrl || '/dashboard'
 
   // Your actual login UI lives on the homepage

@@ -189,6 +189,18 @@ model recipient_contacts {
   @@index([user_id])
 }
 
+model sam_cached_searches {
+  id                 String   @id @default(cuid())
+  search_key         String   @unique
+  opportunities_data Json
+  total_records      Int
+  cached_at          DateTime
+  expires_at         DateTime
+
+  @@index([search_key])
+  @@index([expires_at])
+}
+
 model saved_search_runs {
   id              String         @id
   saved_search_id String

@@ -1,4 +1,4 @@
-﻿// app/api/account/verify-email/confirm/route.ts
+// app/api/account/verify-email/confirm/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'

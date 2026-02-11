@@ -64,7 +64,7 @@ export async function POST(
           subscription: {
             ...updated,
             active: updated?.subscription_enabled,
-            fileFormat: updated?.export_format,
+            file_format: updated?.export_format,
           },
           message: 'Subscription enabled with default daily frequency',
         })
@@ -93,7 +93,7 @@ export async function POST(
       subscription: {
         ...updated,
         active: updated.subscription_enabled,
-        fileFormat: updated.export_format,
+        file_format: updated.export_format,
       },
       message: newStatus ? 'Subscription enabled' : 'Subscription disabled',
     })

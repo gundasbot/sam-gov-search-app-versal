@@ -1,4 +1,4 @@
-﻿// app/api/alert-subscriptions/route.ts
+// app/api/alert-subscriptions/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest) {
       subscriptions: subscriptions.map((s: any) => ({
         ...s,
         active: s.subscription_enabled,
-        fileFormat: s.export_format,
+        file_format: s.export_format,
         counts: {
           runs: s?._count?.search_runs ?? 0,
           exports: s?._count?.search_exports ?? 0,

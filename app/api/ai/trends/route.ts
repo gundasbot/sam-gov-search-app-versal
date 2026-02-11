@@ -1,4 +1,4 @@
-﻿// app/api/ai/trends/route.ts
+// app/api/ai/trends/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -69,7 +69,7 @@ function buildPrompt(payload: {
 You are a federal contracting market analyst.
 
 Task:
-Identify 4â€“6 meaningful trends visible in the data.
+Identify 4–6 meaningful trends visible in the data.
 
 Rules:
 - Output ONLY valid JSON
@@ -77,7 +77,7 @@ Rules:
 - Return an ARRAY
 - Each item MUST have:
   - title (string)
-  - description (string, 2â€“3 sentences)
+  - description (string, 2–3 sentences)
   - strength ("strong" | "moderate" | "weak")
 
 Trends may include:

@@ -1,4 +1,4 @@
-﻿// app/api/admin/promote/route.ts
+// app/api/admin/promote/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 

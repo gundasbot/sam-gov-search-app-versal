@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import crypto from 'crypto'
 import { Resend } from 'resend'
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
     await sql`
-      INSERT INTO email_verification_tokens (id, user_id, token_hash, expires_at)
+      INSERT INTO email_verification_tokens (id, user_id: userId, token_hash, expires_at)
       VALUES (${tokenId}, ${user.id}, ${tokenHash}, ${expiresAt.toISOString()})
     `
 
@@ -79,3 +79,4 @@ export async function POST(req: NextRequest) {
     return jsonError('Failed to send verification email', 500, err?.message)
   }
 }
+

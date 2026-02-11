@@ -21,7 +21,7 @@ function getStripeClient(): Stripe {
   }
 
   const client = new Stripe(secretKey, {
-    apiVersion: '2025-12-15.clover' as any,
+    apiVersion: '2026-01-28.clover' as any,
     typescript: true,
   })
 
@@ -72,7 +72,7 @@ function requirePriceId(id: string, name: string) {
 }
 
 export type CreateCheckoutSessionArgs = {
-  userId: string
+  user_id: string
   email: string
   priceId: string
   trialDays?: number
@@ -96,7 +96,7 @@ export async function createCheckoutSession(args: CreateCheckoutSessionArgs) {
     cancel_url: args.cancelUrl,
     allow_promotion_codes: true,
     metadata: {
-      userId: args.userId,
+      user_id: args.user_id,
       priceId,
       ...(args.metadata || {}),
     },

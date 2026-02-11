@@ -1,4 +1,4 @@
-﻿// app/api/eligibility-check/route.ts
+// app/api/eligibility-check/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {

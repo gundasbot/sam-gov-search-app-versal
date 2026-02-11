@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 
 export const runtime = 'nodejs'
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const users = await sql`
       SELECT 
         id, email, first_name, last_name, 
-        email_verified, created_at, plan_tier
+        email_verified, created_at, planTier
       FROM users 
       WHERE 
         email ILIKE ${'%' + searchTerm + '%'} OR
@@ -49,7 +49,7 @@ export async function GET() {
     const users = await sql`
       SELECT 
         id, email, first_name, last_name, 
-        email_verified, created_at, plan_tier
+        email_verified, created_at, planTier
       FROM users 
       ORDER BY created_at DESC
       LIMIT 10

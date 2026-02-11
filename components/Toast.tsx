@@ -10,29 +10,29 @@ interface ToastProps {
   message: string
   type?: ToastType
   onClose: () => void
-  duration?: number // ✅ Keep for backward compatibility, but default to 0 (manual close)
+  duration?: number
+  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
 }
 
 export default function Toast({ 
   message, 
   type = 'success', 
   onClose, 
-  duration = 0 // ✅ CHANGED: default to 0 (no auto-close)
+  duration = 0,
+  position = 'top-right'
 }: ToastProps) {
   useEffect(() => {
-    // ✅ Only auto-close if duration is explicitly set > 0
     if (duration > 0) {
       const timer = setTimeout(onClose, duration)
       return () => clearTimeout(timer)
     }
-    // ✅ If duration is 0, toast stays open until manually closed
   }, [duration, onClose])
   
   const styles = {
     success: {
-      bg: 'bg-gradient-to-r from-orange-500 to-orange-600',
+      bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600',
       icon: <CheckCircle className="h-6 w-6 text-white" />,
-      border: 'border-orange-700'
+      border: 'border-emerald-700'
     },
     error: {
       bg: 'bg-gradient-to-r from-red-500 to-red-600',
@@ -51,11 +51,18 @@ export default function Toast({
     }
   }
   
+  const positionClasses = {
+    'top-right': 'top-4 right-4',
+    'top-left': 'top-4 left-4',
+    'bottom-right': 'bottom-4 right-4',
+    'bottom-left': 'bottom-4 left-4'
+  }
+  
   const style = styles[type]
   
   return (
     <div 
-      className={`fixed top-4 right-4 z-[9999] max-w-md ${style.bg} ${style.border} border-2 rounded-lg shadow-2xl transform transition-all duration-300`}
+      className={`fixed z-[9999] max-w-md ${style.bg} ${style.border} border-2 rounded-lg shadow-2xl transform transition-all duration-300 ${positionClasses[position]}`}
       style={{
         animation: 'slideInRight 0.3s ease-out'
       }}
@@ -76,7 +83,6 @@ export default function Toast({
         </button>
       </div>
       
-      {/* Progress bar - only show if duration is set */}
       {duration > 0 && (
         <div className="h-1 bg-white bg-opacity-30 overflow-hidden">
           <div 
@@ -116,11 +122,24 @@ export default function Toast({
 // Hook for managing toasts
 import { useState, useCallback } from 'react'
 
+interface ToastOptions {
+  duration?: number
+  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
+}
+
 export function useToast() {
-  const [toast, setToast] = useState<{message: string, type: ToastType} | null>(null)
+  const [toast, setToast] = useState<{
+    message: string, 
+    type: ToastType
+    options?: ToastOptions
+  } | null>(null)
   
-  const showToast = useCallback((message: string, type: ToastType = 'success') => {
-    setToast({ message, type })
+  const showToast = useCallback((
+    message: string, 
+    type: ToastType = 'success',
+    options?: ToastOptions
+  ) => {
+    setToast({ message, type, options })
   }, [])
   
   const hideToast = useCallback(() => {
@@ -135,7 +154,8 @@ export function useToast() {
         message={toast.message}
         type={toast.type}
         onClose={hideToast}
-        duration={0} // ✅ ADDED: Explicitly set to 0 for manual close
+        duration={toast.options?.duration || 0}
+        position={toast.options?.position || 'top-right'}
       />
     )
   }, [toast, hideToast])

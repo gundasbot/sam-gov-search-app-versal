@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { getToken } from 'next-auth/jwt'
 
@@ -7,13 +7,13 @@ export const runtime = 'nodejs'
 const sql = neon(process.env.DATABASE_URL!)
 
 function isActiveUser(u: any) {
-  const tier = String(u?.plan_tier || u?.plan || 'free').toLowerCase()
-  const status = String(u?.plan_status || 'inactive').toLowerCase()
+  const tier = String(u?.planTier || u?.plan || 'free').toLowerCase()
+  const status = String(u?.planStatus || 'inactive').toLowerCase()
 
   const trial_active = !!u?.trial_active
   const trialExpires = u?.trial_expires_at ? new Date(u.trial_expires_at).getTime() : null
 
-  const periodEnd = u?.current_period_end ? new Date(u.current_period_end).getTime() : null
+  const periodEnd = u?.currentPeriodEnd ? new Date(u.currentPeriodEnd).getTime() : null
   const now = Date.now()
 
   const paidTier = tier === 'professional' || tier === 'enterprise'
@@ -36,9 +36,9 @@ export async function GET(req: NextRequest) {
 
     const rows = await sql`
       SELECT
-        plan_tier,
-        plan_status,
-        current_period_end,
+        planTier,
+        planStatus,
+        currentPeriodEnd,
         trial_active,
         trial_expires_at,
         stripe_customer_id,
@@ -54,9 +54,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       authenticated: true,
       active,
-      plan_tier: user?.plan_tier || 'free',
-      plan_status: user?.plan_status || null,
-      current_period_end: user?.current_period_end || null,
+      plan_tier: user?.planTier || 'free',
+      plan_status: user?.planStatus || null,
+      current_period_end: user?.currentPeriodEnd || null,
       trial_active: !!user?.trial_active,
       trial_expires_at: user?.trial_expires_at || null,
       stripe_customer_id: user?.stripe_customer_id || null,
