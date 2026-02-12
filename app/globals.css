@@ -91,3 +91,42 @@ body {
 a {
   transition: color 0.2s ease;
 }
+
+/* ── Mobile safe-area support (notched phones) ── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Cookie consent animations ── */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.animate-fade-in  { animation: fade-in  0.25s ease-out; }
+
+/* ── Scrollbar hide utility ── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Mobile: prevent horizontal scroll caused by overflowing children ── */
+@media (max-width: 640px) {
+  body, html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Ensure fixed bottom banners respect safe-area */
+  .fixed.bottom-0 {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}

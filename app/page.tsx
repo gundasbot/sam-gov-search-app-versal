@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useCallback, useEffect, useMemo, useState , Suspense} from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import CookieConsent from '../components/CookieConsent'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import {
@@ -146,6 +147,7 @@ function HeroBackgroundSlides() {
                 : 'bg-slate-400/60 hover:bg-slate-400'
             )}
             aria-label={`Go to slide ${i + 1}`}
+
           />
         ))}
       </div>
@@ -584,45 +586,54 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-emerald-50/30 to-sky-50">
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-50 via-emerald-50/30 to-sky-50">
       {/* Subtle animated gradient overlay */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-100/40 via-transparent to-transparent" />
       
       <HeroBackgroundSlides />
 
-      {/* Main content wrapper - 85% width */}
+      {/* Main content wrapper */}
       <div className="relative z-10 flex min-h-screen flex-col">
-        <main className="flex flex-1 items-center justify-center px-6 py-12">
-          <div className="mx-auto flex w-full max-w-[85vw] items-center justify-between gap-10">
-            {/* LEFT - Hero content (60% width) */}
-            <section className="flex-[0.6] space-y-8">
-              <div className="space-y-6">
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-700 backdrop-blur-sm">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                  Precise GovCon • Contractor Intelligence Platform
+        <main className="flex flex-1 items-start justify-center px-4 pt-4 pb-8 sm:px-6 sm:pt-6 sm:pb-10 lg:pt-10 lg:pb-12">
+          {/* Mobile: stacked col. Desktop: side-by-side row */}
+          <div className="mx-auto flex w-full max-w-[100vw] sm:max-w-[92vw] lg:max-w-[85vw] flex-col lg:flex-row lg:items-start lg:justify-between gap-8 lg:gap-10">
+            
+            {/* LEFT - Hero content — full width on mobile, 60% on desktop */}
+            <section className="w-full lg:flex-[0.6] space-y-6 sm:space-y-8">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="max-w-2xl">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-green-900 leading-tight">
+                      Welcome to Precise GovCon.
+                    </p>
+                  </div>
+
+                  <p className="mt-3 text-lg sm:text-xl md:text-2xl text-orange-600 font-semibold">
+                    Your contracting and Procurement partner. We are here to ensure your success in the contracting market space.
+                  </p>
                 </div>
 
-                <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl lg:text-6xl">
                   Find. Qualify. Win.
                   <br />
-                  <span className="text-emerald-600">Government contracting</span> — with precision.
+                  <span className="text-green-900">Government contracting</span> — with precision.
                 </h1>
 
-                <p className="max-w-2xl text-lg text-slate-700 md:text-xl">
+                <p className="max-w-2xl text-base text-slate-700 sm:text-lg md:text-xl">
                   Unified opportunity search across federal, state, and local sources—plus workflows and expert support to help you compete with confidence.
                 </p>
               </div>
 
-              {/* Feature cards using public images - 3 columns WITH CLICKABLE LINKS */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Feature cards using public images - responsive grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 {/* Bid Search */}
                 <Link
                   href="/search"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
                 >
-                  <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600">
+                  <div className="relative mb-2 h-20 sm:h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600">
                     <Image
                       src="/auth-cards/auth-bid-search.jpg"
                       alt="Bid search"
@@ -650,9 +661,9 @@ function LoginPageContent() {
                   href="/services/sam-registration"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
                 >
-                  <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600">
+                  <div className="relative mb-2 h-20 sm:h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600">
                     <Image
                       src="/auth-cards/auth-sam-registration.jpg"
                       alt="SAM registration"
@@ -680,9 +691,9 @@ function LoginPageContent() {
                   href="/services/set-aside-certifications"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
                 >
-                  <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-pink-600">
+                  <div className="relative mb-2 h-20 sm:h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-pink-600">
                     <Image
                       src="/auth-cards/auth-certifications.jpg"
                       alt="Certifications"
@@ -710,9 +721,9 @@ function LoginPageContent() {
                   href="/services/proposal-writing"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
                 >
-                  <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-red-600">
+                  <div className="relative mb-2 h-20 sm:h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-red-600">
                     <Image
                       src="/auth-cards/auth-proposals.jpg"
                       alt="Proposals"
@@ -740,9 +751,9 @@ function LoginPageContent() {
                   href="/services/bid-no-bid-review"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
                 >
-                  <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600">
+                  <div className="relative mb-2 h-20 sm:h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600">
                     <Image
                       src="/auth-cards/auth-compliance.jpg"
                       alt="Bid/No-Bid Analysis"
@@ -770,9 +781,9 @@ function LoginPageContent() {
                   href="/services/capability-statements"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm transition hover:border-emerald-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
                 >
-                  <div className="relative mb-3 h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-teal-500 to-green-600">
+                  <div className="relative mb-2 h-20 sm:h-28 w-full overflow-hidden rounded-xl bg-gradient-to-br from-teal-500 to-green-600">
                     <Image
                       src="/auth-cards/auth-pipeline.jpg"
                       alt="Capability Statements"
@@ -797,10 +808,10 @@ function LoginPageContent() {
               </div>
             </section>
 
-            {/* RIGHT - Auth card (35% width) */}
-            <section className="flex-[0.35]">
-              <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/70 backdrop-blur-md shadow-2xl">
-                <div className="p-8">
+            {/* RIGHT - Auth card — full width on mobile, 35% on desktop */}
+            <section className="w-full lg:flex-[0.35] lg:sticky lg:top-6">
+              <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white/70 backdrop-blur-md shadow-2xl max-h-[calc(100vh-3rem)] flex flex-col">
+                <div className="p-5 sm:p-8 overflow-y-auto">
                   <div className="mb-6 text-center">
                     <h2 className="text-2xl font-bold text-slate-900">
                       {cardTitle}
@@ -1401,12 +1412,15 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    }>
-      <LoginPageContent />
-    </Suspense>
+    <>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      }>
+        <LoginPageContent />
+      </Suspense>
+      <CookieConsent />
+    </>
   )
 }

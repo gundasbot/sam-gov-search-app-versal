@@ -4,6 +4,9 @@ import type { Metadata } from 'next'
 import ClientLayout from './client-layout'
 
 export const metadata: Metadata = {
+  // ✅ Critical so OG/Twitter images resolve as absolute URLs
+  metadataBase: new URL('https://precisegovcon.com'),
+
   title: {
     default: 'PreciseGovCon - Find Government Contracts Faster | Federal, State & Local Opportunities',
     template: '%s | PreciseGovCon'
@@ -30,6 +33,17 @@ export const metadata: Metadata = {
   authors: [{ name: 'PreciseGovCon' }],
   creator: 'PreciseGovCon',
   publisher: 'PreciseGovCon',
+
+  // ✅ THIS replaces the Vercel favicon in browsers + many previews
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' }
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }]
+  },
+
   openGraph: {
     title: 'PreciseGovCon - Find Government Contracts Faster',
     description: 'Search thousands of federal, state, and local government contract opportunities in real-time.',
@@ -37,13 +51,28 @@ export const metadata: Metadata = {
     locale: 'en_US',
     siteName: 'PreciseGovCon',
     url: 'https://precisegovcon.com',
+
+    // ✅ THIS is what shows as the big preview image in emails/link unfurls
+    images: [
+      {
+        url: '/android-chrome-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'PreciseGovCon'
+      }
+    ],
   },
+
   twitter: {
     card: 'summary_large_image',
     title: 'PreciseGovCon - Find Government Contracts Faster',
     description: 'Search thousands of federal, state, and local government contract opportunities in real-time.',
     creator: '@precisegovcon',
+
+    // ✅ Twitter/Slack/Discord/Gmail often uses this
+    images: ['/android-chrome-512x512.png']
   },
+
   robots: {
     index: true,
     follow: true,

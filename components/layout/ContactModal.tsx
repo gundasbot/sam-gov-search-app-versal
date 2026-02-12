@@ -48,6 +48,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
     setFiles([]); setFileErr(null); setInquiry(""); setDdOpen(false);
     setSubmittedName(""); setSubmittedEmail(""); setSubmittedInquiry("");
   }, []);
+
   const closeAll = useCallback(() => { reset(); onClose(); }, [reset, onClose]);
 
   useEffect(() => {
@@ -101,17 +102,48 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
         filename: file.name, content: await b64(file), contentType: file.type,
       }))),
     };
+
     try {
       const res  = await fetch("/api/contact", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
       const data = await res.json().catch(()=>({}));
-      if (res.ok && data?.success) { setSubmittedName(payload.firstName || payload.lastName || "there"); setSubmittedEmail(payload.email); setSubmittedInquiry(INQUIRY_OPTIONS.find(o => o.value === inquiry)?.label || inquiry || "General Inquiry"); setStatus("ok"); formRef.current?.reset(); setFiles([]); }
-      else { setStatus("err"); setErrMsg(typeof data?.error==="string" ? data.error : "Unable to send. Please try again."); }
-    } catch { setStatus("err"); setErrMsg("Network error. Please try again."); }
-    finally  { setLoading(false); }
+      if (res.ok && data?.success) {
+        setSubmittedName(payload.firstName || payload.lastName || "there");
+        setSubmittedEmail(payload.email);
+        setSubmittedInquiry(INQUIRY_OPTIONS.find(o => o.value === inquiry)?.label || inquiry || "General Inquiry");
+        setStatus("ok");
+        formRef.current?.reset();
+        setFiles([]);
+      } else {
+        setStatus("err");
+        setErrMsg(typeof data?.error==="string" ? data.error : "Unable to send. Please try again.");
+      }
+    } catch {
+      setStatus("err");
+      setErrMsg("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function startNewMessage() {
+    // keeps the modal open, resets success state back to form
+    setStatus("idle");
+    setErrMsg(null);
+    setInquiry("");
+    setDdOpen(false);
+    setFiles([]);
+    setFileErr(null);
+    setSubmittedName("");
+    setSubmittedEmail("");
+    setSubmittedInquiry("");
+    // keep form visible & ready
+    requestAnimationFrame(() => formRef.current?.querySelector<HTMLInputElement>('input[name="firstName"]')?.focus());
   }
 
   if (!isOpen) return null;
   const selOpt = INQUIRY_OPTIONS.find(o => o.value === inquiry);
+
+  const isSuccess = status === "ok";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -174,10 +206,15 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
       `}</style>
 
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/88 backdrop-blur-xl" onClick={closeAll} />
+      {/* ✅ Do not allow accidental close on success; user closes via Close/X */}
+      <div
+        className="absolute inset-0 bg-black/88 backdrop-blur-xl"
+        onClick={isSuccess ? undefined : closeAll}
+      />
 
       {/* ── Card ── */}
-      <div className="pgc-card relative z-10 w-full max-w-3xl flex flex-col rounded-2xl overflow-hidden"
+      <div
+        className="pgc-card relative z-10 w-full max-w-5xl flex flex-col rounded-2xl overflow-hidden"
         style={{
           maxHeight: "94vh",
           background: "linear-gradient(160deg,#021020 0%,#031728 60%,#010c18 100%)",
@@ -185,7 +222,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
           boxShadow: "0 0 0 1px rgba(255,255,255,.05), 0 40px 100px rgba(0,0,0,.85), 0 0 160px rgba(6,182,212,.07)",
         }}
       >
-        {/* Brand top bar — cyan → emerald → orange (matches footer) */}
+        {/* Brand top bar */}
         <div style={{
           height: "5px", flexShrink: 0,
           background: "linear-gradient(90deg,#06b6d4,#10b981,#f97316,#06b6d4)",
@@ -198,8 +235,11 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
           style={{ borderBottom: "1px solid rgba(6,182,212,.12)", background: "rgba(6,182,212,.03)" }}
         >
           <div className="flex items-center gap-4">
-            {/* Real logo */}
-            <Image src="/logo.png" alt="Precise GovCon" width={52} height={52}
+            <Image
+              src="/logo.png"
+              alt="Precise GovCon"
+              width={52}
+              height={52}
               className="rounded-xl flex-shrink-0"
               style={{ objectFit: "contain" }}
             />
@@ -213,7 +253,9 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
               </p>
             </div>
           </div>
-          <button onClick={closeAll}
+
+          <button
+            onClick={closeAll}
             className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
             aria-label="Close"
           >
@@ -226,58 +268,110 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
           {/* SUCCESS */}
           {status === "ok" ? (
-            <div className="pgc-fade flex flex-col items-center text-center px-8 py-12 gap-5">
+            <div className="pgc-fade px-8 py-12">
+              <div className="mx-auto max-w-2xl flex flex-col items-center text-center gap-6">
+                {/* Hero check */}
+                <div
+                  className="w-28 h-28 rounded-full flex items-center justify-center"
+                  style={{
+                    background: "rgba(16,185,129,.18)",
+                    border: "3px solid rgba(16,185,129,.55)",
+                    boxShadow: "0 0 80px rgba(16,185,129,.22), 0 0 140px rgba(6,182,212,.10)",
+                  }}
+                >
+                  <CheckCircle className="w-14 h-14 text-emerald-400" />
+                </div>
 
-              {/* Animated check circle */}
-              <div className="w-24 h-24 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(16,185,129,.15)", border: "3px solid rgba(16,185,129,.45)", boxShadow: "0 0 50px rgba(16,185,129,.2)" }}
-              >
-                <CheckCircle className="w-12 h-12 text-emerald-400" />
+                {/* Headline */}
+                <div>
+                  <h3 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
+                    Message received.
+                  </h3>
+                  <p className="mt-3 text-xl sm:text-2xl text-slate-200 leading-relaxed">
+                    Thanks, <span className="text-white font-black">{submittedName}</span>.
+                    We’ve logged your <span className="text-orange-300 font-black">{submittedInquiry}</span> request.
+                  </p>
+                </div>
+
+                {/* Next steps panel */}
+                <div
+                  className="w-full rounded-2xl px-6 py-5 text-left"
+                  style={{
+                    background: "rgba(6,182,212,.07)",
+                    border: "1px solid rgba(6,182,212,.22)",
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "rgba(249,115,22,.14)", border: "1px solid rgba(249,115,22,.25)" }}
+                    >
+                      <span className="text-xl">⏱️</span>
+                    </div>
+                    <div>
+                      <div className="text-white font-black text-lg">What happens next</div>
+                      <div className="mt-1 text-slate-200 text-base leading-relaxed">
+                        You’ll hear back within <span className="text-cyan-300 font-black">2–3 business days</span>.
+                        If we need clarification, we’ll reply by email.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Confirmation email badge */}
+                <div
+                  className="w-full rounded-2xl px-6 py-5"
+                  style={{
+                    background: "rgba(16,185,129,.10)",
+                    border: "1px solid rgba(16,185,129,.28)",
+                  }}
+                >
+                  <div className="flex items-center gap-3 justify-center">
+                    <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                    <p className="text-slate-100 text-lg font-semibold">
+                      Confirmation sent to{" "}
+                      <span className="text-emerald-300 font-black">{submittedEmail}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Urgent contact */}
+                <div className="flex items-center gap-3 px-6 py-5 rounded-2xl w-full"
+                  style={{ background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.08)" }}
+                >
+                  <Image src="/logo.png" alt="" width={32} height={32} className="rounded-lg opacity-90" />
+                  <p className="text-slate-300 text-base font-medium">
+                    Urgent? Email{" "}
+                    <a href="mailto:support@precisegovcon.com" className="text-cyan-300 font-black hover:underline">
+                      support@precisegovcon.com
+                    </a>
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                  <button
+                    onClick={closeAll}
+                    className="flex-1 px-10 py-4 rounded-2xl text-white text-lg font-black hover:scale-[1.02] active:scale-[.99] transition-transform"
+                    style={{ background: "linear-gradient(135deg,#059669,#06b6d4)", boxShadow: "0 10px 40px rgba(6,182,212,.28)" }}
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={startNewMessage}
+                    className="flex-1 px-10 py-4 rounded-2xl text-white/90 text-lg font-black hover:text-white hover:scale-[1.02] active:scale-[.99] transition-transform"
+                    style={{ background: "rgba(255,255,255,.05)", border: "2px solid rgba(255,255,255,.12)" }}
+                  >
+                    Send another message
+                  </button>
+                </div>
+
+                <div className="text-slate-500 text-sm">
+                  This window will stay open until you close it.
+                </div>
               </div>
-
-              {/* Personalized headline */}
-              <div>
-                <h3 className="text-3xl font-black text-white mb-2">
-                  Got it, {submittedName}!
-                </h3>
-                <p className="text-slate-300 text-lg leading-relaxed max-w-md mx-auto">
-                  Your{" "}
-                  <span className="text-orange-400 font-bold">{submittedInquiry}</span>
-                  {" "}inquiry has been received. We'll be in touch within{" "}
-                  <span className="text-cyan-400 font-bold">2–3 business days</span>.
-                </p>
-              </div>
-
-              {/* Confirmation sent to badge */}
-              <div className="flex items-center gap-3 px-5 py-3 rounded-xl w-full max-w-sm"
-                style={{ background: "rgba(16,185,129,.08)", border: "1px solid rgba(16,185,129,.25)" }}
-              >
-                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <p className="text-slate-300 text-sm font-medium text-left">
-                  Confirmation sent to{" "}
-                  <span className="text-emerald-400 font-bold">{submittedEmail}</span>
-                </p>
-              </div>
-
-              {/* Urgent contact */}
-              <div className="flex items-center gap-3 px-5 py-4 rounded-xl"
-                style={{ background: "rgba(6,182,212,.07)", border: "1px solid rgba(6,182,212,.2)" }}
-              >
-                <Image src="/logo.png" alt="" width={28} height={28} className="rounded-lg opacity-80" />
-                <p className="text-slate-400 text-sm font-medium">
-                  Urgent? Email{" "}
-                  <a href="mailto:support@precisegovcon.com" className="text-cyan-400 font-bold hover:underline">
-                    support@precisegovcon.com
-                  </a>
-                </p>
-              </div>
-
-              <button onClick={closeAll}
-                className="px-12 py-4 rounded-xl text-white text-lg font-black hover:scale-105 transition-transform"
-                style={{ background: "linear-gradient(135deg,#059669,#06b6d4)", boxShadow: "0 6px 30px rgba(6,182,212,.3)" }}
-              >
-                Done
-              </button>
             </div>
           ) : (
 

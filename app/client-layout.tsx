@@ -75,10 +75,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 
                 {/* Scrollable Content - flex-1 takes remaining space */}
                 <main 
-                  className="flex-1 overflow-y-auto overflow-x-hidden 
+                  className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden 
                     will-change-scroll touch-pan-y"
+                  style={{ minHeight: 0 }}
                 >
-                  {children}
+                  <div className="flex-1">
+                    {children}
+                  </div>
                 </main>
 
                 {/* Fixed Footer - flex-none prevents shrinking */}
