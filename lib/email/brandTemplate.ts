@@ -162,7 +162,7 @@ export function buildBrandEmailHtml(params: BrandEmailParams) {
             <tr>
               <td style="padding:14px 8px 0 8px;">
                 <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:rgba(148,163,184,0.9);font-size:12px;line-height:1.6;text-align:center;">
-                  © ${new Date().getFullYear()} Precise Analytics LLC · VETERAN-OWNED Small Business
+                  © ${new Date().getFullYear()} Precise Govcon LLC · VETERAN-OWNED Small Business
                 </div>
                 <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:rgba(100,116,139,0.9);font-size:11px;line-height:1.6;text-align:center;margin-top:6px;">
                   Richmond, Virginia · Powered by SAM.gov API
@@ -188,7 +188,7 @@ ${params.ctaLabel}: ${params.ctaUrl}
 If you didn't request this, you can safely ignore this email.
 
 ---
-© ${new Date().getFullYear()} Precise Analytics LLC
+© ${new Date().getFullYear()} Precise Govcon LLC
 VETERAN-OWNED Small Business
 Richmond, Virginia`
 }

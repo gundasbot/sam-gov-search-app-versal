@@ -64,7 +64,7 @@ export async function POST(req: Request) {
         <p>Hi ${name},</p>
         <p>Thank you for your interest in the <strong>${interested_plan}</strong> plan!</p>
         <p>Our sales team will contact you within <strong>24 hours</strong> at <strong>${email}</strong>.</p>
-        <p>Best regards,<br><strong>Precise Analytics Sales Team</strong></p>
+        <p>Best regards,<br><strong>Precise Govcon Sales Team</strong></p>
       `
     })
 

@@ -35,7 +35,7 @@ export default function PrivacyPage() {
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
               <h2 className="text-2xl font-bold text-white mb-4">Introduction</h2>
               <p className="text-slate-300 leading-relaxed mb-6">
-                Precise Analytics LLC ("Precise GovCon," "we," "us," or "our") is committed to protecting your privacy. 
+                Precise Govcon LLC ("Precise GovCon," "we," "us," or "our") is committed to protecting your privacy. 
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use 
                 our federal contracting intelligence platform.
               </p>
@@ -168,7 +168,7 @@ export default function PrivacyPage() {
                 </a>
               </div>
               <p className="text-slate-400 text-sm mt-4">
-                Precise Analytics LLC<br />
+                Precise Govcon LLC<br />
                 Richmond, Virginia<br />
                 United States
               </p>

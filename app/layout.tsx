@@ -1,20 +1,7 @@
-// app/layout.tsx
-import type { Metadata } from 'next'
-import './globals.css'
-import Header from '@/components/Header'
-import Footer from '@/components/layout/Footer'
-import AuthProvider from './providers'
-import AuthModalProvider from '@/components/auth/AuthModalProvider'
-import SmoothScrollProvider from '@/components/SmoothScrollProvider'
-import FloatingCTA from '@/components/FloatingCTA'
-import BrowsingTimerBanner from '@/components/BrowsingTimerBanner'
-import CookieConsent from '@/components/CookieConsent'
-import { Inter } from 'next/font/google'
+//app/layout.tsx
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-})
+import type { Metadata } from 'next'
+import ClientLayout from './client-layout'
 
 export const metadata: Metadata = {
   title: {
@@ -68,49 +55,14 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  verification: {
-    // Add your verification codes when you have them:
-    // google: 'your-google-verification-code',
-    // bing: 'your-bing-verification-code',
+  manifest: '/manifest.json',
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default'
   },
-  alternates: {
-    canonical: 'https://precisegovcon.com',
-  },
-  category: 'Business',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={`${inter.className} h-full overflow-hidden`} style={{ isolation: 'isolate' }}>
-        <AuthProvider>
-          <AuthModalProvider>
-            <SmoothScrollProvider>
-              {/* Container with flexbox layout */}
-              <div className="h-full flex flex-col">
-                {/* Fixed Header - flex-none prevents shrinking */}
-                <div className="flex-none">
-                  <Header />
-                  <BrowsingTimerBanner />
-                </div>
-                
-                {/* Scrollable Content - flex-1 takes remaining space */}
-                <main className="flex-1 overflow-y-auto overflow-x-hidden">
-                  {children}
-                </main>
-
-                {/* Fixed Footer - flex-none prevents shrinking */}
-                <div className="flex-none">
-                  <Footer />
-                </div>
-              </div>
-              
-              <FloatingCTA />
-              <CookieConsent />
-            </SmoothScrollProvider>
-          </AuthModalProvider>
-        </AuthProvider>
-      </body>
-    </html>
-  )
+  return <ClientLayout>{children}</ClientLayout>
 }

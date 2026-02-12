@@ -188,7 +188,7 @@ export async function POST(req: Request) {
                       <tr>
                         <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 16px 16px; text-align: center;">
                           <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                            Â© ${new Date().getFullYear()} Precise Analytics LLC. All rights reserved.
+                            Â© ${new Date().getFullYear()} Precise Govcon LLC. All rights reserved.
                           </p>
                           <p style="margin: 8px 0 0; color: #9ca3af; font-size: 12px;">
                             Richmond, Virginia

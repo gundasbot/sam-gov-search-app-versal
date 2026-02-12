@@ -270,13 +270,13 @@ export default function DashboardPage() {
       {/* Header - DYNAMIC NAME */}
       <section className="border-b border-white/5 bg-slate-900/30 backdrop-blur-xl sticky top-0 z-10">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="animate-fadeInLeft">
-              <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {welcomeName}</h1>
-              <p className="text-slate-400">Here's what's happening with your contracts today</p>
+          <div className="flex items-start sm:items-center justify-between gap-4">
+            <div className="animate-fadeInLeft min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 truncate">Welcome back, {welcomeName}</h1>
+              <p className="text-sm text-slate-400">Here's what's happening with your contracts today</p>
             </div>
 
-            <div className="flex items-center gap-3 animate-fadeInRight">
+            <div className="flex items-center gap-2 animate-fadeInRight flex-shrink-0">
               <button 
                 onClick={() => setDrawer('notifications')}
                 className="relative p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl border border-white/10 transition-all duration-300 hover:scale-105"
@@ -299,7 +299,7 @@ export default function DashboardPage() {
       {drawer && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeDrawer} />
-          <div className="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-gradient-to-br from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-2xl">
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[520px] max-w-full bg-gradient-to-br from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-2xl overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
               <div className="text-white font-bold text-lg">
                 {drawer === 'activeSearches' && 'Active Searches'}
@@ -618,20 +618,20 @@ export default function DashboardPage() {
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl blur-xl`}></div>
 
-                <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-6 border border-white/10 group-hover:border-white/20 transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 bg-gradient-to-br ${stat.gradient} rounded-xl`}>
-                      <stat.icon className="w-5 h-5 text-white" />
+                <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 group-hover:border-white/20 transition-all">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className={`p-2 sm:p-3 bg-gradient-to-br ${stat.gradient} rounded-xl`}>
+                      <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <span className="text-green-400 text-sm font-semibold flex items-center gap-1">
-                      <TrendingUp className="w-4 h-4" />
+                    <span className="text-green-400 text-xs sm:text-sm font-semibold flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
                       {stat.change}
                     </span>
                   </div>
-                  <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  <div className="text-sm text-slate-400 flex items-center justify-between gap-3">
+                  <div className="text-2xl sm:text-3xl font-bold text-white mb-1">{stat.value}</div>
+                  <div className="text-xs sm:text-sm text-slate-400 flex items-center justify-between gap-2">
                     <span>{stat.label}</span>
-                    <span className="text-xs text-slate-500 group-hover:text-slate-300 transition">{stat.hint}</span>
+                    <span className="text-xs text-slate-500 group-hover:text-slate-300 transition hidden sm:inline">{stat.hint}</span>
                   </div>
                 </div>
               </button>
@@ -639,19 +639,19 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <div className="grid grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-8">
           {/* Main Content */}
-          <div className="col-span-12 xl:col-span-8 space-y-8">
+          <div className="xl:col-span-8 space-y-6 sm:space-y-8">
             {/* Recent Opportunities */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-6 border border-white/10 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Recent Opportunities</h2>
-                    <p className="text-sm text-slate-400">Your top matches from the last 24 hours</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-white">Recent Opportunities</h2>
+                    <p className="text-xs sm:text-sm text-slate-400">Your top matches from the last 24 hours</p>
                   </div>
                 </div>
 
@@ -686,86 +686,71 @@ export default function DashboardPage() {
                     className="group bg-slate-900/50 rounded-xl p-5 border border-white/5 hover:border-cyan-500/30 hover:translate-x-1 transition-all duration-300 cursor-pointer animate-slideInLeft outline-none focus:ring-2 focus:ring-cyan-400/40"
                     style={{ animationDelay: `${0.4 + index * 0.1}s` }}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">
                             {opp.title}
                           </h3>
-                          <div className="px-2 py-1 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30">
+                          <div className="px-2 py-1 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 flex-shrink-0">
                             <span className="text-green-400 font-bold text-xs">{opp.match}% Match</span>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 mb-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-slate-400 mb-3">
                           <div className="flex items-center gap-1">
-                            <Building2 className="w-4 h-4" />
-                            <span>{opp.agency}</span>
+                            <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="truncate">{opp.agency}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                             <span>{opp.location}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <span className="font-mono text-cyan-400">{opp.naics}</span>
-                          </div>
+                          <span className="font-mono text-cyan-400 text-xs">{opp.naics}</span>
                         </div>
 
-                        <div className="flex items-center gap-4 text-sm">
+                        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
                           <div className="flex items-center gap-1 text-slate-400">
-                            <Clock className="w-4 h-4" />
+                            <Clock className="w-3.5 h-3.5" />
                             <span>Posted {opp.posted}</span>
                           </div>
                           <div className="flex items-center gap-1 text-orange-400">
-                            <Clock className="w-4 h-4" />
+                            <Clock className="w-3.5 h-3.5" />
                             <span>Closes in {opp.deadline}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="text-right ml-4">
-                        <div className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:ml-4 flex-shrink-0">
+                        <div className="text-lg sm:text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                           {opp.value}
                         </div>
-                        <div className="flex items-center gap-2 justify-end">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // TODO: hook up save action
-                            }}
-                            className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 ${
-                              opp.saved
-                                ? 'bg-cyan-500/20 text-cyan-400'
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                            onClick={(e) => { e.stopPropagation(); }}
+                            className={`p-1.5 sm:p-2 rounded-lg transition-all duration-300 hover:scale-110 ${
+                              opp.saved ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
                             }`}
                             aria-label="Save"
                           >
-                            <Heart className={`w-4 h-4 ${opp.saved ? 'fill-current' : ''}`} />
+                            <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${opp.saved ? 'fill-current' : ''}`} />
                           </button>
-
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // TODO: hook up share action
-                            }}
-                            className="p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all duration-300 hover:scale-110"
+                            onClick={(e) => { e.stopPropagation(); }}
+                            className="p-1.5 sm:p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all duration-300 hover:scale-110"
                             aria-label="Share"
                           >
-                            <Share2 className="w-4 h-4" />
+                            <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </button>
-
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/opportunities${buildQueryString({ noticeId: String(opp.id) })}`);
-                            }}
-                            className="p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all duration-300 hover:scale-110"
+                            onClick={(e) => { e.stopPropagation(); router.push(`/opportunities${buildQueryString({ noticeId: String(opp.id) })}`); }}
+                            className="p-1.5 sm:p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all duration-300 hover:scale-110"
                             aria-label="View"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </button>
                         </div>
                       </div>
@@ -776,7 +761,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Saved Searches */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-6 border border-white/10 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
+            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
@@ -793,7 +778,7 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {savedSearches.map((search, index) => (
                   <div
                     key={index}
@@ -832,9 +817,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="col-span-12 xl:col-span-4 space-y-6">
+          <div className="xl:col-span-4 space-y-6">
             {/* Notifications */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.3s' }}>
+            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.3s' }}>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Bell className="w-5 h-5 text-cyan-400" />
@@ -867,7 +852,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Upcoming Deadlines */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.5s' }}>
+            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.5s' }}>
               <div className="flex items-center gap-2 mb-6">
                 <Clock className="w-5 h-5 text-orange-400" />
                 <h2 className="text-lg font-bold text-white">Upcoming Deadlines</h2>
@@ -896,7 +881,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.7s' }}>
+            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.7s' }}>
               <h2 className="text-lg font-bold text-white mb-4">Quick Actions</h2>
 
               <div className="space-y-2">

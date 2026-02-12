@@ -364,7 +364,7 @@ function generateAlertEmailHTML(data: {
                       <a href="${appUrl}/search" style="color: #06b6d4; text-decoration: none;">New Search</a>
                     </div>
                     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #334155; font-size: 11px; text-align: center; margin-top: 12px;">
-                      © ${new Date().getFullYear()} Precise Analytics LLC · Richmond, Virginia · SDVOSB
+                      © ${new Date().getFullYear()} Precise Govcon LLC · Richmond, Virginia · SDVOSB
                     </div>
                   </td>
                 </tr>
@@ -426,7 +426,7 @@ function generateAlertEmailText(data: {
   text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`
   text += `View in Dashboard: ${appUrl}/saved-searches\n`
   text += `Manage Alerts: ${appUrl}/alerts\n\n`
-  text += `© ${new Date().getFullYear()} Precise Analytics LLC · Richmond, Virginia · SDVOSB\n`
+  text += `© ${new Date().getFullYear()} Precise Govcon LLC · Richmond, Virginia · SDVOSB\n`
 
   return text
 }

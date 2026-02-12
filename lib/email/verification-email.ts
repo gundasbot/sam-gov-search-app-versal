@@ -239,7 +239,7 @@ export function getVerificationEmailHtml(params: {
                 If you didn't create an account with Precise GovCon, you can safely ignore this email.
               </p>
               <p style="margin: 0; color: #475569; font-size: 12px; font-weight: 600;">
-                © ${new Date().getFullYear()} Precise Analytics LLC
+                © ${new Date().getFullYear()} Precise Govcon LLC
               </p>
               <p style="margin: 4px 0 0; color: #475569; font-size: 11px;">
                 VETERAN-OWNED Small Business · Richmond, Virginia
@@ -295,7 +295,7 @@ What you'll get:
 If you didn't create an account with Precise GovCon, you can safely ignore this email.
 
 ---
-© ${new Date().getFullYear()} Precise Analytics LLC
+© ${new Date().getFullYear()} Precise Govcon LLC
 VETERAN-OWNED Small Business
 Richmond, Virginia
   `.trim();

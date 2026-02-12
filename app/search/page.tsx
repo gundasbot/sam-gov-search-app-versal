@@ -2971,29 +2971,28 @@ ${filteredResults.map(opp => `  <opportunity>
     <SearchErrorBoundary>
       <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '18px' }} className="min-h-screen bg-white text-gray-900">
         <div className="fixed inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-        <div className="relative z-10 w-full px-6 lg:px-10 xl:px-12 py-6 lg:py-10">
-          <div className="w-full max-w-[85%] mx-auto">
+        <div className="relative z-10 w-full px-3 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 lg:py-10">
+          <div className="w-full max-w-full sm:max-w-[95%] lg:max-w-[90%] xl:max-w-[85%] mx-auto">
 
           {/* Welcome Banner for Authenticated Users */}
           
           <ProfileCompletionReminder />
           {/* Enhanced Welcome Banner */}
-          <div className="mb-8 rounded-3xl border border-gray-200 bg-white p-6 lg:p-8">
+          <div className="mb-6 sm:mb-8 rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 lg:p-8">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  {/* Logo - matches brand colors */}
-                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-lg flex items-center justify-center">
-                    <Search className="h-8 w-8 text-white" />
+                <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                  <div className="h-10 w-10 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-lg flex items-center justify-center flex-shrink-0">
+                    <Search className="h-5 w-5 sm:h-8 sm:w-8 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
-                      Welcome to Precise Govcon Bid Search
-                      <span className="ml-2 px-3 py-1 text-sm font-semibold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full">
+                    <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent leading-tight">
+                      Precise Govcon Bid Search
+                      <span className="ml-2 px-2 py-0.5 text-xs sm:text-sm font-semibold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full align-middle">
                         Pro
                       </span>
                     </h1>
-                    <p className="text-gray-600 mt-1 text-base">
+                    <p className="text-gray-600 mt-0.5 text-sm sm:text-base">
                       Find, analyze, and track federal contracting opportunities
                     </p>
                   </div>
@@ -3016,47 +3015,46 @@ ${filteredResults.map(opp => `  <opportunity>
                 </div>
               </div>
               
-              <div className="flex flex-col gap-3">
-                {/* Action Buttons Row - Matching Colors and Styles */}
-                <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-2 sm:gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     onClick={() => handleOpenSaveModal('save')}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20 text-sm sm:text-base"
                     aria-label="Save current search"
                   >
-                    <Save className="h-5 w-5" />
-                    Create a Saved Search
+                    <Save className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <span>Save Search</span>
                   </button>
 
                   <button
                     onClick={() => handleOpenSaveModal('alert')}
-
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20 text-sm sm:text-base"
                     aria-label="Create email alert"
                   >
-                    <Bell className="h-5 w-5" />
-                    Create A Subscription Alert
+                    <Bell className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <span className="hidden sm:inline">Create Alert</span>
+                    <span className="sm:hidden">Alert</span>
                   </button>
 
-                  {/* NEW: Manage Alerts & Subscriptions Button - Yellow/Amber */}
                   <Link href="/alerts">
                     <button
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
+                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 text-sm sm:text-base"
                       aria-label="Manage alerts and subscriptions"
                     >
-                      <Settings className="h-5 w-5" />
-                      Manage Alerts & Subscriptions
+                      <Settings className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="hidden sm:inline">Manage Alerts</span>
+                      <span className="sm:hidden">Alerts</span>
                     </button>
                   </Link>
 
-                  {/* View Dashboard Button */}
                   <Link href="/dashboard">
                     <button
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-gray-700 border-2 border-gray-300 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all"
+                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-white text-gray-700 border-2 border-gray-300 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all text-sm sm:text-base"
                       aria-label="View dashboard"
                     >
-                      <BarChart3 className="h-5 w-5" />
-                      View your Dashboard
+                      <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="hidden sm:inline">Dashboard</span>
+                      <span className="sm:hidden">Dashboard</span>
                     </button>
                   </Link>
                 </div>
@@ -3302,7 +3300,7 @@ ${filteredResults.map(opp => `  <opportunity>
           </div>
 
           {/* Enhanced Search Filters - IMPROVED COMPACT VERSION */}
-          <div ref={filtersRef} className="mb-4 rounded-lg border-2 border-gray-300 bg-white shadow-lg p-4">
+          <div ref={filtersRef} className="mb-4 rounded-lg border-2 border-gray-300 bg-white shadow-lg p-3 sm:p-4">
             <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b-2 border-gray-200">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
@@ -3782,7 +3780,7 @@ ${filteredResults.map(opp => `  <opportunity>
           </div>
 
           {/* Results Section */}
-          <div ref={resultsRef} className="rounded-3xl border border-gray-200 bg-white p-6 ">
+          <div ref={resultsRef} className="rounded-3xl border border-gray-200 bg-white p-3 sm:p-6">
             {/* Results Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
               <div className="flex flex-col gap-3 flex-1">
@@ -3806,12 +3804,12 @@ ${filteredResults.map(opp => `  <opportunity>
 
                 {/* 💡 Save & Subscribe Prompt Banner */}
                 {data && filteredResults.length > 0 && (
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-xl p-5 shadow-sm" data-save-prompt>
-                    <div className="flex items-start gap-4">
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-xl p-3 sm:p-5 shadow-sm" data-save-prompt>
+                    <div className="flex items-start gap-3 sm:gap-4">
                       <div className="p-2 bg-green-600 rounded-lg flex-shrink-0">
-                        <Bell className="h-6 w-6 text-white" />
+                        <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                           <Sparkles className="h-5 w-5 text-green-600" />
                           Found opportunities you like?

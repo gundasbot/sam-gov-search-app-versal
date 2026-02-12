@@ -98,7 +98,7 @@ export default function TermsPage() {
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
               <h2 className="text-2xl font-bold text-white mb-4">Intellectual Property</h2>
               <p className="text-slate-300 leading-relaxed mb-4">
-                The platform and its content, features, and functionality are owned by Precise Analytics LLC and are 
+                The platform and its content, features, and functionality are owned by Precise Govcon LLC and are 
                 protected by copyright, trademark, and other intellectual property laws.
               </p>
               <p className="text-slate-300 leading-relaxed mb-4">
@@ -132,7 +132,7 @@ export default function TermsPage() {
             <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
               <h2 className="text-2xl font-bold text-white mb-4">Limitation of Liability</h2>
               <p className="text-slate-300 leading-relaxed mb-4">
-                TO THE FULLEST EXTENT PERMITTED BY LAW, PRECISE ANALYTICS LLC SHALL NOT BE LIABLE FOR:
+                TO THE FULLEST EXTENT PERMITTED BY LAW, Precise Govcon LLC SHALL NOT BE LIABLE FOR:
               </p>
               <ul className="list-disc list-inside text-slate-300 space-y-2">
                 <li>Indirect, incidental, special, consequential, or punitive damages</li>

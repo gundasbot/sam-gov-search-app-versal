@@ -1,4 +1,4 @@
-// components/Header.tsx - Updated: safer nav behavior, single pathname source, Support link, less click-jank
+// components/Header.tsx
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -7,88 +7,41 @@ import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import {
-  LogOut,
-  LogIn,
-  Menu,
-  X,
-  ChevronDown,
-  CreditCard,
-  Search,
-  Award,
-  TrendingUp,
-  Settings,
-  Briefcase,
-  ExternalLink,
-  LayoutDashboard,
-  LineChart,
-  Zap,
-  Sparkles,
-  Building,
-  User,
-  Loader2,
-  Mail,
-  Bell,
-  FileText,
-  ShieldCheck,
+  LogOut, LogIn, Menu, X, ChevronDown, CreditCard, Search, Award,
+  TrendingUp, Settings, Briefcase, ExternalLink, LayoutDashboard,
+  LineChart, Zap, Sparkles, Building, User, Loader2, Mail, Bell,
+  FileText, ShieldCheck,
 } from 'lucide-react'
 import AccessControlModal from './AccessControlModal'
 
-/* ================= TYPES ================= */
-type NavItem = {
-  label: string
-  href: string
-  icon?: React.ReactNode
-}
-
-type ServiceItem = {
-  label: string
-  href: string
-  description: string
-  icon: React.ReactNode
-  badge?: string
-}
-
+type NavItem = { label: string; href: string; icon?: React.ReactNode }
+type ServiceItem = { label: string; href: string; description: string; icon: React.ReactNode; badge?: string }
 type TickerItem = {
-  id: string
-  title: string
-  solicitationNumber: string
-  agency: string
-  postedDate: string
-  type: string
-  samUrl: string
-  naics?: string
-  setAside?: string
-  responseDeadLine?: string
-  state?: string
+  id: string; title: string; solicitationNumber: string; agency: string
+  postedDate: string; type: string; samUrl: string
+  naics?: string; setAside?: string; responseDeadLine?: string; state?: string
 }
 
-/* ================= URL HELPERS ================= */
 function normalizeExternalUrl(raw?: string | null): string | null {
   const s = String(raw ?? '').trim()
   if (!s) return null
   if (/^https?:\/\//i.test(s)) return s
   if (s.startsWith('//')) return `https:${s}`
   const cleanNumber = s.split('?')[0].split('#')[0]
-  if (/^[A-Za-z0-9-]+$/i.test(cleanNumber)) {
-    return `https://sam.gov/opp/${cleanNumber}/view`
-  }
+  if (/^[A-Za-z0-9-]+$/i.test(cleanNumber)) return `https://sam.gov/opp/${cleanNumber}/view`
   return null
 }
 
 function getSamGovUrl(solicitationNumber: string): string {
   if (!solicitationNumber || solicitationNumber === 'N/A') return 'https://sam.gov'
   const cleanNum = solicitationNumber.trim().replace(/[^\w-]/g, '').replace(/\s+/g, '')
-  if (!cleanNum) return 'https://sam.gov'
-  return `https://sam.gov/opp/${cleanNum}/view`
+  return cleanNum ? `https://sam.gov/opp/${cleanNum}/view` : 'https://sam.gov'
 }
 
-/* ================= MAIN COMPONENT ================= */
 export default function Header() {
   const pathname = usePathname() || '/'
   const { data: session, status } = useSession()
   const isAuthed = status === 'authenticated'
-
-  // used only for AccessControlModal (when you later wire showSignInModal)
   const redirectTo = pathname || '/dashboard'
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -103,6 +56,7 @@ export default function Header() {
 
   const accountRef = useRef<HTMLDivElement>(null)
   const servicesRef = useRef<HTMLDivElement>(null)
+  const tickerRef = useRef<HTMLDivElement>(null)
 
   const welcomeName = useMemo(() => {
     const n = String(session?.user?.name ?? '').trim()
@@ -111,55 +65,37 @@ export default function Header() {
     const local = email.split('@')[0] ?? ''
     const cleaned = local.replace(/[._-]+/g, ' ').trim()
     if (!cleaned) return 'User'
-    return cleaned
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ')
+    return cleaned.split(/\s+/).filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
   }, [session])
 
-  /* ================= SCROLL EFFECT ================= */
+  /* ── Scroll effect ── */
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10)
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  /* ================= NAV ITEMS ================= */
+  /* ── Lock body scroll when mobile menu open ── */
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileMenuOpen])
+
+  /* ── Close menus on route change ── */
+  useEffect(() => {
+    setMobileMenuOpen(false)
+    setAccountOpen(false)
+    setServicesOpen(false)
+  }, [pathname])
+
+  /* ── Nav items ── */
   const serviceItems: ServiceItem[] = [
-    {
-      label: 'SAM Registration',
-      href: '/services/sam-registration',
-      description: 'Complete SAM.gov registration & annual renewals',
-      icon: <FileText className="w-5 h-5" />,
-      badge: 'Most Popular',
-    },
-    {
-      label: 'Proposal Writing',
-      href: '/services/proposal-writing',
-      description: 'Professional proposals that win federal contracts',
-      icon: <Award className="w-5 h-5" />,
-    },
-    {
-      label: 'Bid/No-Bid Analysis',
-      href: '/services/bid-no-bid-review',
-      description: 'AI-powered bid decision analysis & strategy',
-      icon: <Zap className="w-5 h-5" />,
-      badge: 'AI Powered',
-    },
-    {
-      label: 'Set-Aside Certifications',
-      href: '/services/set-aside-certifications',
-      description: '8(a), SDVOSB, HUBZone, WOSB/EDWOSB certification',
-      icon: <ShieldCheck className="w-5 h-5" />,
-      badge: 'Gov Special',
-    },
-    {
-      label: 'Capability Statements',
-      href: '/services/capability-statements',
-      description: 'Professional one-pagers that showcase your strengths',
-      icon: <TrendingUp className="w-5 h-5" />,
-    },
+    { label: 'SAM Registration', href: '/services/sam-registration', description: 'Complete SAM.gov registration & annual renewals', icon: <FileText className="w-5 h-5" />, badge: 'Most Popular' },
+    { label: 'Proposal Writing', href: '/services/proposal-writing', description: 'Professional proposals that win federal contracts', icon: <Award className="w-5 h-5" /> },
+    { label: 'Bid/No-Bid Analysis', href: '/services/bid-no-bid-review', description: 'AI-powered bid decision analysis & strategy', icon: <Zap className="w-5 h-5" />, badge: 'AI Powered' },
+    { label: 'Set-Aside Certifications', href: '/services/set-aside-certifications', description: '8(a), SDVOSB, HUBZone, WOSB/EDWOSB certification', icon: <ShieldCheck className="w-5 h-5" />, badge: 'Gov Special' },
+    { label: 'Capability Statements', href: '/services/capability-statements', description: 'Professional one-pagers that showcase your strengths', icon: <TrendingUp className="w-5 h-5" /> },
   ]
 
   const navItems: NavItem[] = [
@@ -172,48 +108,30 @@ export default function Header() {
     { label: 'Support', href: '/support', icon: <Mail className="w-5 h-5" /> },
   ]
 
-  /* ================= LIVE TICKER (NON-FATAL) ================= */
+  /* ── Live ticker ── */
   useEffect(() => {
     let mounted = true
-
     const fetchTicker = async () => {
       if (!mounted) return
       setLoadingTicker(true)
       setTickerError(null)
-
       try {
         const res = await fetch('/api/sam/live-ticker')
-        if (!res.ok) {
-          console.warn('Live ticker unavailable:', res.status)
-          if (mounted) {
-            setTickerError('Live opportunities temporarily unavailable')
-            setTickerData(null)
-          }
-          return
-        }
+        if (!res.ok) { if (mounted) { setTickerError('Live opportunities temporarily unavailable'); setTickerData(null) }; return }
         const data = await res.json()
         if (mounted) setTickerData(data)
-      } catch (err) {
-        console.warn('Ticker fetch failed:', err)
-        if (mounted) {
-          setTickerError('Live opportunities temporarily unavailable')
-          setTickerData(null)
-        }
+      } catch {
+        if (mounted) { setTickerError('Live opportunities temporarily unavailable'); setTickerData(null) }
       } finally {
         if (mounted) setLoadingTicker(false)
       }
     }
-
     fetchTicker()
     const interval = setInterval(fetchTicker, 120000)
-
-    return () => {
-      mounted = false
-      clearInterval(interval)
-    }
+    return () => { mounted = false; clearInterval(interval) }
   }, [])
 
-  /* ================= CLICK OUTSIDE ================= */
+  /* ── Click outside ── */
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false)
@@ -223,56 +141,49 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // helper: active route test
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
 
   return (
     <>
       <style jsx global>{`
-        @keyframes scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        .animate-scroll {
-          animation: scroll 60s linear infinite;
-        }
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-scroll { animation: scroll 60s linear infinite; }
       `}</style>
 
-      {/* LIVE TICKER */}
-      <div className="sticky top-0 z-50 bg-slate-800 text-white shadow-lg border-b border-slate-700">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 font-bold text-sm">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="hidden sm:inline">LIVE OPPORTUNITIES</span>
+      {/* ── LIVE TICKER ── */}
+      <div ref={tickerRef} className="sticky top-0 z-50 bg-slate-800 text-white shadow-lg border-b border-slate-700">
+        <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-2 sm:py-3 min-h-[44px]">
+            {/* Label + count */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                <span className="hidden sm:inline whitespace-nowrap">LIVE OPPORTUNITIES</span>
                 <span className="sm:hidden">LIVE</span>
               </div>
               {tickerData && (
-                <span className="px-2 py-1 bg-slate-700/50 backdrop-blur-sm rounded-lg text-xs font-bold">
-                  {tickerData.count.toLocaleString()} Active Contracts
+                <span className="px-2 py-0.5 bg-slate-700/50 rounded-lg text-xs font-bold whitespace-nowrap">
+                  {tickerData.count.toLocaleString()}
+                  <span className="hidden sm:inline"> Active</span>
                 </span>
               )}
             </div>
 
+            {/* Ticker scroll area */}
             {loadingTicker && !tickerData ? (
-              <div className="text-sm text-slate-300 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading opportunities...
+              <div className="text-xs sm:text-sm text-slate-300 flex items-center gap-1.5 ml-3">
+                <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
+                <span className="hidden sm:inline">Loading...</span>
               </div>
             ) : tickerError ? (
-              <div className="text-sm text-slate-400">{tickerError}</div>
+              <div className="text-xs text-slate-400 ml-3 truncate">{tickerError}</div>
             ) : tickerData?.opportunities && tickerData.opportunities.length > 0 ? (
               <div
-                className="flex-1 overflow-hidden mx-4"
+                className="flex-1 overflow-hidden mx-3 sm:mx-4"
                 onMouseEnter={() => setTickerPaused(true)}
                 onMouseLeave={() => setTickerPaused(false)}
               >
-                <div className={`flex gap-8 ${tickerPaused ? '' : 'animate-scroll'}`}>
+                <div className={`flex gap-6 sm:gap-8 ${tickerPaused ? '' : 'animate-scroll'}`}>
                   {[...tickerData.opportunities, ...tickerData.opportunities].map((item, idx) => {
                     const url = normalizeExternalUrl(item.samUrl) || getSamGovUrl(item.solicitationNumber)
                     return (
@@ -281,13 +192,13 @@ export default function Header() {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-shrink-0 flex items-center gap-2 text-sm hover:text-emerald-400 transition-colors group"
+                        className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm hover:text-emerald-400 transition-colors group"
                       >
-                        <span className="font-semibold truncate max-w-[300px]">{item.title}</span>
-                        <span className="text-slate-400 text-xs whitespace-nowrap">
-                          Posted {new Date(item.postedDate).toLocaleDateString()}
+                        <span className="font-semibold truncate max-w-[160px] sm:max-w-[300px]">{item.title}</span>
+                        <span className="text-slate-400 text-xs whitespace-nowrap hidden sm:inline">
+                          {new Date(item.postedDate).toLocaleDateString()}
                         </span>
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                       </a>
                     )
                   })}
@@ -298,130 +209,77 @@ export default function Header() {
         </div>
       </div>
 
-      {/* MAIN HEADER */}
+      {/* ── MAIN HEADER ── */}
       <header
-        className={`sticky top-[52px] z-40 transition-all duration-300 ${
+        className={`sticky top-[44px] sm:top-[52px] z-40 transition-all duration-300 ${
           scrolled ? 'bg-slate-800/95 backdrop-blur-lg shadow-2xl border-b border-white/10' : 'bg-slate-800'
         }`}
       >
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-24 py-6">
-            {/* Logo */}
+        <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-8">
+          {/* Reduced height on mobile: h-16 mobile, h-20 sm, h-24 lg */}
+          <div className="flex items-center justify-between h-16 sm:h-20 lg:h-24">
+
+            {/* ── Logo ── */}
             <Link
               href={isAuthed ? '/dashboard' : '/'}
-              className="flex items-center gap-3 group flex-shrink-0"
+              className="flex items-center gap-2 sm:gap-3 group flex-shrink-0"
               prefetch={false}
-              onClick={() => {
-                // close any open popovers to avoid click-jank
-                setAccountOpen(false)
-                setServicesOpen(false)
-                setMobileMenuOpen(false)
-              }}
+              onClick={() => { setAccountOpen(false); setServicesOpen(false); setMobileMenuOpen(false) }}
             >
               <Image
                 src="/logo.png"
-                alt="Precise GovCon Globe Icon"
+                alt="Precise GovCon"
                 width={56}
                 height={56}
-                className="w-14 h-14 group-hover:scale-105 transition-transform"
+                className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 group-hover:scale-105 transition-transform flex-shrink-0"
               />
-
               <div className="flex flex-col gap-0.5">
-                <div className="text-2xl lg:text-3xl font-black leading-none tracking-tight">
+                <div className="text-base sm:text-xl lg:text-3xl font-black leading-none tracking-tight">
                   <span className="text-white">PRECISE</span>{' '}
                   <span className="text-[#f97316]">GOVCON</span>
                 </div>
-                <div className="text-xs lg:text-sm font-medium text-slate-400 tracking-wide">
+                {/* Tagline: hidden on smallest screens */}
+                <div className="hidden sm:block text-xs lg:text-sm font-medium text-slate-400 tracking-wide truncate max-w-[220px] lg:max-w-none">
                   contracting intelligence and procurement experts
                 </div>
               </div>
             </Link>
 
-            {/* Desktop Nav */}
+            {/* ── Desktop Nav ── */}
             <nav className="hidden lg:flex items-center gap-1">
-              <Link
-                href="/search"
-                prefetch={false}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive('/search')
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Search className="w-4 h-4" />
-                Search
-              </Link>
-
-              <Link
-                href="/dashboard"
-                prefetch={false}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive('/dashboard')
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Link>
-
-              <Link
-                href="/opportunities"
-                prefetch={false}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive('/opportunities')
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Briefcase className="w-4 h-4" />
-                Opportunities
-              </Link>
-
-              <Link
-                href="/alerts"
-                prefetch={false}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive('/alerts')
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Bell className="w-4 h-4" />
-                Alerts & Searches
-              </Link>
+              {[
+                { href: '/search', label: 'Search', icon: <Search className="w-4 h-4" /> },
+                { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+                { href: '/opportunities', label: 'Opportunities', icon: <Briefcase className="w-4 h-4" /> },
+                { href: '/alerts', label: 'Alerts & Searches', icon: <Bell className="w-4 h-4" /> },
+              ].map(({ href, label, icon }) => (
+                <Link key={href} href={href} prefetch={false}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
+                    isActive(href)
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {icon}{label}
+                </Link>
+              ))}
 
               {/* Services dropdown */}
               <div className="relative" ref={servicesRef}>
-                <div
-                  className={`flex items-center rounded-xl overflow-hidden transition-all ${
-                    servicesOpen || pathname.startsWith('/services')
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg'
-                      : 'bg-transparent'
-                  }`}
-                >
-                  <Link
-                    href="/services"
-                    prefetch={false}
+                <div className={`flex items-center rounded-xl overflow-hidden transition-all ${
+                  servicesOpen || pathname.startsWith('/services')
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg' : 'bg-transparent'
+                }`}>
+                  <Link href="/services" prefetch={false}
                     className={`flex items-center gap-2 px-4 py-3 font-bold transition-all flex-1 ${
-                      servicesOpen || pathname.startsWith('/services')
-                        ? 'text-white'
-                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      servicesOpen || pathname.startsWith('/services') ? 'text-white' : 'text-slate-300 hover:text-white hover:bg-white/5'
                     }`}
                     onClick={() => setServicesOpen(false)}
                   >
-                    <Building className="w-4 h-4" />
-                    Services
+                    <Building className="w-4 h-4" />Services
                   </Link>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setServicesOpen((v) => !v)
-                      setAccountOpen(false)
-                    }}
+                  <button type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setServicesOpen(v => !v); setAccountOpen(false) }}
                     className={`px-2 py-3 font-bold transition-all border-l ${
                       servicesOpen || pathname.startsWith('/services')
                         ? 'text-white border-white/20 hover:bg-white/10'
@@ -435,26 +293,17 @@ export default function Header() {
 
                 {servicesOpen && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
-                    <div className="p-2" onClick={(e) => e.stopPropagation()}>
-                      <Link
-                        href="/services"
-                        prefetch={false}
-                        onClick={() => setServicesOpen(false)}
-                        className="flex items-center gap-2 p-3 mb-1 rounded-xl bg-gradient-to-r from-orange-500/10 to-orange-600/10 hover:from-orange-500/20 hover:to-orange-600/20 transition-colors group border border-orange-500/20"
+                    <div className="p-2" onClick={e => e.stopPropagation()}>
+                      <Link href="/services" prefetch={false} onClick={() => setServicesOpen(false)}
+                        className="flex items-center gap-2 p-3 mb-1 rounded-xl bg-gradient-to-r from-orange-500/10 to-orange-600/10 hover:from-orange-500/20 hover:to-orange-600/20 transition-colors border border-orange-500/20"
                       >
                         <Building className="w-5 h-5 text-orange-400" />
                         <span className="font-bold text-white flex-1">View All Services</span>
                         <ChevronDown className="w-4 h-4 text-orange-400 -rotate-90" />
                       </Link>
-
                       <div className="h-px bg-white/10 my-2" />
-
                       {serviceItems.map((service) => (
-                        <Link
-                          key={service.href}
-                          href={service.href}
-                          prefetch={false}
-                          onClick={() => setServicesOpen(false)}
+                        <Link key={service.href} href={service.href} prefetch={false} onClick={() => setServicesOpen(false)}
                           className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group"
                         >
                           <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-lg flex items-center justify-center text-orange-400 group-hover:from-orange-500/30 group-hover:to-orange-600/30 transition-colors">
@@ -462,13 +311,9 @@ export default function Header() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-bold text-white group-hover:text-orange-400 transition-colors">
-                                {service.label}
-                              </span>
+                              <span className="font-bold text-white group-hover:text-orange-400 transition-colors">{service.label}</span>
                               {service.badge && (
-                                <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs font-bold rounded-full">
-                                  {service.badge}
-                                </span>
+                                <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs font-bold rounded-full">{service.badge}</span>
                               )}
                             </div>
                             <p className="text-xs text-slate-400 leading-snug">{service.description}</p>
@@ -480,165 +325,70 @@ export default function Header() {
                 )}
               </div>
 
-              <Link
-                href="/insights"
-                prefetch={false}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive('/insights')
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <LineChart className="w-4 h-4" />
-                Insights
-              </Link>
-
-              <Link
-                href="/pricing"
-                prefetch={false}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive('/pricing')
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <CreditCard className="w-4 h-4" />
-                Pricing
-              </Link>
-
-              <Link
-                href="/support"
-                prefetch={false}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive('/support')
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Mail className="w-4 h-4" />
-                Support
-              </Link>
+              {[
+                { href: '/insights', label: 'Insights', icon: <LineChart className="w-4 h-4" /> },
+                { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-4 h-4" /> },
+                { href: '/support', label: 'Support', icon: <Mail className="w-4 h-4" /> },
+              ].map(({ href, label, icon }) => (
+                <Link key={href} href={href} prefetch={false}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all ${
+                    isActive(href)
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {icon}{label}
+                </Link>
+              ))}
             </nav>
 
-            {/* Auth Buttons */}
-            <div className="flex items-center gap-3">
+            {/* ── Auth + Hamburger ── */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               {isAuthed ? (
                 <div className="relative" ref={accountRef}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setAccountOpen((v) => !v)
-                      setServicesOpen(false)
-                    }}
-                    className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/15 rounded-xl transition-colors text-white font-bold"
+                  <button type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAccountOpen(v => !v); setServicesOpen(false) }}
+                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-white/10 hover:bg-white/15 rounded-xl transition-colors text-white font-bold"
                   >
-                    <User className="w-4 h-4" />
-                    <span className="hidden sm:inline">{welcomeName}</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${accountOpen ? 'rotate-180' : ''}`} />
+                    <User className="w-4 h-4 flex-shrink-0" />
+                    <span className="hidden sm:inline truncate max-w-[100px]">{welcomeName}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform flex-shrink-0 ${accountOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {accountOpen && (
                     <div className="absolute top-full right-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
-                      <div className="p-2" onClick={(e) => e.stopPropagation()}>
-                        {/* NOTE: prefetch false here helps avoid “first click weirdness” */}
-                        <Link
-                          href="/account"
-                          prefetch={false}
-                          onClick={() => setAccountOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
-                        >
-                          <User className="w-4 h-4" />
-                          Account
-                        </Link>
-
-                        <Link
-                          href="/account?tab=profile"
-                          prefetch={false}
-                          onClick={() => setAccountOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
-                        >
-                          <Settings className="w-4 h-4" />
-                          Settings
-                        </Link>
-
+                      <div className="p-2" onClick={e => e.stopPropagation()}>
+                        <Link href="/account" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"><User className="w-4 h-4" />Account</Link>
+                        <Link href="/account?tab=profile" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"><Settings className="w-4 h-4" />Settings</Link>
                         <div className="my-2 border-t border-white/10" />
-
-                        <Link
-                          href="/support#contact"
-                          prefetch={false}
-                          onClick={() => setAccountOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
-                        >
-                          <Mail className="w-4 h-4" />
-                          Contact Support
-                        </Link>
-
-                        <Link
-                          href="/about"
-                          prefetch={false}
-                          onClick={() => setAccountOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"
-                        >
-                          <ShieldCheck className="w-4 h-4" />
-                          About Us
-                        </Link>
-
-                        <a
-                          href="tel:804-404-4005"
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-emerald-400 font-semibold"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                            />
-                          </svg>
+                        <Link href="/support#contact" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"><Mail className="w-4 h-4" />Contact Support</Link>
+                        <Link href="/about" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold"><ShieldCheck className="w-4 h-4" />About Us</Link>
+                        <a href="tel:804-404-4005" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-emerald-400 font-semibold">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                           (804) 404-4005
                         </a>
-
                         <div className="my-2 border-t border-white/10" />
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAccountOpen(false)
-                            signOut({ callbackUrl: '/' })
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-400 font-semibold"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Sign Out
-                        </button>
+                        <button type="button" onClick={() => { setAccountOpen(false); signOut({ callbackUrl: '/' }) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-400 font-semibold"><LogOut className="w-4 h-4" />Sign Out</button>
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <Link
-                  href="/"
-                  prefetch={false}
-                  className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg"
+                /* FIX: was href="/" — corrected to /login */
+                <Link href="/login" prefetch={false}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg text-sm sm:text-base"
                 >
-                  <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign In</span>
+                  <LogIn className="w-4 h-4 flex-shrink-0" />
+                  <span>Sign In</span>
                 </Link>
               )}
 
-              {/* Mobile Menu Button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setMobileMenuOpen((v) => !v)
-                  setAccountOpen(false)
-                  setServicesOpen(false)
-                }}
+              {/* Hamburger — visible below lg */}
+              <button type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setAccountOpen(false); setServicesOpen(false) }}
                 className="lg:hidden p-2 rounded-xl hover:bg-white/5 transition-colors text-white"
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -647,102 +397,97 @@ export default function Header() {
         </div>
       </header>
 
-      {/* MOBILE MENU */}
-      {mobileMenuOpen && (
+      {/* ── MOBILE MENU ── */}
+      {/* Backdrop */}
+      <div
+        className={`fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-lg lg:hidden transition-opacity duration-300 ${
+          mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        {/* Drawer panel — stop propagation so clicks inside don't close */}
         <div
-          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-lg lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
+          className="h-full overflow-y-auto px-4 sm:px-6 py-5 max-w-lg mx-auto"
+          onClick={e => e.stopPropagation()}
         >
-          <div className="h-full overflow-y-auto px-6 py-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-black text-white">Menu</h2>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2 rounded-xl hover:bg-white/5 transition-colors text-white"
-              >
-                <X className="w-6 h-6" />
-              </button>
+          {/* Drawer header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Image src="/logo.png" alt="Logo" width={36} height={36} className="w-9 h-9" />
+              <span className="text-xl font-black text-white">Menu</span>
             </div>
+            <button type="button" onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-xl hover:bg-white/5 transition-colors text-white" aria-label="Close menu">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
 
-            <div className="space-y-2 mb-8">
-              {navItems.map(({ label, href, icon }) => {
-                const active = pathname === href
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    prefetch={false}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-lg transition-colors group ${
-                      active
-                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                        : 'hover:bg-white/5 text-slate-200 hover:text-white'
-                    }`}
-                  >
-                    {icon}
-                    {label}
-                    {active && <Sparkles className="w-4 h-4 ml-auto" />}
-                  </Link>
-                )
-              })}
-            </div>
+          {/* Nav links */}
+          <div className="space-y-1 mb-6">
+            {navItems.map(({ label, href, icon }) => {
+              const active = pathname === href
+              return (
+                <Link key={href} href={href} prefetch={false} onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-base transition-colors ${
+                    active ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'hover:bg-white/5 text-slate-200 hover:text-white'
+                  }`}
+                >
+                  {icon}{label}
+                  {active && <Sparkles className="w-4 h-4 ml-auto flex-shrink-0" />}
+                </Link>
+              )
+            })}
+          </div>
 
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-slate-400 mb-3 px-4">Services</h3>
-              <div className="space-y-1">
-                {serviceItems.map((service) => (
-                  <Link
-                    key={service.href}
-                    href={service.href}
-                    prefetch={false}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block p-3 rounded-xl hover:bg-white/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 mb-1">
-                      <div className="flex-shrink-0 w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center text-orange-400">
-                        {service.icon}
-                      </div>
-                      <span className="font-bold text-white">{service.label}</span>
+          {/* Services section */}
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-4">Services</h3>
+            <div className="space-y-1">
+              {serviceItems.map((service) => (
+                <Link key={service.href} href={service.href} prefetch={false} onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex-shrink-0 w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center text-orange-400">
+                    {service.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-sm truncate">{service.label}</span>
                       {service.badge && (
-                        <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs font-bold rounded-full">
-                          {service.badge}
-                        </span>
+                        <span className="flex-shrink-0 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 text-xs font-bold rounded-full">{service.badge}</span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-400 pl-11">{service.description}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {!isAuthed && (
-              <div className="pt-6 border-t border-white/10">
-                <Link
-                  href="/"
-                  prefetch={false}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg"
-                >
-                  <LogIn className="w-5 h-5" />
-                  Sign In
+                    <p className="text-xs text-slate-400 truncate">{service.description}</p>
+                  </div>
                 </Link>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Auth Modal (kept as-is; you can wire showSignInModal from other flows) */}
+          {/* Auth section */}
+          {isAuthed ? (
+            <div className="border-t border-white/10 pt-4 space-y-1">
+              <div className="px-4 py-2">
+                <p className="text-xs text-slate-400">Signed in as</p>
+                <p className="text-sm font-bold text-white truncate">{session?.user?.email}</p>
+              </div>
+              <Link href="/account" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold text-sm"><User className="w-4 h-4" />Account</Link>
+              <Link href="/account?tab=profile" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-white font-semibold text-sm"><Settings className="w-4 h-4" />Settings</Link>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); signOut({ callbackUrl: '/' }) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-400 font-semibold text-sm"><LogOut className="w-4 h-4" />Sign Out</button>
+            </div>
+          ) : (
+            <div className="border-t border-white/10 pt-4">
+              <Link href="/login" prefetch={false} onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg"
+              >
+                <LogIn className="w-5 h-5" />Sign In
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
       {showSignInModal && (
-        <AccessControlModal
-          isOpen={showSignInModal}
-          onClose={() => setShowSignInModal(false)}
-          featureName="Sign In"
-          initialMode="signin"
-          redirectTo={redirectTo}
-          onAccessGranted={() => setShowSignInModal(false)}
-        />
+        <AccessControlModal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)} featureName="Sign In" initialMode="signin" redirectTo={redirectTo} onAccessGranted={() => setShowSignInModal(false)} />
       )}
     </>
   )

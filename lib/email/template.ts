@@ -138,7 +138,7 @@ export function brandedEmail(args: {
           <tr>
             <td align="center" style="padding:14px 6px 0 6px;color:#64748b;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;">
               <p style="margin:0 0 4px 0;color:#64748b;font-weight:600;">
-                © ${new Date().getFullYear()} Precise Analytics LLC
+                © ${new Date().getFullYear()} Precise Govcon LLC
               </p>
               <p style="margin:0;color:#475569;font-size:11px;">
                 VETERAN-OWNED Small Business · Richmond, Virginia
@@ -166,7 +166,7 @@ ${args.note ? `Note: ${args.note}\n` : ""}
 Support: ${getBrand().supportEmail}
 
 ---
-© ${new Date().getFullYear()} Precise Analytics LLC
+© ${new Date().getFullYear()} Precise Govcon LLC
 Veteran-Owned Small Business
 Richmond, Virginia
 `

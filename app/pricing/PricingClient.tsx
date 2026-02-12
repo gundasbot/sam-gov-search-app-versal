@@ -616,7 +616,11 @@ export default function PricingClient() {
               </button>
             </div>
 
-            <div className="hidden md:flex items-center gap-2 text-sm text-slate-300">
+            <div className="flex sm:hidden items-center gap-2 text-sm text-slate-300 mt-1">
+              <Gift className="h-4 w-4" />
+              <span>7-day free trial included</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-300">
               <Gift className="h-4 w-4" />
               <span>7-day free trial included</span>
             </div>
@@ -640,7 +644,7 @@ export default function PricingClient() {
           </div>
         )}
 
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+        <div className="mt-10 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {TIERS.map((tier) => {
             const Icon = tier.icon
             const changeType = getChangeType(tier)
@@ -658,7 +662,7 @@ export default function PricingClient() {
                   'relative overflow-hidden rounded-3xl border bg-white/5 p-6 ring-1 ring-white/10',
                   tier.border,
                   tier.glow,
-                  tier.highlight ? 'scale-[1.01] md:scale-[1.02]' : '',
+                  tier.highlight ? 'sm:scale-[1.01] md:scale-[1.02]' : '',
                 ].join(' ')}
               >
                 <div
@@ -691,7 +695,7 @@ export default function PricingClient() {
                   </div>
 
                   <div className="mt-6 flex items-end gap-2">
-                    <div className="text-4xl font-bold text-white">
+                    <div className="text-3xl sm:text-4xl font-bold text-white">
                       ${formatPrice(price)}
                     </div>
                     <div className="pb-1 text-sm text-slate-200/80">{suffix}</div>

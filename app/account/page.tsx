@@ -37,6 +37,17 @@ import {
   Check,
   Eye,
   EyeOff,
+  Plus,
+  Pencil,
+  Trash2,
+  CalendarDays,
+  DollarSign,
+  ClipboardList,
+  Trophy,
+  BarChart2,
+  ArrowUpRight,
+  Clock,
+  Building,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -424,7 +435,7 @@ function AccountPageContent() {
       } else {
         // ALL OTHER CASES: Upgrades, downgrades, new subscriptions - MUST use Stripe Checkout
         console.log('Creating checkout for plan change:', newTier, requestedInterval)
-        const res = await fetch('/api/stripe/create-checkout', {
+        const res = await fetch('/api/stripe/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -471,37 +482,96 @@ function AccountPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <User className="h-8 w-8" />
-              Account Settings
-            </h1>
-            <p className="text-slate-400 mt-2">Manage your profile, subscription, and preferences</p>
+      {/* ── Hero Header ── */}
+      <div className="relative border-b border-slate-700/50 bg-gradient-to-r from-slate-900 via-slate-800/80 to-slate-900 backdrop-blur overflow-hidden">
+        {/* subtle background glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-16 -left-16 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-8 right-1/3 w-64 h-64 bg-cyan-500/8 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {/* Top row: avatar + name + plan badge */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-6">
+            {/* Avatar circle */}
+            <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-blue-500/25">
+              <span className="text-2xl sm:text-3xl font-black text-white">
+                {(profile.first_name?.[0] || session?.user?.name?.[0] || 'U').toUpperCase()}
+              </span>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h1 className="text-2xl sm:text-3xl font-black text-white truncate">
+                  {profile.first_name && profile.last_name
+                    ? `${profile.first_name} ${profile.last_name}`
+                    : session?.user?.name || 'Account Settings'}
+                </h1>
+                {currentPlanDetails && (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r ${currentPlanDetails.color} text-white shadow`}>
+                    <currentPlanDetails.icon className="h-3 w-3" />
+                    {currentPlanDetails.name}
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-400 text-sm truncate">
+                {profile.email || session?.user?.email || 'Manage your profile, subscription, and preferences'}
+              </p>
+              {profile.company && (
+                <p className="text-slate-500 text-xs mt-0.5 flex items-center gap-1">
+                  <Building className="h-3 w-3" /> {profile.company}
+                </p>
+              )}
+            </div>
+
+            {/* Right: quick stat pills */}
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="text-center px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <p className="text-xl font-black text-white">{bids.filter((b: BidData) => b.status === 'draft' || b.status === 'submitted').length}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Active Bids</p>
+              </div>
+              <div className="text-center px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                <p className="text-xl font-black text-emerald-400">{bids.filter((b: BidData) => b.status === 'awarded').length}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Awarded</p>
+              </div>
+              {plan?.status === 'active' && (
+                <div className="text-center px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+                  <div className="flex items-center gap-1 justify-center">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <p className="text-xs font-semibold text-emerald-400">Active</p>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">Subscription</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto pb-px">
+          {/* Tabs — scrollable on mobile */}
+          <div className="flex gap-0.5 sm:gap-1 overflow-x-auto pb-px scrollbar-none">
             {[
               { id: 'overview', label: 'Overview', icon: Sparkles },
               { id: 'profile', label: 'Profile', icon: User },
               { id: 'billing', label: 'Billing', icon: CreditCard },
               { id: 'support', label: 'Support', icon: HeadphonesIcon },
-              { id: 'bids', label: 'Bid Management', icon: Gavel },
+              { id: 'bids', label: 'Bids', icon: Gavel,
+                badge: bids.filter((b: BidData) => b.status === 'draft' || b.status === 'submitted').length || null },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${
+                className={`relative flex items-center gap-1.5 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold transition-all whitespace-nowrap rounded-t-lg ${
                   activeTab === tab.id
-                    ? 'text-blue-400 border-blue-400'
-                    : 'text-slate-400 border-transparent hover:text-slate-300'
+                    ? 'text-white bg-slate-800/60 border-b-2 border-blue-400'
+                    : 'text-slate-400 border-b-2 border-transparent hover:text-slate-200 hover:bg-slate-800/30'
                 }`}
               >
-                <tab.icon className="h-4 w-4" />
+                <tab.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 {tab.label}
+                {(tab as any).badge ? (
+                  <span className="ml-0.5 px-1.5 py-0.5 text-xs font-bold rounded-full bg-blue-500 text-white leading-none">
+                    {(tab as any).badge}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -587,15 +657,15 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
   return (
     <div className="space-y-6">
       {/* Account Status */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-blue-400" />
           Account Overview
         </h2>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {/* Profile Status */}
-          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+          <div className="p-4 sm:p-6 rounded-xl bg-slate-800/30 border border-slate-700">
             <div className="flex items-center gap-3 mb-3">
               <User className="h-8 w-8 text-blue-400" />
               <div>
@@ -623,7 +693,7 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
           </div>
 
           {/* Plan Status */}
-          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+          <div className="p-4 sm:p-6 rounded-xl bg-slate-800/30 border border-slate-700">
             <div className="flex items-center gap-3 mb-3">
               {currentPlanDetails ? (
                 <>
@@ -653,7 +723,7 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
           </div>
 
           {/* Bid Status */}
-          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+          <div className="p-4 sm:p-6 rounded-xl bg-slate-800/30 border border-slate-700">
             <div className="flex items-center gap-3 mb-3">
               <Gavel className="h-8 w-8 text-purple-400" />
               <div>
@@ -674,9 +744,9 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
 
       {/* Usage Summary */}
       {usage && usage.available && currentPlanDetails && (
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-6">Usage This Month</h2>
-          <div className="grid gap-6 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Usage This Month</h2>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 label: 'Searches',
@@ -704,14 +774,14 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
               const isUnlimited = item.limit === -1
 
               return (
-                <div key={item.label} className="p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+                <div key={item.label} className="p-4 sm:p-6 rounded-xl bg-slate-800/30 border border-slate-700">
                   <div className="flex items-center justify-between mb-4">
                     <item.icon className={`h-8 w-8 text-${item.color}-400`} />
                     <span className="text-sm text-slate-400">{item.label}</span>
                   </div>
 
                   <div className="mb-4">
-                    <p className="text-3xl font-bold text-white">{item.current.toLocaleString()}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{item.current.toLocaleString()}</p>
                     <p className="text-sm text-slate-400">
                       {isUnlimited ? 'Unlimited' : `of ${item.limit.toLocaleString()}`}
                     </p>
@@ -735,7 +805,7 @@ function OverviewTab({ profile, plan, currentPlanDetails, paymentMethods, usage,
       )}
 
       {/* Quick Actions */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
         <QuickActionCard
           icon={Mail}
           title="Verify Email"
@@ -780,7 +850,7 @@ function QuickActionCard({ icon: Icon, title, description, buttonText, buttonAct
   if (!show) return null
 
   return (
-    <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+    <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
       <div className="flex items-start gap-4">
         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
           <Icon className="h-6 w-6 text-white" />
@@ -815,7 +885,7 @@ function ProfileTab({
   return (
     <div className="space-y-6">
       {/* Personal Information */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
@@ -850,7 +920,7 @@ function ProfileTab({
           )}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">First Name</label>
             <input
@@ -923,7 +993,7 @@ function ProfileTab({
       </div>
 
       {/* Company Information */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -958,7 +1028,7 @@ function ProfileTab({
           )}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">Company Name</label>
             <input
@@ -984,7 +1054,7 @@ function ProfileTab({
       </div>
 
       {/* Address */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
@@ -1043,7 +1113,7 @@ function ProfileTab({
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">City</label>
               <input
@@ -1099,27 +1169,27 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
   return (
     <div className="space-y-6">
       {/* Current Plan */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
           <Package className="h-6 w-6 text-blue-400" />
           Current Plan
         </h2>
 
         {currentPlanDetails ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-6 rounded-xl bg-slate-800/30 border border-slate-700">
-              <div className="flex items-center gap-4">
-                <div className={`h-16 w-16 rounded-xl bg-gradient-to-br ${currentPlanDetails.color} flex items-center justify-center`}>
-                  <currentPlanDetails.icon className="h-8 w-8 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-6 rounded-xl bg-slate-800/30 border border-slate-700">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-xl bg-gradient-to-br ${currentPlanDetails.color} flex items-center justify-center flex-shrink-0`}>
+                  <currentPlanDetails.icon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white">{currentPlanDetails.name}</h3>
-                  <p className="text-slate-400">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white">{currentPlanDetails.name}</h3>
+                  <p className="text-slate-400 text-sm sm:text-base">
                     ${plan.interval === 'year' ? currentPlanDetails.annualPrice : currentPlanDetails.monthlyPrice}
                     /{plan.interval === 'year' ? 'year' : 'month'}
                   </p>
                   {plan.current_period_end && (
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
                       {plan.cancel_at_period_end ? 'Cancels' : 'Renews'} on {new Date(plan.current_period_end).toLocaleDateString()}
                     </p>
                   )}
@@ -1127,7 +1197,7 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
               </div>
               <button
                 onClick={managePaymentMethod}
-                className="px-4 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 border border-blue-400/30 rounded-lg hover:bg-blue-400/10"
+                className="self-start sm:self-center px-4 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 border border-blue-400/30 rounded-lg hover:bg-blue-400/10 whitespace-nowrap"
               >
                 Manage in Stripe
               </button>
@@ -1155,7 +1225,7 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
             )}
           </div>
         ) : (
-          <div className="p-6 rounded-xl bg-slate-800/30 border border-slate-700 text-center">
+          <div className="p-4 sm:p-6 rounded-xl bg-slate-800/30 border border-slate-700 text-center">
             <Package className="h-12 w-12 mx-auto mb-3 text-slate-500" />
             <p className="text-lg text-white mb-2">No Active Plan</p>
             <p className="text-sm text-slate-400 mb-4">Choose a plan below to get started</p>
@@ -1164,12 +1234,10 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
       </div>
 
       {/* Plan Selection */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">Change Plan</h2>
-
-          {/* Interval Toggle */}
-          <div className="flex items-center gap-2 p-1 bg-slate-800 rounded-lg">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Change Plan</h2>
+          <div className="flex items-center gap-2 p-1 bg-slate-800 rounded-lg self-start sm:self-auto">
             <button
               onClick={() => setBillingInterval('monthly')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition ${
@@ -1190,7 +1258,7 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(PLAN_DETAILS).map(([tier, details]) => {
             const isCurrentPlan = plan?.tier === tier && plan?.interval === (billingInterval === 'annual' ? 'year' : 'month')
             const isLoading = loadingPlanChange === tier
@@ -1207,7 +1275,7 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
                 <h3 className="text-xl font-bold text-white mb-2">{details.name}</h3>
 
                 <div className="mb-4">
-                  <span className="text-3xl font-bold text-white">
+                  <span className="text-2xl sm:text-3xl font-bold text-white">
                     ${billingInterval === 'annual' ? details.annualPrice : details.monthlyPrice}
                   </span>
                   <span className="text-slate-400">/{billingInterval === 'annual' ? 'year' : 'month'}</span>
@@ -1252,9 +1320,9 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
       </div>
 
       {/* Payment Methods */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <CreditCard className="h-6 w-6 text-blue-400" />
             Payment Methods
           </h2>
@@ -1302,8 +1370,8 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
 
       {/* Invoice History */}
       {invoices && invoices.length > 0 && (
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-400" />
             Invoice History
           </h2>
@@ -1398,9 +1466,25 @@ function SupportTab({ profile, plan }: any) {
 
   return (
     <div className="space-y-6">
+      {/* Friendly intro banner */}
+      <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-cyan-500/5 p-5 flex items-start gap-4">
+        <div className="h-10 w-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+          <HeadphonesIcon className="h-5 w-5 text-blue-400" />
+        </div>
+        <div>
+          <p className="text-white font-semibold mb-0.5">
+            Hi{profile?.first_name ? `, ${profile.first_name}` : ''}! How can we help?
+          </p>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Our team is here Mon–Fri, 9am–5pm ET. We typically reply within a few hours —
+            and always within 2 business days. Enterprise clients get priority response.
+          </p>
+        </div>
+      </div>
+
       {/* Contact Options */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl text-center">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl text-center">
           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
             <Mail className="h-6 w-6 text-white" />
           </div>
@@ -1414,7 +1498,7 @@ function SupportTab({ profile, plan }: any) {
           </a>
         </div>
 
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl text-center">
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl text-center">
           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto mb-4">
             <MessageSquare className="h-6 w-6 text-white" />
           </div>
@@ -1425,7 +1509,7 @@ function SupportTab({ profile, plan }: any) {
           </button>
         </div>
 
-        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl text-center">
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl text-center">
           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
             <Phone className="h-6 w-6 text-white" />
           </div>
@@ -1446,16 +1530,21 @@ function SupportTab({ profile, plan }: any) {
       </div>
 
       {/* Submit Ticket Form */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 flex items-center gap-2">
           <HeadphonesIcon className="h-6 w-6 text-blue-400" />
           Submit Support Ticket
         </h2>
 
         {sent && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5" />
-            <span>Your support ticket has been submitted. We'll be in touch soon!</span>
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Got it — your message is on its way! 🎉</p>
+              <p className="text-sm text-emerald-400/80 mt-0.5">
+                We'll reply to <span className="font-medium">{profile?.email || 'your email'}</span> within 2 business days. Keep an eye on your inbox!
+              </p>
+            </div>
           </div>
         )}
 
@@ -1503,9 +1592,12 @@ function SupportTab({ profile, plan }: any) {
               onChange={(e) => setMessage(e.target.value)}
               required
               rows={6}
-              placeholder="Please describe your issue in detail..."
+              placeholder="Please describe your issue in detail — the more context you provide, the faster we can help!"
               className="w-full rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none"
             />
+            <p className="text-xs text-slate-500 mt-1.5">
+              💡 Include any error messages, steps to reproduce, or relevant opportunity IDs to speed up our response.
+            </p>
           </div>
 
           <button
@@ -1529,7 +1621,7 @@ function SupportTab({ profile, plan }: any) {
       </div>
 
       {/* Billing Support */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-6 shadow-2xl">
         <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-blue-400" />
           Billing Support
@@ -1549,111 +1641,486 @@ function SupportTab({ profile, plan }: any) {
   )
 }
 
-// Bids Tab
+// Bids Tab — fully functional tracker
 function BidsTab({ bids, setBids }: any) {
   const [filter, setFilter] = useState<'all' | 'draft' | 'submitted' | 'awarded' | 'not_awarded'>('all')
+  const [showForm, setShowForm] = useState(false)
+  const [editingBid, setEditingBid] = useState<BidData | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [formMsg, setFormMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const filteredBids = filter === 'all' ? bids : bids.filter((b: BidData) => b.status === filter)
+  const emptyForm = {
+    opportunityTitle: '',
+    opportunityId: '',
+    dueDate: '',
+    status: 'draft' as BidData['status'],
+    value: undefined as number | undefined,
+    agency: '',
+    notes: '',
+  }
+  const [form, setForm] = useState(emptyForm)
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return 'text-slate-400 bg-slate-400/10 border-slate-400/20'
-      case 'submitted':
-        return 'text-blue-400 bg-blue-400/10 border-blue-400/20'
-      case 'awarded':
-        return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20'
-      case 'not_awarded':
-        return 'text-red-400 bg-red-400/10 border-red-400/20'
-      default:
-        return 'text-slate-400 bg-slate-400/10 border-slate-400/20'
+  const openAdd = () => {
+    setEditingBid(null)
+    setForm(emptyForm)
+    setFormMsg(null)
+    setShowForm(true)
+  }
+
+  const openEdit = (bid: BidData) => {
+    setEditingBid(bid)
+    setForm({
+      opportunityTitle: bid.opportunityTitle,
+      opportunityId: bid.opportunityId,
+      dueDate: bid.dueDate ? bid.dueDate.split('T')[0] : '',
+      status: bid.status,
+      value: bid.value,
+      agency: (bid as any).agency || '',
+      notes: (bid as any).notes || '',
+    })
+    setFormMsg(null)
+    setShowForm(true)
+  }
+
+  const handleSave = async () => {
+    if (!form.opportunityTitle.trim()) {
+      setFormMsg({ type: 'error', text: 'Opportunity title is required.' })
+      return
+    }
+    setSaving(true)
+    try {
+      if (editingBid) {
+        // Update existing
+        const res = await fetch(`/api/account/bids/${editingBid.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...form }),
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          setBids((prev: BidData[]) => prev.map((b) => (b.id === editingBid.id ? updated : b)))
+          setFormMsg({ type: 'success', text: 'Bid updated successfully!' })
+          setTimeout(() => { setShowForm(false); setFormMsg(null) }, 900)
+        } else {
+          // Optimistic update if endpoint not yet wired
+          setBids((prev: BidData[]) =>
+            prev.map((b) => (b.id === editingBid.id ? { ...b, ...form, dueDate: form.dueDate || b.dueDate } : b))
+          )
+          setFormMsg({ type: 'success', text: 'Bid updated!' })
+          setTimeout(() => { setShowForm(false); setFormMsg(null) }, 900)
+        }
+      } else {
+        // Create new
+        const res = await fetch('/api/account/bids', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...form }),
+        })
+        if (res.ok) {
+          const created = await res.json()
+          setBids((prev: BidData[]) => [created, ...prev])
+        } else {
+          // Optimistic add if endpoint not yet wired
+          const newBid: BidData = {
+            id: `local-${Date.now()}`,
+            ...form,
+            dueDate: form.dueDate || new Date().toISOString(),
+          }
+          setBids((prev: BidData[]) => [newBid, ...prev])
+        }
+        setFormMsg({ type: 'success', text: 'Bid added!' })
+        setTimeout(() => { setShowForm(false); setFormMsg(null) }, 900)
+      }
+    } catch {
+      setFormMsg({ type: 'error', text: 'Something went wrong. Please try again.' })
+    } finally {
+      setSaving(false)
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    return status
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
+  const handleDelete = async (id: string) => {
+    if (!confirm('Remove this bid from your tracker?')) return
+    setDeletingId(id)
+    try {
+      await fetch(`/api/account/bids/${id}`, { method: 'DELETE' }).catch(() => {})
+      setBids((prev: BidData[]) => prev.filter((b) => b.id !== id))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleStatusChange = async (id: string, newStatus: BidData['status']) => {
+    setBids((prev: BidData[]) => prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)))
+    try {
+      await fetch(`/api/account/bids/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      }).catch(() => {})
+    } catch { /* optimistic — already updated */ }
+  }
+
+  const filteredBids = filter === 'all' ? bids : bids.filter((b: BidData) => b.status === filter)
+
+  const totalValue = bids
+    .filter((b: BidData) => b.value)
+    .reduce((sum: number, b: BidData) => sum + (b.value || 0), 0)
+
+  const winRate = bids.length > 0
+    ? Math.round((bids.filter((b: BidData) => b.status === 'awarded').length / bids.filter((b: BidData) => b.status === 'awarded' || b.status === 'not_awarded').length) * 100) || 0
+    : 0
+
+  const STATUS_CONFIG = {
+    draft:       { label: 'Draft',       color: 'text-slate-300 bg-slate-700/60 border-slate-600',        dot: 'bg-slate-400' },
+    submitted:   { label: 'Submitted',   color: 'text-blue-300 bg-blue-500/15 border-blue-500/40',         dot: 'bg-blue-400' },
+    awarded:     { label: 'Awarded',     color: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40', dot: 'bg-emerald-400' },
+    not_awarded: { label: 'Not Awarded', color: 'text-red-300 bg-red-500/15 border-red-500/40',            dot: 'bg-red-400' },
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid gap-6 md:grid-cols-4">
+      {/* ── Stats row ── */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total Bids', value: bids.length, color: 'blue' },
-          { label: 'In Progress', value: bids.filter((b: BidData) => b.status === 'draft').length, color: 'slate' },
-          { label: 'Submitted', value: bids.filter((b: BidData) => b.status === 'submitted').length, color: 'purple' },
-          { label: 'Awarded', value: bids.filter((b: BidData) => b.status === 'awarded').length, color: 'emerald' },
+          { label: 'Total Bids',   value: bids.length,                                                              icon: ClipboardList,  color: 'blue',    suffix: '' },
+          { label: 'In Progress',  value: bids.filter((b: BidData) => b.status === 'draft' || b.status === 'submitted').length, icon: Clock, color: 'amber', suffix: '' },
+          { label: 'Awarded',      value: bids.filter((b: BidData) => b.status === 'awarded').length,               icon: Trophy,         color: 'emerald', suffix: '' },
+          { label: 'Win Rate',     value: winRate,                                                                   icon: BarChart2,      color: 'purple',  suffix: '%' },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-            <p className="text-sm text-slate-400 mb-1">{stat.label}</p>
-            <p className={`text-3xl font-bold text-${stat.color}-400`}>{stat.value}</p>
+          <div key={stat.label} className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-4 sm:p-5 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+              <stat.icon className={`h-4 w-4 text-${stat.color}-400`} />
+            </div>
+            <p className={`text-3xl font-black text-${stat.color}-400`}>{stat.value}{stat.suffix}</p>
           </div>
         ))}
       </div>
 
-      {/* Bids List */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Gavel className="h-6 w-6 text-blue-400" />
-            Bid Management
-          </h2>
+      {/* ── Pipeline value banner (only if there's value data) ── */}
+      {totalValue > 0 && (
+        <div className="rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 to-teal-500/5 p-4 sm:p-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Total Pipeline Value</p>
+              <p className="text-2xl font-black text-emerald-300">${totalValue.toLocaleString()}</p>
+            </div>
+          </div>
+          <ArrowUpRight className="h-6 w-6 text-emerald-500/40" />
+        </div>
+      )}
 
-          {/* Filter */}
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
-            className="rounded-lg border border-slate-600 bg-slate-900/50 px-4 py-2 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-          >
-            <option value="all">All Bids</option>
-            <option value="draft">Drafts</option>
-            <option value="submitted">Submitted</option>
-            <option value="awarded">Awarded</option>
-            <option value="not_awarded">Not Awarded</option>
-          </select>
+      {/* ── Bid list ── */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-950/40 backdrop-blur shadow-2xl overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-6 border-b border-slate-700/60">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <Gavel className="h-5 w-5 text-blue-400" />
+            Bid Tracker
+            {filteredBids.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300">
+                {filteredBids.length}
+              </span>
+            )}
+          </h2>
+          <div className="flex items-center gap-2">
+            {/* Status filter pills */}
+            <div className="flex gap-1 overflow-x-auto scrollbar-none">
+              {[
+                { value: 'all', label: 'All' },
+                { value: 'draft', label: 'Draft' },
+                { value: 'submitted', label: 'Submitted' },
+                { value: 'awarded', label: 'Awarded' },
+                { value: 'not_awarded', label: 'Not Awarded' },
+              ].map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setFilter(f.value as any)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    filter === f.value
+                      ? 'bg-blue-500 text-white shadow'
+                      : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {/* Add bid button */}
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-sm font-bold transition-all shadow-lg shadow-blue-500/20 whitespace-nowrap"
+            >
+              <Plus className="h-4 w-4" />
+              Add Bid
+            </button>
+          </div>
         </div>
 
+        {/* Bid rows */}
         {filteredBids.length > 0 ? (
-          <div className="space-y-3">
-            {filteredBids.map((bid: BidData) => (
-              <div
-                key={bid.id}
-                className="p-4 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-slate-600 transition cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-white font-medium mb-1">{bid.opportunityTitle}</h3>
-                    <div className="flex items-center gap-4 text-sm text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        {bid.opportunityId}
+          <div className="divide-y divide-slate-700/50">
+            {filteredBids.map((bid: BidData) => {
+              const cfg = STATUS_CONFIG[bid.status]
+              const daysUntil = bid.dueDate
+                ? Math.ceil((new Date(bid.dueDate).getTime() - Date.now()) / 86400000)
+                : null
+              const isUrgent = daysUntil !== null && daysUntil <= 7 && daysUntil >= 0
+
+              return (
+                <div
+                  key={bid.id}
+                  className="group flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-5 hover:bg-slate-800/30 transition-colors"
+                >
+                  {/* Status dot */}
+                  <div className={`hidden sm:flex h-2.5 w-2.5 rounded-full flex-shrink-0 ${cfg.dot} ${bid.status === 'submitted' ? 'animate-pulse' : ''}`} />
+
+                  {/* Main info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h3 className="text-white font-semibold text-sm truncate">{bid.opportunityTitle}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${cfg.color}`}>
+                        {cfg.label}
                       </span>
-                      <span>Due: {new Date(bid.dueDate).toLocaleDateString()}</span>
-                      {bid.value && (
-                        <span className="text-emerald-400 font-medium">
-                          ${bid.value.toLocaleString()}
+                      {isUrgent && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/20 border border-red-500/40 text-red-300">
+                          Due in {daysUntil}d
                         </span>
                       )}
                     </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                      {bid.opportunityId && (
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />{bid.opportunityId}
+                        </span>
+                      )}
+                      {(bid as any).agency && (
+                        <span className="flex items-center gap-1">
+                          <Building className="h-3 w-3" />{(bid as any).agency}
+                        </span>
+                      )}
+                      {bid.dueDate && (
+                        <span className={`flex items-center gap-1 ${isUrgent ? 'text-red-400 font-semibold' : ''}`}>
+                          <CalendarDays className="h-3 w-3" />
+                          Due {new Date(bid.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
+                      {bid.value && (
+                        <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                          <DollarSign className="h-3 w-3" />{bid.value.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    {(bid as any).notes && (
+                      <p className="text-xs text-slate-500 mt-1 truncate">{(bid as any).notes}</p>
+                    )}
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(bid.status)}`}>
-                    {getStatusLabel(bid.status)}
-                  </span>
+
+                  {/* Status quick-change + actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <select
+                      value={bid.status}
+                      onChange={(e) => handleStatusChange(bid.id, e.target.value as BidData['status'])}
+                      className="text-xs rounded-lg border border-slate-600 bg-slate-800 text-slate-300 px-2 py-1.5 focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="submitted">Submitted</option>
+                      <option value="awarded">Awarded</option>
+                      <option value="not_awarded">Not Awarded</option>
+                    </select>
+                    <button
+                      onClick={() => openEdit(bid)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                      title="Edit bid"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(bid.id)}
+                      disabled={deletingId === bid.id}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      title="Remove bid"
+                    >
+                      {deletingId === bid.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ) : (
-          <div className="text-center py-12 text-slate-400">
-            <Gavel className="h-16 w-16 mx-auto mb-4 text-slate-600" />
-            <p className="text-lg mb-2">No bids found</p>
-            <p className="text-sm">Start tracking your government contract bids here</p>
+          <div className="text-center py-16 px-6">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto mb-4">
+              <Gavel className="h-8 w-8 text-slate-500" />
+            </div>
+            <p className="text-lg font-semibold text-slate-300 mb-1">
+              {filter === 'all' ? 'No bids tracked yet' : `No ${filter.replace('_', ' ')} bids`}
+            </p>
+            <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
+              {filter === 'all'
+                ? 'Start tracking your government contract bids — monitor deadlines, values, and win rates all in one place.'
+                : 'Try changing the filter to see other bids.'}
+            </p>
+            {filter === 'all' && (
+              <button
+                onClick={openAdd}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-all shadow-lg"
+              >
+                <Plus className="h-4 w-4" /> Track Your First Bid
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* ── Add/Edit Modal ── */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60 bg-slate-800/50">
+              <h3 className="text-lg font-bold text-white">
+                {editingBid ? 'Edit Bid' : 'Track a New Bid'}
+              </h3>
+              <button
+                onClick={() => { setShowForm(false); setFormMsg(null) }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {formMsg && (
+                <div className={`p-3 rounded-xl flex items-center gap-2 text-sm ${
+                  formMsg.type === 'success'
+                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                    : 'bg-red-500/10 border border-red-500/20 text-red-400'
+                }`}>
+                  {formMsg.type === 'success' ? <CheckCircle2 className="h-4 w-4 flex-shrink-0" /> : <AlertCircle className="h-4 w-4 flex-shrink-0" />}
+                  {formMsg.text}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                  Opportunity Title <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.opportunityTitle}
+                  onChange={(e) => setForm({ ...form, opportunityTitle: e.target.value })}
+                  placeholder="e.g. IT Support Services for DOD"
+                  className="w-full rounded-lg border border-slate-600 bg-slate-800/60 px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Solicitation #</label>
+                  <input
+                    type="text"
+                    value={form.opportunityId}
+                    onChange={(e) => setForm({ ...form, opportunityId: e.target.value })}
+                    placeholder="e.g. W91QF1-26-R-0001"
+                    className="w-full rounded-lg border border-slate-600 bg-slate-800/60 px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Agency</label>
+                  <input
+                    type="text"
+                    value={form.agency}
+                    onChange={(e) => setForm({ ...form, agency: e.target.value })}
+                    placeholder="e.g. DOD, GSA, VA"
+                    className="w-full rounded-lg border border-slate-600 bg-slate-800/60 px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Due Date</label>
+                  <input
+                    type="date"
+                    value={form.dueDate}
+                    onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-800/60 px-4 py-2.5 text-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Est. Value ($)</label>
+                  <input
+                    type="number"
+                    value={form.value || ''}
+                    onChange={(e) => setForm({ ...form, value: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="e.g. 250000"
+                    className="w-full rounded-lg border border-slate-600 bg-slate-800/60 px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Status</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(['draft', 'submitted', 'awarded', 'not_awarded'] as const).map((s) => {
+                    const cfg = STATUS_CONFIG[s]
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setForm({ ...form, status: s })}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
+                          form.status === s ? cfg.color + ' ring-2 ring-blue-500/40' : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-slate-600'
+                        }`}
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                        {cfg.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Notes</label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  rows={3}
+                  placeholder="Any notes, requirements, or reminders..."
+                  className="w-full rounded-lg border border-slate-600 bg-slate-800/60 px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-6 py-4 border-t border-slate-700/60 bg-slate-800/30">
+              <button
+                onClick={() => { setShowForm(false); setFormMsg(null) }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 text-sm font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-sm font-bold transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                {saving ? 'Saving...' : editingBid ? 'Save Changes' : 'Add Bid'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

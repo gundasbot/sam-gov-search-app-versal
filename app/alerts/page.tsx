@@ -1265,12 +1265,12 @@ async function deleteSubscription(id: string) {
       )}
 
       {/* Main content */}
-      <div className="mx-auto max-w-[1800px] px-6 lg:px-10 xl:px-12 py-6">
+      <div className="mx-auto max-w-[1800px] px-3 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white">Welcom to Precise GovCon Alert Manager</h1>
+              <h1 className="text-xl sm:text-3xl font-bold text-white">Precise GovCon Alert Manager</h1>
               <p className="text-slate-300 mt-2">Automate notifications and jump back into search instantly.</p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -1321,7 +1321,7 @@ async function deleteSubscription(id: string) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-300">Alert Subscriptions</p>
-                <p className="mt-2 text-3xl font-bold text-white">{subscriptions.length}</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-white">{subscriptions.length}</p>
                 <p className="mt-1 text-sm text-slate-400">
                   {activeCount} active • {pausedCount} paused
                 </p>
@@ -1339,7 +1339,7 @@ async function deleteSubscription(id: string) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-300">Saved Searches</p>
-                <p className="mt-2 text-3xl font-bold text-white">{searches.length}</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-white">{searches.length}</p>
                 <p className="mt-1 text-sm text-slate-400">Run instantly from Alerts</p>
               </div>
               <div className="rounded-full bg-cyan-500/10 p-3">
@@ -1352,7 +1352,7 @@ async function deleteSubscription(id: string) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-300">Results Delivered</p>
-                <p className="mt-2 text-3xl font-bold text-white">{deliveredCount}</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-bold text-white">{deliveredCount}</p>
                 <p className="mt-1 text-sm text-slate-400">Total from all alert runs</p>
               </div>
               <div className="rounded-full bg-purple-500/10 p-3">
@@ -1370,7 +1370,7 @@ async function deleteSubscription(id: string) {
               <button
                 onClick={() => setActiveTab('alerts')}
                 className={clsx(
-                  'relative flex-1 px-8 py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
+                  'relative flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
                   'font-[\'Aptos\',_system-ui,_-apple-system,_sans-serif]',
                   activeTab === 'alerts'
                     ? 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-cyan-600 text-white shadow-2xl shadow-emerald-500/40 scale-105'
@@ -1414,7 +1414,7 @@ async function deleteSubscription(id: string) {
               <button
                 onClick={() => setActiveTab('searches')}
                 className={clsx(
-                  'relative flex-1 px-8 py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
+                  'relative flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
                   'font-[\'Aptos\',_system-ui,_-apple-system,_sans-serif]',
                   activeTab === 'searches'
                     ? 'bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 text-white shadow-2xl shadow-cyan-500/40 scale-105'
@@ -1532,7 +1532,7 @@ async function deleteSubscription(id: string) {
                         <div className="space-y-4 pt-2">
                           <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Search Criteria</h4>
 
-                          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                             {/* Set-Aside */}
                             <div>
                               <label className={LABEL_CLASS}>Set-Aside Type</label>
@@ -2239,7 +2239,7 @@ async function deleteSubscription(id: string) {
                         <div className="space-y-4">
                           <h4 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Search Criteria</h4>
 
-                          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                             <div>
                               <label className={LABEL_CLASS}>Keywords (title)</label>
                               <input
@@ -2794,7 +2794,7 @@ async function deleteSubscription(id: string) {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-5 bg-slate-800/60 rounded-xl p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 bg-slate-800/60 rounded-xl p-4 sm:p-5">
                     <div className="text-center">
                       <div className="flex justify-center mb-3">
                         <div className="bg-blue-500/25 rounded-xl p-3">
@@ -2931,7 +2931,7 @@ async function deleteSubscription(id: string) {
               </div>
 
               {/* Footer Actions */}
-              <div className="p-8 bg-slate-800/40 border-t-2 border-slate-700 flex gap-4">
+              <div className="p-4 sm:p-8 bg-slate-800/40 border-t-2 border-slate-700 flex gap-3 sm:gap-4">
                 <button
                   onClick={() => {
                     setRunConfirmId(null)
@@ -3284,7 +3284,7 @@ async function deleteSubscription(id: string) {
                     </button>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 mb-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-5">
                     <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
                       <Search className="h-5 w-5 text-cyan-400" />
                       <div>
