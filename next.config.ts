@@ -1,12 +1,5 @@
-// next.config.ts
+﻿// next.config.ts
 import type { NextConfig } from 'next'
-
-/**
- * Next.js configuration
- * - Removes invalid experimental.turbo (BREAKS build in Next 16)
- * - Adds remote image hosts used across the app
- * - Skips static generation for pages with hook issues
- */
 
 const nextConfig: NextConfig = {
   images: {
@@ -34,14 +27,23 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  /**
-   * DO NOT add `turbo` under experimental.
-   * Turbopack is enabled automatically in dev by Next 16.
-   *
-   * NOTE:
-   * `missingSuspenseWithCSRBailout` is NOT a valid Next.js 16 experimental key.
-   * Leaving it here will fail TypeScript and break `next build`.
-   */
+  // Add rewrites for icon redirects to Precise GovCon logo
+  async rewrites() {
+    return [
+      {
+        source: '/icons/icon-192x192.png',
+        destination: '/precise-govcon-logo.jpg',
+      },
+      {
+        source: '/icon-192x192.png',
+        destination: '/precise-govcon-logo.jpg',
+      },
+      {
+        source: '/favicon.ico',
+        destination: '/precise-govcon-logo.jpg',
+      },
+    ]
+  },
 
   // Skip static generation for specific paths
   async headers() {
