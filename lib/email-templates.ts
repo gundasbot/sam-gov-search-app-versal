@@ -1,36 +1,37 @@
 // lib/email-templates.ts
+import { getBrand } from './email/brand'
+import { sendEmail } from './email/send'
 
 export interface EmailTemplateProps {
   searchName: string
-  resultCount: number  // Changed from result_count to resultCount
+  resultCount: number
   opportunities: any[]
-  searchParams: Record<string, any>  // Changed from search_params to searchParams
+  searchParams: Record<string, any>
   runDate: Date
   companyName?: string
   logoUrl?: string
-  recipientName?: string // Optional: personalize with recipient's name
+  recipientName?: string
 }
 
 // ✅ Brand configuration - centralized branding for all emails
 const getBrandConfig = () => {
+  const brand = getBrand()
   return {
-    companyName: process.env.BRAND_NAME || 'PRECISE GOVCON',
-    tagline: 'contracting intelligence and procurement experts',
-    logoUrl: process.env.BRAND_LOGO_URL || process.env.COMPANY_LOGO_URL || 'https://precisegovcon.com/logo.png',
-    primaryColor: '#10b981', // Emerald green
-    secondaryColor: '#f97316', // Orange
-    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    supportEmail: process.env.SUPPORT_EMAIL || 'support@precisegovcon.com',
+    companyName: brand.name,
+    tagline: brand.tagline,
+    logoUrl: brand.logoUrl,
+    primaryColor: brand.colors.green,
+    secondaryColor: brand.colors.orange,
+    appUrl: brand.appUrl,
+    supportEmail: brand.supportEmail,
   }
 }
 
-// ✅ Helper: Render a logo <img> with robust fallback (does not remove your badge)
+// ✅ Helper: Render a logo <img> with robust fallback
 const getLogoImgTag = (logoUrl: string, alt: string) => {
-  // Some email clients block remote images; include onerror to fall back to Precise GovCon logo.
-  // (If remote images are blocked entirely, clients will show alt text and/or nothing.)
-  const safeAlt = String(alt || 'Logo').replaceAll('"', '&quot;')
+  const safeAlt = String(alt || 'Precise GovCon').replaceAll('"', '&quot;')
   const safeUrl = String(logoUrl || '').replaceAll('"', '%22')
-  const fallbackUrl = 'https://precisegovcon.com/logo.png'
+  const fallbackUrl = 'https://precisegovcon.com/precise-govcon-logo.jpg'
 
   return `
     <img
@@ -38,7 +39,7 @@ const getLogoImgTag = (logoUrl: string, alt: string) => {
       alt="${safeAlt}"
       referrerpolicy="no-referrer"
       onerror="this.onerror=null;this.src='${fallbackUrl}';"
-      style="height: 44px; width: auto; display: block;"
+      style="height: 48px; width: auto; display: block; border: 0;"
     />
   `.trim()
 }
@@ -57,12 +58,10 @@ const getSalutation = (runDate: Date, recipientName?: string): string => {
     greeting = 'Good evening'
   }
   
-  // Add name if provided
   if (recipientName) {
-    return `${greeting}, ${recipientName}`
+    return `${greeting}, ${recipientName.split(' ')[0]}`
   }
   
-  // Add day-specific touch
   const dayGreetings: Record<string, string> = {
     'Monday': `${greeting}! Hope your week is off to a strong start`,
     'Tuesday': `${greeting}! Let's keep the momentum going`,
@@ -73,15 +72,14 @@ const getSalutation = (runDate: Date, recipientName?: string): string => {
     'Sunday': `${greeting}! Get a head start on next week`,
   }
   
-  return dayGreetings[day] || greeting
+  return dayGreetings[day] || `${greeting}!`
 }
 
 // ✅ Dynamic marketing message based on results and day
 const getMarketingMessage = (resultCount: number, runDate: Date): { message: string; cta: string } => {
-  const day = runDate.getDay() // 0 = Sunday, 6 = Saturday
+  const day = runDate.getDay()
   const isWeekend = day === 0 || day === 6
   
-  // Messages based on result count
   if (resultCount === 0) {
     return {
       message: "No matches this time, but our team stays vigilant 24/7. Want help refining your search criteria to capture more relevant opportunities?",
@@ -103,7 +101,6 @@ const getMarketingMessage = (resultCount: number, runDate: Date): { message: str
     }
   }
   
-  // Fewer than 20 results
   if (isWeekend) {
     return {
       message: "The competition sleeps, but winning teams don't. Get ahead by having our strategists review these opportunities and craft your positioning before Monday.",
@@ -111,7 +108,6 @@ const getMarketingMessage = (resultCount: number, runDate: Date): { message: str
     }
   }
   
-  // Weekday, moderate results
   const messages = [
     {
       message: "Found opportunities that match your profile! Our team can help you quickly assess viability, identify teaming partners, and accelerate your capture planning.",
@@ -131,18 +127,8 @@ const getMarketingMessage = (resultCount: number, runDate: Date): { message: str
     },
   ]
   
-  // Rotate messages based on day of week
   const messageIndex = day % messages.length
   return messages[messageIndex]
-}
-
-// Kept for backwards compatibility
-const getAppUrl = () => {
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-}
-
-const getSupportEmail = () => {
-  return process.env.SUPPORT_EMAIL || 'support@precisegovcon.com'
 }
 
 /**
@@ -156,12 +142,10 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
     recipientName,
   } = props
 
-  // Use centralized brand config
   const brand = getBrandConfig()
   const companyName = props.companyName || brand.companyName
   const logoUrl = props.logoUrl || brand.logoUrl
 
-  // Get dynamic salutation and marketing message
   const salutation = getSalutation(runDate, recipientName)
   const marketing = getMarketingMessage(resultCount, runDate)
 
@@ -178,15 +162,12 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
     timeZoneName: 'short',
   })
 
-  // Format search criteria for display
   const criteriaItems: string[] = []
   if (searchParams.keywords) criteriaItems.push(`Keywords: ${searchParams.keywords}`)
   if (searchParams.naics) criteriaItems.push(`NAICS: ${searchParams.naics}`)
   if (searchParams.agency) criteriaItems.push(`Agency: ${searchParams.agency}`)
   if (searchParams.setAside) criteriaItems.push(`Set-Aside: ${searchParams.setAside}`)
-  if (searchParams.stateOfPerformance) criteriaItems.push(`State: ${searchParams.stateOfPerformance}`)
 
-  // Generate opportunities table
   const opportunitiesHTML = opportunities.slice(0, 10).map((opp, index) => {
     const title = opp.title || 'Untitled Opportunity'
     const solNumber = opp.solicitation_number || 'N/A'
@@ -199,11 +180,11 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
       <tr style="border-bottom: 1px solid #e2e8f0;">
         <td style="padding: 16px 12px; font-size: 14px; color: #1e293b;">
           <div style="font-weight: 600; color: #0f172a; margin-bottom: 4px;">
-            <a href="${link}" style="color: #0ea5e9; text-decoration: none;">${title}</a>
+            <a href="${link}" style="color: #0ea5e9; text-decoration: none;">${escapeHtml(title)}</a>
           </div>
-          <div style="font-size: 13px; color: #64748b;">Sol #: ${solNumber}</div>
+          <div style="font-size: 13px; color: #64748b;">Sol #: ${escapeHtml(solNumber)}</div>
         </td>
-        <td style="padding: 16px 12px; font-size: 13px; color: #475569;">${agency}</td>
+        <td style="padding: 16px 12px; font-size: 13px; color: #475569;">${escapeHtml(agency)}</td>
         <td style="padding: 16px 12px; font-size: 13px; color: #475569; text-align: center;">${postedDate}</td>
         <td style="padding: 16px 12px; font-size: 13px; color: #475569; text-align: center;">
           <span style="display: inline-block; padding: 4px 12px; background-color: #fef3c7; color: #92400e; border-radius: 12px; font-weight: 500;">
@@ -224,53 +205,26 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alert: ${searchName}</title>
+  <title>Alert: ${escapeHtml(searchName)}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
-  <!-- Main container -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc;">
     <tr>
       <td align="center" style="padding: 40px 20px;">
-        <!-- Email content wrapper -->
-        <table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" style="max-width: 680px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" style="max-width: 680px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
           
-          <!-- Header with Logo -->
+          <!-- Header with Precise GovCon Logo -->
           <tr>
-            <td align="center" style="background: linear-gradient(135deg, #0d9488 0%, #0891b2 100%); padding: 32px; border-radius: 16px 16px 0 0;">
-              <!-- Logo and Brand -->
+            <td align="center" style="background: linear-gradient(135deg, #1e3a4c 0%, #2d5266 100%); padding: 32px; border-radius: 16px 16px 0 0;">
               <div style="margin-bottom: 20px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
-                  <tr>
-                    <td style="vertical-align: middle; padding-right: 12px;">
-                      <!-- ✅ Prefer actual logo image, but keep your PG badge as fallback -->
-                      <div style="display:block;">
-                        ${getLogoImgTag(logoUrl, companyName)}
-                      </div>
-
-                      <!-- Fallback badge (kept, not removed) -->
-                      <div style="width: 48px; height: 48px; background-color: #ffffff; border-radius: 8px; display: inline-block; text-align: center; line-height: 48px; margin-top: 10px;">
-                        <span style="font-size: 28px; font-weight: 900; color: #0d9488;">P</span><span style="font-size: 20px; color: #f97316;">G</span>
-                      </div>
-                    </td>
-                    <td style="vertical-align: middle;">
-                      <div style="text-align: left;">
-                        <div style="font-family: Arial, sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.3px; line-height: 1;">
-                          <span style="color: #ffffff;">PRECISE</span> <span style="color: #f97316;">GOVCON</span>
-                        </div>
-                        <div style="font-family: Arial, sans-serif; font-size: 11px; color: #d1fae5; margin-top: 4px; letter-spacing: 0.3px;">
-                          ${brand.tagline}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </table>
+                <img src="${logoUrl}" alt="${companyName}" style="max-width: 280px; height: auto; display: inline-block; border: 0;" />
               </div>
               
               <h1 style="margin: 16px 0 0 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; text-align: center;">
                 New Opportunities Found
               </h1>
               <p style="margin: 8px 0 0 0; color: #d1fae5; font-size: 16px; text-align: center;">
-                Your alert "${searchName}" has new results
+                Your alert "${escapeHtml(searchName)}" has new results
               </p>
             </td>
           </tr>
@@ -292,28 +246,25 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
                 </tr>
               </table>
 
-              <!-- Personalized Salutation -->
               <div style="margin-bottom: 24px;">
                 <p style="margin: 0; font-size: 16px; color: #1e293b; font-weight: 600;">
-                  ${salutation}!
+                  ${escapeHtml(salutation)}!
                 </p>
               </div>
 
-              <!-- Marketing Message -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f0fdf4 0%, #fef3c7 100%); border-left: 4px solid #10b981; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f0fdf4 0%, #fef3c7 100%); border-left: 4px solid #7cb342; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <tr>
                   <td>
                     <p style="margin: 0 0 16px 0; font-size: 15px; color: #1e293b; line-height: 1.6;">
-                      ${marketing.message}
+                      ${escapeHtml(marketing.message)}
                     </p>
-                    <a href="mailto:${brand.supportEmail}?subject=Consultation Request - ${searchName}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
-                      ${marketing.cta} →
+                    <a href="mailto:${brand.supportEmail}?subject=Consultation Request - ${escapeHtml(searchName)}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #7cb342 0%, #689f38 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                      ${escapeHtml(marketing.cta)} →
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <!-- Search Criteria -->
               ${criteriaItems.length > 0 ? `
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f1f5f9; border-left: 4px solid #0ea5e9; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
                 <tr>
@@ -322,14 +273,13 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
                       Search Criteria
                     </div>
                     <div style="font-size: 14px; color: #1e293b; line-height: 1.6;">
-                      ${criteriaItems.join(' • ')}
+                      ${escapeHtml(criteriaItems.join(' • '))}
                     </div>
                   </td>
                 </tr>
               </table>
               ` : ''}
 
-              <!-- Results Header -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
                 <tr>
                   <td>
@@ -345,7 +295,6 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
             </td>
           </tr>
 
-          <!-- Opportunities Table -->
           ${resultCount > 0 ? `
           <tr>
             <td style="padding: 0 32px 32px 32px;">
@@ -392,25 +341,27 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
           </tr>
           `}
 
-          <!-- Call to Action -->
           <tr>
             <td align="center" style="padding: 0 32px 32px 32px;">
-              <a href="${brand.appUrl}/alerts" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);">
+              <a href="${brand.appUrl}/alerts" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #7cb342 0%, #689f38 100%); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">
                 View All Results in Dashboard
               </a>
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td align="center" style="padding: 24px 32px; background-color: #f8fafc; border-radius: 0 0 16px 16px; border-top: 1px solid #e2e8f0;">
+              <div style="margin-bottom: 16px;">
+                <img src="${logoUrl}" alt="${companyName}" style="max-width: 180px; height: auto; display: inline-block; border: 0; opacity: 0.9;" />
+              </div>
               <div style="font-size: 13px; color: #64748b; line-height: 1.6; text-align: center;">
-                This is an automated alert from <strong>${companyName}</strong><br/>
+                This is an automated alert from <strong>${escapeHtml(companyName)}</strong><br/>
                 <a href="${brand.appUrl}/alerts" style="color: #0ea5e9; text-decoration: none;">Manage your alerts</a> • 
                 <a href="mailto:${brand.supportEmail}" style="color: #0ea5e9; text-decoration: none;">Get support</a>
               </div>
               <div style="margin-top: 16px; font-size: 12px; color: #94a3b8; text-align: center;">
-                © ${new Date().getFullYear()} ${companyName}. All rights reserved.
+                © ${new Date().getFullYear()} ${escapeHtml(companyName)}. All rights reserved.<br/>
+                <span style="font-size: 11px;">VETERAN-OWNED Small Business · Richmond, Virginia</span>
               </div>
             </td>
           </tr>
@@ -425,7 +376,7 @@ export function generateAlertEmailHTML(props: EmailTemplateProps): string {
 }
 
 /**
- * Generate plain text version of the email (fallback for email clients that don't support HTML)
+ * Generate plain text version of the email
  */
 export function generateAlertEmailText(props: EmailTemplateProps): string {
   const {
@@ -438,7 +389,6 @@ export function generateAlertEmailText(props: EmailTemplateProps): string {
   const brand = getBrandConfig()
   const companyName = props.companyName || brand.companyName
   
-  // Get dynamic salutation and marketing message
   const salutation = getSalutation(runDate, recipientName)
   const marketing = getMarketingMessage(resultCount, runDate)
 
@@ -508,12 +458,26 @@ ${marketing.message}
   text += `Manage alerts: ${brand.appUrl}/alerts\n`
   text += `Support: ${brand.supportEmail}\n`
   text += `=================================================================\n`
+  text += `© ${new Date().getFullYear()} ${companyName}\n`
+  text += `VETERAN-OWNED Small Business · Richmond, Virginia\n`
 
   return text.trim()
 }
 
+// Helper function
+function escapeHtml(text?: string | null) {
+  const s = String(text ?? '')
+  if (!s) return ''
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 // -----------------------------------------------------------------------------
-// Enterprise contact emails (used by /app/api/contact/enterprise/route.ts)
+// Enterprise contact emails
 // -----------------------------------------------------------------------------
 
 export type EnterpriseInquiryInput = {
@@ -523,16 +487,6 @@ export type EnterpriseInquiryInput = {
   phone?: string
   message?: string
   source?: string
-}
-
-/** Simple HTML escaper to prevent injection inside email templates */
-const escapeHtml = (value: string) => {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
 }
 
 /** Email to your internal team */
@@ -572,37 +526,32 @@ export function generateEnterpriseInquiryEmail(input: EnterpriseInquiryInput) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:#0b1220;font-family:Arial, sans-serif;color:#e2e8f0;">
+<body style="margin:0;padding:0;background:#0b1220;font-family:Arial, sans-serif;">
   <div style="max-width:720px;margin:0 auto;padding:24px;">
-    <div style="background:linear-gradient(135deg,#0d9488 0%, #0891b2 100%);border-radius:14px;padding:18px 18px 14px 18px;">
-      <div style="font-size:18px;font-weight:800;letter-spacing:-0.2px;">
-        <span style="color:#ffffff;">PRECISE</span> <span style="color:#f97316;">GOVCON</span>
-      </div>
-      <div style="font-size:12px;color:#d1fae5;margin-top:4px;">${escapeHtml(brand.tagline)}</div>
+    <div style="background:linear-gradient(135deg,#1e3a4c 0%, #2d5266 100%);border-radius:14px;padding:24px;text-align:center;margin-bottom:16px;">
+      <img src="${brand.logoUrl}" alt="${brand.companyName}" style="max-width:200px;height:auto;display:inline-block;" />
       <div style="margin-top:12px;font-size:16px;font-weight:700;color:#ffffff;">New Enterprise Inquiry</div>
     </div>
 
-    <div style="background:#0f172a;border:1px solid rgba(148,163,184,0.25);border-radius:14px;padding:18px;margin-top:14px;">
-      <div style="display:grid;grid-template-columns:1fr;gap:10px;">
-        <div><span style="color:#94a3b8;">Name:</span> <strong>${escapeHtml(name)}</strong></div>
-        <div><span style="color:#94a3b8;">Email:</span> <strong>${escapeHtml(email)}</strong></div>
-        <div><span style="color:#94a3b8;">Company:</span> <strong>${escapeHtml(company)}</strong></div>
-        <div><span style="color:#94a3b8;">Phone:</span> <strong>${escapeHtml(phone)}</strong></div>
-        <div><span style="color:#94a3b8;">Source:</span> <strong>${escapeHtml(source)}</strong></div>
+    <div style="background:#0f172a;border:1px solid rgba(148,163,184,0.25);border-radius:14px;padding:24px;">
+      <div style="display:grid;grid-template-columns:1fr;gap:12px;">
+        <div><span style="color:#94a3b8;">Name:</span> <strong style="color:#e2e8f0;">${escapeHtml(name)}</strong></div>
+        <div><span style="color:#94a3b8;">Email:</span> <strong style="color:#e2e8f0;">${escapeHtml(email)}</strong></div>
+        <div><span style="color:#94a3b8;">Company:</span> <strong style="color:#e2e8f0;">${escapeHtml(company)}</strong></div>
+        <div><span style="color:#94a3b8;">Phone:</span> <strong style="color:#e2e8f0;">${escapeHtml(phone)}</strong></div>
+        <div><span style="color:#94a3b8;">Source:</span> <strong style="color:#e2e8f0;">${escapeHtml(source)}</strong></div>
       </div>
 
-      <div style="height:1px;background:rgba(148,163,184,0.25);margin:16px 0;"></div>
+      <div style="height:1px;background:rgba(148,163,184,0.25);margin:24px 0;"></div>
 
       <div style="color:#94a3b8;font-size:12px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;">
         Message
       </div>
-      <pre style="white-space:pre-wrap;margin:0;background:#0b1220;border:1px solid rgba(148,163,184,0.25);padding:12px;border-radius:12px;color:#e2e8f0;">${escapeHtml(
-        message
-      )}</pre>
+      <pre style="white-space:pre-wrap;margin:0;background:#0b1220;border:1px solid rgba(148,163,184,0.25);padding:16px;border-radius:12px;color:#e2e8f0;">${escapeHtml(message)}</pre>
     </div>
 
-    <div style="color:#94a3b8;font-size:12px;margin-top:14px;">
-      Reply directly to <strong>${escapeHtml(email)}</strong>
+    <div style="color:#94a3b8;font-size:12px;margin-top:16px;">
+      Reply directly to <strong style="color:#e2e8f0;">${escapeHtml(email)}</strong>
     </div>
   </div>
 </body>
@@ -612,7 +561,7 @@ export function generateEnterpriseInquiryEmail(input: EnterpriseInquiryInput) {
   return { subject, text, html }
 }
 
-/** Confirmation email to the customer who submitted the form */
+/** Confirmation email to the customer */
 export function generateCustomerConfirmationEmail(input: EnterpriseInquiryInput) {
   const brand = getBrandConfig()
 
@@ -640,30 +589,38 @@ export function generateCustomerConfirmationEmail(input: EnterpriseInquiryInput)
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:Arial, sans-serif;color:#0f172a;">
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Arial, sans-serif;">
   <div style="max-width:720px;margin:0 auto;padding:24px;">
-    <div style="background:linear-gradient(135deg,#0d9488 0%, #0891b2 100%);border-radius:14px;padding:18px;">
-      <div style="font-size:18px;font-weight:800;letter-spacing:-0.2px;">
-        <span style="color:#ffffff;">PRECISE</span> <span style="color:#f97316;">GOVCON</span>
-      </div>
-      <div style="font-size:12px;color:#d1fae5;margin-top:4px;">${escapeHtml(brand.tagline)}</div>
+    <div style="background:linear-gradient(135deg,#1e3a4c 0%, #2d5266 100%);border-radius:14px;padding:24px;text-align:center;margin-bottom:16px;">
+      <img src="${brand.logoUrl}" alt="${brand.companyName}" style="max-width:200px;height:auto;display:inline-block;" />
     </div>
 
-    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-top:14px;">
-      <p style="margin:0 0 10px 0;">Hi ${escapeHtml(name)},</p>
-      <p style="margin:0 0 10px 0;">Thanks for reaching out about <strong>Precise GovCon Enterprise</strong>.</p>
-      <p style="margin:0 0 10px 0;">We received your message and will follow up shortly.</p>
-      <p style="margin:0;">If you have any additional details (team size, agencies, NAICS focus, opportunity volume), just reply to this email.</p>
+    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:24px;">
+      <p style="margin:0 0 16px 0;color:#0f172a;font-size:16px;">Hi ${escapeHtml(name)},</p>
+      <p style="margin:0 0 16px 0;color:#334155;font-size:15px;line-height:1.6;">
+        Thanks for reaching out about <strong>Precise GovCon Enterprise</strong>.
+      </p>
+      <p style="margin:0 0 16px 0;color:#334155;font-size:15px;line-height:1.6;">
+        We received your message and will follow up within 1-2 business days.
+      </p>
+      <p style="margin:0 0 16px 0;color:#334155;font-size:15px;line-height:1.6;">
+        If you have any additional details to share, just reply to this email.
+      </p>
 
-      <div style="margin-top:16px;color:#475569;font-size:13px;">
+      <div style="margin-top:24px;color:#475569;font-size:14px;">
         — ${escapeHtml(brand.companyName)} Team
       </div>
     </div>
 
-    <div style="margin-top:12px;font-size:12px;color:#64748b;">
-      Support: <a href="mailto:${escapeHtml(brand.supportEmail)}" style="color:#0ea5e9;text-decoration:none;">${escapeHtml(
-        brand.supportEmail
-      )}</a>
+    <div style="margin-top:24px;text-align:center;">
+      <img src="${brand.logoUrl}" alt="${brand.companyName}" style="max-width:140px;height:auto;display:inline-block;opacity:0.8;" />
+      <p style="margin:12px 0 0 0;font-size:12px;color:#64748b;">
+        <a href="mailto:${escapeHtml(brand.supportEmail)}" style="color:#0ea5e9;text-decoration:none;">${escapeHtml(brand.supportEmail)}</a>
+      </p>
+      <p style="margin:8px 0 0 0;font-size:11px;color:#64748b;">
+        © ${new Date().getFullYear()} ${escapeHtml(brand.companyName)}<br/>
+        VETERAN-OWNED Small Business · Richmond, Virginia
+      </p>
     </div>
   </div>
 </body>
@@ -671,4 +628,43 @@ export function generateCustomerConfirmationEmail(input: EnterpriseInquiryInput)
   `.trim()
 
   return { subject, text, html }
+}
+
+export interface SendAlertEmailOptions {
+  to: string | string[]
+  alertName: string
+  resultCount: number
+  results: any[]
+  alert_id?: string
+  frequency?: string
+  searchParams?: Record<string, any>
+}
+
+// Export sendAlertEmail function for sending alerts via email
+export async function sendAlertEmail(options: SendAlertEmailOptions): Promise<void> {
+  const {
+    to,
+    alertName,
+    results,
+    searchParams,
+  } = options
+
+  const props: EmailTemplateProps = {
+    searchName: alertName,
+    resultCount: results.length,
+    opportunities: results,
+    searchParams: searchParams || {},
+    runDate: new Date(),
+  }
+
+  const html = generateAlertEmailHTML(props)
+  const subject = `${results.length > 0 ? `${results.length} New` : 'No'} Opportunities: ${alertName}`
+
+  const recipients = Array.isArray(to) ? to.join(',') : to
+
+  await sendEmail({
+    to: recipients,
+    subject,
+    html,
+  })
 }
