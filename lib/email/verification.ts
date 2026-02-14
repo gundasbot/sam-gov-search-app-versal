@@ -1,16 +1,15 @@
 // lib/email/verification.ts
-
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/send'
 import { getVerificationEmailHtml, getVerificationEmailText } from '@/lib/email/verification-email'
-
+import { getBrand } from './brand'
 import { randomBytes } from 'crypto'
 
 export async function createVerificationToken(userId: string, email: string) {
   const token = crypto.randomBytes(32).toString('hex')
   const token_hash = crypto.createHash('sha256').update(token).digest('hex')
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
   await prisma.email_verification_tokens.create({
     data: {
@@ -25,7 +24,8 @@ export async function createVerificationToken(userId: string, email: string) {
 }
 
 export async function sendVerificationEmail(email: string, name: string, token: string) {
-  const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${token}`
+  const brand = getBrand()
+  const verificationUrl = `${brand.appUrl}/api/auth/verify-email?token=${token}`
 
   const html = getVerificationEmailHtml({
     first_name: name.split(' ')[0],
@@ -39,7 +39,7 @@ export async function sendVerificationEmail(email: string, name: string, token: 
 
   await sendEmail({
     to: email,
-    subject: 'Verify Your Email - Precise GovCon',
+    subject: `Verify Your Email - ${brand.name}`,
     html,
     text,
   })

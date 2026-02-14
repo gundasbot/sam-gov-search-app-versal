@@ -41,39 +41,39 @@ const formatDate = (date: Date): string => {
   return `${month}/${day}/${year}`
 }
 
-// Get default date values
+// Get default date values in YYYY-MM-DD format for <input type="date">
 const getDefaultDates = () => {
-  const today = new Date()
-  
-  // Posted From: 6 months ago
-  const postedFrom = new Date(today)
-  postedFrom.setMonth(postedFrom.getMonth() - 6)
-  
-  // Posted To: Today
-  const postedTo = new Date(today)
-  
-  // Response Deadline From: Today minus 14 days
-  const responseDeadlineFrom = new Date(today)
-  responseDeadlineFrom.setDate(responseDeadlineFrom.getDate() - 14)
-  
-  // Response Deadline To: Today plus 14 days
-  const responseDeadlineTo = new Date(today)
-  responseDeadlineTo.setDate(responseDeadlineTo.getDate() + 14)
-  
   return {
-    postedFrom: formatDate(postedFrom),
-    postedTo: formatDate(postedTo),
-    responseDeadlineFrom: formatDate(responseDeadlineFrom),
-    responseDeadlineTo: formatDate(responseDeadlineTo),
+    postedFrom: getMonthsAgo(6),
+    postedTo: toInputDate(new Date()),
+    responseDeadlineFrom: getDaysOffset(-14),
+    responseDeadlineTo: getDaysOffset(14),
   }
 }
 
-// Get quick-fill date for "Posted From" (X months ago)
-const getPostedFromQuickFill = (monthsAgo: number): string => {
+// Get quick-fill date in YYYY-MM-DD format (required by <input type="date">)
+const toInputDate = (date: Date): string => {
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+// X months ago
+const getMonthsAgo = (monthsAgo: number): string => {
   const date = new Date()
   date.setMonth(date.getMonth() - monthsAgo)
-  return formatDate(date)
+  return toInputDate(date)
 }
+
+// X days from today (positive = future, negative = past)
+const getDaysOffset = (days: number): string => {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return toInputDate(date)
+}
+
+const TODAY = toInputDate(new Date())
 
 // Get default labels for UI display
 const getDefaultDateLabel = (field: 'postedFrom' | 'postedTo' | 'responseDeadlineFrom' | 'responseDeadlineTo'): string => {
@@ -790,75 +790,122 @@ export default function UnifiedSaveSearchModal({
                           <Calendar className="h-6 w-6 text-emerald-500" />
                           Dates
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-base font-medium text-slate-700 mb-2">
-                              Posted From
-                              <span className="ml-2 text-xs text-gray-500 font-normal">
-                                (Default: {getDefaultDateLabel('postedFrom')})
-                              </span>
-                            </label>
-                            <input
-                              type="date"
-                              value={postedFrom}
-                              onChange={(e) => setPostedFrom(e.target.value)}
-                              className="w-full px-4 py-3 rounded-lg border border-slate-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            />
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <span className="text-xs text-gray-600 font-medium">Quick fill:</span>
-                              {[1, 3, 6, 9, 12].map((months) => (
-                                <button
-                                  key={months}
-                                  type="button"
-                                  onClick={() => setPostedFrom(getPostedFromQuickFill(months))}
-                                  className="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-                                >
-                                  {months}M
+
+                        {/* Posted Date Range */}
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Posted Date Range</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
+                              <input
+                                type="date"
+                                value={postedFrom}
+                                onChange={(e) => setPostedFrom(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                              />
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <span className="text-xs text-gray-500 self-center">Quick:</span>
+                                {([
+                                  { label: '1M', months: 1, cls: 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200' },
+                                  { label: '3M', months: 3, cls: 'bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-200' },
+                                  { label: '6M', months: 6, cls: 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border-emerald-200' },
+                                  { label: '9M', months: 9, cls: 'bg-orange-100 hover:bg-orange-200 text-orange-700 border-orange-200' },
+                                  { label: '1Y', months: 12, cls: 'bg-red-100 hover:bg-red-200 text-red-700 border-red-200' },
+                                ] as const).map(({ label, months, cls }) => (
+                                  <button
+                                    key={label}
+                                    type="button"
+                                    onClick={() => setPostedFrom(getMonthsAgo(months))}
+                                    className={`px-2 py-0.5 text-xs font-semibold rounded border transition-colors ${cls}`}
+                                  >
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
+                              <input
+                                type="date"
+                                value={postedTo}
+                                onChange={(e) => setPostedTo(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                              />
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <span className="text-xs text-gray-500 self-center">Quick:</span>
+                                <button type="button" onClick={() => setPostedTo(TODAY)}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border-emerald-200 transition-colors">
+                                  Today
                                 </button>
-                              ))}
+                                <button type="button" onClick={() => setPostedTo(getDaysOffset(7))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200 transition-colors">
+                                  +7d
+                                </button>
+                                <button type="button" onClick={() => setPostedTo(getDaysOffset(30))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-200 transition-colors">
+                                  +30d
+                                </button>
+                              </div>
                             </div>
                           </div>
-                          <div>
-                            <label className="block text-base font-medium text-slate-700 mb-2">
-                              Posted To
-                              <span className="ml-2 text-xs text-gray-500 font-normal">
-                                (Default: {getDefaultDateLabel('postedTo')})
-                              </span>
-                            </label>
-                            <input
-                              type="date"
-                              value={postedTo}
-                              onChange={(e) => setPostedTo(e.target.value)}
-                              className="w-full px-4 py-3 rounded-lg border border-slate-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-base font-medium text-slate-700 mb-2">
-                              Response Deadline From
-                              <span className="ml-2 text-xs text-gray-500 font-normal">
-                                (Default: {getDefaultDateLabel('responseDeadlineFrom')})
-                              </span>
-                            </label>
-                            <input
-                              type="date"
-                              value={responseDeadlineFrom}
-                              onChange={(e) => setResponseDeadlineFrom(e.target.value)}
-                              className="w-full px-4 py-3 rounded-lg border border-slate-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-base font-medium text-slate-700 mb-2">
-                              Response Deadline To
-                              <span className="ml-2 text-xs text-gray-500 font-normal">
-                                (Default: {getDefaultDateLabel('responseDeadlineTo')})
-                              </span>
-                            </label>
-                            <input
-                              type="date"
-                              value={responseDeadlineTo}
-                              onChange={(e) => setResponseDeadlineTo(e.target.value)}
-                              className="w-full px-4 py-3 rounded-lg border border-slate-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                            />
+                        </div>
+
+                        {/* Response Deadline Range */}
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Response Deadline Range</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
+                              <input
+                                type="date"
+                                value={responseDeadlineFrom}
+                                onChange={(e) => setResponseDeadlineFrom(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                              />
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <span className="text-xs text-gray-500 self-center">Quick:</span>
+                                <button type="button" onClick={() => setResponseDeadlineFrom(TODAY)}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border-emerald-200 transition-colors">
+                                  Today
+                                </button>
+                                <button type="button" onClick={() => setResponseDeadlineFrom(getDaysOffset(-7))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-orange-100 hover:bg-orange-200 text-orange-700 border-orange-200 transition-colors">
+                                  -7d
+                                </button>
+                                <button type="button" onClick={() => setResponseDeadlineFrom(getDaysOffset(-30))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-red-100 hover:bg-red-200 text-red-700 border-red-200 transition-colors">
+                                  -30d
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
+                              <input
+                                type="date"
+                                value={responseDeadlineTo}
+                                onChange={(e) => setResponseDeadlineTo(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                              />
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <span className="text-xs text-gray-500 self-center">Quick:</span>
+                                <button type="button" onClick={() => setResponseDeadlineTo(getDaysOffset(7))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200 transition-colors">
+                                  +7d
+                                </button>
+                                <button type="button" onClick={() => setResponseDeadlineTo(getDaysOffset(14))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-200 transition-colors">
+                                  +14d
+                                </button>
+                                <button type="button" onClick={() => setResponseDeadlineTo(getDaysOffset(30))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border-emerald-200 transition-colors">
+                                  +30d
+                                </button>
+                                <button type="button" onClick={() => setResponseDeadlineTo(getDaysOffset(90))}
+                                  className="px-2 py-0.5 text-xs font-semibold rounded border bg-orange-100 hover:bg-orange-200 text-orange-700 border-orange-200 transition-colors">
+                                  +90d
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>

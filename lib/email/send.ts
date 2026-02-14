@@ -1,14 +1,13 @@
 // lib/email/send.ts
 import { Resend } from 'resend'
+import { getBrand } from './brand'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
-
-// Create the client only if configured (prevents confusing runtime behavior)
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
 
 export interface EmailAttachment {
   file_name: string
-  content: string // base64 encoded string
+  content: string
   contentType?: string
 }
 
@@ -58,6 +57,7 @@ export async function sendEmail({
       )
     }
 
+    const brand = getBrand()
     const toList = normalizeEmails(to)
     const ccList = normalizeEmails(cc)
     const bccList = normalizeEmails(bcc)
@@ -84,7 +84,6 @@ export async function sendEmail({
     if (ccList.length) payload.cc = ccList
     if (bccList.length) payload.bcc = bccList
 
-    // Resend attachments: { file_name, content, content_type }
     if (attachments?.length) {
       payload.attachments = attachments.map((a) => ({
         file_name: a.file_name,
@@ -105,11 +104,11 @@ export async function sendEmail({
       throw new Error(`Failed to send email: ${error.message}`)
     }
 
-    // ✅ log message id so you can cross-check in Resend dashboard
     console.log('✅ Email sent via Resend:', {
       id: data?.id,
       to: toList,
       subject,
+      brand: brand.name,
     })
 
     return { success: true, data }

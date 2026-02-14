@@ -37,7 +37,7 @@ function resolveBrandLogoUrl(appUrl: string) {
     return `${appUrl}/${raw}`
   }
 
-  // Sensible fallback that should exist in most deployments
+  // Use the actual Precise GovCon logo path from public folder
   return `${appUrl}/logo.png`
 }
 
@@ -46,9 +46,9 @@ const BRAND_LOGO_URL = resolveBrandLogoUrl(APP_URL)
 
 // PRECISE GOVCON BRAND COLORS
 const BRAND_COLORS = {
-  navy: '#1e3a4c', // Dark navy from logo
-  green: '#7cb342', // Bright green from logo globe
-  orange: '#ff9800', // Orange from "GOVCON"
+  navy: '#1e3a4c',
+  green: '#7cb342',
+  orange: '#ff9800',
   lightGray: '#f5f5f5',
   white: '#ffffff',
   textDark: '#2c3e50',
@@ -105,8 +105,9 @@ export async function sendAlertEmail({
         ]
       : []
 
+    // Use proper from address with display name to avoid default avatars
     const result = await resend.emails.send({
-      from: `${BRAND_NAME} <alerts@precisegovcon.com>`,
+      from: `Precise GovCon <alerts@precisegovcon.com>`,
       to,
       subject: `${totalResults} New Opportunities: ${searchName}`,
       html: emailHtml,
@@ -242,8 +243,7 @@ function generateAlertEmailHtml({
     )
     .join('')
 
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -254,12 +254,14 @@ function generateAlertEmailHtml({
   <div style="max-width: 640px; margin: 0 auto; padding: 24px 12px;">
     <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 12px 30px rgba(0,0,0,0.12);">
 
-      <!-- Header -->
+      <!-- Header with ONLY Precise GovCon Logo (triangular logo removed) -->
       <div style="background: linear-gradient(135deg, ${BRAND_COLORS.navy} 0%, #2d5266 100%); padding: 40px 32px; text-align: center; border-radius: 0 0 24px 24px;">
-          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 280px; height: auto; margin-bottom: 24px;" />
-          <div style="background: ${BRAND_COLORS.green}; color: white; padding: 12px 20px; border-radius: 12px; display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;">
-            📊 NEW OPPORTUNITIES ALERT
-          </div>
+        <div style="text-align: center; margin-bottom: 24px;">
+          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 280px; height: auto; display: inline-block; border: 0;" />
+        </div>
+        <div style="background: ${BRAND_COLORS.green}; color: white; padding: 12px 20px; border-radius: 12px; display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;">
+          📊 NEW OPPORTUNITIES ALERT
+        </div>
       </div>
 
       <!-- Content -->
@@ -324,10 +326,10 @@ function generateAlertEmailHtml({
         </div>
       </div>
 
-      <!-- Footer -->
+      <!-- Footer with ONLY Precise GovCon Logo -->
       <div style="background: ${BRAND_COLORS.navy}; padding: 32px; color: rgba(255,255,255,0.85); font-size: 12px; text-align: center;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 200px; height: auto; opacity: 0.8;" />
+          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 200px; height: auto; opacity: 0.9; display: inline-block; border: 0;" />
         </div>
 
         <p style="margin: 0 0 10px 0; line-height: 1.6;">
@@ -338,14 +340,14 @@ function generateAlertEmailHtml({
           <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.green}; text-decoration: none;">${SUPPORT_EMAIL}</a>
         </p>
         <p style="margin: 18px 0 0 0; opacity: 0.65;">
-          © ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.
+          © ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.<br/>
+          <span style="font-size: 11px; opacity: 0.8;">VETERAN-OWNED Small Business · Richmond, Virginia</span>
         </p>
       </div>
     </div>
   </div>
 </body>
-</html>
-`
+</html>`
 }
 
 // Helper functions
@@ -384,20 +386,25 @@ export async function notifySupportNewAccessRequest({
   try {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: ${BRAND_COLORS.navy};">New Access Request</h2>
-        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-        ${company ? `<p><strong>Company:</strong> ${escapeHtml(company)}</p>` : ''}
-        ${message ? `<p><strong>Message:</strong><br/>${escapeHtml(message)}</p>` : ''}
-        <hr style="margin: 24px 0;" />
-        <p style="color: ${BRAND_COLORS.textLight}; font-size: 12px;">
-          Sent from ${BRAND_NAME} access request form.
-        </p>
+        <div style="background: linear-gradient(135deg, ${BRAND_COLORS.navy} 0%, #2d5266 100%); padding: 24px; text-align: center; border-radius: 16px 16px 0 0;">
+          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 200px; height: auto; display: inline-block; border: 0;" />
+        </div>
+        <div style="padding: 24px; background: white; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 16px 16px;">
+          <h2 style="color: ${BRAND_COLORS.navy};">New Access Request</h2>
+          <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+          ${company ? `<p><strong>Company:</strong> ${escapeHtml(company)}</p>` : ''}
+          ${message ? `<p><strong>Message:</strong><br/>${escapeHtml(message)}</p>` : ''}
+          <hr style="margin: 24px 0;" />
+          <p style="color: ${BRAND_COLORS.textLight}; font-size: 12px;">
+            Sent from ${BRAND_NAME} access request form.
+          </p>
+        </div>
       </div>
     `
 
     const result = await resend.emails.send({
-      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      from: `Precise GovCon <system@precisegovcon.com>`,
       to: SUPPORT_EMAIL,
       subject: `New Access Request from ${name}`,
       html,
@@ -435,7 +442,7 @@ export async function sendTrialConfirmationEmail({
         <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
           <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
             <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
-              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;display:inline-block;border:0;" />
               <div style="background:${BRAND_COLORS.orange};color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
                 🎉 TRIAL ACTIVATED
               </div>
@@ -453,7 +460,7 @@ export async function sendTrialConfirmationEmail({
                 <p style="margin:0;color:${BRAND_COLORS.textDark};font-weight:700;">What you can do next:</p>
                 <ul style="margin:10px 0 0 18px;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;">
                   <li>Run advanced searches on SAM.gov opportunities</li>
-                  <li>Create Saved Searches &amp; custom alert subscriptions</li>
+                  <li>Create Saved Searches & custom alert subscriptions</li>
                   <li>Export opportunities to CSV</li>
                   <li>Use AI-powered insights to prioritize bids</li>
                 </ul>
@@ -471,8 +478,10 @@ export async function sendTrialConfirmationEmail({
               </p>
             </div>
 
-            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
-              © ${new Date().getFullYear()} ${BRAND_NAME}
+            <div style="background:${BRAND_COLORS.navy};padding:24px;color:rgba(255,255,255,0.85);text-align:center;font-size:12px;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:160px;height:auto;margin-bottom:12px;opacity:0.9;display:inline-block;border:0;" />
+              <p style="margin:8px 0 0 0;">© ${new Date().getFullYear()} ${BRAND_NAME}</p>
+              <p style="margin:4px 0 0 0;font-size:11px;opacity:0.8;">VETERAN-OWNED Small Business · Richmond, Virginia</p>
             </div>
           </div>
         </div>
@@ -480,7 +489,7 @@ export async function sendTrialConfirmationEmail({
     `
 
     const result = await resend.emails.send({
-      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      from: `Precise GovCon <system@precisegovcon.com>`,
       to,
       subject: `Your ${BRAND_NAME} Trial is Active`,
       html,
@@ -514,15 +523,20 @@ export async function sendAdminTrialNotification({
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: ${BRAND_COLORS.navy};">New Trial Started</h2>
-        <p><strong>User:</strong> ${escapeHtml(userName)} (${escapeHtml(userEmail)})</p>
-        <p><strong>Trial ends:</strong> ${formatted}</p>
-        <p><a href="${APP_URL}/admin" style="color: ${BRAND_COLORS.green};">Open Admin Dashboard</a></p>
+        <div style="background: linear-gradient(135deg, ${BRAND_COLORS.navy} 0%, #2d5266 100%); padding: 24px; text-align: center; border-radius: 16px 16px 0 0;">
+          <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width: 200px; height: auto; display: inline-block; border: 0;" />
+        </div>
+        <div style="padding: 24px; background: white; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 16px 16px;">
+          <h2 style="color: ${BRAND_COLORS.navy};">New Trial Started</h2>
+          <p><strong>User:</strong> ${escapeHtml(userName)} (${escapeHtml(userEmail)})</p>
+          <p><strong>Trial ends:</strong> ${formatted}</p>
+          <p><a href="${APP_URL}/admin" style="color: ${BRAND_COLORS.green};">Open Admin Dashboard</a></p>
+        </div>
       </div>
     `
 
     const result = await resend.emails.send({
-      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      from: `Precise GovCon <system@precisegovcon.com>`,
       to,
       subject: `New Trial: ${userName}`,
       html,
@@ -548,7 +562,7 @@ export async function sendTrialExpired({
         <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
           <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
             <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
-              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;display:inline-block;border:0;" />
               <div style="background:#dc2626;color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
                 ⏳ TRIAL ENDED
               </div>
@@ -574,8 +588,9 @@ export async function sendTrialExpired({
               </p>
             </div>
 
-            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
-              © ${new Date().getFullYear()} ${BRAND_NAME}
+            <div style="background:${BRAND_COLORS.navy};padding:24px;color:rgba(255,255,255,0.85);text-align:center;font-size:12px;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:160px;height:auto;margin-bottom:12px;opacity:0.9;display:inline-block;border:0;" />
+              <p style="margin:8px 0 0 0;">© ${new Date().getFullYear()} ${BRAND_NAME}</p>
             </div>
           </div>
         </div>
@@ -583,7 +598,7 @@ export async function sendTrialExpired({
     `
 
     const result = await resend.emails.send({
-      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      from: `Precise GovCon <system@precisegovcon.com>`,
       to,
       subject: `${BRAND_NAME} Trial Ended`,
       html,
@@ -618,7 +633,7 @@ export async function sendTrialReminder3Days({
         <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
           <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
             <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
-              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;display:inline-block;border:0;" />
               <div style="background:${BRAND_COLORS.green};color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
                 🔔 TRIAL REMINDER
               </div>
@@ -647,8 +662,9 @@ export async function sendTrialReminder3Days({
               </p>
             </div>
 
-            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
-              © ${new Date().getFullYear()} ${BRAND_NAME}
+            <div style="background:${BRAND_COLORS.navy};padding:24px;color:rgba(255,255,255,0.85);text-align:center;font-size:12px;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:160px;height:auto;margin-bottom:12px;opacity:0.9;display:inline-block;border:0;" />
+              <p style="margin:8px 0 0 0;">© ${new Date().getFullYear()} ${BRAND_NAME}</p>
             </div>
           </div>
         </div>
@@ -656,7 +672,7 @@ export async function sendTrialReminder3Days({
     `
 
     const result = await resend.emails.send({
-      from: `${BRAND_NAME} <system@precisegovcon.com>`,
+      from: `Precise GovCon <system@precisegovcon.com>`,
       to,
       subject: `Your ${BRAND_NAME} Trial Ends in 3 Days`,
       html,
@@ -687,7 +703,7 @@ export async function sendAccessRequestConfirmation({
         <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
           <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
             <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%, #2d5266 100%);padding:36px 28px;text-align:center;">
-              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;" />
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;margin-bottom:18px;display:inline-block;border:0;" />
               <div style="background:${BRAND_COLORS.green};color:white;padding:10px 18px;border-radius:12px;display:inline-block;font-size:12px;font-weight:800;letter-spacing:0.10em;">
                 ✅ ACCESS REQUEST RECEIVED
               </div>
@@ -701,13 +717,7 @@ export async function sendAccessRequestConfirmation({
                 We've received your access request for ${BRAND_NAME}. Our team will review your request and get back to you within 1-2 business days.
               </p>
               
-              ${
-                company
-                  ? `<p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;"><strong>Company:</strong> ${escapeHtml(
-                      company,
-                    )}</p>`
-                  : ''
-              }
+              ${company ? `<p style="margin:0 0 18px 0;color:${BRAND_COLORS.textLight};line-height:1.6;font-size:14px;"><strong>Company:</strong> ${escapeHtml(company)}</p>` : ''}
 
               <div style="background:${BRAND_COLORS.lightGray};border-radius:16px;padding:18px;margin:18px 0;">
                 <p style="margin:0 0 10px 0;color:${BRAND_COLORS.textDark};font-weight:700;">What happens next?</p>
@@ -724,8 +734,9 @@ export async function sendAccessRequestConfirmation({
               </p>
             </div>
 
-            <div style="background:${BRAND_COLORS.navy};padding:18px;color:rgba(255,255,255,0.75);text-align:center;font-size:12px;">
-              © ${new Date().getFullYear()} ${BRAND_NAME}
+            <div style="background:${BRAND_COLORS.navy};padding:24px;color:rgba(255,255,255,0.85);text-align:center;font-size:12px;">
+              <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:160px;height:auto;margin-bottom:12px;opacity:0.9;display:inline-block;border:0;" />
+              <p style="margin:8px 0 0 0;">© ${new Date().getFullYear()} ${BRAND_NAME}</p>
             </div>
           </div>
         </div>
@@ -733,7 +744,7 @@ export async function sendAccessRequestConfirmation({
     `
 
     const result = await resend.emails.send({
-      from: `${BRAND_NAME} <access@precisegovcon.com>`,
+      from: `Precise GovCon <access@precisegovcon.com>`,
       to,
       subject: `Your ${BRAND_NAME} Access Request Has Been Received`,
       html,

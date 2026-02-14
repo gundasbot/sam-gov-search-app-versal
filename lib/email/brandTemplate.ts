@@ -1,4 +1,5 @@
-//app/lib/email/brandTemplate.ts
+// app/lib/email/brandTemplate.ts
+import { getBrand } from './brand'
 
 type BrandEmailParams = {
   subject: string
@@ -20,16 +21,13 @@ function escapeHtml(s: string) {
 }
 
 export function buildBrandEmailHtml(params: BrandEmailParams) {
-  const appUrl = (process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "")
-  // Use the full logo from your public directory
-  const logoUrl = process.env.BRAND_LOGO_URL || `${appUrl}/logo.png`
+  const brand = getBrand()
 
   const preheader = params.preheader ?? params.intro
   const footerNote =
     params.footerNote ??
     "If you didn't request this, you can safely ignore this email. For security, links may expire."
 
-  // Table-based layout for maximum email client compatibility
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -59,29 +57,28 @@ export function buildBrandEmailHtml(params: BrandEmailParams) {
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                   <tr>
                     <td align="left" style="padding:0 8px;">
-                      <a href="${appUrl}" style="text-decoration:none;display:block;">
-                        <!-- Logo Container -->
+                      <a href="${brand.appUrl}" style="text-decoration:none;display:block;">
                         <table role="presentation" cellpadding="0" cellspacing="0">
                           <tr>
                             <td style="padding:12px 16px;background:#0f1729;border-radius:12px;display:inline-block;">
                               <table role="presentation" cellpadding="0" cellspacing="0">
                                 <tr>
                                   <td style="vertical-align:middle;padding-right:12px;">
-                                    <!-- Icon SVG -->
-                                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                      <rect width="40" height="40" rx="8" fill="#10b981"/>
-                                      <path d="M12 28V20L20 12L28 20V28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                      <path d="M16 24L20 20L24 24" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
+                                    <img 
+                                      src="${brand.logoUrl}" 
+                                      alt="${brand.name}" 
+                                      width="120" 
+                                      height="auto" 
+                                      style="display: block; border: 0;"
+                                    />
                                   </td>
                                   <td style="vertical-align:middle;">
-                                    <!-- Brand Text -->
                                     <div style="line-height:1;">
                                       <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:20px;font-weight:800;letter-spacing:-0.5px;">
                                         <span style="color:#ffffff;">PRECISE</span> <span style="color:#f97316;">GOVCON</span>
                                       </div>
                                       <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;font-size:10px;color:#94a3b8;margin-top:2px;letter-spacing:0.3px;">
-                                        contracting intelligence and procurement experts
+                                        ${brand.tagline}
                                       </div>
                                     </div>
                                   </td>
@@ -104,7 +101,7 @@ export function buildBrandEmailHtml(params: BrandEmailParams) {
                   <!-- Gradient Top Bar -->
                   <tr>
                     <td style="padding:0;">
-                      <div style="height:10px;background:linear-gradient(90deg,#10b981,#3b82f6);"></div>
+                      <div style="height:10px;background:linear-gradient(90deg,${brand.colors.green},${brand.colors.orange});"></div>
                     </td>
                   </tr>
 
@@ -131,7 +128,7 @@ export function buildBrandEmailHtml(params: BrandEmailParams) {
                     <td style="padding:0 26px 24px 26px;">
                       <table role="presentation" cellpadding="0" cellspacing="0">
                         <tr>
-                          <td style="border-radius:12px;background:linear-gradient(90deg,#10b981,#3b82f6);">
+                          <td style="border-radius:12px;background:linear-gradient(90deg,${brand.colors.green},${brand.colors.orange});">
                             <a href="${params.ctaUrl}" style="display:inline-block;padding:14px 24px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;">
                               ${escapeHtml(params.ctaLabel)}
                             </a>
@@ -161,8 +158,11 @@ export function buildBrandEmailHtml(params: BrandEmailParams) {
             <!-- Footer -->
             <tr>
               <td style="padding:14px 8px 0 8px;">
+                <div style="margin-bottom:12px;text-align:center;">
+                  <img src="${brand.logoUrl}" alt="${brand.name}" style="max-width:120px;height:auto;display:inline-block;opacity:0.8;border:0;" />
+                </div>
                 <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:rgba(148,163,184,0.9);font-size:12px;line-height:1.6;text-align:center;">
-                  © ${new Date().getFullYear()} Precise Govcon LLC · VETERAN-OWNED Small Business
+                  © ${new Date().getFullYear()} ${brand.name} · VETERAN-OWNED Small Business
                 </div>
                 <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:rgba(100,116,139,0.9);font-size:11px;line-height:1.6;text-align:center;margin-top:6px;">
                   Richmond, Virginia · Powered by SAM.gov API
@@ -179,6 +179,8 @@ export function buildBrandEmailHtml(params: BrandEmailParams) {
 }
 
 export function buildBrandEmailText(params: BrandEmailParams) {
+  const brand = getBrand()
+  
   return `${params.headline}
 
 ${params.intro}
@@ -188,7 +190,7 @@ ${params.ctaLabel}: ${params.ctaUrl}
 If you didn't request this, you can safely ignore this email.
 
 ---
-© ${new Date().getFullYear()} Precise Govcon LLC
+© ${new Date().getFullYear()} ${brand.name}
 VETERAN-OWNED Small Business
 Richmond, Virginia`
 }

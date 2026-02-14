@@ -79,6 +79,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     will-change-scroll touch-pan-y"
                   style={{ minHeight: 0 }}
                 >
+                  {/* Special handling for login page - no extra padding */}
                   <div className="flex-1">
                     {children}
                   </div>

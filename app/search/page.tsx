@@ -1236,8 +1236,12 @@ async function fetchWithRetry(
   let last_error: Error | null = null;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // Bail out immediately if the request was intentionally cancelled
+    if (options.signal?.aborted) {
+      throw new DOMException('Search stopped by user', 'AbortError');
+    }
+
     try {
-      console.log(`🔄 Attempt ${attempt + 1}/${maxRetries + 1}: Fetching SAM.gov data...`);
       const response = await fetch(url, options);
       
       // If response is OK or it's a client error (4xx), return immediately
@@ -1250,7 +1254,7 @@ async function fetchWithRetry(
       
       // For 5xx errors (server errors), we'll retry
       if (response.status >= 500 && attempt < maxRetries) {
-        const delay = initialDelay * Math.pow(2, attempt); // Exponential backoff
+        const delay = initialDelay * Math.pow(2, attempt);
         console.log(`⚠️  Server error ${response.status}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
@@ -1259,9 +1263,13 @@ async function fetchWithRetry(
       return response;
     } catch (error) {
       last_error = error as Error;
+
+      // Don't retry aborted requests — user cancelled intentionally
+      if (last_error.name === 'AbortError' || options.signal?.aborted) {
+        throw last_error;
+      }
       
-      // Check if it's a network error or timeout
-      if (attempt < maxRetries && !options.signal?.aborted) {
+      if (attempt < maxRetries) {
         const delay = initialDelay * Math.pow(2, attempt);
         console.log(`❌ Request failed: ${last_error.message}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -1269,6 +1277,7 @@ async function fetchWithRetry(
     }
   }
   
+  // Only log as error for genuine failures, not user cancellations
   console.error(`🚫 Max retries (${maxRetries}) exceeded. Last error:`, last_error);
   throw last_error || new Error('Max retries exceeded');
 }
@@ -1947,8 +1956,19 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
       console.log('⏳ Still loading, deferring access check...')
       return false
     }
+
+    // Saving/alerting always requires a real account — browsing guest access is not enough
+    const requiresAuth = featureName.toLowerCase().includes('save') ||
+                         featureName.toLowerCase().includes('alert') ||
+                         featureName.toLowerCase().includes('subscription')
     
-    // Check BOTH hasValidAccess AND canBrowse
+    if (requiresAuth && status === 'unauthenticated') {
+      setBlockedFeature(featureName)
+      setShowAccessModal(true)
+      return false
+    }
+    
+    // For other features, check BOTH hasValidAccess AND canBrowse
     if (!hasValidAccess && !canBrowse) {
       setBlockedFeature(featureName)
       setShowAccessModal(true)
@@ -1988,6 +2008,13 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
       })
 
       if (!response.ok) {
+        // 401 means unauthenticated — prompt sign-in instead of showing a generic error
+        if (response.status === 401) {
+          setShowSaveModal(false)
+          setShowAccessModal(true)
+          setBlockedFeature('Save Searches')
+          return
+        }
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to save search')
       }
@@ -2978,86 +3005,72 @@ ${filteredResults.map(opp => `  <opportunity>
           
           <ProfileCompletionReminder />
           {/* Enhanced Welcome Banner */}
-          <div className="mb-6 sm:mb-8 rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 lg:p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <div className="h-10 w-10 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-lg flex items-center justify-center flex-shrink-0">
-                    <Search className="h-5 w-5 sm:h-8 sm:w-8 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent leading-tight">
-                      Precise Govcon Bid Search
-                      <span className="ml-2 px-2 py-0.5 text-xs sm:text-sm font-semibold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full align-middle">
-                        Pro
-                      </span>
-                    </h1>
-                    <p className="text-gray-600 mt-0.5 text-sm sm:text-base">
-                      Find, analyze, and track federal contracting opportunities
-                    </p>
-                  </div>
+          <div className="mb-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Icon + title */}
+              <div className="flex items-center gap-2.5 flex-shrink-0">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                  <Search className="h-4 w-4 text-white" />
                 </div>
-                
-                {/* Quick Stats */}
-                <div className="flex flex-wrap items-center gap-4 mt-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-                    <span className="text-gray-700 font-semibold">Real-time SAM.gov data</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-gray-700 font-semibold">Advanced filtering</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="h-2 w-2 rounded-full bg-blue-700 animate-pulse" />
-                    <span className="text-gray-700 font-semibold">Export ready</span>
-                  </div>
+                <div>
+                  <h1 className="text-sm font-bold text-gray-900 leading-none flex items-center gap-1.5">
+                    Precise Govcon Bid Search
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full">
+                      Pro
+                    </span>
+                  </h1>
+                  <p className="text-[11px] text-gray-500 mt-0.5 hidden sm:block">
+                    Find, analyze, and track federal contracting opportunities
+                  </p>
                 </div>
               </div>
-              
-              <div className="flex flex-col gap-2 sm:gap-3">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+
+              {/* Feature dots — hidden on small screens */}
+              <div className="hidden lg:flex items-center gap-3 text-xs text-gray-500">
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 inline-block" />Real-time SAM.gov</span>
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 inline-block" />Advanced filtering</span>
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 inline-block" />Export ready</span>
+              </div>
+
+              {/* Buttons — pushed to the right */}
+              <div className="flex items-center gap-2 ml-auto flex-wrap">
+                <button
+                  onClick={() => handleOpenSaveModal('save')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all text-xs"
+                  aria-label="Save current search"
+                >
+                  <Save className="h-3.5 w-3.5 flex-shrink-0" />
+                  Save Search
+                </button>
+
+                <button
+                  onClick={() => handleOpenSaveModal('alert')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all text-xs"
+                  aria-label="Create email alert"
+                >
+                  <Bell className="h-3.5 w-3.5 flex-shrink-0" />
+                  Create Alert
+                </button>
+
+                <Link href="/alerts">
                   <button
-                    onClick={() => handleOpenSaveModal('save')}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20 text-sm sm:text-base"
-                    aria-label="Save current search"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all text-xs"
+                    aria-label="Manage alerts"
                   >
-                    <Save className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    <span>Save Search</span>
+                    <Settings className="h-3.5 w-3.5 flex-shrink-0" />
+                    Manage Alerts
                   </button>
+                </Link>
 
+                <Link href="/dashboard">
                   <button
-                    onClick={() => handleOpenSaveModal('alert')}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/20 text-sm sm:text-base"
-                    aria-label="Create email alert"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-gray-700 border border-gray-200 font-semibold hover:bg-gray-50 transition-all text-xs"
+                    aria-label="View dashboard"
                   >
-                    <Bell className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                    <span className="hidden sm:inline">Create Alert</span>
-                    <span className="sm:hidden">Alert</span>
+                    <BarChart3 className="h-3.5 w-3.5 flex-shrink-0" />
+                    Dashboard
                   </button>
-
-                  <Link href="/alerts">
-                    <button
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 text-sm sm:text-base"
-                      aria-label="Manage alerts and subscriptions"
-                    >
-                      <Settings className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                      <span className="hidden sm:inline">Manage Alerts</span>
-                      <span className="sm:hidden">Alerts</span>
-                    </button>
-                  </Link>
-
-                  <Link href="/dashboard">
-                    <button
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 rounded-xl bg-white text-gray-700 border-2 border-gray-300 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all text-sm sm:text-base"
-                      aria-label="View dashboard"
-                    >
-                      <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                      <span className="hidden sm:inline">Dashboard</span>
-                      <span className="sm:hidden">Dashboard</span>
-                    </button>
-                  </Link>
-                </div>
+                </Link>
               </div>
             </div>
             
@@ -3804,26 +3817,36 @@ ${filteredResults.map(opp => `  <opportunity>
 
                 {/* 💡 Save & Subscribe Prompt Banner */}
                 {data && filteredResults.length > 0 && (
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-xl p-3 sm:p-5 shadow-sm" data-save-prompt>
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <div className="p-2 bg-green-600 rounded-lg flex-shrink-0">
-                        <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm" data-save-prompt>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-600 rounded-lg flex-shrink-0">
+                        <Bell className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-green-600" />
-                          Found opportunities you like?
-                        </h3>
-                        <p className="text-base text-gray-700 mb-3 leading-relaxed">
-                          <strong>Save this search</strong> and get automatic email alerts when new opportunities match your criteria!
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                            <Sparkles className="h-4 w-4 text-blue-500" />
+                            Found opportunities you like?
+                          </h3>
+                          <button
+                            onClick={() => {
+                              const banner = document.querySelector('[data-save-prompt]');
+                              if (banner) (banner as HTMLElement).style.display = 'none';
+                            }}
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0 p-0.5 rounded"
+                            title="Dismiss"
+                            aria-label="Dismiss save prompt"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3">
+                          Save this search to get automatic email alerts when new matching opportunities appear.
                         </p>
-                        <div className="flex flex-wrap gap-3">
-                          <Button
-                            variant="primary"
-                            size="md"
+                        <div className="flex flex-wrap gap-2">
+                          <button
                             onClick={() => {
                               if (!requireAccess("Save Searches")) return;
-                              // Navigate to alerts page with saved searches tab and pass search params
                               const params = new URLSearchParams({
                                 tab: 'saved-searches',
                                 title: keywords.trim(),
@@ -3842,55 +3865,39 @@ ${filteredResults.map(opp => `  <opportunity>
                                 postedTo: postedBefore.trim(),
                                 rdlfrom: responseDeadline.trim(),
                               });
-                              // Filter out empty params
                               const filteredParams = new URLSearchParams();
                               for (const [key, value] of params.entries()) {
                                 if (value) filteredParams.set(key, value);
                               }
                               window.location.href = `/alerts?${filteredParams.toString()}`;
                             }}
-                            icon={<Save className="h-5 w-5" />}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors"
                             aria-label="Save this search"
                           >
+                            <Save className="h-3.5 w-3.5" />
                             Save This Search
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="md"
+                          </button>
+                          <button
                             onClick={() => {
                               if (!requireAccess("Manage Alerts")) return;
                               window.location.href = '/alerts?tab=subscriptions';
                             }}
-                            icon={<Bell className="h-5 w-5" />}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-colors"
                             aria-label="Manage subscriptions"
                           >
+                            <Bell className="h-3.5 w-3.5" />
                             Manage Subscriptions
-                          </Button>
+                          </button>
+                          <button
+                            onClick={() => { window.location.href = '/alerts'; }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-colors"
+                            aria-label="Manage your alerts and subscriptions"
+                          >
+                            <Bell className="h-3.5 w-3.5" />
+                            Manage Alerts
+                          </button>
                         </div>
-                        <Button
-                          variant="tertiary"
-                          size="lg"
-                          fullWidth
-                          onClick={() => {
-                            window.location.href = '/alerts';
-                          }}
-                          icon={<Bell className="h-5 w-5" />}
-                          aria-label="Manage your alerts and subscriptions"
-                        >
-                          Manage Your Alerts and Subscriptions
-                        </Button>
                       </div>
-                      <button
-                        onClick={() => {
-                          const banner = document.querySelector('[data-save-prompt]');
-                          if (banner) banner.remove();
-                        }}
-                        className="text-gray-400 hover:text-gray-600 flex-shrink-0"
-                        title="Dismiss"
-                        aria-label="Dismiss save prompt"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
                     </div>
                   </div>
                 )}
@@ -3933,36 +3940,36 @@ ${filteredResults.map(opp => `  <opportunity>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setActiveFilter(null)}
-                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
                             activeFilter === null
-                              ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
-                              : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800'
                           }`}
                           aria-label="Show all opportunities"
                         >
-                          All <span className="text-gray-600 font-normal ml-1">{statusCounts.all.toLocaleString()}</span>
+                          All <span className={`font-normal ml-1 ${activeFilter === null ? 'text-blue-100' : 'text-gray-400'}`}>{statusCounts.all.toLocaleString()}</span>
                         </button>
                         <button
                           onClick={() => setActiveFilter('true')}
-                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
                             activeFilter === 'true'
-                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                              : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800'
                           }`}
                           aria-label="Show active opportunities"
                         >
-                          Active <span className="text-gray-600 font-normal ml-1">{statusCounts.active.toLocaleString()}</span>
+                          Active <span className={`font-normal ml-1 ${activeFilter === 'true' ? 'text-emerald-100' : 'text-gray-400'}`}>{statusCounts.active.toLocaleString()}</span>
                         </button>
                         <button
                           onClick={() => setActiveFilter('false')}
-                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
                             activeFilter === 'false'
-                              ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                              : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700'
+                              ? 'bg-gray-700 border-gray-700 text-white shadow-sm'
+                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800'
                           }`}
                           aria-label="Show inactive opportunities"
                         >
-                          Inactive <span className="text-gray-600 font-normal ml-1">{statusCounts.inactive.toLocaleString()}</span>
+                          Inactive <span className={`font-normal ml-1 ${activeFilter === 'false' ? 'text-gray-300' : 'text-gray-400'}`}>{statusCounts.inactive.toLocaleString()}</span>
                         </button>
                       </div>
                     )}

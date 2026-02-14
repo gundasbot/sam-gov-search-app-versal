@@ -192,11 +192,11 @@ function mapParametersToSAMAPI(params: URLSearchParams): URLSearchParams {
     samParams.set('postedTo', params.get('postedTo')!)
   }
 
-  // Response Deadline - convert single field to rdlfrom/rdlto
+  // Response Deadline - "deadline on or before" filter, so only set rdlto.
+  // Setting rdlfrom = rdlto creates a 1-day window that returns 0 results.
   const responseDeadline = params.get('responseDeadline')
   if (responseDeadline) {
-    samParams.set('rdlfrom', responseDeadline)
-    samParams.set('rdlto', responseDeadline)
+    samParams.set('rdlto', normalizeSamDate(responseDeadline))
   }
 
   // ===== PROCUREMENT TYPE =====
