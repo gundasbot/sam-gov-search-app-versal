@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import React, { useCallback, useEffect, useMemo, useState, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import CookieConsent from '../components/CookieConsent'
+
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import {
@@ -786,7 +786,6 @@ export default function LoginPage() {
       }>
         <LoginPageContent />
       </Suspense>
-      <CookieConsent />
     </>
   )
 }

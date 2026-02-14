@@ -159,17 +159,6 @@ a {
   }
 }
 
-/* 🎯 FIXED: Prevent footer from expanding unnecessarily */
-.flex-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.flex-1 {
-  flex: 1 1 0%;
-  min-height: 0; /* Important for nested flex containers */
-}
-
 /* 🎯 Ensure footer stays at bottom */
 #__next, main {
   min-height: 0;
