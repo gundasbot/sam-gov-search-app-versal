@@ -147,16 +147,6 @@ function teamEmailHtml(p: {
   <tr>
     <td style="padding:40px;background:${BRAND.darkBg};">
       
-      <!-- Header with logo -->
-      <div style="margin-bottom:32px;text-align:center;">
-        <img 
-          src="${LOGO_URL}"
-          alt="PRECISE GOVCON"
-          width="160"
-          style="display:inline-block;width:160px;height:auto;border:0;outline:none;max-width:100%;"
-        />
-      </div>
-      
       <h2 style="margin:0 0 24px 0;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">
         Contact Form Submission
       </h2>
@@ -200,21 +190,24 @@ function teamEmailHtml(p: {
           timeStyle: 'short'
         })} EST
       </p>
+
     </td>
   </tr>`
 
   return emailWrap(`New ${p.inquiryLabel} from ${p.name}`, body)
 }
 
-// ── Customer confirmation email - Clean professional style ─────────────────
-function customerEmailHtml(p: {
-  firstName: string; email: string; inquiryLabel: string;
+// ── Customer confirmation email ────────────────────────────────────────────
+function customerEmailHtml(p: { 
+  firstName: string; 
+  email: string; 
+  inquiryLabel: string; 
 }) {
   const body = `
   <!-- HEADER - Navy with Logo -->
   <tr>
     <td style="background:${BRAND.navy};padding:40px 40px 24px;text-align:center;">
-      <!-- Logo - Same as noreply@precisegovcon.com -->
+      <!-- Logo -->
       <div style="margin-bottom:16px;">
         <img 
           src="${LOGO_URL}"
@@ -238,69 +231,68 @@ function customerEmailHtml(p: {
 
   <!-- GREEN LABEL BAR -->
   <tr>
-    <td style="background:${BRAND.green};padding:12px 40px;text-align:center;">
-      <span style="color:#fff;font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;">
+    <td style="background:${BRAND.green};padding:14px 40px;text-align:center;">
+      <span style="color:#fff;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;">
         INQUIRY RECEIVED — ${p.inquiryLabel.toUpperCase()}
       </span>
     </td>
   </tr>
 
-  <!-- CONTENT -->
   <tr>
-    <td style="padding:48px 40px;background:${BRAND.darkBg};">
-
-      <!-- Greeting -->
-      <h2 style="margin:0 0 8px 0;font-size:28px;font-weight:800;color:#ffffff;">
-        Thanks, ${p.firstName || 'there'}!
-      </h2>
+    <td style="padding:50px 40px;background:${BRAND.darkBg};">
       
-      <!-- Message -->
-      <p style="margin:0 0 32px 0;color:${BRAND.textMuted};font-size:16px;line-height:1.6;">
-        We've received your <strong style="color:${BRAND.orange};">${p.inquiryLabel}</strong> inquiry 
-        and will be in touch within <strong style="color:${BRAND.green};">2–3 business days</strong>.
+      <h1 style="margin:0 0 20px 0;font-size:32px;font-weight:900;color:#ffffff;letter-spacing:-1px;line-height:1.2;">
+        Thanks, ${p.firstName}!
+      </h1>
+
+      <p style="margin:0 0 28px 0;font-size:17px;line-height:1.7;color:#e2e8f0;">
+        We've received your <strong style="color:${BRAND.green};font-weight:700;">${p.inquiryLabel}</strong> inquiry and will be in touch 
+        within <strong style="color:${BRAND.orange};font-weight:700;">2–3 business days</strong>.
       </p>
 
-      <!-- Divider -->
-      <div style="height:1px;background:linear-gradient(90deg, transparent, ${BRAND.green}40, transparent);margin:32px 0;"></div>
-
-      <!-- WHAT HAPPENS NEXT Header -->
-      <h3 style="margin:0 0 24px 0;font-size:18px;font-weight:800;color:#ffffff;letter-spacing:1px;text-transform:uppercase;">
-        WHAT HAPPENS NEXT
-      </h3>
-
-      <!-- Steps - Clean and Simple -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+      <!-- What happens next -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;border-radius:16px;overflow:hidden;border:1px solid rgba(124,179,66,0.25);">
         <tr>
-          <td style="padding:8px 0 16px 0;border-bottom:1px solid ${BRAND.green}20;">
-            <table cellpadding="0" cellspacing="0" width="100%">
-              <tr>
-                <td width="40" valign="top" style="font-size:20px;line-height:1.4;">1️⃣</td>
-                <td style="padding-left:12px;color:${BRAND.textLight};font-size:16px;line-height:1.5;">
-                  Our team reviews your inquiry and your specific needs
-                </td>
-              </tr>
-            </table>
+          <td style="background:rgba(124,179,66,0.15);padding:14px 20px;border-bottom:1px solid rgba(124,179,66,0.25);">
+            <span style="font-size:13px;font-weight:800;color:${BRAND.green};text-transform:uppercase;letter-spacing:1px;">
+              ⚡ WHAT HAPPENS NEXT
+            </span>
           </td>
         </tr>
         <tr>
-          <td style="padding:16px 0 16px 0;border-bottom:1px solid ${BRAND.green}20;">
-            <table cellpadding="0" cellspacing="0" width="100%">
+          <td style="padding:24px 20px;background:rgba(30,58,76,0.6);">
+            <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td width="40" valign="top" style="font-size:20px;line-height:1.4;">2️⃣</td>
-                <td style="padding-left:12px;color:${BRAND.textLight};font-size:16px;line-height:1.5;">
-                  A specialist contacts you within 2–3 business days
+                <td style="padding:12px 0;border-bottom:1px solid rgba(124,179,66,0.15);">
+                  <div style="display:flex;align-items:start;">
+                    <span style="font-size:24px;margin-right:16px;">✅</span>
+                    <div>
+                      <p style="margin:0 0 4px 0;font-size:15px;font-weight:700;color:#ffffff;">Our team reviews your inquiry</p>
+                      <p style="margin:0;font-size:14px;color:${BRAND.textMuted};line-height:1.5;">We'll analyze your specific needs and match you with the right specialist</p>
+                    </div>
+                  </div>
                 </td>
               </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:16px 0 8px 0;">
-            <table cellpadding="0" cellspacing="0" width="100%">
               <tr>
-                <td width="40" valign="top" style="font-size:20px;line-height:1.4;">3️⃣</td>
-                <td style="padding-left:12px;color:${BRAND.textLight};font-size:16px;line-height:1.5;">
-                  We discuss your goals and map out the best path forward
+                <td style="padding:12px 0;border-bottom:1px solid rgba(124,179,66,0.15);">
+                  <div style="display:flex;align-items:start;">
+                    <span style="font-size:24px;margin-right:16px;">📞</span>
+                    <div>
+                      <p style="margin:0 0 4px 0;font-size:15px;font-weight:700;color:#ffffff;">A specialist contacts you</p>
+                      <p style="margin:0;font-size:14px;color:${BRAND.textMuted};line-height:1.5;">Within 2-3 business days, expect a personalized response</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 0;">
+                  <div style="display:flex;align-items:start;">
+                    <span style="font-size:24px;margin-right:16px;">🚀</span>
+                    <div>
+                      <p style="margin:0 0 4px 0;font-size:15px;font-weight:700;color:#ffffff;">We map out the best path forward</p>
+                      <p style="margin:0;font-size:14px;color:${BRAND.textMuted};line-height:1.5;">Together, we'll create a strategy tailored to your goals</p>
+                    </div>
+                  </div>
                 </td>
               </tr>
             </table>
