@@ -69,7 +69,7 @@ function buildPrompt(payload: {
 You are a federal contracting market analyst.
 
 Task:
-Identify 4–6 meaningful trends visible in the data.
+Identify 4-6 meaningful trends visible in the data.
 
 Rules:
 - Output ONLY valid JSON
@@ -77,7 +77,7 @@ Rules:
 - Return an ARRAY
 - Each item MUST have:
   - title (string)
-  - description (string, 2–3 sentences)
+  - description (string, 2-3 sentences)
   - strength ("strong" | "moderate" | "weak")
 
 Trends may include:
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     const prompt = buildPrompt({ statistics, opportunities })
 
     const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929', // ✅ Fixed: updated to current model
       temperature: 0.2,
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],

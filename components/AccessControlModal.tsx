@@ -667,13 +667,15 @@ export default function AccessControlModal({isOpen,
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_30px_120px_-35px_rgba(0,0,0,0.8)]">
+      <div className="relative w-full max-w-4xl max-h-[88vh] overflow-y-auto rounded-2xl border border-white/15 bg-slate-900/95 backdrop-blur-xl shadow-[0_30px_120px_-35px_rgba(0,0,0,0.9)]">
         <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-colors z-10"
+          className="absolute right-4 top-4 p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/20 border border-white/10 hover:border-white/30 transition-all z-10 flex items-center gap-1.5"
+          aria-label="Close"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
+          <span className="text-xs font-medium">Close</span>
         </button>
 
         <div className="p-6 lg:p-10">
@@ -1384,9 +1386,19 @@ export default function AccessControlModal({isOpen,
             </div>
           </div>
 
-          <p className="mt-6 text-xs text-slate-500 text-center">
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </p>
+          {/* Maybe Later footer */}
+          <div className="mt-6 flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-slate-400 hover:text-slate-200 transition-colors underline underline-offset-4"
+            >
+              Maybe later — continue browsing
+            </button>
+            <p className="text-xs text-slate-500 text-center">
+              By continuing, you agree to our Terms of Service and Privacy Policy
+            </p>
+          </div>
         </div>
       </div>
     </div>

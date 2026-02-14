@@ -3904,23 +3904,23 @@ ${filteredResults.map(opp => `  <opportunity>
 
                 {/* 🆕 Active Filters Summary - Shows what's currently filtering results */}
                 {data && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-blue-600 border border-blue-500 rounded-xl p-4 shadow-md">
                     <div className="flex items-start gap-3">
-                      <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <Info className="h-5 w-5 text-white flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <h3 className="text-base font-bold text-blue-900 mb-2">Active Search Filters</h3>
-                        <div className="space-y-1.5 text-sm text-blue-800">
+                        <h3 className="text-base font-bold text-white mb-2">Active Search Filters</h3>
+                        <div className="space-y-1.5 text-sm text-blue-100">
                           {keywords && <div>• <strong>Title Search:</strong> "{keywords}"</div>}
                           {naics && <div>• <strong>NAICS Code:</strong> {naics}</div>}
                           {agency && <div>• <strong>Agency:</strong> {agency}</div>}
                           {setAside && <div>• <strong>Set-Aside:</strong> {SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}</div>}
                           {stateOfPerformance && <div>• <strong>State:</strong> {US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}</div>}
                           {responseDeadline && (
-                            <div className="text-orange-700">• <strong>Response Deadline:</strong> {responseDeadline}</div>
+                            <div className="text-yellow-200">• <strong>Response Deadline:</strong> {responseDeadline}</div>
                           )}
                           {procurementType && <div>• <strong>Type:</strong> {procurementType}</div>}
                           {!keywords && !naics && !agency && !setAside && !stateOfPerformance && !responseDeadline && !procurementType && (
-                            <div className="text-gray-700">No filters active - showing all opportunities from the past 9 months</div>
+                            <div className="text-blue-200">No filters active - showing all opportunities from the past 9 months</div>
                           )}
                         </div>
                       </div>
@@ -4051,18 +4051,18 @@ ${filteredResults.map(opp => `  <opportunity>
 
             {/* Active Filters - Only show after search */}
             {data && (agency || setAside || naics || stateOfPerformance) && (
-              <div className="mb-6 p-4 rounded-2xl border border-gray-200 bg-white/5">
+              <div className="mb-6 p-4 rounded-xl border-2 border-amber-400 bg-amber-50 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Active Filters</span>
-                    <span className="text-xs text-gray-600 ml-2">
+                    <Filter className="h-4 w-4 text-amber-700" />
+                    <span className="text-sm font-bold text-amber-900">Active Filters</span>
+                    <span className="text-xs text-amber-700 ml-2">
                       (Update filters and click "Search" to refresh)
                     </span>
                   </div>
                   <button
                     onClick={clearAllClientFilters}
-                    className="text-base text-gray-900 font-medium hover:text-gray-900 transition-colors flex items-center gap-1"
+                    className="text-sm text-amber-800 font-semibold hover:text-amber-900 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-amber-100"
                     aria-label="Clear all filters"
                   >
                     <X className="h-4 w-4" />

@@ -90,22 +90,22 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Fetch real data from SAM.gov
-    const samResponse = await fetch(
-      `https://api.sam.gov/opportunities/v2/search?api_key=${process.env.SAM_GOV_API_KEY}&limit=100&postedFrom=${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}&postedTo=${new Date().toISOString().split('T')[0]}`,
-      {
-        headers: {
-          'Accept': 'application/json',
-        }
+    // Fetch real data from SAM.gov (non-fatal fallback if unavailable)
+    let opportunities: any[] = []
+    try {
+      const samResponse = await fetch(
+        `https://api.sam.gov/opportunities/v2/search?api_key=${process.env.SAM_GOV_API_KEY}&limit=100&postedFrom=${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}&postedTo=${new Date().toISOString().split('T')[0]}`,
+        { headers: { 'Accept': 'application/json' } }
+      )
+      if (samResponse.ok) {
+        const samData = await samResponse.json()
+        opportunities = samData.opportunitiesData || []
+      } else {
+        console.warn(`SAM.gov API returned ${samResponse.status} — proceeding with empty dataset`)
       }
-    )
-
-    if (!samResponse.ok) {
-      throw new Error(`SAM.gov API error: ${samResponse.status}`)
+    } catch (samErr) {
+      console.warn('SAM.gov fetch failed — proceeding with empty dataset:', samErr)
     }
-
-    const samData = await samResponse.json()
-    const opportunities = samData.opportunitiesData || []
 
     // Calculate basic statistics
     const totalContracts = opportunities.length
@@ -169,7 +169,7 @@ Be specific and data-driven. Focus on competitive intelligence and strategic opp
 Return ONLY a valid JSON object matching the schema provided in the system prompt.`
 
     const resp = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2500,
       temperature: 0.4,
       system,

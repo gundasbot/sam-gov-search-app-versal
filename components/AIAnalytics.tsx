@@ -2,7 +2,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Sparkles, TrendingUp, AlertCircle, Target, DollarSign, Calendar, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import Image from 'next/image'
+import { Sparkles, TrendingUp, AlertCircle, Target, DollarSign, Calendar, Loader2, ChevronDown, ChevronUp, Zap } from 'lucide-react'
 
 interface AIAnalyticsProps {
   opportunities: any[]
@@ -112,29 +113,43 @@ Be specific, actionable, and focus on helping a contractor win these bids.`
   if (opportunities.length === 0) return null
 
   return (
-    <div className="mt-6 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">AI-Powered Insights</h3>
-            <p className="text-sm text-gray-600">Powered by Claude Sonnet 4</p>
+    <div className="mt-6 rounded-2xl overflow-hidden border border-[#0d1f3c]/20 shadow-lg">
+      {/* Full-width logo banner */}
+      <div className="relative w-full bg-[#0d1f3c] flex items-center justify-between px-8 py-5">
+        <div className="flex items-center gap-5">
+          <Image
+            src="/precise-govcon-logo-light.png"
+            alt="Precise GovCon"
+            width={320}
+            height={70}
+            className="h-14 w-auto object-contain"
+            priority
+          />
+          <div className="h-8 w-px bg-white/20" />
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-[#f97316]" />
+            <span className="text-white font-semibold text-sm tracking-wide">Contract Intelligence</span>
+            <span className="px-2 py-0.5 rounded-full bg-[#f97316]/20 border border-[#f97316]/40 text-[#f97316] text-xs font-bold uppercase tracking-wider">Live</span>
           </div>
         </div>
-        
         <button
           onClick={() => setExpanded(!expanded)}
-          className="p-2 rounded-lg hover:bg-white/50 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold transition-all"
         >
-          {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          {expanded ? (
+            <><ChevronUp className="h-4 w-4" /> Collapse</>
+          ) : (
+            <><ChevronDown className="h-4 w-4" /> View Insights</>
+          )}
         </button>
       </div>
 
+      {/* Content area */}
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 p-6">
+
       {loading && (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 text-purple-500 animate-spin" />
+          <Loader2 className="h-8 w-8 text-[#0d1f3c] animate-spin" />
           <span className="ml-3 text-gray-600">Analyzing opportunities...</span>
         </div>
       )}
@@ -152,13 +167,13 @@ Be specific, actionable, and focus on helping a contractor win these bids.`
           {analysis.keyInsights && analysis.keyInsights.length > 0 && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <Target className="h-4 w-4 text-purple-600" />
+                <Target className="h-4 w-4 text-emerald-600" />
                 Key Insights
               </h4>
               <ul className="space-y-2">
                 {analysis.keyInsights.map((insight: string, i: number) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="text-purple-500 font-bold">•</span>
+                    <span className="text-emerald-600 font-bold">•</span>
                     {insight}
                   </li>
                 ))}
@@ -242,7 +257,7 @@ Be specific, actionable, and focus on helping a contractor win these bids.`
 
           <button
             onClick={analyzeResults}
-            className="mt-4 w-full py-2 px-4 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold hover:from-purple-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2"
+            className="mt-4 w-full py-2 px-4 rounded-lg bg-[#0d1f3c] hover:bg-[#162d50] text-white font-semibold transition-all flex items-center justify-center gap-2 border border-[#0d1f3c]/20"
           >
             <Sparkles className="h-4 w-4" />
             Refresh Analysis
@@ -255,6 +270,7 @@ Be specific, actionable, and focus on helping a contractor win these bids.`
           Click to expand AI insights including key findings, trends, and recommendations
         </div>
       )}
+      </div>
     </div>
   )
 }
