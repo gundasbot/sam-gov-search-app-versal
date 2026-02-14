@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import {
   CheckCircle2, AlertTriangle, Loader2, Eye, EyeOff,
-  ShieldCheck, RefreshCw, Search, FileText, Award, Lock
+  ShieldCheck, RefreshCw, Search, FileText, Award, Lock, ArrowRight
 } from 'lucide-react'
 
 type Mode = 'login' | 'register' | 'verify' | 'resend' | 'forgot' | 'reset'
@@ -151,6 +151,9 @@ function LoginPageContent() {
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
   const token = useMemo(() => getQueryToken(sp), [sp])
 
+  // NEW: Mobile state to control auth form visibility
+  const [showMobileAuth, setShowMobileAuth] = useState(false)
+
   // Email validation
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   
@@ -259,7 +262,7 @@ function LoginPageContent() {
     if (!res.ok) { setNotice({ variant: 'error', title: 'Registration failed', description: res.error || 'Please check your details.' }); return }
     setNotice({ variant: 'success', title: `We've sent an email to ${email}`, description: 'Please check your inbox and follow the instructions. Be sure to check your spam folder if you don\'t see it within a few minutes.' })
     setRedirectCountdown(5)
-  }, [email, firstName, lastName, password, password2, company, phone, title])
+  }, [email, firstName, lastName, password, password2, company, phone, title, isPasswordValid, passwordsMatch])
 
   const onResend = useCallback(async () => {
     setBusy(true); setNotice(null)
@@ -677,12 +680,29 @@ function LoginPageContent() {
         }
         .mobile-only { display: none !important; }
         .desktop-only { display: block; }
+        
+        .mobile-hero {
+          border-radius: 1rem;
+          border: 1px solid rgba(226,232,240,0.6);
+          background: rgba(255,255,255,0.5);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+          padding: 1.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        .mobile-cta-buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-top: 1.25rem;
+        }
 
         /* ── Mobile: stacked layout ── */
         @media (max-width: 767px) {
           .mobile-only { display: block !important; }
           .desktop-only { display: none !important; }
-          .login-page-outer { width: 100%; padding: 1rem; box-sizing: border-box; }
+          .login-page-outer { width: 100%; padding: 1rem; box-sizing: border-box; min-height: auto; }
           .mobile-login-card {
             border-radius: 1rem; border: 1px solid rgba(226,232,240,0.8);
             background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
@@ -730,7 +750,7 @@ function LoginPageContent() {
           {/* Service cards */}
           <div className="login-row2">
             {serviceCards.map(c => (
-              <Link key={c.href} href={c.href} target="_blank" rel="noopener noreferrer" className="svc-card">
+              <Link key={c.href} href={c.href} className="svc-card">
                 <div className="svc-card-img" style={{ background: c.gradient }}>
                   <Image src={c.image} alt={c.alt} fill style={{ objectFit: 'cover', transition: 'transform 0.3s' }}
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0' }} />
@@ -748,12 +768,92 @@ function LoginPageContent() {
           </div>
         </div>
 
-        {/* ── MOBILE layout ── */}
+        {/* ── MOBILE layout with HERO FIRST ── */}
         <div className="mobile-only">
-          <div className="mobile-login-card">{loginCardBody}</div>
+          {/* Hero Section - Always visible on mobile */}
+          <div className="mobile-hero">
+            <div style={{ 
+              background: 'linear-gradient(135deg, #10b981, #059669)', 
+              color: 'white', 
+              padding: '0.75rem', 
+              borderRadius: '0.5rem', 
+              marginBottom: '1rem',
+              textAlign: 'center',
+              fontSize: '0.875rem',
+              fontWeight: 600
+            }}>
+              🎯 Browse opportunities before signing up!
+            </div>
+            <p style={{ fontSize: '0.9rem', fontWeight: 800, color: '#14532d', lineHeight: 1.2, margin: '0 0 0.5rem' }}>
+              Welcome to Precise GovCon.
+            </p>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.15, margin: '0 0 0.75rem' }}>
+              Find. Qualify. Win.<br />
+              <span style={{ color: '#14532d' }}>Government contracting</span> — with precision.
+            </h1>
+            <p style={{ fontSize: '0.875rem', color: '#334155', lineHeight: 1.5, margin: 0 }}>
+              Unified opportunity search across federal, state, and local sources — plus workflows and expert support to help you compete with confidence.
+            </p>
+            
+            {/* CTAs - Only show when auth form is NOT visible */}
+            {!showMobileAuth && (
+              <div className="mobile-cta-buttons">
+                <PrimaryButton onClick={() => setShowMobileAuth(true)}>
+                  Get Started <ArrowRight style={{ width: '1rem', height: '1rem' }} />
+                </PrimaryButton>
+                <Link href="/search" style={{ textDecoration: 'none', width: '100%' }}>
+                  <SecondaryButton style={{ width: '100%' }}>
+                    Browse Opportunities
+                  </SecondaryButton>
+                </Link>
+                <button 
+                  onClick={() => setShowMobileAuth(true)}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    fontSize: '0.875rem', 
+                    color: '#059669', 
+                    fontWeight: 600, 
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: '0.5rem'
+                  }}
+                >
+                  Already have an account? Sign in
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Auth Card - Only show when user clicks CTA */}
+          {showMobileAuth && (
+            <div className="mobile-login-card">
+              <button 
+                onClick={() => setShowMobileAuth(false)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  fontSize: '0.875rem', 
+                  color: '#059669', 
+                  fontWeight: 600, 
+                  cursor: 'pointer',
+                  marginBottom: '1rem',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                ← Back
+              </button>
+              {loginCardBody}
+            </div>
+          )}
+          
+          {/* Service Cards - Always visible */}
           <div className="mobile-cards-grid">
             {serviceCards.map(c => (
-              <Link key={c.href} href={c.href} target="_blank" rel="noopener noreferrer" className="svc-card">
+              <Link key={c.href} href={c.href} className="svc-card">
                 <div className="svc-card-img" style={{ background: c.gradient }}>
                   <Image src={c.image} alt={c.alt} fill style={{ objectFit: 'cover' }}
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0' }} />
