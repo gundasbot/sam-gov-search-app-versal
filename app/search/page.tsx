@@ -200,6 +200,33 @@ function useSubscription() {
   }
 }
 
+// Utility: Format Date to YYYY-MM-DD (for HTML date input)
+function formatDateToInput(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Utility: Get today's date
+function getToday(): string {
+  return formatDateToInput(new Date())
+}
+
+// Utility: Get date one month from now
+function getOneMonthFromNow(): string {
+  const date = new Date()
+  date.setMonth(date.getMonth() + 1)
+  return formatDateToInput(date)
+}
+
+// Utility: Get date six months ago
+function getSixMonthsAgo(): string {
+  const date = new Date()
+  date.setMonth(date.getMonth() - 6)
+  return formatDateToInput(date)
+}
+
 // --- ACCESS CONTROL HOOK (Fixed) ---
 function useBrowsingSession() {
   const { data: session, status } = useSession()
@@ -350,6 +377,9 @@ type Opp = {
   uiLink?: string
   resourceLinks?: string[]
   active?: string
+  status?: string          // opportunity status (active/inactive/archived/cancelled)
+  organizationName?: string // agency / org name
+  organizationId?: string   // agency / org identifier
   modifiedDate?: string
   baseType?: string
   archiveType?: string
@@ -436,12 +466,17 @@ const US_STATES = [
   { value: 'WV', label: 'West Virginia' },
   { value: 'WI', label: 'Wisconsin' },
   { value: 'WY', label: 'Wyoming' },
-  { value: 'DC', label: 'District of Columbia' },
-  { value: 'PR', label: 'Puerto Rico' },
-  { value: 'GU', label: 'Guam' },
-  { value: 'VI', label: 'Virgin Islands' },
+  // Territories and Federal District
   { value: 'AS', label: 'American Samoa' },
-  { value: 'MP', label: 'Northern Mariana Islands' }
+  { value: 'DC', label: 'District of Columbia' },
+  { value: 'FM', label: 'Federated States of Micronesia' },
+  { value: 'GU', label: 'Guam' },
+  { value: 'MH', label: 'Marshall Islands' },
+  { value: 'MP', label: 'Northern Mariana Islands' },
+  { value: 'PW', label: 'Palau' },
+  { value: 'PR', label: 'Puerto Rico' },
+  { value: 'VI', label: 'U.S. Virgin Islands' },
+  { value: 'UM', label: 'U.S. Minor Outlying Islands' }
 ]
 
 // Set-Aside options
@@ -687,22 +722,23 @@ const Pill = ({
   onRemove?: () => void
 }) => {
   const tones = {
-    neutral: 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50',
-    info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    success: 'bg-emerald-500/20 text-white border-emerald-500/30',
-    warning: 'bg-amber-500/20 text-white border-amber-500/30',
-    danger: 'bg-rose-500/20 text-white border-rose-500/30',
+    neutral: 'bg-white text-gray-900 border-2 border-gray-400 hover:bg-gray-50',
+    info: 'bg-blue-100 text-blue-900 border-2 border-blue-500',
+    success: 'bg-emerald-100 text-emerald-900 border-2 border-emerald-600',
+    warning: 'bg-amber-100 text-amber-900 border-2 border-amber-600',
+    danger: 'bg-rose-100 text-rose-900 border-2 border-rose-600',
   }
   
   return (
-    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm ${tones[tone]}`}>
+    <div className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-lg font-bold ${tones[tone]}`}>
       {children}
       {onRemove && (
         <button
           onClick={onRemove}
-          className="hover:text-gray-900 transition-colors ml-1"
+          className="hover:opacity-70 transition-opacity ml-1 p-1 hover:bg-black/10 rounded-full"
+          aria-label="Remove filter"
         >
-          <X className="h-3 w-3" />
+          <X className="h-5 w-5" />
         </button>
       )}
     </div>
@@ -788,28 +824,41 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
           <span className="truncate">{department}</span>
         </div>
         
-        {daysUntilDeadline !== null && daysUntilDeadline <= 7 && (
-          <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
-            daysUntilDeadline <= 3 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+        {daysUntilDeadline !== null && (
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-extrabold ${
+            daysUntilDeadline < 0
+              ? 'bg-gray-200 text-gray-600'
+              : daysUntilDeadline <= 3
+                ? 'bg-red-600 text-white'
+                : daysUntilDeadline <= 7
+                  ? 'bg-red-100 text-red-700'
+                  : daysUntilDeadline <= 14
+                    ? 'bg-orange-100 text-orange-700'
+                    : daysUntilDeadline <= 30
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-green-100 text-green-700'
           }`}>
-            <Clock className="h-3 w-3" />
-            {daysUntilDeadline} day{daysUntilDeadline !== 1 ? 's' : ''} left
+            <Clock className="h-3.5 w-3.5" />
+            {daysUntilDeadline < 0
+              ? 'Expired'
+              : `${daysUntilDeadline} day${daysUntilDeadline !== 1 ? 's' : ''} left`
+            }
           </div>
         )}
       </div>
 
       {/* Details */}
       <div className="p-5 space-y-3 flex-1 overflow-y-auto">
-        <div className="flex items-center gap-2 text-base text-gray-700">
-          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <span className="text-sm text-gray-500">Posted:</span>
-          <span className="font-medium">{postedDate}</span>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0" />
+          <span className="text-sm font-bold text-gray-500 uppercase tracking-wide">Posted:</span>
+          <span className="text-base font-extrabold text-gray-900">{postedDate}</span>
         </div>
         
-        <div className="flex items-center gap-2 text-base text-gray-700">
-          <Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
-          <span className="text-sm text-gray-500">Deadline:</span>
-          <span className="font-medium text-red-600">{responseDeadline}</span>
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <span className="text-sm font-bold text-gray-500 uppercase tracking-wide">Deadline:</span>
+          <span className="text-base font-extrabold text-red-700">{responseDeadline}</span>
         </div>
         
         {setAsideLabel !== 'Not specified' && (
@@ -939,11 +988,26 @@ const ResultCard = ({
                 {opportunity.title || 'Untitled Opportunity'}
               </h3>
             )}
-            {daysUntilDeadline !== null && daysUntilDeadline <= 7 && (
-              <Badge variant={daysUntilDeadline <= 3 ? 'danger' : 'warning'}>
-                <Clock className="h-3 w-3 mr-1" />
-                {daysUntilDeadline} day{daysUntilDeadline !== 1 ? 's' : ''} left
-              </Badge>
+            {daysUntilDeadline !== null && (
+              <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                daysUntilDeadline < 0
+                  ? 'bg-gray-200 text-gray-600'
+                  : daysUntilDeadline <= 3
+                    ? 'bg-red-600 text-white'
+                    : daysUntilDeadline <= 7
+                      ? 'bg-red-100 text-red-700'
+                      : daysUntilDeadline <= 14
+                        ? 'bg-orange-100 text-orange-700'
+                        : daysUntilDeadline <= 30
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-green-100 text-green-700'
+              }`}>
+                <Clock className="h-3 w-3" />
+                {daysUntilDeadline < 0
+                  ? 'Expired'
+                  : `${daysUntilDeadline} day${daysUntilDeadline !== 1 ? 's' : ''} left`
+                }
+              </div>
             )}
           </div>
           
@@ -993,20 +1057,20 @@ const ResultCard = ({
             
             {/* Published Date */}
             <div className="flex items-start gap-2">
-              <Calendar className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+              <Calendar className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-sm font-bold text-orange-500">Published</div>
-                <div className="text-sm text-gray-700 font-medium">{postedDate}</div>
+                <div className="text-xs font-extrabold text-blue-700 uppercase tracking-wide">Published</div>
+                <div className="text-base font-extrabold text-gray-900">{postedDate}</div>
               </div>
             </div>
             
             {/* Response Deadline */}
             {opportunity.responseDeadLine && (
               <div className="flex items-start gap-2">
-                <Clock className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <Clock className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-sm font-bold text-orange-500">Response Deadline</div>
-                  <div className="text-sm text-gray-700 font-medium">{deadlineDate}</div>
+                  <div className="text-xs font-extrabold text-red-700 uppercase tracking-wide">Response Deadline</div>
+                  <div className="text-base font-extrabold text-red-800">{deadlineDate}</div>
                 </div>
               </div>
             )}
@@ -1572,6 +1636,258 @@ class SearchErrorBoundary extends React.Component<{ children: React.ReactNode },
   }
 }
 
+// Dismissable warning banner shown when no Quick Search results are loaded yet
+function WarnBanner() {
+  const [dismissed, setDismissed] = React.useState(false)
+  if (dismissed) return null
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-white font-bold text-sm shadow-lg"
+      style={{ background: 'linear-gradient(90deg, #92400e 0%, #78350f 100%)' }}>
+      <AlertTriangle className="h-5 w-5 flex-shrink-0 text-yellow-300" />
+      <span className="flex-1">
+        ⚠️ Run Quick Search first to load results — then use these filters to narrow them down client-side.
+      </span>
+      <button
+        onClick={() => setDismissed(true)}
+        className="ml-2 px-3 py-1 rounded bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-all flex-shrink-0"
+        aria-label="Dismiss"
+      >
+        Got it ✓
+      </button>
+    </div>
+  )
+}
+
+// Quick Date Lookup Card (promoted above Advanced Filters, replaces the basic Quick Search card)
+interface QuickDateLookupProps {
+  keywords: string
+  setKeywords: (v: string) => void
+  postedAfter: string
+  setPostedAfter: (v: string) => void
+  responseDeadlineBefore: string
+  setResponseDeadlineBefore: (v: string) => void
+  onRunSearch: () => void
+  onStopSearch: () => void
+  onReset: () => void
+  loading: boolean
+  searchDuration: number
+  onSaveSearch: () => void
+  onCreateAlert: () => void
+}
+
+function QuickDateLookup({
+  keywords,
+  setKeywords,
+  postedAfter,
+  setPostedAfter,
+  responseDeadlineBefore,
+  setResponseDeadlineBefore,
+  onRunSearch,
+  onStopSearch,
+  onReset,
+  loading,
+  searchDuration,
+  onSaveSearch,
+  onCreateAlert,
+}: QuickDateLookupProps) {
+  return (
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-500 shadow-lg mb-4">
+      {/* Header row: logo + title on left, Save/Alert buttons on right */}
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          {/* PreciseGovCon logo */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="PreciseGovCon"
+            className="h-10 w-auto object-contain"
+            onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement
+              img.onerror = null
+              img.style.display = 'none'
+            }}
+          />
+          <div>
+            <h3 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
+              Quick Date Lookup
+            </h3>
+            <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters below</p>
+          </div>
+        </div>
+        {/* Save Search + Create Alert */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={onSaveSearch}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
+            aria-label="Save current search"
+          >
+            <Save className="h-4 w-4 flex-shrink-0" />
+            Save Search
+          </button>
+          <button
+            onClick={onCreateAlert}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+            aria-label="Create email alert"
+          >
+            <Bell className="h-4 w-4 flex-shrink-0" />
+            Create Alert
+          </button>
+          <Link href="/alerts">
+            <button
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 hover:shadow-lg transition-all"
+              aria-label="Manage alerts"
+            >
+              <Settings className="h-4 w-4 flex-shrink-0" />
+              Manage Alerts
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      {/* 3-column: keyword + posted date (with quick-fills) + deadline date (with quick-fills) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        {/* Keyword */}
+        <div>
+          <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+            Keyword:
+          </label>
+          <input
+            type="text"
+            value={keywords}
+            onChange={(e) => setKeywords(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onRunSearch() }}
+            placeholder="e.g., Data Analytics"
+            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-500 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-colors"
+          />
+        </div>
+
+        {/* Solicitation Posted Date */}
+        <div>
+          <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+            Solicitation Posted Date:
+          </label>
+          <input
+            type="date"
+            value={postedAfter}
+            onChange={(e) => setPostedAfter(e.target.value)}
+            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
+          />
+          <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">POSTED WITHIN:</div>
+          <div className="flex flex-wrap gap-1">
+            {[['1 Mo', -1], ['3 Mo', -3], ['6 Mo', -6], ['9 Mo', -9], ['12 Mo', -12]].map(([label, months]) => {
+              const colors = ['from-blue-500 to-cyan-500', 'from-indigo-500 to-purple-500', 'from-violet-500 to-purple-500', 'from-purple-500 to-pink-500', 'from-slate-600 to-slate-800']
+              const idx = ['-1', '-3', '-6', '-9', '-12'].indexOf(String(months))
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    const d = new Date()
+                    d.setMonth(d.getMonth() + (months as number))
+                    setPostedAfter(d.toISOString().split('T')[0])
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold bg-gradient-to-r ${colors[idx]} text-white rounded-lg hover:shadow-md transition-all`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Submission Deadline Date */}
+        <div>
+          <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+            Submission Deadline Date:
+          </label>
+          <input
+            type="date"
+            value={responseDeadlineBefore}
+            onChange={(e) => setResponseDeadlineBefore(e.target.value)}
+            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
+          />
+          <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">DEADLINE WITHIN:</div>
+          <div className="flex flex-wrap gap-1">
+            {[['1 Mo', 1, 'from-rose-500 to-pink-500'], ['3 Mo', 3, 'from-orange-500 to-amber-500'], ['6 Mo', 6, 'from-amber-500 to-yellow-500'], ['9 Mo', 9, 'from-emerald-500 to-teal-500'], ['12 Mo', 12, 'from-cyan-500 to-blue-500']].map(([label, months, color]) => (
+              <button
+                key={label as string}
+                type="button"
+                onClick={() => {
+                  const d = new Date()
+                  d.setMonth(d.getMonth() + (months as number))
+                  setResponseDeadlineBefore(d.toISOString().split('T')[0])
+                }}
+                className={`px-3 py-1.5 text-xs font-bold bg-gradient-to-r ${color} text-white rounded-lg hover:shadow-md transition-all`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Action row: Run / Stop / Save / Alert */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={onRunSearch}
+          disabled={loading}
+          className="inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transition-all shadow-md disabled:opacity-50 whitespace-nowrap"
+        >
+          {loading ? (
+            <><Loader2 className="h-5 w-5 animate-spin" />Searching...</>
+          ) : (
+            <><Search className="h-5 w-5" />RUN QUICK SEARCH</>
+          )}
+        </button>
+        <button
+          onClick={onStopSearch}
+          disabled={!loading}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 text-base font-bold rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+        >
+          <StopCircle className="h-5 w-5" />
+          STOP
+          {loading && searchDuration > 0 && <span className="text-sm opacity-90">({searchDuration}s)</span>}
+        </button>
+        <div className="w-px h-8 bg-blue-300 mx-1 hidden sm:block" />
+        <button
+          onClick={onSaveSearch}
+          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all whitespace-nowrap"
+          aria-label="Save current search"
+        >
+          <Save className="h-4 w-4 flex-shrink-0" />
+          Save Search
+        </button>
+        <button
+          onClick={onCreateAlert}
+          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all whitespace-nowrap"
+          aria-label="Create email alert"
+        >
+          <Bell className="h-4 w-4 flex-shrink-0" />
+          Create Alert
+        </button>
+        <button
+          onClick={onReset}
+          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-800 font-bold text-sm transition-all whitespace-nowrap shadow-sm"
+          aria-label="Reset all fields"
+        >
+          <RefreshCw className="h-4 w-4 flex-shrink-0" />
+          Reset All
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Keep a thin shim so existing call sites compile — unused after JSX update
+interface QuickSearchProps {
+  quickKeyword: string; setQuickKeyword: (v: string) => void
+  quickPostedDate: string; setQuickPostedDate: (v: string) => void
+  quickDeadlineDate: string; setQuickDeadlineDate: (v: string) => void
+  onRunSearch: () => void; onStopSearch: () => void
+  isSearching: boolean; isLoading: boolean
+}
+function QuickSearch(_p: QuickSearchProps) { return null }
+
 // --- Main Component ---
 function SearchPageContent() {
   const router = useRouter()
@@ -1598,6 +1914,10 @@ function SearchPageContent() {
   const [agency, setAgency] = useState('')
   const [setAside, setSetAside] = useState('')
   const [stateOfPerformance, setStateOfPerformance] = useState('')
+  // ✅ QUICK SEARCH STATE
+  const [quickKeyword, setQuickKeyword] = useState('')
+  const [quickPostedDate, setQuickPostedDate] = useState(getSixMonthsAgo())
+  const [quickDeadlineDate, setQuickDeadlineDate] = useState(getOneMonthFromNow())
   
   // Calculate default dates: 6 months back for "from", 1 month ahead for response deadline (both auto-update daily)
   const defaults = useMemo(() => {
@@ -1612,7 +1932,7 @@ function SearchPageContent() {
     }
   }, []) // Recalculates on component mount (each day)
 
-  const [postedAfter, setPostedAfter] = useState(defaults.from)
+  const [postedAfter, setPostedAfter] = useState(getSixMonthsAgo())
   const [postedBefore, setPostedBefore] = useState('') // Removed default - field will be hidden
   const [showDateWarning, setShowDateWarning] = useState(false)
   const [dateWarningMessage, setDateWarningMessage] = useState('')
@@ -1642,16 +1962,25 @@ function SearchPageContent() {
   const [isActive, setIsActive] = useState('') // 'true' | 'false' | '' (all)
   const [activeFilter, setActiveFilter] = useState<string | null>(null) // null = show all; "true"/"false" = subset view
 
+  // ===== ADVANCED SEARCH — client-side filter applied flag =====
+  const [advancedApplied, setAdvancedApplied] = useState(false) // true = filter results client-side
+  // Separate keyword/date fields for Advanced Search client-side filtering
+  const [advKeywords, setAdvKeywords] = useState('')
+  const [advPostedAfter, setAdvPostedAfter] = useState(getSixMonthsAgo())
+  const [advResponseDeadline, setAdvResponseDeadline] = useState(getOneMonthFromNow())
+
   // ===== NEW CRITICAL SEARCH PARAMETERS =====
   // Phase 1: Critical
   const [solicitationNumber, setSolicitationNumber] = useState('') // Priority 1B - Direct lookup
   const [classificationCode, setClassificationCode] = useState('') // Priority 1C - PSC codes
-  const [responseDeadline, setResponseDeadline] = useState(defaults.responseDeadline)// Priority 1A - CRITICAL - Filter by specific deadline date (default: 1 month forward)
+  const [responseDeadline, setResponseDeadline] = useState(getOneMonthFromNow())// Priority 1A - CRITICAL - Filter by specific deadline date (default: 1 month forward)
   // Empty by default - no upper limit
+  const [responseDeadlineAfter, setResponseDeadlineAfter] = useState('')
+  const [responseDeadlineBefore, setResponseDeadlineBefore] = useState(getOneMonthFromNow())
 
   // Phase 2: High Value
   const [noticeId, setNoticeId] = useState('') // Priority 2B - Direct ID
-  const [opportunityStatus, setOpportunityStatus] = useState('') // Priority 2A - Full status filtering
+  const [opportunityStatus, setOpportunityStatus] = useState('active') // Priority 2A - Default to Active status
 
   // Phase 3: Medium Value
   const [placeOfPerformanceZip, setPlaceOfPerformanceZip] = useState('') // Priority 3A - ZIP
@@ -1669,6 +1998,7 @@ function SearchPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<ApiResponse | null>(null)
   const [showFilters, setShowFilters] = useState(true)
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
@@ -2153,7 +2483,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         qs.set('organizationCode', params.organizationCode.trim());
       }
       if (params.setAside && params.setAside.trim() !== '') {
-        qs.set('typeOfSetAsideCode', params.setAside.trim());
+        qs.set('typeOfSetAside', params.setAside.trim());
       }
       if (params.procurementType?.trim()) {
         qs.set('ptype', params.procurementType.trim());
@@ -2278,6 +2608,32 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
     }
   };
 
+  // ✅ NEW: Run Quick Search - Auto-populate advanced fields  
+  const runQuickSearch = useCallback(() => {
+    // Auto-populate advanced search fields from quick search
+    setKeywords(quickKeyword)
+    setPostedAfter(quickPostedDate)
+    setResponseDeadline(quickDeadlineDate)
+    
+    // Also populate advanced search fields so they're in sync
+    setAdvKeywords(quickKeyword)
+    setAdvPostedAfter(quickPostedDate)
+    setAdvResponseDeadline(quickDeadlineDate)
+    
+    // Trigger the actual search
+    runSearch(false)
+  }, [quickKeyword, quickPostedDate, quickDeadlineDate])
+
+  // ✅ NEW: Stop Quick Search
+  const stopQuickSearch = useCallback(() => {
+    setLoading(false)
+    setLoadingMore(false)
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort('Search stopped by user')
+      abortControllerRef.current = null
+    }
+  }, [])
+
   const runSearch = async (isLoadMore = false) => {
     console.log('🔍 runSearch called:', { 
       isLoadMore, 
@@ -2386,7 +2742,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
       
       // SET-ASIDE TYPE - Only filter if user selected a specific set-aside
       if (setAside && setAside.trim() !== '') {
-        qs.set('typeOfSetAsideCode', setAside.trim());
+        qs.set('typeOfSetAside', setAside.trim());
       }
 
       // Procurement Type (ptype)
@@ -2415,16 +2771,19 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
       }
 
       // ===== POSTED DATE RANGE =====
+      // Only apply postedFrom if user has chosen a specific date (not the auto-default of today)
       if (postedAfter.trim()) {
         qs.set('postedFrom', formatDateForAPI(postedAfter.trim()))
       }
+      // postedTo (upper bound on posted date) — only if explicitly set by user
       if (postedBefore.trim()) {
         qs.set('postedTo', formatDateForAPI(postedBefore.trim()))
       }
+      // NOTE: Do NOT add postedTo=today automatically — it restricts to 1 day and filters too aggressively
       
-      // ===== RESPONSE DEADLINE (SPECIFIC DATE) =====
+      // ===== RESPONSE DEADLINE (DEADLINE BY - LESS THAN OR EQUAL TO) =====
       if (responseDeadline.trim()) {
-        qs.set('responseDeadline', formatDateForAPI(responseDeadline.trim()))
+        qs.set('rdlto', formatDateForAPI(responseDeadline.trim()))
       }
       
       // ===== PAGINATION =====
@@ -2572,32 +2931,47 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
 
   // Reset all filters
   const resetAll = () => {
+    // ── Quick Date Lookup card fields ──
+    setQuickKeyword('')
+    setQuickPostedDate(getSixMonthsAgo())
+    setQuickDeadlineDate(getOneMonthFromNow())
+
+    // ── Shared state (synced from Quick Search) ──
     setKeywords('')
+    setPostedAfter(getSixMonthsAgo())
+    setResponseDeadlineBefore(getOneMonthFromNow())
+    setResponseDeadline(getOneMonthFromNow())
+
+    // ── Advanced filter state ──
+    setAdvKeywords('')
+    setAdvPostedAfter(getSixMonthsAgo())
+    setAdvResponseDeadline(getOneMonthFromNow())
+    setAdvancedApplied(false)
+
+    // ── All other filters ──
     setNaics('')
     setAgency('')
     setSetAside('')
     setStateOfPerformance('')
-    setPostedAfter(defaults.from)
     setPostedBefore('')
     setProcurementType('')
     setIsActive('')
-
-    // ===== NEW: Reset enhanced parameters =====
     setSolicitationNumber('')
     setClassificationCode('')
-    setResponseDeadline(defaults.responseDeadline) // Reset to 1 month from today
+    setResponseDeadlineAfter('')
     setNoticeId('')
     setOpportunityStatus('')
     setPlaceOfPerformanceZip('')
     setOrganizationCode('')
+
+    // ── UI state ──
     setError(null)
     setData(null)
     setResultsLimit(DEFAULT_LIMIT)
     setCurrentPage(1)
-    setSortBy('posted-desc')
-    setSortOrder('desc')
-    
-    // Close all drilldowns
+    setSortBy('deadline-asc')
+    setSortOrder('asc')
+    setActiveFilter(null)
     setShowSetAsideDrilldown(false)
     setShowStateDrilldown(false)
     setShowNaicsDrilldown(false)
@@ -2849,28 +3223,174 @@ ${filteredResults.map(opp => `  <opportunity>
   const totalRecords = data?.totalRecords ?? 0
   const results = data?.opportunitiesData ?? []
 
+  // When Quick Search returns results, pre-populate the Advanced Search date/keyword fields
+  // so they're ready to refine — but DON'T auto-apply the advanced filter
+  useEffect(() => {
+    if (results.length > 0) {
+      setAdvKeywords(keywords)
+      setAdvPostedAfter(postedAfter)
+      setAdvResponseDeadline(responseDeadline)
+      setAdvancedApplied(false) // reset so advanced doesn't auto-filter
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]) // fire only when data (search results) change
+
   // Filtered results with memoization - PERFORMANCE OPTIMIZED
+  // ===== APPLY ADVANCED FILTERS (client-side if results exist, API search if not) =====
+  const applyAdvancedFilters = useCallback(() => {
+    if (results.length === 0) {
+      // No Quick Search results loaded — run a full SAM.gov API search using ONLY advanced fields
+      // DO NOT sync to quick search state - keep them separate
+      // We'll use the advanced field values directly in runSearch
+      
+      // Temporarily set the main search state to advanced values
+      const prevKeywords = keywords
+      const prevPostedAfter = postedAfter  
+      const prevResponseDeadline = responseDeadline
+      
+      if (advKeywords) setKeywords(advKeywords)
+      if (advPostedAfter) setPostedAfter(advPostedAfter)
+      if (advResponseDeadline) setResponseDeadline(advResponseDeadline)
+      
+      // Defer to next tick so state is flushed before runSearch reads it
+      setTimeout(() => {
+        runSearch(false)
+        // Don't restore - let advanced values persist
+      }, 0)
+    } else {
+      // Results already loaded — filter client-side, no API call
+      if (!advPostedAfter) setAdvPostedAfter(postedAfter)
+      if (!advResponseDeadline) setAdvResponseDeadline(responseDeadline)
+      if (!advKeywords) setAdvKeywords(keywords)
+      setAdvancedApplied(true)
+      setActiveFilter(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results.length, advPostedAfter, advResponseDeadline, advKeywords, postedAfter, responseDeadline, keywords, setAside, naics, stateOfPerformance])
+
+  const clearAdvancedFilters = useCallback(() => {
+    setAdvancedApplied(false)
+    setActiveFilter(null)
+  }, [])
+
   const filteredResults = useMemo(() => {
     let arr = results.slice()
 
-    // Filter by active/inactive subset pill (client-side, after results are loaded)
-    if (activeFilter !== null) {
+    // ── ALWAYS filter by set-aside if selected (SAM.gov API doesn't filter reliably) ──
+    if (setAside.trim()) {
       arr = arr.filter(o => {
-        const isActiveOpp = o.active === "Yes" || o.active === "true" || o.active === (true as any)
-        return activeFilter === "true" ? isActiveOpp : !isActiveOpp
+        const oppSetAside = (o.typeOfSetAside || o.setAside || o.setAsideCode || '').toUpperCase()
+        return oppSetAside === setAside.toUpperCase()
       })
     }
 
-    // DO NOT FILTER BY: agency, setAside, naics, or stateOfPerformance
-    // These are already filtered by the SAM.gov API
+    // ── ALWAYS filter by status if selected ──
+    // NOTE: Only filter OUT if explicitly inactive/archived - assume active if field missing
+    if (opportunityStatus.trim() && opportunityStatus.toLowerCase() !== 'active') {
+      // User selected a specific non-active status (archived, cancelled, etc.)
+      arr = arr.filter(o => {
+        const oppActive = (o.active || '').toString().toLowerCase()
+        const oppStatus = (o.status || '').toLowerCase()
+        return oppActive === opportunityStatus.toLowerCase() || oppStatus === opportunityStatus.toLowerCase()
+      })
+    }
+    // If status is "active" (default), don't filter - SAM.gov doesn't always include status field
 
-    // Apply sorting (this doesn't filter, just reorders)
+    if (advancedApplied) {
+      // ── Client-side advanced filtering ──
+
+      // Keyword match (title or description)
+      const kw = advKeywords.trim().toLowerCase()
+      if (kw) {
+        arr = arr.filter(o =>
+          (o.title || '').toLowerCase().includes(kw) ||
+          (o.description || '').toLowerCase().includes(kw)
+        )
+      }
+
+      // Agency
+      if (agency.trim()) {
+        const ag = agency.trim().toLowerCase()
+        arr = arr.filter(o =>
+          (o.organizationName || '').toLowerCase().includes(ag) ||
+          (o.fullParentPathName || '').toLowerCase().includes(ag)
+        )
+      }
+
+      // NAICS
+      if (naics.trim()) {
+        arr = arr.filter(o =>
+          (o.naicsCode || '').startsWith(naics.trim())
+        )
+      }
+
+      // PSC / Classification code
+      if (classificationCode.trim()) {
+        arr = arr.filter(o =>
+          (o.classificationCode || '').toLowerCase().startsWith(classificationCode.trim().toLowerCase())
+        )
+      }
+
+      // State
+      if (stateOfPerformance.trim()) {
+        arr = arr.filter(o =>
+          (o.placeOfPerformance?.state?.code || '').toUpperCase() === stateOfPerformance.toUpperCase()
+        )
+      }
+
+      // Procurement Type
+      if (procurementType.trim()) {
+        arr = arr.filter(o =>
+          (o.type || '').toLowerCase().startsWith(procurementType.toLowerCase()) ||
+          (o.baseType || '').toLowerCase().startsWith(procurementType.toLowerCase())
+        )
+      }
+
+      // Solicitation number
+      if (solicitationNumber.trim()) {
+        arr = arr.filter(o =>
+          (o.solicitationNumber || '').toLowerCase().includes(solicitationNumber.trim().toLowerCase())
+        )
+      }
+
+      // Organization code
+      if (organizationCode.trim()) {
+        arr = arr.filter(o =>
+          (o.organizationId || '').toLowerCase().includes(organizationCode.trim().toLowerCase())
+        )
+      }
+
+      // Posted date (from)
+      if (advPostedAfter) {
+        const from = new Date(advPostedAfter).getTime()
+        arr = arr.filter(o => {
+          const d = new Date(o.postedDate || 0).getTime()
+          return d >= from
+        })
+      }
+
+      // Response deadline (up to)
+      if (advResponseDeadline) {
+        const to = new Date(advResponseDeadline).getTime()
+        arr = arr.filter(o => {
+          const d = new Date(o.responseDeadLine || 0).getTime()
+          return d <= to
+        })
+      }
+    } else {
+      // Filter by active/inactive subset pill only
+      if (activeFilter !== null) {
+        arr = arr.filter(o => {
+          const isActiveOpp = o.active === "Yes" || o.active === "true" || o.active === (true as any)
+          return activeFilter === "true" ? isActiveOpp : !isActiveOpp
+        })
+      }
+    }
+
+    // Apply sorting (always)
     arr.sort((a, b) => {
       let aVal, bVal
-      
-      // Extract the field and direction from sortBy (e.g., "posted-desc" -> "posted", "desc")
       const [field, direction] = sortBy.split('-')
-      
       switch (field) {
         case 'deadline':
           aVal = new Date(a.responseDeadLine || 0).getTime()
@@ -2882,16 +3402,16 @@ ${filteredResults.map(opp => `  <opportunity>
           break
         case 'relevance':
         default:
-          // For relevance, maintain API order (no sorting)
           return 0
       }
-      
-      // Use the direction from the sortBy value (desc or asc)
       return direction === 'asc' ? aVal - bVal : bVal - aVal
     })
 
     return arr
-  }, [results, sortBy, activeFilter])
+  }, [results, sortBy, activeFilter, advancedApplied,
+      advKeywords, advPostedAfter, advResponseDeadline,
+      agency, setAside, naics, classificationCode, stateOfPerformance,
+      procurementType, opportunityStatus, solicitationNumber, organizationCode])
 
   // Summary statistics - ENHANCED with detailed breakdowns
   const summaryStats = useMemo(() => {
@@ -3004,70 +3524,79 @@ ${filteredResults.map(opp => `  <opportunity>
           {/* Welcome Banner for Authenticated Users */}
           
           <ProfileCompletionReminder />
-          {/* Enhanced Welcome Banner */}
-          <div className="mb-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <div className="flex flex-wrap items-center gap-3">
+          {/* Enhanced Welcome Banner - MORE PROMINENT */}
+          <div className="mb-6 rounded-2xl border-2 border-blue-400 bg-gradient-to-r from-white to-blue-50 px-6 py-5 shadow-lg">
+            <div className="flex flex-wrap items-center gap-4">
               {/* Icon + title */}
-              <div className="flex items-center gap-2.5 flex-shrink-0">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                  <Search className="h-4 w-4 text-white" />
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                  <Search className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-sm font-bold text-gray-900 leading-none flex items-center gap-1.5">
-                    Precise Govcon Bid Search
-                    <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full">
+                  <h1 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xl font-bold text-gray-900 leading-none flex items-center gap-2">
+                    Welcome to Precise Govcon Bid Search
+                    <span className="px-2 py-1 text-xs font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full shadow-sm">
                       Pro
                     </span>
                   </h1>
-                  <p className="text-[11px] text-gray-500 mt-0.5 hidden sm:block">
+                  <p style={{ fontFamily: 'Aptos, sans-serif' }} className="text-sm text-gray-700 mt-1 font-semibold">
                     Find, analyze, and track federal contracting opportunities
                   </p>
                 </div>
               </div>
 
-              {/* Feature dots — hidden on small screens */}
-              <div className="hidden lg:flex items-center gap-3 text-xs text-gray-500">
-                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 inline-block" />Real-time SAM.gov</span>
-                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 inline-block" />Advanced filtering</span>
-                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 inline-block" />Export ready</span>
+              {/* Feature dots — visible on medium screens and up */}
+              <div className="hidden md:flex items-center gap-4 text-sm text-gray-700 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 inline-block" />
+                  Real-time SAM.gov
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 inline-block" />
+                  Advanced filtering
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 inline-block" />
+                  Export ready
+                </span>
               </div>
 
               {/* Buttons — pushed to the right */}
               <div className="flex items-center gap-2 ml-auto flex-wrap">
                 <button
                   onClick={() => handleOpenSaveModal('save')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all text-xs"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold hover:shadow-lg transition-all text-sm"
                   aria-label="Save current search"
                 >
-                  <Save className="h-3.5 w-3.5 flex-shrink-0" />
+                  <Save className="h-4 w-4 flex-shrink-0" />
                   Save Search
                 </button>
 
                 <button
                   onClick={() => handleOpenSaveModal('alert')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all text-xs"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold hover:shadow-lg transition-all text-sm"
                   aria-label="Create email alert"
                 >
-                  <Bell className="h-3.5 w-3.5 flex-shrink-0" />
+                  <Bell className="h-4 w-4 flex-shrink-0" />
                   Create Alert
                 </button>
 
                 <Link href="/alerts">
                   <button
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all text-xs"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 hover:shadow-lg transition-all text-sm"
                     aria-label="Manage alerts"
                   >
-                    <Settings className="h-3.5 w-3.5 flex-shrink-0" />
+                    <Settings className="h-4 w-4 flex-shrink-0" />
                     Manage Alerts
                   </button>
                 </Link>
 
                 <Link href="/dashboard">
                   <button
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-gray-700 border border-gray-200 font-semibold hover:bg-gray-50 transition-all text-xs"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-gray-900 border-2 border-gray-400 font-bold hover:bg-gray-50 hover:shadow-lg transition-all text-sm"
                     aria-label="View dashboard"
                   >
-                    <BarChart3 className="h-3.5 w-3.5 flex-shrink-0" />
+                    <BarChart3 className="h-4 w-4 flex-shrink-0" />
                     Dashboard
                   </button>
                 </Link>
@@ -3312,16 +3841,33 @@ ${filteredResults.map(opp => `  <opportunity>
             />
           </div>
 
+          {/* ✅ QUICK DATE LOOKUP — standalone card above Advanced Filters */}
+          <QuickDateLookup
+            keywords={keywords}
+            setKeywords={setKeywords}
+            postedAfter={postedAfter}
+            setPostedAfter={setPostedAfter}
+            responseDeadlineBefore={responseDeadlineBefore}
+            setResponseDeadlineBefore={setResponseDeadlineBefore}
+            onRunSearch={() => runSearch(false)}
+            onStopSearch={stopSearch}
+            onReset={resetAll}
+            loading={loading}
+            searchDuration={searchDuration}
+            onSaveSearch={() => handleOpenSaveModal('save')}
+            onCreateAlert={() => handleOpenSaveModal('alert')}
+          />
+
           {/* Enhanced Search Filters - IMPROVED COMPACT VERSION */}
-          <div ref={filtersRef} className="mb-4 rounded-lg border-2 border-gray-300 bg-white shadow-lg p-3 sm:p-4">
+          <div ref={filtersRef} className="mb-4 rounded-lg border-2 border-lime-400 bg-white shadow-lg p-3 sm:p-4">
             <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b-2 border-gray-200">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
-                  <SlidersHorizontal className="h-4 w-4 text-white" />
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-gradient-to-br from-lime-500 to-emerald-500 shadow-lg">
+                  <SlidersHorizontal className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Advanced Search Filters</h2>
-                  <p className="text-xs font-semibold text-gray-600">Set filters and click "Search Opportunities"</p>
+                  <h2 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-2xl font-bold text-green-900 uppercase tracking-wide">Advanced Search Filters</h2>
+                  <p style={{ fontFamily: 'Aptos, sans-serif' }} className="text-sm font-semibold text-gray-700">Refine your search with detailed filters</p>
                 </div>
               </div>
               
@@ -3338,136 +3884,159 @@ ${filteredResults.map(opp => `  <opportunity>
 
             {showFilters && (
               <div className="space-y-3">
-                
-                {/* Quick Date Presets - VIBRANT BUTTONS */}
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <label className="block text-sm font-bold text-orange-600 mb-2">Quick Date Lookup</label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const today = new Date()
-                        const from = new Date()
-                        from.setMonth(from.getMonth() - 1)
-                        setPostedAfter(from.toISOString().split('T')[0])
-                        setPostedBefore(today.toISOString().split('T')[0])
-                        setShowDateWarning(false)
-                      }}
-                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all"
-                      aria-label="Last 1 month"
-                    >
-                      1 Mo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const today = new Date()
-                        const from = new Date()
-                        from.setMonth(from.getMonth() - 3)
-                        setPostedAfter(from.toISOString().split('T')[0])
-                        setPostedBefore(today.toISOString().split('T')[0])
-                        setShowDateWarning(false)
-                      }}
-                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
-                      aria-label="Last 3 months"
-                    >
-                      3 Mo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const today = new Date()
-                        const from = new Date()
-                        from.setMonth(from.getMonth() - 6)
-                        setPostedAfter(from.toISOString().split('T')[0])
-                        setPostedBefore(today.toISOString().split('T')[0])
-                        setShowDateWarning(false)
-                      }}
-                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition-all"
-                      aria-label="Last 6 months"
-                    >
-                      6 Mo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const today = new Date()
-                        const from = new Date()
-                        from.setMonth(from.getMonth() - 9)
-                        setPostedAfter(from.toISOString().split('T')[0])
-                        setPostedBefore(today.toISOString().split('T')[0])
-                        setShowDateWarning(false)
-                      }}
-                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-all"
-                      aria-label="Last 9 months"
-                    >
-                      9 Mo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const today = new Date()
-                        const from = new Date()
-                        from.setDate(from.getDate() - 364)
-                        setPostedAfter(from.toISOString().split('T')[0])
-                        setPostedBefore(today.toISOString().split('T')[0])
-                        setShowDateWarning(false)
-                      }}
-                      className="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all"
-                      aria-label="Last year"
-                    >
-                      1 Year
-                    </button>
-                  </div>
-                </div>
 
-                {/* Main Filters - 4 COLUMN RESPONSIVE GRID */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {/* Keywords */}
+                {/* Flow status banner */}
+                {advancedApplied ? (
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-bold shadow">
+                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>Advanced filters active — showing {filteredResults.length.toLocaleString()} of {results.length.toLocaleString()} results.</span>
+                  </div>
+                ) : results.length > 0 ? (
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold shadow">
+                    <Info className="h-4 w-4 flex-shrink-0" />
+                    <span>{results.length.toLocaleString()} results loaded. Set filters below then click <span className="underline">APPLY ADVANCED FILTERS</span> — no extra API call.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 px-6 py-5 rounded-xl text-white shadow-lg" style={{ background: 'linear-gradient(90deg, #1e40af 0%, #1e3a8a 100%)' }}>
+                    <Info className="h-7 w-7 flex-shrink-0 text-blue-200" />
+                    <span className="flex-1 text-lg font-bold leading-snug">
+                      Set any filters below and click <span className="underline font-extrabold text-yellow-300">RUN ADVANCED SEARCH</span> to query SAM.gov directly — or use Quick Search above first to load results and filter them here.
+                    </span>
+                  </div>
+                )}
+
+                {/* Advanced Filters — 6 columns × 2 rows */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+
+                  {/* ── ROW 1 — Keywords + dates with quick-fills first, then remaining ── */}
+
+                  {/* 1. Keywords */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Keywords</label>
-                    <div onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        runSearch(false)
-                      }
-                    }} className="relative">
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Keywords</label>
+                    <div onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyAdvancedFilters() } }} className="relative">
                       <Input
-                        value={keywords}
-                        onChange={setKeywords}
+                        value={advKeywords}
+                        onChange={setAdvKeywords}
                         placeholder="e.g., 'Data Analytics'"
                         icon={<Search className="h-4 w-4" />}
                       />
-                      {keywords !== debouncedKeywords && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {/* Set-Aside */}
+                  {/* 2. Posted Date — with quick-fill month buttons */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Set-Aside</label>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Solicitation Posted Date</label>
+                    <input
+                      type="date"
+                      value={advPostedAfter}
+                      onChange={(e) => setAdvPostedAfter(e.target.value)}
+                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
+                      aria-label="Posted after date"
+                    />
+                    <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-600 mb-1">POSTED WITHIN:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {([['1 Mo', -1, 'from-blue-500 to-cyan-500'], ['3 Mo', -3, 'from-indigo-500 to-purple-500'], ['6 Mo', -6, 'from-violet-500 to-purple-500'], ['9 Mo', -9, 'from-purple-500 to-pink-500'], ['12 Mo', -12, 'from-slate-600 to-slate-800']] as [string, number, string][]).map(([label, months, color]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            const d = new Date()
+                            d.setMonth(d.getMonth() + months)
+                            setAdvPostedAfter(d.toISOString().split('T')[0])
+                          }}
+                          className={`px-2.5 py-1 text-xs font-bold bg-gradient-to-r ${color} text-white rounded-lg hover:shadow-md transition-all`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. Response Deadline — with quick-fill month buttons */}
+                  <div>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Response Deadline</label>
+                    <input
+                      type="date"
+                      value={advResponseDeadline}
+                      onChange={(e) => setAdvResponseDeadline(e.target.value)}
+                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
+                      aria-label="Response deadline date filter"
+                    />
+                    <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-600 mb-1">DEADLINE WITHIN:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {([['1 Mo', 1, 'from-rose-500 to-pink-500'], ['3 Mo', 3, 'from-orange-500 to-amber-500'], ['6 Mo', 6, 'from-amber-500 to-yellow-500'], ['9 Mo', 9, 'from-emerald-500 to-teal-500'], ['12 Mo', 12, 'from-cyan-500 to-blue-500']] as [string, number, string][]).map(([label, months, color]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            const d = new Date()
+                            d.setMonth(d.getMonth() + months)
+                            setAdvResponseDeadline(d.toISOString().split('T')[0])
+                          }}
+                          className={`px-2.5 py-1 text-xs font-bold bg-gradient-to-r ${color} text-white rounded-lg hover:shadow-md transition-all`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Set-Aside */}
+                  <div>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Set-Aside</label>
                     <select
                       value={setAside}
                       onChange={(e) => setSetAside(e.target.value)}
-                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
                       aria-label="Set-aside type filter"
                     >
-                      {SET_ASIDE_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
+                      <option value="">Any Set-Aside</option>
+                      <option value="8A">8(a) Set-Aside (FAR 19.8)</option>
+                      <option value="8AN">8(a) Sole Source (FAR 19.8)</option>
+                      <option value="BICiv">Buy Indian Set-Aside (IHS)</option>
+                      <option value="EDWOSB">EDWOSB Set-Aside (FAR 19.15)</option>
+                      <option value="EDWOSBSS">EDWOSB Sole Source (FAR 19.15)</option>
+                      <option value="HZC">HUBZone Set-Aside (FAR 19.13)</option>
+                      <option value="HZS">HUBZone Sole Source (FAR 19.13)</option>
+                      <option value="IEE">Indian Economic Enterprise (Interior)</option>
+                      <option value="ISBEE">Indian Small Business EE (Interior)</option>
+                      <option value="LAS">Local Area Set-Aside (FAR 26.2)</option>
+                      <option value="SBA">Total Small Business (FAR 19.5)</option>
+                      <option value="SBP">Partial Small Business (FAR 19.5)</option>
+                      <option value="SDVOSBC">SDVOSB Set-Aside (FAR 19.14)</option>
+                      <option value="SDVOSBS">SDVOSB Sole Source (FAR 19.14)</option>
+                      <option value="VSA">Veteran-Owned SB Set-Aside (VA)</option>
+                      <option value="VSS">Veteran-Owned SB Sole Source (VA)</option>
+                      <option value="WOSB">WOSB Set-Aside (FAR 19.15)</option>
+                      <option value="WOSBSS">WOSB Sole Source (FAR 19.15)</option>
                     </select>
                   </div>
 
-                  {/* State */}
+                  {/* 5. Status */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">State/Territory</label>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Status</label>
+                    <select
+                      value={opportunityStatus}
+                      onChange={(e) => setOpportunityStatus(e.target.value)}
+                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      aria-label="Opportunity status filter"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="active">Active</option>
+                      <option value="archived">Archived</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="deleted">Deleted</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  {/* 6. State / Territory */}
+                  <div>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">State / Territory</label>
                     <select
                       value={stateOfPerformance}
                       onChange={(e) => setStateOfPerformance(e.target.value)}
-                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
                       aria-label="State filter"
                     >
                       {US_STATES.map(state => (
@@ -3476,20 +4045,44 @@ ${filteredResults.map(opp => `  <opportunity>
                     </select>
                   </div>
 
-                  {/* Agency */}
+                  {/* ── ROW 2 ── */}
+
+                  {/* 7. Procurement Type */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Agency/Department</label>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Procurement Type</label>
+                    <select
+                      value={procurementType}
+                      onChange={(e) => setProcurementType(e.target.value)}
+                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
+                      aria-label="Procurement type filter"
+                    >
+                      <option value="">All Types</option>
+                      <option value="a">Award Notice</option>
+                      <option value="k">Combined Synopsis/Solicitation</option>
+                      <option value="i">Intent to Bundle (DoD)</option>
+                      <option value="u">Justification (J&amp;A)</option>
+                      <option value="p">Pre-Solicitation</option>
+                      <option value="g">Sale of Surplus Property</option>
+                      <option value="o">Solicitation</option>
+                      <option value="s">Special Notice</option>
+                      <option value="r">Sources Sought</option>
+                    </select>
+                  </div>
+
+                  {/* 8. Agency / Department */}
+                  <div>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Agency / Department</label>
                     <Input
                       value={agency}
                       onChange={setAgency}
-                      placeholder="e.g., Department of Defense"
+                      placeholder="e.g., Dept of Defense"
                       icon={<Building2 className="h-4 w-4" />}
                     />
                   </div>
 
-                  {/* NAICS */}
+                  {/* 9. NAICS Code */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">NAICS Code</label>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">NAICS Code</label>
                     <Input
                       value={naics}
                       onChange={setNaics}
@@ -3498,9 +4091,9 @@ ${filteredResults.map(opp => `  <opportunity>
                     />
                   </div>
 
-                  {/* PSC Code */}
+                  {/* 10. PSC Code */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">PSC Code</label>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">PSC Code</label>
                     <Input
                       value={classificationCode}
                       onChange={setClassificationCode}
@@ -3509,119 +4102,9 @@ ${filteredResults.map(opp => `  <opportunity>
                     />
                   </div>
 
-                  {/* Procurement Type */}
+                  {/* 11. Solicitation Number */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Procurement Type</label>
-                    <select
-                      value={procurementType}
-                      onChange={(e) => setProcurementType(e.target.value)}
-                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                      aria-label="Procurement type filter"
-                    >
-                      <option value="">All Types</option>
-                      <option value="o">Solicitation</option>
-                      <option value="p">Pre-solicitation</option>
-                      <option value="a">Award Notice</option>
-                      <option value="r">Sources Sought</option>
-                      <option value="s">Special Notice</option>
-                      <option value="u">Justification (J&amp;A)</option>
-                      <option value="k">Combined Synopsis/Solicitation</option>
-                      <option value="g">Sale of Surplus Property</option>
-                      <option value="i">Intent to Bundle (DoD)</option>
-                    </select>
-                  </div>
-
-                  {/* Status */}
-                  <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Status</label>
-                    <select
-                      value={opportunityStatus}
-                      onChange={(e) => setOpportunityStatus(e.target.value)}
-                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                      aria-label="Opportunity status filter"
-                    >
-                      <option value="">All Statuses</option>
-                      <option value="active">Active Only</option>
-                      <option value="inactive">Inactive Only</option>
-                      <option value="archived">Archived</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Date Range - COMPACT */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Posted From</label>
-                    <input
-                      type="date"
-                      value={postedAfter}
-                      onChange={(e) => {
-                        setPostedAfter(e.target.value)
-                        if (postedBefore) validateDateRange(e.target.value, postedBefore)
-                      }}
-                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
-                      aria-label="Posted after date"
-                    />
-                  </div>
-                  {/* Posted To field hidden - not needed as results show all current opportunities */}
-                </div>
-
-                {/* Quick Date Fill Buttons */}
-                <div className="mt-3">
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Quick Search by Posted Date:
-                  </label>
-                  <p className="text-xs text-gray-600 mb-2">
-                    Find opportunities posted in the last [timeframe] without detailed filtering
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { months: 1, label: '1 Month', description: 'Last 30 days' },
-                      { months: 3, label: '3 Months', description: 'Last 90 days' },
-                      { months: 6, label: '6 Months', description: 'Last 180 days' },
-                      { months: 9, label: '9 Months', description: 'Last 270 days' },
-                      { months: 12, label: '12 Months', description: 'Last year' },
-                    ].map(({ months, label, description }) => (
-                      <button
-                        key={months}
-                        type="button"
-                        onClick={() => {
-                          const date = new Date()
-                          date.setMonth(date.getMonth() - months)
-                          setPostedAfter(date.toISOString().split('T')[0])
-                          // Clear other filters for quick search
-                          setKeywords('')
-                          setNaics('')
-                          setAgency('')
-                          setSetAside('')
-                        }}
-                        className="px-3 py-1.5 rounded-lg border-2 border-gray-300 hover:border-emerald-500 hover:bg-emerald-50 text-sm font-medium transition-colors"
-                        title={description}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Additional Fields */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Response Deadline Date</label>
-                    <input
-                      type="date"
-                      value={responseDeadline}
-                      onChange={(e) => setResponseDeadline(e.target.value)}
-                      placeholder="Furthest deadline date (ceiling)"
-                      className="w-full px-3 py-2 text-sm font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
-                      aria-label="Response deadline date filter"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Opportunities with deadlines on or before this date</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Solicitation Number</label>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Solicitation Number</label>
                     <Input
                       value={solicitationNumber}
                       onChange={setSolicitationNumber}
@@ -3630,143 +4113,156 @@ ${filteredResults.map(opp => `  <opportunity>
                     />
                   </div>
 
+                  {/* 12. Organization Code */}
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Notice ID</label>
-                    <Input
-                      value={noticeId}
-                      onChange={setNoticeId}
-                      placeholder="e.g., abc123def456"
-                      icon={<Hash className="h-4 w-4" />}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">Organization Code</label>
+                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Organization Code</label>
                     <Input
                       value={organizationCode}
                       onChange={setOrganizationCode}
-                      placeholder="Optional - specific org code"
+                      placeholder="e.g., DOD, HHS"
                       icon={<Building className="h-4 w-4" />}
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-1">ZIP Code</label>
-                    <Input
-                      value={placeOfPerformanceZip}
-                      onChange={setPlaceOfPerformanceZip}
-                      placeholder="e.g., 22101"
-                      icon={<MapPin className="h-4 w-4" />}
-                    />
-                  </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2 pt-2 border-t border-gray-200">
-                  {!loading ? (
-                    <Button
-                      variant="primary"
-                      onClick={() => runSearch(false)}
-                      loading={loading}
-                      icon={<Search className="h-4 w-4" />}
-                      aria-label="Search opportunities"
-                    >
-                      Search Opportunities
-                    </Button>
-                  ) : (
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+                  <button
+                    onClick={applyAdvancedFilters}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label={results.length === 0 ? 'Run SAM.gov search using advanced fields' : 'Filter loaded results with advanced fields'}
+                    title={results.length === 0 ? 'Runs a new SAM.gov search using these fields' : 'Filters the already-loaded results client-side'}
+                  >
+                    {results.length === 0 ? (
+                      <><Search className="h-4 w-4" />RUN ADVANCED SEARCH</>
+                    ) : advancedApplied ? (
+                      <><Filter className="h-4 w-4" />UPDATE FILTERS</>
+                    ) : (
+                      <><Filter className="h-4 w-4" />APPLY ADVANCED FILTERS</>
+                    )}
+                  </button>
+
+                  {advancedApplied && (
                     <button
-                      onClick={stopSearch}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg animate-pulse transition-all border-2 border-red-800"
-                      aria-label="Stop search"
+                      onClick={clearAdvancedFilters}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-white border-2 border-gray-400 text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+                      aria-label="Clear advanced filters"
                     >
-                      <StopCircle className="h-4 w-4" />
-                      <span>STOP SEARCH</span>
-                      {searchDuration > 0 && (
-                        <span className="text-xs opacity-90">({searchDuration}s)</span>
-                      )}
+                      <X className="h-4 w-4" />
+                      CLEAR FILTERS
                     </button>
                   )}
+
+                  {/* Save Search */}
+                  <button
+                    onClick={() => handleOpenSaveModal('save')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 transition-all shadow-md"
+                    aria-label="Save current search"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save Search
+                  </button>
+
+                  {/* Create Alert */}
+                  <button
+                    onClick={() => handleOpenSaveModal('alert')}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:shadow-lg hover:shadow-violet-500/25 transition-all shadow-md"
+                    aria-label="Create email alert"
+                  >
+                    <Bell className="h-4 w-4" />
+                    Create Alert
+                  </button>
                   
-                  <Button
-                    variant="secondary"
+                  <button
                     onClick={resetAll}
                     disabled={loading}
-                    icon={<RefreshCw className="h-4 w-4" />}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-900 transition-all shadow-sm disabled:opacity-50"
                     aria-label="Reset all filters"
                   >
+                    <RefreshCw className="h-3.5 w-3.5" />
                     Reset All
-                  </Button>
+                  </button>
                   
-                  {/* Export Section - Improved */}
-                  <div className="ml-auto">
-                    <div className="mb-2">
-                      <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-                        <Download className="h-3.5 w-3.5" />
-                        Export Results
-                      </h4>
-                      <p className="text-xs text-gray-500 mt-0.5">Download in your preferred format</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={exportCsv}
-                        disabled={!filteredResults.length || loading}
-                        title="Download as CSV (Excel-compatible spreadsheet)"
-                        className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        CSV
-                      </button>
-                      
-                      <button
-                        onClick={exportJson}
-                        disabled={!filteredResults.length || loading}
-                        title="Download as JSON (for developers and integrations)"
-                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        JSON
-                      </button>
-
-                      <button
-                        onClick={exportTxt}
-                        disabled={!filteredResults.length || loading}
-                        title="Download as plain text file"
-                        className="px-3 py-1.5 rounded-lg bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        TXT
-                      </button>
-
-                      <button
-                        onClick={exportXml}
-                        disabled={!filteredResults.length || loading}
-                        title="Download as XML (structured data)"
-                        className="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        XML
-                      </button>
-
-                      <button
-                        onClick={exportBinary}
-                        disabled={!filteredResults.length || loading}
-                        title="Download as binary file (advanced)"
-                        className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      >
-                        <Database className="h-3.5 w-3.5" />
-                        Binary
-                      </button>
-
-                      <button
-                        onClick={exportEmail}
-                        disabled={!filteredResults.length || loading}
-                        title="Email results to yourself"
-                        className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        Email
-                      </button>
-                    </div>
+                  {/* Export/Share Dropdown */}
+                  <div className="ml-auto relative">
+                    <button
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      disabled={!filteredResults.length || loading}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-900 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Export and share options"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      Export / Share
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showExportMenu && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                        <div className="px-3 py-2 border-b border-gray-200">
+                          <p className="text-xs font-bold text-gray-900">Export Results</p>
+                          <p className="text-xs text-gray-500">Download in your preferred format</p>
+                        </div>
+                        
+                        <button
+                          onClick={() => { exportCsv(); setShowExportMenu(false); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
+                        >
+                          <Download className="h-4 w-4 text-green-600" />
+                          <div>
+                            <div className="font-semibold">CSV</div>
+                            <div className="text-xs text-gray-500">Excel-compatible spreadsheet</div>
+                          </div>
+                        </button>
+                        
+                        <button
+                          onClick={() => { exportJson(); setShowExportMenu(false); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
+                        >
+                          <Download className="h-4 w-4 text-blue-600" />
+                          <div>
+                            <div className="font-semibold">JSON</div>
+                            <div className="text-xs text-gray-500">For developers & integrations</div>
+                          </div>
+                        </button>
+                        
+                        <button
+                          onClick={() => { exportTxt(); setShowExportMenu(false); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
+                        >
+                          <FileText className="h-4 w-4 text-gray-600" />
+                          <div>
+                            <div className="font-semibold">TXT</div>
+                            <div className="text-xs text-gray-500">Plain text file</div>
+                          </div>
+                        </button>
+                        
+                        <button
+                          onClick={() => { exportXml(); setShowExportMenu(false); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
+                        >
+                          <FileText className="h-4 w-4 text-orange-600" />
+                          <div>
+                            <div className="font-semibold">XML</div>
+                            <div className="text-xs text-gray-500">Structured data format</div>
+                          </div>
+                        </button>
+                        
+                        <div className="border-t border-gray-200 my-1"></div>
+                        
+                        <button
+                          onClick={() => { exportEmail(); setShowExportMenu(false); }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
+                        >
+                          <MessageSquare className="h-4 w-4 text-cyan-600" />
+                          <div>
+                            <div className="font-semibold">Email Results</div>
+                            <div className="text-xs text-gray-500">Send via email</div>
+                          </div>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -3825,7 +4321,6 @@ ${filteredResults.map(opp => `  <opportunity>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                            <Sparkles className="h-4 w-4 text-blue-500" />
                             Found opportunities you like?
                           </h3>
                           <button
@@ -3902,29 +4397,151 @@ ${filteredResults.map(opp => `  <opportunity>
                   </div>
                 )}
 
-                {/* 🆕 Active Filters Summary - Shows what's currently filtering results */}
+                {/* ── Search Parameters Summary — always visible when results exist ── */}
                 {data && (
-                  <div className="bg-blue-600 border border-blue-500 rounded-xl p-4 shadow-md">
-                    <div className="flex items-start gap-3">
-                      <Info className="h-5 w-5 text-white flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <h3 className="text-base font-bold text-white mb-2">Active Search Filters</h3>
-                        <div className="space-y-1.5 text-sm text-blue-100">
-                          {keywords && <div>• <strong>Title Search:</strong> "{keywords}"</div>}
-                          {naics && <div>• <strong>NAICS Code:</strong> {naics}</div>}
-                          {agency && <div>• <strong>Agency:</strong> {agency}</div>}
-                          {setAside && <div>• <strong>Set-Aside:</strong> {SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}</div>}
-                          {stateOfPerformance && <div>• <strong>State:</strong> {US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}</div>}
-                          {responseDeadline && (
-                            <div className="text-yellow-200">• <strong>Response Deadline:</strong> {responseDeadline}</div>
+                  <div className="rounded-xl border-2 border-blue-800 bg-blue-900 shadow-lg p-5">
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <Search className="h-5 w-5 text-blue-300 flex-shrink-0" />
+                      <span className="text-base font-extrabold text-white uppercase tracking-widest">
+                        {advancedApplied ? 'Quick Search + Advanced Filters Applied' : 'Quick Search Parameters'}
+                      </span>
+                      {advancedApplied && (
+                        <span className="ml-auto px-3 py-1 rounded-full bg-emerald-500 text-white text-sm font-extrabold whitespace-nowrap">
+                          FILTERED: {filteredResults.length} of {results.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ── SECTION 1: Quick Search fields — always shown ── */}
+                    <div className="flex flex-wrap gap-3 mb-3">
+
+                      {/* Keyword */}
+                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-700 border-2 border-blue-500">
+                        <Search className="h-4 w-4 text-blue-200 flex-shrink-0" />
+                        <span className="text-sm font-extrabold text-blue-200 uppercase tracking-wide">Keyword:</span>
+                        <span className="text-base font-extrabold text-white">
+                          {keywords ? `"${keywords}"` : <span className="text-blue-300 italic font-semibold">Any</span>}
+                        </span>
+                      </div>
+
+                      {/* Posted From */}
+                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-700 border-2 border-blue-500">
+                        <Calendar className="h-4 w-4 text-blue-200 flex-shrink-0" />
+                        <span className="text-sm font-extrabold text-blue-200 uppercase tracking-wide">Posted From:</span>
+                        <span className="text-base font-extrabold text-white">
+                          {postedAfter ? formatDate(postedAfter) : <span className="text-blue-300 italic font-semibold">Any</span>}
+                        </span>
+                      </div>
+
+                      {/* Submission Deadline */}
+                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-700 border-2 border-amber-500">
+                        <Clock className="h-4 w-4 text-amber-200 flex-shrink-0" />
+                        <span className="text-sm font-extrabold text-amber-200 uppercase tracking-wide">Deadline By:</span>
+                        <span className="text-base font-extrabold text-white">
+                          {responseDeadlineBefore ? formatDate(responseDeadlineBefore) : <span className="text-amber-300 italic font-semibold">Any</span>}
+                        </span>
+                      </div>
+
+                    </div>
+
+                    {/* ── SECTION 2: Advanced filters — only shown when applied ── */}
+                    {advancedApplied && (
+                      <>
+                        <div className="border-t-2 border-emerald-700 my-3" />
+                        <div className="text-sm font-extrabold text-emerald-300 uppercase tracking-widest mb-3">Advanced Filters Active</div>
+                        <div className="flex flex-wrap gap-3">
+
+                          {advKeywords && advKeywords !== keywords && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Search className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Keyword:</span>
+                              <span className="text-base font-extrabold text-white">"{advKeywords}"</span>
+                            </div>
                           )}
-                          {procurementType && <div>• <strong>Type:</strong> {procurementType}</div>}
-                          {!keywords && !naics && !agency && !setAside && !stateOfPerformance && !responseDeadline && !procurementType && (
-                            <div className="text-blue-200">No filters active - showing all opportunities from the past 9 months</div>
+                          {advPostedAfter && advPostedAfter !== postedAfter && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Calendar className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Posted From:</span>
+                              <span className="text-base font-extrabold text-white">{formatDate(advPostedAfter)}</span>
+                            </div>
+                          )}
+                          {advResponseDeadline && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Clock className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Deadline By:</span>
+                              <span className="text-base font-extrabold text-white">{formatDate(advResponseDeadline)}</span>
+                            </div>
+                          )}
+                          {agency && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Building2 className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Agency:</span>
+                              <span className="text-base font-extrabold text-white">{agency}</span>
+                            </div>
+                          )}
+                          {setAside && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Shield className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Set-Aside:</span>
+                              <span className="text-base font-extrabold text-white">{SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}</span>
+                            </div>
+                          )}
+                          {naics && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Tag className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">NAICS:</span>
+                              <span className="text-base font-extrabold text-white">{naics}</span>
+                            </div>
+                          )}
+                          {classificationCode && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Layers className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">PSC:</span>
+                              <span className="text-base font-extrabold text-white">{classificationCode}</span>
+                            </div>
+                          )}
+                          {stateOfPerformance && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <MapPin className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">State:</span>
+                              <span className="text-base font-extrabold text-white">{US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}</span>
+                            </div>
+                          )}
+                          {procurementType && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <FileText className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Type:</span>
+                              <span className="text-base font-extrabold text-white">{procurementType}</span>
+                            </div>
+                          )}
+                          {opportunityStatus && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <CheckCircle className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Status:</span>
+                              <span className="text-base font-extrabold text-white capitalize">{opportunityStatus}</span>
+                            </div>
+                          )}
+                          {solicitationNumber && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Hash className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Sol #:</span>
+                              <span className="text-base font-extrabold text-white">{solicitationNumber}</span>
+                            </div>
+                          )}
+                          {organizationCode && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
+                              <Building className="h-4 w-4 text-emerald-200 flex-shrink-0" />
+                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Org Code:</span>
+                              <span className="text-base font-extrabold text-white">{organizationCode}</span>
+                            </div>
+                          )}
+                          {!advKeywords && !advPostedAfter && !advResponseDeadline && !agency && !setAside && !naics && !classificationCode && !stateOfPerformance && !procurementType && !opportunityStatus && !solicitationNumber && !organizationCode && (
+                            <span className="text-base font-semibold text-emerald-300 italic">No additional advanced filters — showing all Quick Search results</span>
                           )}
                         </div>
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -4018,32 +4635,35 @@ ${filteredResults.map(opp => `  <opportunity>
                     </button>
                   </div>
                   
-                  {/* View Toggle */}
-                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-100 border-2 border-gray-200">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 rounded transition-colors ${
-                        viewMode === 'list' 
-                          ? 'bg-white text-blue-600 shadow-sm' 
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                      title="List view"
-                      aria-label="List view"
-                    >
-                      <List className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded transition-colors ${
-                        viewMode === 'grid' 
-                          ? 'bg-white text-blue-600 shadow-sm' 
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                      title="Grid view"
-                      aria-label="Grid view"
-                    >
-                      <Grid className="h-5 w-5" />
-                    </button>
+                  {/* View Toggle - List and Grid */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-600 font-medium">View:</span>
+                    <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-slate-100 to-blue-100 border-2 border-blue-300">
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={`p-2 rounded transition-all ${
+                          viewMode === 'list' 
+                            ? 'bg-white text-blue-600 shadow-sm' 
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="List view"
+                        aria-label="List view"
+                      >
+                        <List className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-2 rounded transition-all ${
+                          viewMode === 'grid' 
+                            ? 'bg-white text-blue-600 shadow-sm' 
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title="Grid view"
+                        aria-label="Grid view"
+                      >
+                        <Grid className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -4051,25 +4671,25 @@ ${filteredResults.map(opp => `  <opportunity>
 
             {/* Active Filters - Only show after search */}
             {data && (agency || setAside || naics || stateOfPerformance) && (
-              <div className="mb-6 p-4 rounded-xl border-2 border-amber-400 bg-amber-50 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-amber-700" />
-                    <span className="text-sm font-bold text-amber-900">Active Filters</span>
-                    <span className="text-xs text-amber-700 ml-2">
+              <div className="mb-6 p-6 rounded-xl border-2 border-amber-400 bg-amber-50 shadow-md">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Filter className="h-6 w-6 text-amber-700" />
+                    <span className="text-xl font-bold text-amber-900">Active Filters</span>
+                    <span className="text-base font-semibold text-amber-800 ml-2">
                       (Update filters and click "Search" to refresh)
                     </span>
                   </div>
                   <button
                     onClick={clearAllClientFilters}
-                    className="text-sm text-amber-800 font-semibold hover:text-amber-900 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-amber-100"
+                    className="text-base text-amber-900 font-bold hover:text-amber-950 transition-colors flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-amber-200 border-2 border-amber-400"
                     aria-label="Clear all filters"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                     Clear All
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {agency && (
                     <Pill 
                       tone="info" 
@@ -4103,7 +4723,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     </Pill>
                   )}
                 </div>
-                <div className="mt-2 text-xs text-gray-600">
+                <div className="mt-3 text-base font-semibold text-amber-900">
                   After removing filters, click "Search Opportunities" to update results
                 </div>
               </div>
@@ -4274,17 +4894,19 @@ ${filteredResults.map(opp => `  <opportunity>
 
                   {/* ✅ NEW - Only show for unauthenticated users */}
                   {showLockoutModal && status === 'unauthenticated' && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-[2px]">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
                       <div className="max-w-md w-full mx-4">
-                        <div className="rounded-2xl border border-red-500/30 bg-gradient-to-br from-slate-900 to-slate-950 p-8 ">
+                        <div className="rounded-2xl bg-white p-8 shadow-2xl">
                           <div className="flex flex-col items-center text-center gap-4">
-                            <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
-                              <Lock className="h-8 w-8 text-red-400" />
+                            <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+                              <Lock className="h-8 w-8 text-red-600" />
                             </div>
                             
                             <div>
-                              <h2 className="text-2xl font-bold text-gray-900 mb-2">Browsing Time Expired</h2>
-                              <p className="text-gray-600">
+                              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                                Session Expired
+                              </h2>
+                              <p className="text-slate-600 leading-relaxed">
                                 Your 15-minute free browsing session has ended. Sign up or sign in to continue accessing federal contracting opportunities.
                               </p>
                             </div>
@@ -4293,9 +4915,9 @@ ${filteredResults.map(opp => `  <opportunity>
                               <button
                                 onClick={() => {
                                   setShowLockoutModal(false)
-                                  signIn()
+                                  setShowAccessModal(true)
                                 }}
-                                className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-gray-900 font-semibold hover:from-emerald-600 hover:to-cyan-600 transition-all"
+                                className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
                                 aria-label="Sign up now"
                               >
                                 Sign Up Now
@@ -4304,9 +4926,9 @@ ${filteredResults.map(opp => `  <opportunity>
                               <button
                                 onClick={() => {
                                   setShowLockoutModal(false)
-                                  signIn()
+                                  setShowAccessModal(true)
                                 }}
-                                className="w-full px-6 py-3 rounded-xl border border-gray-300 bg-white/6 text-gray-900 font-semibold hover:bg-gray-100 transition-all"
+                                className="w-full px-6 py-3 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-all"
                                 aria-label="Sign in"
                               >
                                 Sign In

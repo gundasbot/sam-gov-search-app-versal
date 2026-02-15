@@ -240,7 +240,7 @@ export default function Header() {
                 </div>
                 {/* Tagline: hidden on smallest screens */}
                 <div className="hidden sm:block text-xs lg:text-sm font-medium text-slate-400 tracking-wide truncate max-w-[220px] lg:max-w-none">
-                  contracting intelligence and procurement experts
+                  Contracting Intelligence and Procurement Experts
                 </div>
               </div>
             </Link>

@@ -81,18 +81,50 @@ Be specific, actionable, and focus on helping a contractor win these bids.`
       })
 
       if (!response.ok) {
-        throw new Error('Failed to generate analysis')
+        // Surface the actual API error instead of a generic message
+        let errorDetail = `API error ${response.status}`
+        try {
+          const errBody = await response.json()
+          errorDetail = errBody?.error || errBody?.message || JSON.stringify(errBody) || errorDetail
+        } catch {
+          try {
+            errorDetail = await response.text() || errorDetail
+          } catch { /* ignore */ }
+        }
+        throw new Error(errorDetail)
       }
 
       const data = await response.json()
-      const analysisText = data.content.find((c: any) => c.type === 'text')?.text || ''
       
-      // Extract JSON from response (Claude might wrap it in markdown)
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/)
+      // Handle both { content: [{type:'text', text:'...'}] } and { result: '...' } shapes
+      let analysisText = ''
+      if (Array.isArray(data.content)) {
+        analysisText = data.content.find((c: any) => c.type === 'text')?.text || ''
+      } else if (typeof data.result === 'string') {
+        analysisText = data.result
+      } else if (typeof data.text === 'string') {
+        analysisText = data.text
+      } else if (typeof data === 'string') {
+        analysisText = data
+      }
+
+      if (!analysisText) {
+        console.error('Unexpected /api/analyze response shape:', data)
+        throw new Error('No analysis text in response')
+      }
+      // Strip ```json fences if present, then extract JSON object
+      const cleaned = analysisText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        setAnalysis(parsed)
+        try {
+          const parsed = JSON.parse(jsonMatch[0])
+          setAnalysis(parsed)
+        } catch (parseErr) {
+          console.error('JSON parse failed:', jsonMatch[0])
+          throw new Error('Failed to parse analysis JSON')
+        }
       } else {
+        console.error('No JSON object found in response:', analysisText)
         throw new Error('Failed to parse analysis')
       }
     } catch (err: any) {
@@ -155,9 +187,21 @@ Be specific, actionable, and focus on helping a contractor win these bids.`
       )}
 
       {error && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-red-50 border border-red-200">
-          <AlertCircle className="h-5 w-5 text-red-500" />
-          <span className="text-sm text-red-700">{error}</span>
+        <div className="flex flex-col gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-red-700 mb-0.5">Analysis failed</p>
+              <p className="text-xs text-red-600 break-all">{error}</p>
+            </div>
+          </div>
+          <button
+            onClick={analyzeResults}
+            className="self-start px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold transition-colors flex items-center gap-1.5"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Retry Analysis
+          </button>
         </div>
       )}
 

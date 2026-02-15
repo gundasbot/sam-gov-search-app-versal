@@ -1,9 +1,9 @@
 // app/alerts/page.tsx
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Bell,
   Filter,
@@ -307,8 +307,10 @@ function buildSearchUrlFromSavedSearch(saved: SavedSearch, opts?: { run?: boolea
 
 const LABEL_CLASS = 'block text-base font-extrabold text-orange-400 mb-1'
 
-export default function AlertsPage() {
+// Main component that uses useSearchParams - wrapped in Suspense
+function AlertsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'alerts' | 'searches'>('alerts')
   const [searches, setSearches] = useState<SavedSearch[]>([])
@@ -351,6 +353,11 @@ export default function AlertsPage() {
   // New: Modal states for creating from alerts page
   const [showCreateSavedSearchModal, setShowCreateSavedSearchModal] = useState(false)
   const [showCreateSubscriptionModal, setShowCreateSubscriptionModal] = useState(false)
+  // Pre-populated params when arriving from search page "Save Search" button
+  const [incomingSearchParams, setIncomingSearchParams] = useState<Record<string, string> | null>(null)
+  // After a search is saved via URL params, offer to run it immediately
+  const [justSavedSearch, setJustSavedSearch] = useState<SavedSearch | null>(null)
+  const hasProcessedUrlParams = useRef(false)
   const [runSuccess, setRunSuccess] = useState<{
     id: string
     alertName: string
@@ -384,6 +391,36 @@ export default function AlertsPage() {
   useEffect(() => {
     void fetchAll()
   }, [])
+
+  // Detect incoming search params from the search page "Save Search" redirect
+  useEffect(() => {
+    if (hasProcessedUrlParams.current) return
+    const tab = searchParams.get('tab')
+    // Check if any search-criteria params are present
+    const criteriaKeys = ['setAside', 'typeOfSetAside', 'status', 'postedFrom', 'rdlfrom', 'rdlto',
+      'keywords', 'naics', 'ncode', 'ptype', 'state', 'zip', 'agency', 'ccode', 'solnum', 'noticeid']
+    const incoming: Record<string, string> = {}
+    for (const key of criteriaKeys) {
+      const val = searchParams.get(key)
+      if (val) incoming[key] = val
+    }
+
+    if (Object.keys(incoming).length > 0) {
+      hasProcessedUrlParams.current = true
+      // If rdlfrom not supplied by the search page, default to TODAY so only
+      // non-expired deadlines are included (posted long ago but still open)
+      if (!incoming.rdlfrom) {
+        incoming.rdlfrom = formatDateInput(new Date())
+      }
+      setIncomingSearchParams(incoming)
+      if (tab === 'saved-searches' || !tab) setActiveTab('searches')
+      setShowCreateSavedSearchModal(true)
+    } else if (tab === 'saved-searches') {
+      setActiveTab('searches')
+    } else if (tab === 'alerts') {
+      setActiveTab('alerts')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!toast) return
@@ -516,7 +553,8 @@ async function fetchAll() {
     const defaultPostedFrom = defaults.from
     const defaultPostedTo = defaults.to
 
-    const defaultRdlFrom = defaults.from
+    // rdlfrom defaults to TODAY — only return opportunities with deadlines from today onwards
+    const defaultRdlFrom = formatDateInput(new Date())
     const defaultRdlTo = defaults.to
 
     const s = alert.savedSearch || ({} as any)
@@ -735,9 +773,8 @@ async function fetchAll() {
     const defaultPostedFrom = defaults.from
     const defaultPostedTo = defaults.to
 
-    // Calculate default response deadline (Today + 1 month)
-    const defaultRdlFrom = new Date()
-    defaultRdlFrom.setMonth(defaultRdlFrom.getMonth() + 1)
+    // Default response deadline = TODAY so only non-expired deadlines are returned
+    const defaultRdlFrom = new Date() // today — captures all upcoming deadlines
     
     setEditingSearch({
       ...search,
@@ -929,6 +966,11 @@ async function fetchAll() {
         message: `Saved search "${j.search.name}" created! You can now find it in the Saved Searches tab and run it with one click.` 
       })
       setShowCreateSavedSearchModal(false)
+      // If we arrived here from the search page via URL params, offer to run the search
+      if (incomingSearchParams) {
+        setJustSavedSearch(j.search)
+        setIncomingSearchParams(null)
+      }
     } catch (e) {
       console.error(e)
       setToast({ type: 'error', message: 'Failed to create saved search.' })
@@ -1752,7 +1794,23 @@ async function deleteSubscription(id: string) {
                                 className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white text-base"
                               />
                               <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <span className="text-xs text-emerald-300 font-bold mr-1">Search for deadlines from:</span>
+                                <span className="text-xs text-emerald-300 font-bold mr-1">Deadlines from:</span>
+                                {/* Today = only non-expired deadlines */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingAlert({
+                                      ...editingAlert,
+                                      savedSearch: {
+                                        ...(editingAlert.savedSearch as any),
+                                        rdlfrom: formatDateInput(new Date()),
+                                      },
+                                    })
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 text-xs font-bold border border-cyan-400/30 transition-colors"
+                                >
+                                  Today ✓
+                                </button>
                                 {MONTH_RANGE_PRESETS.map((p) => (
                                   <button
                                     key={`alert-rdl-${p.months}`}
@@ -2442,7 +2500,7 @@ async function deleteSubscription(id: string) {
                             </div>
 
                             <div>
-                              <label className={LABEL_CLASS}>Response Deadline (rdlfrom)</label>
+                              <label className={LABEL_CLASS}>Response Deadline From (rdlfrom) — deadlines on or after this date</label>
                               <input
                                 type="date"
                                 value={editingSearch.rdlfrom || ''}
@@ -2450,7 +2508,20 @@ async function deleteSubscription(id: string) {
                                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
                               />
                               <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <span className="text-xs text-emerald-300 font-bold mr-1">Search for deadlines from:</span>
+                                <span className="text-xs text-emerald-300 font-bold mr-1">Deadlines from:</span>
+                                {/* Today shortcut — the most common case: only future/active deadlines */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingSearch({
+                                      ...editingSearch,
+                                      rdlfrom: formatDateInput(new Date()),
+                                    })
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 text-xs font-bold border border-cyan-400/30 transition-colors"
+                                >
+                                  Today ✓
+                                </button>
                                 {MONTH_RANGE_PRESETS.map((p) => (
                                   <button
                                     key={`search-rdl-${p.months}`}
@@ -2698,8 +2769,29 @@ async function deleteSubscription(id: string) {
       {showCreateSavedSearchModal && (
         <UnifiedSaveSearchModal
           isOpen={showCreateSavedSearchModal}
-          onClose={() => setShowCreateSavedSearchModal(false)}
+          onClose={() => {
+            setShowCreateSavedSearchModal(false)
+            setIncomingSearchParams(null)
+          }}
           mode="save"
+          searchParams={incomingSearchParams ? {
+            title: incomingSearchParams.keywords,
+            solnum: incomingSearchParams.solnum,
+            noticeid: incomingSearchParams.noticeid,
+            ptype: incomingSearchParams.ptype,
+            typeOfSetAside: incomingSearchParams.setAside || incomingSearchParams.typeOfSetAside,
+            status: incomingSearchParams.status,
+            state: incomingSearchParams.state,
+            ncode: incomingSearchParams.naics || incomingSearchParams.ncode,
+            ccode: incomingSearchParams.ccode,
+            zip: incomingSearchParams.zip,
+            organizationName: incomingSearchParams.agency,
+            organizationCode: incomingSearchParams.organizationCode,
+            postedFrom: incomingSearchParams.postedFrom,
+            postedTo: incomingSearchParams.postedTo,
+            rdlfrom: incomingSearchParams.rdlfrom,
+            rdlto: incomingSearchParams.rdlto,
+          } : undefined}
           onSave={createSavedSearch}
         />
       )}
@@ -3603,7 +3695,99 @@ async function deleteSubscription(id: string) {
           </div>
         </div>
       )}
+      {/* Run Search After Save Confirmation Modal */}
+      {justSavedSearch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border-2 border-emerald-500/40 bg-slate-900 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-cyan-600 p-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-xl p-2">
+                  <CheckCircle className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Search Saved!</h3>
+                  <p className="text-emerald-100 text-sm">Would you like to run it now?</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <p className="text-slate-400 text-sm mb-1">Saved as</p>
+                <p className="text-white font-semibold text-lg">&quot;{justSavedSearch.name}&quot;</p>
+              </div>
+
+              <p className="text-slate-300 text-sm leading-relaxed">
+                Running the search will take you to the Search page with all your saved filters pre-populated and results loaded automatically.
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {justSavedSearch.setAside && (
+                  <span className="px-2 py-1 bg-cyan-500/15 text-cyan-300 text-xs rounded-lg border border-cyan-500/20">
+                    Set-Aside: {justSavedSearch.setAside}
+                  </span>
+                )}
+                {justSavedSearch.status && (
+                  <span className="px-2 py-1 bg-emerald-500/15 text-emerald-300 text-xs rounded-lg border border-emerald-500/20">
+                    Status: {justSavedSearch.status}
+                  </span>
+                )}
+                {justSavedSearch.keywords && (
+                  <span className="px-2 py-1 bg-blue-500/15 text-blue-300 text-xs rounded-lg border border-blue-500/20">
+                    Keywords: {justSavedSearch.keywords}
+                  </span>
+                )}
+                {(justSavedSearch.postedAfter || justSavedSearch.rdlfrom) && (
+                  <span className="px-2 py-1 bg-purple-500/15 text-purple-300 text-xs rounded-lg border border-purple-500/20">
+                    Date filters applied
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setJustSavedSearch(null)}
+                className="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold transition-colors border border-slate-700"
+              >
+                Stay Here
+              </button>
+              <button
+                onClick={() => {
+                  const saved = justSavedSearch
+                  setJustSavedSearch(null)
+                  pushToSearchWithSavedSearch(saved.id)
+                }}
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+              >
+                <PlayCircle className="w-5 h-5" />
+                Run Search Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
     </>
+  )
+}
+
+// Wrapper component with Suspense boundary
+export default function AlertsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin" />
+          <p className="text-slate-300 text-lg">Loading alerts...</p>
+        </div>
+      </div>
+    }>
+      <AlertsContent />
+    </Suspense>
   )
 }
