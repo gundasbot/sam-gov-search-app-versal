@@ -52,6 +52,10 @@ type PricingTier = {
   features: string[]
 }
 
+// Prices fetched live from Stripe (keyed by tier id + interval)
+type LivePriceKey = `${Exclude<PlanTier, 'NONE'>}_monthly` | `${Exclude<PlanTier, 'NONE'>}_annual`
+type LivePrices = Partial<Record<LivePriceKey, number>>
+
 const TIERS: PricingTier[] = [
   {
     id: 'BASIC',
@@ -59,7 +63,7 @@ const TIERS: PricingTier[] = [
     tagline: 'For getting started',
     description: 'Essential features to search and track opportunities.',
     monthlyPrice: 24.99,
-    annualPrice: 249.99,
+    annualPrice: 240.00,
     tierLevel: 1,
     icon: Shield,
     gradient: 'from-slate-700 via-slate-800 to-slate-900',
@@ -78,8 +82,8 @@ const TIERS: PricingTier[] = [
     name: 'Professional',
     tagline: 'For serious bidding teams',
     description: 'Advanced tracking, alerts, and deeper analytics.',
-    monthlyPrice: 49.99,
-    annualPrice: 499.99,
+    monthlyPrice: 49.00,
+    annualPrice: 490.00,
     tierLevel: 2,
     highlight: true,
     icon: Zap,
@@ -100,8 +104,8 @@ const TIERS: PricingTier[] = [
     name: 'Enterprise',
     tagline: 'For organizations at scale',
     description: 'Team features, admin controls, and maximum automation.',
-    monthlyPrice: 199.99,
-    annualPrice: 1999.99,
+    monthlyPrice: 199.00,
+    annualPrice: 1990.00,
     tierLevel: 3,
     icon: Crown,
     gradient: 'from-amber-500 via-orange-500 to-rose-600',
@@ -155,6 +159,10 @@ export default function PricingClient() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  // Live Stripe prices
+  const [livePrices, setLivePrices] = useState<LivePrices>({})
+  const [pricesLoading, setPricesLoading] = useState(true)
+
   const [showChangeWarning, setShowChangeWarning] = useState<{
     tier: PricingTier
     type: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
@@ -164,6 +172,70 @@ export default function PricingClient() {
     tier: PricingTier
     type: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
   } | null>(null)
+
+  // ── Fetch live prices from Stripe via our own API ──────────────────────────
+  const fetchLivePrices = useCallback(async () => {
+    try {
+      setPricesLoading(true)
+      const res = await fetch('/api/stripe/prices', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`prices API returned ${res.status}`)
+      const data: Array<{
+        tier: Exclude<PlanTier, 'NONE'>
+        interval: 'monthly' | 'annual'
+        unitAmount: number // cents
+      }> = await res.json()
+
+      const map: LivePrices = {}
+      for (const item of data) {
+        const key = `${item.tier}_${item.interval}` as LivePriceKey
+        map[key] = item.unitAmount / 100
+      }
+      setLivePrices(map)
+    } catch (err) {
+      console.warn('⚠️ Could not fetch live prices, using fallback values:', err)
+      // livePrices stays empty → component falls back to hardcoded TIERS prices
+    } finally {
+      setPricesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchLivePrices()
+  }, [fetchLivePrices])
+
+  /** Resolve the displayed price: live Stripe price, or hardcoded fallback */
+  const resolvePrice = useCallback(
+    (tier: PricingTier, interval: BillingInterval): number => {
+      const key = `${tier.id}_${interval}` as LivePriceKey
+      const live = livePrices[key]
+      if (live !== undefined) return live
+      return interval === 'annual' ? tier.annualPrice : tier.monthlyPrice
+    },
+    [livePrices]
+  )
+
+  /**
+   * Annual savings as a whole-number percentage vs paying monthly × 12.
+   * e.g. Basic: (299.88 - 240) / 299.88 ≈ 20%
+   */
+  const savingsPercent = useCallback(
+    (tier: PricingTier): number => {
+      const monthly = resolvePrice(tier, 'monthly')
+      const annual  = resolvePrice(tier, 'annual')
+      if (!monthly || !annual) return 0
+      return Math.round((1 - annual / (monthly * 12)) * 100)
+    },
+    [resolvePrice]
+  )
+
+  /** Annual price divided by 12 — shown as the effective monthly cost */
+  const monthlyEquivalent = useCallback(
+    (tier: PricingTier): string => {
+      const annual = resolvePrice(tier, 'annual')
+      return (annual / 12).toFixed(2)
+    },
+    [resolvePrice]
+  )
 
   const currentTier = useMemo(() => {
     if (!subscription?.tier || subscription.tier === 'NONE') return null
@@ -613,6 +685,11 @@ export default function PricingClient() {
                 ].join(' ')}
               >
                 Annual
+                {!pricesLoading && (
+                  <span className="ml-1.5 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-500/30">
+                    Save up to {Math.max(...TIERS.map(t => savingsPercent(t)))}%
+                  </span>
+                )}
               </button>
             </div>
 
@@ -650,8 +727,7 @@ export default function PricingClient() {
             const changeType = getChangeType(tier)
             const isLoading = loading === tier.id
 
-            const price =
-              billingInterval === 'annual' ? tier.annualPrice : tier.monthlyPrice
+            const price = resolvePrice(tier, billingInterval)
 
             const suffix = billingInterval === 'annual' ? '/yr' : '/mo'
 
@@ -694,11 +770,32 @@ export default function PricingClient() {
                     )}
                   </div>
 
-                  <div className="mt-6 flex items-end gap-2">
-                    <div className="text-3xl sm:text-4xl font-bold text-white">
-                      ${formatPrice(price)}
-                    </div>
-                    <div className="pb-1 text-sm text-slate-200/80">{suffix}</div>
+                  <div className="mt-6">
+                    {pricesLoading ? (
+                      <div className="flex items-end gap-2">
+                        <div className="h-10 w-24 animate-pulse rounded-lg bg-white/10" />
+                        <div className="mb-1 h-4 w-6 animate-pulse rounded bg-white/10" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-end gap-2">
+                          <div className="text-3xl sm:text-4xl font-bold text-white">
+                            ${formatPrice(price)}
+                          </div>
+                          <div className="pb-1 text-sm text-slate-200/80">{suffix}</div>
+                          {billingInterval === 'annual' && savingsPercent(tier) > 0 && (
+                            <div className="mb-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-300 ring-1 ring-emerald-500/25">
+                              Save {savingsPercent(tier)}%
+                            </div>
+                          )}
+                        </div>
+                        {billingInterval === 'annual' && (
+                          <div className="mt-1 text-xs text-slate-300/70">
+                            ≈ ${monthlyEquivalent(tier)}/mo · billed annually
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
 
                   <div className="mt-2 text-sm text-slate-200/80">

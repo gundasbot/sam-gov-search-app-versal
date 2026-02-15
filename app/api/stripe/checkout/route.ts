@@ -1,5 +1,6 @@
 // app/api/stripe/checkout/route.ts
-// ✅ FIXED: Remove blocking check - let client-side routing handle plan changes
+
+//Client-Side Routing handles plan changes
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -45,16 +46,16 @@ function priceFromEnv(plan: 'basic' | 'professional' | 'enterprise', billing: Bi
 
   const fallback: Record<string, Record<BillingInterval, string>> = {
     basic: {
-      monthly: 'price_1SrX4iPBeHrQUcEBcCNR77ti',
-      annual: 'price_1SrX5JPBeHrQUcEBp36HLtHq',
+      monthly: 'price_1SrWKwL0qhATKGOJo4ginD8u',
+      annual:  'price_1SrWE8L0qhATKGOJovDYe1T4',
     },
     professional: {
-      monthly: 'price_1SpKkkPBeHrQUcEBikiRqBhP',
-      annual: 'price_1SpKu0PBeHrQUcEBLqvi496k',
+      monthly: 'price_1SpfzWL0qhATKGOJGIiLnkhU',
+      annual:  'price_1Spg08L0qhATKGOJlgQeSrUW',
     },
     enterprise: {
-      monthly: 'price_1SpKx6PBeHrQUcEB8KezJ9dx',
-      annual: 'price_1SpKxuPBeHrQUcEB9Ytzoo2N',
+      monthly: 'price_1Spg0aL0qhATKGOJZcXETI7D',
+      annual:  'price_1Spg1CL0qhATKGOJG9iRaIhq',
     },
   }
   return fallback[plan]?.[billing] || null
@@ -221,11 +222,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Create new subscription with Checkout
+    // Trial is 7 days free — no card required upfront.
+    // Stripe will email the customer before the trial ends to collect payment.
     console.log('🎫 Creating checkout session...')
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
+      payment_method_collection: 'if_required', // ✅ No card required during trial
       line_items: [{ price: finalPriceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -242,6 +246,11 @@ export async function POST(req: NextRequest) {
       },
       subscription_data: {
         trial_period_days: TRIAL_DAYS,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: 'cancel', // Cancel if no card added by end of trial
+          },
+        },
         metadata: { user_id: user.id, email },
       },
     })
