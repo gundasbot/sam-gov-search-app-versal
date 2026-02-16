@@ -45,6 +45,7 @@ export async function sendVerificationEmail(email: string, name: string, token: 
   })
 }
 
+// ✨ UPDATED: Now activates trial after email verification
 export async function verifyEmailToken(token: string) {
   const token_hash = crypto.createHash('sha256').update(token).digest('hex')
 
@@ -68,12 +69,46 @@ export async function verifyEmailToken(token: string) {
     return { success: false, error: 'User not found' }
   }
 
+  // Check if already verified
+  if (user.email_verified) {
+    await prisma.email_verification_tokens.delete({
+      where: { token_hash },
+    })
+    return {
+      success: true,
+      alreadyVerified: true,
+      trialActivated: false,
+      user: { id: user.id, email: user.email, name: user.name },
+    }
+  }
+
+  const now = new Date()
+
+  // 🎯 Calculate trial dates (7 days from now)
+  const trialExpiresAt = new Date(now)
+  trialExpiresAt.setDate(trialExpiresAt.getDate() + 7)
+  trialExpiresAt.setHours(23, 59, 59, 999) // End of day
+
+  const trialEndsAt = new Date(trialExpiresAt) // Compatibility field
+
+  console.log('✅ [VERIFY] Activating trial for:', user.email)
+  console.log('📅 [VERIFY] Trial expires:', trialExpiresAt.toISOString())
+  console.log('📋 [VERIFY] Plan tier:', user.plan_tier)
+  console.log('💳 [VERIFY] Billing interval:', user.billing_interval)
+
+  // 🎯 Verify email AND activate trial in one transaction
   await prisma.$transaction([
     prisma.users.update({
       where: { id: verificationToken.user_id },
       data: {
-        email_verified: new Date(),
-        is_active: true,
+        email_verified: now,            // ✅ Email verified
+        plan_status: 'trialing',          // ✅ Set status to trialing
+        trial_active: true,              // ✅ Trial is active
+        trial_started_at: now,           // ✅ Mark start time
+        trial_expires_at: trialExpiresAt, // ✅ Set expiration
+        trial_ends_at: trialEndsAt,      // ✅ Compatibility field
+        is_active: true,                 // ✅ Account is active
+        updated_at: now,
       },
     }),
     prisma.email_verification_tokens.delete({
@@ -81,12 +116,26 @@ export async function verifyEmailToken(token: string) {
     }),
   ])
 
+  console.log('✅ [VERIFY] Email verified & trial activated successfully')
+
+  // Send welcome email (non-blocking — don't fail verification if email fails)
+  try {
+    const { sendWelcomeEmail } = await import('@/lib/email/welcome')
+    await sendWelcomeEmail(user.email, user.name || user.first_name || 'there')
+    console.log('✅ [VERIFY] Welcome email sent to', user.email)
+  } catch (emailErr) {
+    console.error('❌ [VERIFY] Welcome email failed (non-blocking):', emailErr)
+  }
+
   return {
     success: true,
-    users: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
+    alreadyVerified: false,
+    trialActivated: true,
+    user: { id: user.id, email: user.email, name: user.name },
+    trial: {
+      tier: user.plan_tier,
+      interval: user.billing_interval,
+      expiresAt: trialExpiresAt.toISOString(),
     },
   }
 }

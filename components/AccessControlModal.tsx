@@ -1,40 +1,12 @@
-//components/AccessControlModal
-
+// components/AccessControlModal.tsx
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  X,
-  Shield,
-  CheckCircle,
-  Mail,
-  Eye,
-  EyeOff,
-  Phone,
-  Building,
-  Loader2,
-  Lock,
-  Search,
-  Filter,
-  Download,
-  BarChart3,
-  Database,
-  Bell,
-  Zap,
-  ArrowRight,
-  ExternalLink,
-  AlertCircle,
-  Key,
-  AlertTriangle,
-  User,
-  ArrowLeft,
-  Sparkles,
-  CreditCard,
-  Calendar,
-  Users,
-  Target,
-  PieChart,
-  Globe
+  X, Shield, CheckCircle, Mail, Eye, EyeOff, Phone, Building, Loader2,
+  Lock, Search, Filter, Download, BarChart3, Database, Bell, Zap,
+  ArrowRight, ExternalLink, AlertCircle, Key, AlertTriangle, User,
+  ArrowLeft, Sparkles, CreditCard, Calendar, Users, Target, PieChart, Globe
 } from 'lucide-react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -46,13 +18,7 @@ interface AccessControlModalProps {
   onAccessGranted?: () => void
   initialMode?: AuthMode
   redirectTo?: string
-  /**
-   * Optional plan to visually highlight when the modal opens (useful for CTAs).
-   */
   highlightPlan?: 'basic' | 'professional' | 'enterprise'
-  /**
-   * Optional billing toggle preset when the modal opens.
-   */
   highlightBilling?: Billing
 }
 
@@ -61,86 +27,142 @@ type PaidPlan = 'basic' | 'professional' | 'enterprise'
 type PaidPlanCard = {
   key: PaidPlan
   name: string
-  duration: string
+  tagline: string
   topPrice: string
   topPeriod: string
-  showBreakdown: boolean
+  monthlyPrice: string
+  annualPrice: string
   features: string[]
   popular: boolean
   buttonText: string
   priceId: string
+  gradient: string
+  accentColor: string
+  textColor: string
+  badgeGradient: string
 }
 
 type AuthMode = 'signin' | 'signup' | 'forgot-password' | 'reset-password' | 'method'
-
-const TRIAL_FEATURES = [
-  { icon: <Search className="h-5 w-5 text-blue-400" />, title: 'Advanced Search', desc: 'Filter by agency, NAICS, location' },
-  { icon: <Filter className="h-5 w-5 text-emerald-400" />, title: 'Smart Filters', desc: 'Dynamic filtering with real-time counts' },
-  { icon: <Download className="h-5 w-5 text-purple-400" />, title: 'Export Tools', desc: 'Download results as CSV/Excel' },
-  { icon: <BarChart3 className="h-5 w-5 text-amber-400" />, title: 'Analytics', desc: 'Visual insights and trends' },
-  { icon: <Database className="h-5 w-5 text-cyan-400" />, title: 'Historical Data', desc: 'Access to archived opportunities' },
-  { icon: <Bell className="h-5 w-5 text-rose-400" />, title: 'Real-time Alerts', desc: 'Get notified for new opportunities' },
-]
-
-const BENEFITS = [
-  { icon: <Target className="h-4 w-4" />, text: 'Find more opportunities' },
-  { icon: <PieChart className="h-4 w-4" />, text: 'Advanced analytics' },
-  { icon: <Globe className="h-4 w-4" />, text: 'National coverage' },
-  { icon: <Users className="h-4 w-4" />, text: 'Team collaboration' },
-]
 
 function cx(...c: Array<string | false | null | undefined>) {
   return c.filter(Boolean).join(' ')
 }
 
-export default function AccessControlModal({isOpen,
-  onClose,
-  featureName,
-  onAccessGranted,
-  redirectTo = '/search',
-  initialMode = 'signin',
-  highlightPlan,
-  highlightBilling,
+// Proper component so hooks work correctly
+function UnverifiedEmailBanner({ email }: { email: string }) {
+  const [resendSent, setResendSent] = useState(false)
+  const [resendBusy, setResendBusy] = useState(false)
+
+  const handleResend = async () => {
+    setResendBusy(true)
+    try {
+      await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      setResendSent(true)
+    } catch {}
+    setResendBusy(false)
+  }
+
+  return (
+    <div className="mb-5 p-4 rounded-2xl border-2" style={{ background: '#fffbeb', borderColor: '#f59e0b' }}>
+      <div className="flex items-start gap-3">
+        <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" style={{ color: '#b45309' }} />
+        <div>
+          <p className="text-base font-black" style={{ color: '#78350f' }}>Email Not Yet Verified</p>
+          <p className="text-sm font-bold mt-1 leading-relaxed" style={{ color: '#92400e' }}>
+            Check your inbox for the verification link before signing in.
+          </p>
+          {!resendSent ? (
+            <button onClick={handleResend} disabled={resendBusy}
+              className="mt-2 text-sm font-black underline underline-offset-2 disabled:opacity-60"
+              style={{ color: '#b45309' }}>
+              {resendBusy ? 'Sending…' : 'Resend verification email →'}
+            </button>
+          ) : (
+            <p className="mt-2 text-sm font-black" style={{ color: '#065f46' }}>✓ Sent! Check your inbox.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function InputField({
+  label, icon: Icon, error, ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon?: any; error?: string }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
+      <div className="relative">
+        {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />}
+        <input
+          {...props}
+          className={cx(
+            'w-full py-3 rounded-xl border text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400',
+            Icon ? 'pl-10 pr-4' : 'px-4',
+            error ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-slate-300'
+          )}
+        />
+      </div>
+      {error && <p className="mt-1.5 text-sm font-black" style={{ color: '#dc2626' }}>{error}</p>}
+    </div>
+  )
+}
+
+function PasswordField({
+  label, value, onChange, error, placeholder, disabled
+}: { label: string; value: string; onChange: (v: string) => void; error?: string; placeholder?: string; disabled?: boolean }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div>
+      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
+      <div className="relative">
+        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder || '••••••••'}
+          disabled={disabled}
+          className={cx(
+            'w-full pl-10 pr-11 py-3 rounded-xl border text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400',
+            error ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-slate-300'
+          )}
+        />
+        <button type="button" onClick={() => setShow(v => !v)}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+      {error && <p className="mt-1.5 text-sm font-black" style={{ color: '#dc2626' }}>{error}</p>}
+    </div>
+  )
+}
+
+export default function AccessControlModal({
+  isOpen, onClose, featureName, onAccessGranted,
+  redirectTo = '/search', initialMode = 'signin',
+  highlightPlan, highlightBilling,
 }: AccessControlModalProps) {
   const router = useRouter()
   const { status, update } = useSession()
-
   const redirectTarget = redirectTo || '/search'
 
   const [isLoading, setIsLoading] = useState(false)
   const [authMethod, setAuthMethod] = useState<'google' | 'email' | null>(null)
   const [showEmailForm, setShowEmailForm] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>(initialMode)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [resetToken, setResetToken] = useState<string>('')
-  const [resetSent, setResetSent] = useState(false)
-
   const [billing, setBilling] = useState<Billing>('monthly')
-
-  // Optional CTA presets (useful for pricing cards / marketing CTAs)
-  useEffect(() => {
-    if (!isOpen) return
-    if (highlightBilling) setBilling(highlightBilling)
-  }, [isOpen, highlightBilling])
-
-  useEffect(() => {
-    if (!isOpen) return
-    if (!highlightPlan) return
-    const id = `acm-plan-${highlightPlan}`
-    const t = setTimeout(() => {
-      try {
-        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      } catch {
-        // no-op
-      }
-    }, 150)
-    return () => clearTimeout(t)
-  }, [isOpen, highlightPlan])
   const [openingPaidPlan, setOpeningPaidPlan] = useState<null | PaidPlan>(null)
   const [stripeError, setStripeError] = useState<string | null>(null)
+  const [resetToken, setResetToken] = useState<string>('')
+  const [resetSent, setResetSent] = useState(false)
+  const [signupComplete, setSignupComplete] = useState(false)
+  const [signupEmail, setSignupEmail] = useState('')
 
-  // Form fields
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -151,7 +173,6 @@ export default function AccessControlModal({isOpen,
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
 
-  // Error states
   const [firstNameError, setFirstNameError] = useState('')
   const [lastNameError, setLastNameError] = useState('')
   const [emailError, setEmailError] = useState('')
@@ -162,1223 +183,618 @@ export default function AccessControlModal({isOpen,
   const [generalError, setGeneralError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
+  // useMemo MUST be above early return (Rules of Hooks)
+  const plans = useMemo((): PaidPlanCard[] => {
+    const isAnnual = billing === 'annual'
+    const basicMonthlyId = 'price_1SrWKwL0qhATKGOJo4ginD8u'
+    const basicAnnualId = 'price_1SrWE8L0qhATKGOJovDYe1T4'
+    const proMonthlyId = 'price_1SpfzWL0qhATKGOJGIiLnkhU'
+    const proAnnualId = 'price_1Spg08L0qhATKGOJlgQeSrUW'
+    const entMonthlyId = 'price_1Spg0aL0qhATKGOJZcXETI7D'
+    const entAnnualId = 'price_1Spg1CL0qhATKGOJG9iRaIhq'
+    return [
+      {
+        key: 'basic', name: 'Basic', tagline: 'Perfect for solo contractors',
+        topPrice: isAnnual ? '$249.90' : '$24.99', topPeriod: isAnnual ? '/year' : '/month',
+        monthlyPrice: '$24.99/mo', annualPrice: '$249.90/yr · save 16%',
+        features: ['Unlimited opportunity searches', 'Advanced filtering (all criteria)', 'Save unlimited opportunities', 'Daily email digest alerts', 'Search history (30 days)', 'Export to CSV', 'Email support'],
+        popular: false, buttonText: 'Start 7-Day Trial',
+        priceId: isAnnual ? basicAnnualId : basicMonthlyId,
+        gradient: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 60%, #bbf7d0 100%)',
+        accentColor: '#059669', textColor: '#065f46',
+        badgeGradient: 'linear-gradient(135deg, #10b981, #059669)',
+      },
+      {
+        key: 'professional', name: 'Professional', tagline: 'For growing businesses',
+        topPrice: isAnnual ? '$499.90' : '$49.99', topPeriod: isAnnual ? '/year' : '/month',
+        monthlyPrice: '$49.99/mo', annualPrice: '$499.90/yr · save 16%',
+        features: ['Everything in Basic', 'Real-time opportunity alerts', 'Advanced analytics dashboard', 'Competitor tracking', '25 custom alert criteria', 'Search history (1 year)', 'API access (1,000 calls/mo)', 'Excel export with formatting', 'Team collaboration (3 users)', 'Priority support'],
+        popular: true, buttonText: 'Start 7-Day Trial',
+        priceId: isAnnual ? proAnnualId : proMonthlyId,
+        gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
+        accentColor: '#10b981', textColor: '#f1f5f9',
+        badgeGradient: 'linear-gradient(135deg, #10b981, #06b6d4)',
+      },
+      {
+        key: 'enterprise', name: 'Enterprise', tagline: 'For large prime contractors',
+        topPrice: isAnnual ? '$1,999.90' : '$199.99', topPeriod: isAnnual ? '/year' : '/month',
+        monthlyPrice: '$199.99/mo', annualPrice: '$1,999.90/yr · save 16%',
+        features: ['Everything in Professional', 'Unlimited team members', 'Dedicated account manager', 'Custom integrations', 'Unlimited API access', 'White-label reporting', 'Custom training sessions', 'SLA guarantees (99.9%)', 'Phone & priority support', 'Historical data (5+ years)'],
+        popular: false, buttonText: 'Start 7-Day Trial',
+        priceId: isAnnual ? entAnnualId : entMonthlyId,
+        gradient: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 60%, #fef08a 100%)',
+        accentColor: '#d97706', textColor: '#78350f',
+        badgeGradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      },
+    ]
+  }, [billing])
+
   const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 
   const resetErrors = () => {
-    setFirstNameError('')
-    setLastNameError('')
-    setEmailError('')
-    setPasswordError('')
-    setConfirmPasswordError('')
-    setNewPasswordError('')
-    setConfirmNewPasswordError('')
-    setGeneralError('')
+    setFirstNameError(''); setLastNameError(''); setEmailError('')
+    setPasswordError(''); setConfirmPasswordError('')
+    setNewPasswordError(''); setConfirmNewPasswordError('')
+    setGeneralError(''); setSuccessMessage(''); setStripeError(null)
+  }
+
+  const clearAllFields = () => {
+    setFirstName(''); setLastName(''); setEmail(''); setPhone(''); setCompany('')
+    setPassword(''); setConfirmPassword(''); setNewPassword(''); setConfirmNewPassword('')
     setSuccessMessage('')
-    setStripeError(null)
+  }
+
+  const toggleAuthMode = (mode: AuthMode, preserveEmail = false) => {
+    const saved = preserveEmail ? email : ''
+    setAuthMode(mode); resetErrors(); clearAllFields()
+    if (preserveEmail && saved) setEmail(saved)
   }
 
   const handleAccessGranted = () => {
-    try {
-      onClose()
-    } catch {}
-
-    try {
-      onAccessGranted?.()
-    } catch {}
-
-    router.push(redirectTarget)
-    router.refresh()
+    try { onClose() } catch {}
+    try { onAccessGranted?.() } catch {}
+    router.push(redirectTarget); router.refresh()
   }
 
+  useEffect(() => { if (status === 'authenticated' && isOpen) handleAccessGranted() }, [status, isOpen])
+  useEffect(() => { if (isOpen) { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = '' } } }, [isOpen])
   useEffect(() => {
-    if (status === 'authenticated' && isOpen) {
-      handleAccessGranted()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, isOpen])
-
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    if (isOpen) { window.addEventListener('keydown', handleEsc); return () => window.removeEventListener('keydown', handleEsc) }
+  }, [isOpen, onClose])
+  useEffect(() => { if (isOpen && highlightBilling) setBilling(highlightBilling) }, [isOpen, highlightBilling])
   useEffect(() => {
     if (!isOpen) return
-
-    // Always open directly to the requested auth screen (sign in / sign up / reset),
-    // so users don't have to go through the "Choose how to continue" step.
-    setAuthMode(initialMode)
-    resetErrors()
-
-    // If a caller explicitly wants the "method" chooser, they can pass initialMode="method".
+    setAuthMode(initialMode); resetErrors(); clearAllFields()
     setShowEmailForm(initialMode !== 'method')
+    setSignupComplete(false); setSignupEmail('')
   }, [isOpen, initialMode])
-
-  // Add this useEffect to handle reset token from URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const token = urlParams.get('token')
-    
     if (token && isOpen) {
-      setResetToken(token)
-      setAuthMode('reset-password')
-      setShowEmailForm(true)
+      setResetToken(token); setAuthMode('reset-password'); setShowEmailForm(true)
       window.history.replaceState({}, document.title, window.location.pathname)
     }
   }, [isOpen])
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true)
-    setAuthMethod('google')
-    setGeneralError('')
-    setStripeError(null)
+  // EARLY RETURN - after all hooks
+  if (!isOpen) return null
 
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true); setAuthMethod('google'); setGeneralError(''); setStripeError(null)
     try {
-      await signIn('google', { 
-        callbackUrl: redirectTarget, 
-        redirect: true 
-      })
+      await signIn('google', { callbackUrl: redirectTarget, redirect: true })
       onClose()
     } catch (error: any) {
-      console.error('Google sign-in error:', error)
       setGeneralError('Failed to sign in with Google. Please try again.')
-      setIsLoading(false)
-      setAuthMethod(null)
+      setIsLoading(false); setAuthMethod(null)
     }
   }
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    resetErrors()
-
+    e.preventDefault(); resetErrors()
     let hasError = false
-    if (!firstName.trim()) { setFirstNameError('First name is required'); hasError = true }
-    if (!lastName.trim()) { setLastNameError('Last name is required'); hasError = true }
-    if (!email.trim()) { setEmailError('Email is required'); hasError = true }
-    else if (!validateEmail(email)) { setEmailError('Invalid email format'); hasError = true }
-    if (!password) { setPasswordError('Password is required'); hasError = true }
-    else if (password.length < 8) { setPasswordError('Password must be at least 8 characters'); hasError = true }
-    if (!confirmPassword) { setConfirmPasswordError('Please confirm your password'); hasError = true }
+    if (!firstName.trim()) { setFirstNameError('Required'); hasError = true }
+    if (!lastName.trim()) { setLastNameError('Required'); hasError = true }
+    if (!email.trim()) { setEmailError('Required'); hasError = true }
+    else if (!validateEmail(email)) { setEmailError('Invalid email'); hasError = true }
+    if (!password) { setPasswordError('Required'); hasError = true }
+    else if (password.length < 8) { setPasswordError('Min 8 characters'); hasError = true }
+    if (!confirmPassword) { setConfirmPasswordError('Required'); hasError = true }
     else if (password !== confirmPassword) { setConfirmPasswordError('Passwords do not match'); hasError = true }
     if (hasError) return
-
-    setIsLoading(true)
-    setAuthMethod('email')
-
+    setIsLoading(true); setAuthMethod('email')
     try {
       const signupResponse = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.toLowerCase().trim(),
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          phone: phone.trim() || undefined,
-          company: company.trim() || undefined,
-          password,
+          email: email.toLowerCase().trim(), firstName: firstName.trim(),
+          lastName: lastName.trim(), phone: phone.trim() || undefined,
+          company: company.trim() || undefined, password,
+          selectedPlanTier: highlightPlan?.toUpperCase() || undefined,
+          selectedBillingInterval: highlightBilling || undefined,
         }),
       })
-
       const raw = await signupResponse.text()
       let data: any = null
       try { data = raw ? JSON.parse(raw) : null } catch { data = null }
-
       if (signupResponse.status === 409) {
-        setGeneralError('An account with this email already exists. Please sign in instead.')
-        setAuthMode('signin')
-        setConfirmPassword('')
-        setShowConfirmPassword(false)
-        setIsLoading(false)
-        setAuthMethod(null)
-        return
+        setGeneralError('An account with this email already exists. Please sign in.')
+        setAuthMode('signin'); setConfirmPassword(''); setIsLoading(false); setAuthMethod(null); return
       }
-
       if (!signupResponse.ok) {
-        let errorMessage = 'Failed to create account. Please try again.'
-        
-        try {
-          const data = raw ? JSON.parse(raw) : {}
-          errorMessage = data?.error || data?.message || errorMessage
-          
-          if (signupResponse.status === 500) {
-            if (errorMessage.includes('email_verification_tokens')) {
-              errorMessage = 'System is being configured. Please try again in a moment.'
-            } else if (errorMessage.includes('Resend')) {
-              errorMessage = 'Email service temporarily unavailable. Please try again later.'
-            }
-          }
-        } catch (parseError) {
-          if (raw && raw.length < 100) {
-            errorMessage = raw
-          }
-        }
-        
-        throw new Error(errorMessage)
+        let msg = 'Failed to create account. Please try again.'
+        try { const d = raw ? JSON.parse(raw) : {}; msg = d?.error || d?.message || msg } catch {}
+        throw new Error(msg)
       }
-
-      setSuccessMessage('Account created successfully! Please check your email to verify your account.')
-      setAuthMode('signin')
-      setConfirmPassword('')
-      setShowConfirmPassword(false)
-      
+      const confirmedEmail = email.toLowerCase().trim()
+      clearAllFields()
+      setPassword(''); setConfirmPassword('')
+      setSignupEmail(confirmedEmail)
+      setSignupComplete(true)
     } catch (error: any) {
-      console.error('Signup error:', error)
-      setGeneralError(error?.message || 'Failed to create account. Please try again.')
-    } finally {
-      setIsLoading(false)
-      setAuthMethod(null)
-    }
+      setGeneralError(error?.message || 'Failed to create account.')
+    } finally { setIsLoading(false); setAuthMethod(null) }
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setEmailError('')
-    setPasswordError('')
-    setGeneralError('')
-    setStripeError(null)
-
-    if (!email.trim()) { 
-      setEmailError('Email is required'); 
-      return 
-    }
-    if (!password) { 
-      setPasswordError('Password is required'); 
-      return 
-    }
-
-    setIsLoading(true)
-    setAuthMethod('email')
-
+    e.preventDefault(); setEmailError(''); setPasswordError(''); setGeneralError(''); setStripeError(null)
+    if (!email.trim()) { setEmailError('Required'); return }
+    if (!password) { setPasswordError('Required'); return }
+    setIsLoading(true); setAuthMethod('email')
     try {
-      console.log('Attempting sign in with email:', email)
-      
-      const result = await signIn('credentials', {
-        redirect: false,
-        email: email.toLowerCase().trim(),
-        password,
-      })
-
-      console.log('SignIn result:', result)
-
+      const result = await signIn('credentials', { redirect: false, email: email.toLowerCase().trim(), password, callbackUrl: redirectTarget })
       if (result?.error) {
-        const errorStr = String(result.error)
-        console.warn('SignIn error:', errorStr)
-        
-        if (errorStr.includes('CredentialsSignin') || errorStr.includes('Invalid credentials')) {
-          setGeneralError('Invalid email or password. Please check your credentials and try again.')
-        } else if (errorStr.includes('Email not verified')) {
-          setGeneralError('Please verify your email address before signing in. Check your inbox for the verification link.')
-        } else if (errorStr.includes('Callback') || errorStr.includes('OAuth')) {
-          setGeneralError('Authentication configuration error. Please try again later.')
-        } else if (errorStr.includes('Account not found')) {
-          setGeneralError('No account found with this email. Please sign up first.')
-        } else {
-          setGeneralError(`Sign in failed: ${errorStr}`)
-        }
+        const err = String(result.error)
+        if (err.includes('CredentialsSignin') || err.includes('Invalid credentials')) setGeneralError('Incorrect email or password.')
+        else if (err.includes('not verified') || err.includes('verify')) setGeneralError('__UNVERIFIED__:' + email)
+        else if (err.includes('Account not found') || err.includes('No user')) setGeneralError('No account found with this email.')
+        else setGeneralError(`Sign in failed. Please try again.`)
         return
       }
-
-      if (result?.ok && !result?.error) {
-        console.log('Sign in successful, updating session...')
-        
+      if (result?.ok) {
         await update()
-        
-        setSuccessMessage('Login successful! Redirecting...')
-        
-        setTimeout(() => {
-          console.log('Redirecting...')
-          onClose()
-          router.push(redirectTarget)
-          router.refresh()
-        }, 1000)
+        setSuccessMessage('✓ Signed in! Redirecting…')
+        setTimeout(() => { onClose(); router.push(redirectTarget); router.refresh() }, 900)
       }
-      
     } catch (error: any) {
-      console.error('Sign-in error:', error)
       setGeneralError('An unexpected error occurred. Please try again.')
-    } finally {
-      setIsLoading(false)
-      setAuthMethod(null)
-    }
+    } finally { setIsLoading(false); setAuthMethod(null) }
   }
 
   const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setEmailError('')
-    setGeneralError('')
-    setSuccessMessage('')
-
-    if (!email.trim()) { 
-      setEmailError('Email is required'); 
-      return 
-    }
-    if (!validateEmail(email)) { 
-      setEmailError('Invalid email format'); 
-      return 
-    }
-
-    setIsLoading(true)
-    setAuthMethod('email')
-
+    e.preventDefault(); setEmailError(''); setGeneralError(''); setSuccessMessage('')
+    if (!email.trim()) { setEmailError('Required'); return }
+    if (!validateEmail(email)) { setEmailError('Invalid email'); return }
+    setIsLoading(true); setAuthMethod('email')
     try {
       const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.toLowerCase().trim() }),
       })
-
       const data = await response.json()
-
-      if (response.ok) {
-        setSuccessMessage('Password reset email sent! Check your inbox for instructions.')
-        setResetSent(true)
-      } else {
-        setGeneralError(data.error || 'Failed to send reset email. Please try again.')
-      }
-    } catch (error: any) {
-      console.error('Forgot password error:', error)
-      setGeneralError('Failed to send reset email. Please try again.')
-    } finally {
-      setIsLoading(false)
-      setAuthMethod(null)
-    }
+      if (response.ok) { setSuccessMessage('Reset link sent! Check your inbox.'); setResetSent(true) }
+      else setGeneralError(data.error || 'Failed to send reset email.')
+    } catch { setGeneralError('Failed to send reset email. Try again.') }
+    finally { setIsLoading(false); setAuthMethod(null) }
   }
 
   const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setNewPasswordError('')
-    setConfirmNewPasswordError('')
-    setGeneralError('')
-    setSuccessMessage('')
-
+    e.preventDefault(); setNewPasswordError(''); setConfirmNewPasswordError(''); setGeneralError(''); setSuccessMessage('')
     let hasError = false
-    if (!newPassword) { setNewPasswordError('New password is required'); hasError = true }
-    else if (newPassword.length < 8) { setNewPasswordError('Password must be at least 8 characters'); hasError = true }
-    if (!confirmNewPassword) { setConfirmNewPasswordError('Please confirm your new password'); hasError = true }
+    if (!newPassword) { setNewPasswordError('Required'); hasError = true }
+    else if (newPassword.length < 8) { setNewPasswordError('Min 8 characters'); hasError = true }
+    if (!confirmNewPassword) { setConfirmNewPasswordError('Required'); hasError = true }
     else if (newPassword !== confirmNewPassword) { setConfirmNewPasswordError('Passwords do not match'); hasError = true }
     if (hasError) return
-
-    setIsLoading(true)
-    setAuthMethod('email')
-
+    setIsLoading(true); setAuthMethod('email')
     try {
       const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: resetToken,
-          password: newPassword,
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password: newPassword }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
-        setSuccessMessage('Password reset successful! You can now sign in with your new password.')
-        setTimeout(() => {
-          setAuthMode('signin')
-          setNewPassword('')
-          setConfirmNewPassword('')
-          setShowPassword(false)
-          setShowConfirmPassword(false)
-        }, 2000)
-      } else {
-        setGeneralError(data.error || 'Failed to reset password. Please try again or request a new reset link.')
-      }
-    } catch (error: any) {
-      console.error('Password reset error:', error)
-      setGeneralError('Failed to reset password. Please try again.')
-    } finally {
-      setIsLoading(false)
-      setAuthMethod(null)
-    }
-  }
-
-  const toggleAuthMode = (mode: AuthMode) => {
-    setAuthMode(mode)
-    resetErrors()
-    if (mode === 'forgot-password') {
-      setPassword('')
-      setShowPassword(false)
-    }
+        setSuccessMessage('Password reset! You can now sign in.')
+        setTimeout(() => { setAuthMode('signin'); setNewPassword(''); setConfirmNewPassword('') }, 2000)
+      } else setGeneralError(data.error || 'Failed to reset. Try requesting a new link.')
+    } catch { setGeneralError('Failed to reset password. Try again.') }
+    finally { setIsLoading(false); setAuthMethod(null) }
   }
 
   const openStripeInNewTab = async (plan: { key: PaidPlan; priceId: string }) => {
-    if (status !== 'authenticated') {
-      setStripeError('Please sign in first.')
-      return
-    }
-    if (!email.trim()) {
-      setStripeError('Email is required.')
-      return
-    }
-
+    if (status !== 'authenticated') { setStripeError('Please sign in first to subscribe.'); return }
     setOpeningPaidPlan(plan.key)
-
     const newTab = window.open('', '_blank')
-    if (!newTab) {
-      setStripeError('Please allow popups for this site.')
-      setOpeningPaidPlan(null)
-      return
-    }
-
+    if (!newTab) { setStripeError('Please allow popups for this site.'); setOpeningPaidPlan(null); return }
     try {
-      newTab.document.write(`
-        <html>
-          <head><title>Redirecting to Checkout...</title></head>
-          <body style="margin:0;padding:0;background:#111;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;">
-            <div style="text-align:center;">
-              <div style="font-size:24px;margin-bottom:16px;">Redirecting to Stripe Checkout...</div>
-              <div style="color:#999;">Please wait...</div>
-            </div>
-          </body>
-        </html>
-      `)
+      newTab.document.write(`<html><head><title>Redirecting…</title></head><body style="margin:0;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center;"><div style="width:40px;height:40px;border:3px solid #10b981;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div><p>Opening Stripe Checkout…</p><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></body></html>`)
       newTab.document.close()
     } catch {}
-
     try {
       const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          priceId: plan.priceId,
-          email,
-          tier: plan.key,
-          billing 
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId: plan.priceId, email, tier: plan.key, billing }),
       })
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}))
-        newTab.close()
-        setStripeError(errJson?.error || 'Failed to create checkout session.')
-        setOpeningPaidPlan(null)
-        return
-      }
-
+      if (!res.ok) { const e = await res.json().catch(() => ({})); newTab.close(); setStripeError(e?.error || 'Checkout failed.'); return }
       const { url } = await res.json()
       newTab.location.href = url
-    } catch (err: any) {
-      newTab.close()
-      setStripeError(err?.message || 'Failed to create checkout session.')
-    } finally {
-      setOpeningPaidPlan(null)
-    }
+    } catch (err: any) { newTab.close(); setStripeError(err?.message || 'Checkout failed.') }
+    finally { setOpeningPaidPlan(null) }
   }
 
-  const plans = useMemo(() => {
-    const basicPriceTop = billing === 'monthly' ? '$24.99' : '$249.90'
-    const basicTopPeriod = billing === 'monthly' ? '/month' : '/year'
-    const proPriceTop = billing === 'monthly' ? '$49.99' : '$499.90'
-    const proTopPeriod = billing === 'monthly' ? '/month' : '/year'
-    const entPriceTop = billing === 'monthly' ? '$199.99' : '$1,999.90'
-    const entTopPeriod = billing === 'monthly' ? '/month' : '/year'
-
-    // Stripe Price IDs from pricing page
-    const basicMonthlyPriceId = 'price_1SrX4iPBeHrQUcEBcCNR77ti'
-    const basicAnnualPriceId = 'price_1SrX5JPBeHrQUcEBp36HLtHq'
-    const proMonthlyPriceId = 'price_1SpKkkPBeHrQUcEBikiRqBhP'
-    const proAnnualPriceId = 'price_1SpKu0PBeHrQUcEBLqvi496k'
-    const entMonthlyPriceId = 'price_1SpKx6PBeHrQUcEB8KezJ9dx'
-    const entAnnualPriceId = 'price_1SpKxuPBeHrQUcEB9Ytzoo2N'
-
-    const list = [
-      {
-        key: 'basic',
-        name: 'Basic',
-        duration: 'Perfect for solo contractors and consultants',
-        topPrice: basicPriceTop,
-        topPeriod: basicTopPeriod,
-        showBreakdown: true,
-        features: [
-          'Unlimited opportunity searches',
-          'Advanced filtering (all criteria)',
-          'Save unlimited opportunities',
-          'Basic email alerts (daily digest)',
-          'Search history (30 days)',
-          'Export to CSV',
-          'Email support',
-        ],
-        popular: false,
-        buttonText: 'Start 7-Day Trial',
-        priceId: billing === 'monthly' ? basicMonthlyPriceId : basicAnnualPriceId,
-      },
-      {
-        key: 'professional',
-        name: 'Professional',
-        duration: 'For growing businesses and small teams',
-        topPrice: proPriceTop,
-        topPeriod: proTopPeriod,
-        showBreakdown: true,
-        features: [
-          'Everything in Basic, plus:',
-          'Real-time opportunity alerts',
-          'Advanced analytics dashboard',
-          'Competitor tracking',
-          'Custom alert criteria (25 alerts)',
-          'Search history (1 year)',
-          'API access (1,000 calls/month)',
-          'Export to Excel with formatting',
-          'Team collaboration (3 users)',
-          'Priority support',
-        ],
-        popular: true,
-        buttonText: 'Start 7-Day Trial',
-        priceId: billing === 'monthly' ? proMonthlyPriceId : proAnnualPriceId,
-      },
-      {
-        key: 'enterprise',
-        name: 'Enterprise',
-        duration: 'For large contractors and prime contractors',
-        topPrice: entPriceTop,
-        topPeriod: entTopPeriod,
-        showBreakdown: true,
-        features: [
-          'Everything in Professional, plus:',
-          'Unlimited team members',
-          'Dedicated account manager',
-          'Custom integrations',
-          'Unlimited API access',
-          'White-label reporting',
-          'Custom training sessions',
-          'SLA guarantees (99.9% uptime)',
-          'Phone & priority support',
-          'Historical data (5+ years)',
-        ],
-        popular: false,
-        buttonText: 'Start 7-Day Trial',
-        priceId: billing === 'monthly' ? entMonthlyPriceId : entAnnualPriceId,
-      },
-    ] satisfies PaidPlanCard[]
-
-    return list
-  }, [billing])
-
-  if (!isOpen) return null
-
-  const formHandler = authMode === 'signup'
-    ? handleEmailSignUp
-    : authMode === 'forgot-password'
-    ? handleForgotPassword
-    : authMode === 'reset-password'
-    ? handlePasswordReset
+  const formHandler = authMode === 'signup' ? handleEmailSignUp
+    : authMode === 'forgot-password' ? handleForgotPassword
+    : authMode === 'reset-password' ? handlePasswordReset
     : handleSignIn
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-slate-950/70 via-slate-950/60 to-slate-900/70 backdrop-blur-md"
-        onClick={onClose}
-      />
+  const authTitle = authMode === 'signup' ? 'Create your account'
+    : authMode === 'forgot-password' ? 'Reset your password'
+    : authMode === 'reset-password' ? 'Set new password'
+    : 'Welcome back'
 
-      <div className="relative w-full max-w-4xl max-h-[88vh] overflow-y-auto rounded-2xl border border-white/15 bg-slate-900/95 backdrop-blur-xl shadow-[0_30px_120px_-35px_rgba(0,0,0,0.9)]">
-        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/20 border border-white/10 hover:border-white/30 transition-all z-10 flex items-center gap-1.5"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-          <span className="text-xs font-medium">Close</span>
+  const authSubtitle = authMode === 'signup' ? 'Start your 7-day free trial today'
+    : authMode === 'forgot-password' ? "We'll send you a secure reset link"
+    : authMode === 'reset-password' ? 'Enter your new password below'
+    : 'Sign in to access your dashboard'
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif" }}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-[80vw] max-h-[92vh] overflow-y-auto rounded-3xl bg-white shadow-2xl border border-slate-100"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}>
+
+        {/* Top accent bar */}
+        <div className="h-1.5 w-full rounded-t-3xl" style={{ background: 'linear-gradient(90deg, #10b981, #06b6d4, #10b981)' }} />
+
+        {/* Close button */}
+        <button onClick={onClose}
+          className="absolute right-5 top-5 z-10 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all">
+          <X className="h-4 w-4" /> Close
         </button>
 
         <div className="p-6 lg:p-10">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 mb-4">
-              <Shield className="h-8 w-8 text-emerald-400" />
+          <div className="text-center mb-10">
+            <img src="/logo.png" alt="Precise GovCon" className="h-12 w-auto mx-auto mb-5" />
+            <div className="mb-3">
+              <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#059669' }}>
+                7-Day Free Trial · No Credit Card Required
+              </span>
             </div>
-            <h2 className="text-2xl lg:text-3xl font-semibold tracking-tight text-white mb-2">
-              Unlock {featureName}
+            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-3">
+              Welcome to <span className="font-black text-slate-900">PRECISE</span><span className="font-black" style={{ color: '#F97316' }}>GOVCON</span>
             </h2>
-            <p className="text-slate-300/80 leading-relaxed max-w-lg mx-auto">
-              Sign in or start your free trial to access premium features
+            <p className="text-xl font-black tracking-tight" style={{ color: '#ea580c' }}>
+              Find, track and win more government contracts. Sign in or start your free trial below.
             </p>
           </div>
 
-          {/* Success Message */}
-          {successMessage && (
-            <div className="mb-6 p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <p className="text-emerald-100 text-sm leading-relaxed">{successMessage}</p>
-            </div>
-          )}
+          {/* Two-column layout: Auth + Plans */}
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 lg:gap-10">
 
-          {/* General Error */}
-          {generalError && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/30 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-red-100 text-sm leading-relaxed">{generalError}</p>
-            </div>
-          )}
+            {/* LEFT: Auth panel */}
+            <div className="lg:col-span-2">
+              <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-sm">
 
-          {/* Stripe Errors */}
-          {stripeError && (
-            <div className="mb-6 p-4 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-amber-100 text-sm leading-relaxed">{stripeError}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Main Content: 2-Column Grid on large screens */}
-          <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8">
-            {/* Left: Auth Forms */}
-            <div>
-              {!showEmailForm ? (
-                <>
-                  {/* Method Chooser */}
-                  <div className="space-y-3">
-                    <button
-                      onClick={handleGoogleSignIn}
-                      disabled={isLoading}
-                      className="group w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {isLoading && authMethod === 'google' ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-white" />
-                      ) : (
-                        <svg className="h-5 w-5" viewBox="0 0 24 24">
-                          <path
-                            fill="currentColor"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            className="text-blue-500"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            className="text-green-500"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                            className="text-yellow-500"
-                          />
-                          <path
-                            fill="currentColor"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                            className="text-red-500"
-                          />
-                        </svg>
-                      )}
-                      <span className="font-semibold text-white">Continue with Google</span>
-                    </button>
-
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-white/10"></div>
-                      </div>
-                      <div className="relative flex justify-center text-xs">
-                        <span className="px-3 bg-slate-900/50 text-slate-400 font-medium">or continue with email</span>
-                      </div>
+                {/* SIGNUP COMPLETE — confirmation screen, no form visible */}
+                {signupComplete ? (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+                      style={{ background: '#ecfdf5', border: '3px solid #10b981' }}>
+                      <CheckCircle className="h-9 w-9" style={{ color: '#059669' }} />
                     </div>
-
-                    <button
-                      onClick={() => {
-                        setShowEmailForm(true)
-                        setAuthMode('signup')
-                      }}
-                      className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold transition-opacity hover:opacity-90"
-                    >
-                      <Mail className="h-5 w-5" />
-                      Sign Up with Email
+                    <h3 className="text-xl font-black text-slate-900 mb-2">Check Your Email</h3>
+                    <p className="text-sm font-bold text-slate-600 mb-1">We sent a verification link to:</p>
+                    <p className="text-base font-black mb-5" style={{ color: '#059669' }}>{signupEmail}</p>
+                    <div className="rounded-xl p-4 mb-6 text-left" style={{ background: '#f0fdf4', border: '2px solid #bbf7d0' }}>
+                      <p className="text-sm font-black text-slate-800 mb-2">What to do next:</p>
+                      <ol className="space-y-1.5">
+                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2"><span className="font-black text-emerald-600">1.</span> Open the email from Precise GovCon</li>
+                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2"><span className="font-black text-emerald-600">2.</span> Click "Verify Email & Start Trial"</li>
+                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2"><span className="font-black text-emerald-600">3.</span> Come back and sign in below</li>
+                      </ol>
+                    </div>
+                    <p className="text-xs font-bold text-slate-500 mb-4">Check your spam folder if you don't see it within 2 minutes.</p>
+                    <button type="button"
+                      onClick={() => { setSignupComplete(false); setAuthMode('signin'); setShowEmailForm(true) }}
+                      className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all shadow-md"
+                      style={{ background: '#059669' }}>
+                      Go to Sign In
                     </button>
-
-                    <button
-                      onClick={() => {
-                        setShowEmailForm(true)
-                        setAuthMode('signin')
-                      }}
-                      className="w-full flex items-center justify-center gap-3 px-5 py-3.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 text-white font-semibold transition-colors"
-                    >
-                      <Lock className="h-5 w-5" />
-                      Sign In with Email
+                    <button type="button" onClick={onClose}
+                      className="mt-3 w-full py-2.5 rounded-xl font-black text-base border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all">
+                      Close Window
                     </button>
                   </div>
-                </>
-              ) : (
-                <>
-                  {/* Email Auth Form */}
+                ) : (<>
+
+                {/* TAB BAR — Sign In / Sign Up / Google */}
+                {authMode !== 'forgot-password' && authMode !== 'reset-password' && (
+                  <div className="grid grid-cols-2 border-b-2 border-slate-200">
+                    <button type="button"
+                      onClick={() => { setShowEmailForm(true); toggleAuthMode('signin') }}
+                      className={cx(
+                        'py-4 text-base font-black text-center transition-all border-r-2 border-slate-200',
+                        authMode === 'signin'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      )}>
+                      Sign In
+                    </button>
+                    <button type="button"
+                      onClick={() => { setShowEmailForm(true); toggleAuthMode('signup') }}
+                      className={cx(
+                        'py-4 text-base font-black text-center transition-all',
+                        authMode === 'signup'
+                          ? 'text-white'
+                          : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      )}
+                      style={authMode === 'signup' ? { background: '#F97316' } : {}}>
+                      Sign Up
+                    </button>
+                  </div>
+                )}
+
+                {/* Google SSO — always visible strip */}
+                {authMode !== 'forgot-password' && authMode !== 'reset-password' && (
+                  <div className="px-5 pt-4 pb-2">
+                    <button onClick={handleGoogleSignIn} disabled={isLoading}
+                      className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border-2 border-slate-300 bg-white hover:bg-slate-50 font-black text-base text-slate-800 transition-all shadow-sm disabled:opacity-60">
+                      {isLoading && authMethod === 'google' ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                        <svg className="h-5 w-5" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                      )}
+                      Continue with Google
+                    </button>
+                    <div className="relative my-3">
+                      <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-slate-200" /></div>
+                      <div className="relative flex justify-center"><span className="px-3 bg-white text-sm font-black text-slate-400">OR</span></div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="px-5 pb-5">
+                  {/* Alerts */}
+                  {successMessage && (
+                    <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 flex items-start gap-2.5">
+                      <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm font-bold text-emerald-900 leading-relaxed">{successMessage}</p>
+                    </div>
+                  )}
+                  {generalError && (() => {
+                    const isUnverified = generalError.startsWith('__UNVERIFIED__:')
+                    if (isUnverified) return <UnverifiedEmailBanner email={generalError.replace('__UNVERIFIED__:', '')} />
+                    return (
+                      <div className="mb-4 p-3.5 rounded-xl bg-red-50 border-2 border-red-300 flex items-start gap-2.5">
+                        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm font-bold text-red-900">{generalError}</p>
+                      </div>
+                    )
+                  })()}
+                  {stripeError && (
+                    <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border-2 border-amber-300 flex items-start gap-2.5">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm font-bold text-amber-900">{stripeError}</p>
+                    </div>
+                  )}
+
                   <form onSubmit={formHandler} className="space-y-4">
+                    {/* Reset password */}
                     {authMode === 'reset-password' && (
                       <>
-                        <div className="mb-6 p-4 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-start gap-3">
-                          <Key className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-blue-100 text-sm leading-relaxed">
-                            Enter your new password below to reset your account password.
-                          </p>
+                        <h3 className="text-lg font-black text-slate-900">Set New Password</h3>
+                        <div className="p-3 rounded-xl bg-blue-50 border-2 border-blue-200 flex gap-2">
+                          <Key className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm font-bold text-blue-900">Enter your new password below.</p>
                         </div>
-
-                        {/* New Password */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">New Password *</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-11 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                newPasswordError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="••••••••"
-                              disabled={isLoading}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                            >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                          {newPasswordError && <p className="mt-1.5 text-xs text-red-400">{newPasswordError}</p>}
-                        </div>
-
-                        {/* Confirm New Password */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Confirm New Password *</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type={showConfirmPassword ? 'text' : 'password'}
-                              value={confirmNewPassword}
-                              onChange={(e) => setConfirmNewPassword(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-11 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                confirmNewPasswordError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="••••••••"
-                              disabled={isLoading}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                            >
-                              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                          {confirmNewPasswordError && <p className="mt-1.5 text-xs text-red-400">{confirmNewPasswordError}</p>}
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isLoading}
-                          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                              Resetting Password...
-                            </>
-                          ) : (
-                            <>Reset Password</>
-                          )}
+                        <PasswordField label="New Password" value={newPassword} onChange={setNewPassword} error={newPasswordError} disabled={isLoading} />
+                        <PasswordField label="Confirm New Password" value={confirmNewPassword} onChange={setConfirmNewPassword} error={confirmNewPasswordError} disabled={isLoading} />
+                        <button type="submit" disabled={isLoading}
+                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                          style={{ background: '#059669' }}>
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Resetting…</> : 'Reset Password'}
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAuthMode('signin')
-                            setResetToken('')
-                            setNewPassword('')
-                            setConfirmNewPassword('')
-                            setShowPassword(false)
-                            setShowConfirmPassword(false)
-                          }}
-                          className="w-full text-center text-slate-400 hover:text-white font-medium py-2"
-                        >
-                          ← Back to Sign In
+                        <button type="button" onClick={() => { setAuthMode('signin'); setResetToken(''); setNewPassword(''); setConfirmNewPassword('') }}
+                          className="w-full text-center text-base font-black text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1">
+                          <ArrowLeft className="h-4 w-4" /> Back to Sign In
                         </button>
                       </>
                     )}
 
+                    {/* Forgot password */}
                     {authMode === 'forgot-password' && (
                       <>
-                        <div className="mb-6 p-4 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-start gap-3">
-                          <Mail className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-blue-100 text-sm leading-relaxed">
-                            {resetSent
-                              ? 'Check your email for a password reset link. It may take a few minutes to arrive.'
-                              : 'Enter your email address and we\'ll send you a link to reset your password.'}
-                          </p>
+                        <div className="mb-2">
+                          <h3 className="text-lg font-black text-slate-900">Reset Your Password</h3>
+                          <p className="text-sm font-bold text-slate-500 mt-1">We'll send a secure reset link to your email.</p>
                         </div>
-
-                        {!resetSent && (
-                          <>
-                            {/* Email */}
-                            <div>
-                              <label className="block text-sm font-medium text-slate-300 mb-2">Email Address *</label>
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                                <input
-                                  type="email"
-                                  value={email}
-                                  onChange={(e) => setEmail(e.target.value)}
-                                  className={cx(
-                                    'w-full pl-11 pr-4 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                    emailError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                                  )}
-                                  placeholder="john@company.com"
-                                  disabled={isLoading}
-                                />
-                              </div>
-                              {emailError && <p className="mt-1.5 text-xs text-red-400">{emailError}</p>}
-                            </div>
-
-                            <button
-                              type="submit"
-                              disabled={isLoading}
-                              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                              {isLoading ? (
-                                <>
-                                  <Loader2 className="h-5 w-5 animate-spin" />
-                                  Sending Reset Link...
-                                </>
-                              ) : (
-                                <>Send Reset Link</>
-                              )}
-                            </button>
-                          </>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => toggleAuthMode('signin')}
-                          className="w-full text-center text-slate-400 hover:text-white font-medium py-2"
-                        >
-                          ← Back to Sign In
+                        <InputField label="Email Address" icon={Mail} type="email" value={email} onChange={e => setEmail(e.target.value)} error={emailError} placeholder="you@company.com" disabled={isLoading} />
+                        <button type="submit" disabled={isLoading}
+                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                          style={{ background: '#059669' }}>
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Sending…</> : 'Send Reset Link'}
+                        </button>
+                        <button type="button" onClick={() => toggleAuthMode('signin', true)}
+                          className="w-full text-center text-base font-black text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1">
+                          <ArrowLeft className="h-4 w-4" /> Back to Sign In
                         </button>
                       </>
                     )}
 
+                    {/* Sign up */}
                     {authMode === 'signup' && (
                       <>
-                        {/* First Name */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">First Name *</label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type="text"
-                              value={firstName}
-                              onChange={(e) => setFirstName(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-4 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                firstNameError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="John"
-                              disabled={isLoading}
-                            />
-                          </div>
-                          {firstNameError && <p className="mt-1.5 text-xs text-red-400">{firstNameError}</p>}
+                        <div className="grid grid-cols-2 gap-3">
+                          <InputField label="First Name" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} error={firstNameError} placeholder="John" disabled={isLoading} />
+                          <InputField label="Last Name" type="text" value={lastName} onChange={e => setLastName(e.target.value)} error={lastNameError} placeholder="Doe" disabled={isLoading} />
                         </div>
-
-                        {/* Last Name */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Last Name *</label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type="text"
-                              value={lastName}
-                              onChange={(e) => setLastName(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-4 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                lastNameError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="Doe"
-                              disabled={isLoading}
-                            />
-                          </div>
-                          {lastNameError && <p className="mt-1.5 text-xs text-red-400">{lastNameError}</p>}
-                        </div>
-
-                        {/* Email */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Email Address *</label>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type="email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-4 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                emailError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="john@company.com"
-                              disabled={isLoading}
-                            />
-                          </div>
-                          {emailError && <p className="mt-1.5 text-xs text-red-400">{emailError}</p>}
-                        </div>
-
-                        {/* Phone (optional) */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Phone (optional)</label>
-                          <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type="tel"
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                              className="w-full pl-11 pr-4 py-3 rounded-xl border border-white/10 focus:border-emerald-500/50 bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors"
-                              placeholder="+1 (555) 000-0000"
-                              disabled={isLoading}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Company (optional) */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Company (optional)</label>
-                          <div className="relative">
-                            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type="text"
-                              value={company}
-                              onChange={(e) => setCompany(e.target.value)}
-                              className="w-full pl-11 pr-4 py-3 rounded-xl border border-white/10 focus:border-emerald-500/50 bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors"
-                              placeholder="Acme Corp"
-                              disabled={isLoading}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Password *</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-11 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                passwordError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="••••••••"
-                              disabled={isLoading}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                            >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                          {passwordError && <p className="mt-1.5 text-xs text-red-400">{passwordError}</p>}
-                        </div>
-
-                        {/* Confirm Password */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Confirm Password *</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type={showConfirmPassword ? 'text' : 'password'}
-                              value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-11 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                confirmPasswordError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="••••••••"
-                              disabled={isLoading}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                            >
-                              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                          {confirmPasswordError && <p className="mt-1.5 text-xs text-red-400">{confirmPasswordError}</p>}
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isLoading}
-                          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                              Creating Account...
-                            </>
-                          ) : (
-                            <>Create Account</>
-                          )}
+                        <InputField label="Email Address" icon={Mail} type="email" value={email} onChange={e => setEmail(e.target.value)} error={emailError} placeholder="you@company.com" disabled={isLoading} />
+                        <InputField label="Phone (optional)" icon={Phone} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" disabled={isLoading} />
+                        <InputField label="Company (optional)" icon={Building} type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Corp" disabled={isLoading} />
+                        <PasswordField label="Password" value={password} onChange={setPassword} error={passwordError} disabled={isLoading} />
+                        <PasswordField label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} error={confirmPasswordError} disabled={isLoading} />
+                        <button type="submit" disabled={isLoading}
+                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md"
+                          style={{ background: '#F97316' }}>
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Creating Account…</> : <>Start Free Trial <ArrowRight className="h-5 w-5" /></>}
                         </button>
-
-                        <p className="text-center text-sm text-slate-400">
-                          Already have an account?{' '}
-                          <button
-                            type="button"
-                            onClick={() => toggleAuthMode('signin')}
-                            className="text-emerald-400 hover:text-emerald-300 font-semibold"
-                          >
-                            Sign In
-                          </button>
+                        <p className="text-center text-sm font-bold text-slate-600">
+                          By signing up you agree to our{' '}
+                          <span className="text-emerald-700 underline cursor-pointer">Terms of Service</span> and{' '}
+                          <span className="text-emerald-700 underline cursor-pointer">Privacy Policy</span>
                         </p>
                       </>
                     )}
 
+                    {/* Sign in */}
                     {authMode === 'signin' && (
                       <>
-                        {/* Email */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Email Address *</label>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type="email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-4 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                emailError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="john@company.com"
-                              disabled={isLoading}
-                            />
-                          </div>
-                          {emailError && <p className="mt-1.5 text-xs text-red-400">{emailError}</p>}
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                          <label className="block text-sm font-medium text-slate-300 mb-2">Password *</label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-500" />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              className={cx(
-                                'w-full pl-11 pr-11 py-3 rounded-xl border bg-white/5 backdrop-blur-xl text-white placeholder-slate-500 transition-colors',
-                                passwordError ? 'border-red-500/50' : 'border-white/10 focus:border-emerald-500/50'
-                              )}
-                              placeholder="••••••••"
-                              disabled={isLoading}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                            >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
-                          {passwordError && <p className="mt-1.5 text-xs text-red-400">{passwordError}</p>}
-                        </div>
-
-                        <div className="flex items-center justify-end">
-                          <button
-                            type="button"
-                            onClick={() => toggleAuthMode('forgot-password')}
-                            className="text-sm text-emerald-400 hover:text-emerald-300 font-semibold"
-                          >
+                        <InputField label="Email Address" icon={Mail} type="email" value={email} onChange={e => setEmail(e.target.value)} error={emailError} placeholder="you@company.com" disabled={isLoading} />
+                        <PasswordField label="Password" value={password} onChange={setPassword} error={passwordError} disabled={isLoading} />
+                        <div className="flex justify-end">
+                          <button type="button" onClick={() => toggleAuthMode('forgot-password', true)}
+                            className="text-sm font-black text-emerald-700 hover:text-emerald-900 underline underline-offset-2">
                             Forgot password?
                           </button>
                         </div>
-
-                        <button
-                          type="submit"
-                          disabled={isLoading}
-                          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                              Signing In...
-                            </>
-                          ) : (
-                            <>Sign In</>
-                          )}
+                        <button type="submit" disabled={isLoading}
+                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md"
+                          style={{ background: '#059669' }}>
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Signing In…</> : 'Sign In'}
                         </button>
-
-                        <p className="text-center text-sm text-slate-400">
-                          Don't have an account?{' '}
-                          <button
-                            type="button"
-                            onClick={() => toggleAuthMode('signup')}
-                            className="text-emerald-400 hover:text-emerald-300 font-semibold"
-                          >
-                            Sign Up
+                        <p className="text-center text-sm font-black text-slate-700">
+                          No account yet?{' '}
+                          <button type="button" onClick={() => toggleAuthMode('signup')}
+                            className="font-black underline underline-offset-2" style={{ color: '#F97316' }}>
+                            Create one free →
                           </button>
                         </p>
                       </>
                     )}
-
-                    {(authMode === 'signin' || authMode === 'signup') && (
-                      <button
-                        type="button"
-                        onClick={() => toggleAuthMode('signin')}
-                        className="w-full text-center text-slate-400 hover:text-white font-medium py-2"
-                      >
-                        ← Back to Sign In
-                      </button>
-                    )}
                   </form>
-                </>
-              )}
-
-              {/* Benefits */}
-              <div className="mt-8">
-                <h4 className="text-sm font-semibold text-slate-300 mb-3">What you'll get:</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {BENEFITS.map((benefit, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm text-slate-400">
-                      <div className="text-emerald-400">{benefit.icon}</div>
-                      {benefit.text}
-                    </div>
-                  ))}
                 </div>
+                </> )}
+              </div>
+
+              {/* Trust bar */}
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <span className="flex items-center gap-1.5 text-sm font-bold text-slate-600"><Shield className="h-4 w-4 text-emerald-600" /> SSL Secured</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold text-slate-600"><Lock className="h-4 w-4 text-emerald-600" /> No card needed</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold text-slate-600"><Zap className="h-4 w-4 text-emerald-600" /> Instant access</span>
               </div>
             </div>
 
-            {/* Right: Plans */}
-            <div className="border-t lg:border-t-0 lg:border-l border-white/10 pt-8 lg:pt-0 lg:pl-8">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h3 className="text-lg font-semibold tracking-tight text-white">Choose Your Plan</h3>
-
-                <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl p-1">
-                  <button
-                    type="button"
-                    onClick={() => setBilling('monthly')}
-                    disabled={!!openingPaidPlan || isLoading}
-                    className={cx(
-                      'px-3 py-1.5 rounded-lg text-xs font-semibold transition',
+            {/* RIGHT: Pricing plans */}
+            <div className="lg:col-span-5">
+              {/* Billing toggle */}
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-xl font-black text-slate-900">Choose Your Plan</h3>
+                <div className="flex items-center gap-1.5 p-1.5 rounded-2xl border-2 border-slate-200 bg-slate-100">
+                  <button type="button" onClick={() => setBilling('monthly')} disabled={!!openingPaidPlan}
+                    className={cx('px-5 py-2.5 rounded-xl text-sm font-black transition-all',
                       billing === 'monthly'
-                        ? 'bg-white text-slate-900'
-                        : 'text-slate-200 hover:bg-white/10'
-                    )}
-                  >
+                        ? 'text-white shadow-md'
+                        : 'text-slate-500 hover:text-slate-800')}
+                    style={billing === 'monthly' ? { background: 'linear-gradient(135deg, #10b981, #059669)' } : {}}>
                     Monthly
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setBilling('annual')}
-                    disabled={!!openingPaidPlan || isLoading}
-                    className={cx(
-                      'px-3 py-1.5 rounded-lg text-xs font-semibold transition',
+                  <button type="button" onClick={() => setBilling('annual')} disabled={!!openingPaidPlan}
+                    className={cx('px-5 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2',
                       billing === 'annual'
-                        ? 'bg-white text-slate-900'
-                        : 'text-slate-200 hover:bg-white/10'
-                    )}
-                  >
-                    Annual <span className="ml-1 text-emerald-300">(save)</span>
+                        ? 'text-white shadow-md'
+                        : 'text-slate-500 hover:text-slate-800')}
+                    style={billing === 'annual' ? { background: 'linear-gradient(135deg, #06b6d4, #0891b2)' } : {}}>
+                    Annual
+                    <span className={cx('text-xs font-black px-1.5 py-0.5 rounded-lg',
+                      billing === 'annual' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700')}>
+                      -16%
+                    </span>
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {plans.map((plan) => {
-                  const isOpening =
-                    (plan.key === 'basic' && openingPaidPlan === 'basic') ||
-                    (plan.key === 'professional' && openingPaidPlan === 'professional') ||
-                    (plan.key === 'enterprise' && openingPaidPlan === 'enterprise')
-
-                  const isHighlighted = !!highlightPlan && plan.key === highlightPlan
-
+              {/* Plan cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {plans.map(plan => {
+                  const isOpening = openingPaidPlan === plan.key
+                  const isDark = plan.key === 'professional'
                   return (
-                    <div
-                      id={`acm-plan-${plan.key}`}
-                      key={plan.key}
-                      className={cx(
-                        'relative p-4 rounded-2xl border transition-colors',
-                        plan.popular
-                          ? 'border-emerald-500/50 bg-white/5 backdrop-blur-xl ring-2 ring-emerald-500/20 shadow-[0_20px_80px_-40px_rgba(16,185,129,0.45)]'
-                          : 'border-white/10 bg-white/5 backdrop-blur-xl hover:border-white/20',
-                        isHighlighted && 'ring-2 ring-cyan-400/40 border-cyan-400/50 shadow-[0_0_0_4px_rgba(34,211,238,0.12)]'
-                      )}
-                    >
+                    <div key={plan.key} id={`acm-plan-${plan.key}`}
+                      className={cx('relative rounded-2xl border-2 p-5 transition-all flex flex-col',
+                        plan.popular ? 'shadow-xl scale-[1.02]' : 'hover:shadow-lg hover:-translate-y-0.5')}
+                      style={{ background: plan.gradient, borderColor: plan.accentColor + '60' }}>
+
                       {plan.popular && (
-                        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                          <div className="px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-xs font-semibold whitespace-nowrap">
-                            MOST POPULAR
+                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                          <div className="px-4 py-1 rounded-full text-white text-[10px] font-bold tracking-wider shadow-lg whitespace-nowrap"
+                            style={{ background: plan.badgeGradient }}>
+                            ⚡ MOST POPULAR
                           </div>
                         </div>
                       )}
 
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="text-base font-semibold tracking-tight text-white">{plan.name}</h4>
-                          <p className="text-sm text-slate-300/70">{plan.duration}</p>
+                      {/* Plan header */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={cx('text-sm font-black uppercase tracking-wider', isDark ? 'text-emerald-400' : 'text-slate-500')}>
+                            {plan.name}
+                          </span>
                         </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-semibold tracking-tight text-white">{plan.topPrice}</div>
-                          <div className="text-sm text-slate-300/70">{plan.topPeriod}</div>
+                        <div className="flex items-baseline gap-1 mb-1">
+                          <span className={cx('text-4xl font-black', isDark ? 'text-white' : 'text-slate-900')}>{plan.topPrice}</span>
+                          <span className={cx('text-sm font-bold', isDark ? 'text-slate-300' : 'text-slate-500')}>{plan.topPeriod}</span>
+                        </div>
+                        <p className={cx('text-sm font-semibold', isDark ? 'text-slate-300' : 'text-slate-600')}>{plan.tagline}</p>
+                      </div>
+
+                      {/* Price breakdown */}
+                      <div className={cx('rounded-xl p-2.5 mb-4 text-sm space-y-1', isDark ? 'bg-white/10' : 'bg-white/70 border border-white')}>
+                        <div className={cx('flex justify-between', isDark ? 'text-slate-100' : 'text-slate-700')}>
+                          <span className="font-bold">Monthly</span><span className="font-bold">{plan.monthlyPrice}</span>
+                        </div>
+                        <div className={cx('flex justify-between', isDark ? 'text-slate-100' : 'text-slate-700')}>
+                          <span className="font-bold">Annual</span><span className="font-bold text-emerald-500">{plan.annualPrice}</span>
                         </div>
                       </div>
 
-                      {plan.showBreakdown && (
-                        <div className="mb-3 flex flex-col gap-2 text-sm text-slate-300">
-                          <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl px-3 py-2">
-                            Monthly:{' '}
-                            <span className="font-semibold">
-                              {plan.key === 'basic' ? '$24.99/month' : plan.key === 'professional' ? '$49.99/month' : '$199.99/month'}
-                            </span>
-                          </div>
-                          <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-xl px-3 py-2">
-                            Annual:{' '}
-                            <span className="font-semibold">
-                              {plan.key === 'basic' ? '$249.90/year' : plan.key === 'professional' ? '$499.90/year' : '$1,999.90/year'}
-                            </span>{' '}
-                            <span className="text-emerald-300 text-xs">(save 16%)</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <ul className="space-y-2 mb-4">
-                        {plan.features.map((f) => (
+                      {/* Features */}
+                      <ul className="space-y-2 mb-5 flex-1">
+                        {plan.features.map(f => (
                           <li key={f} className="flex items-start gap-2">
-                            <CheckCircle
-                              className={cx(
-                                'h-4 w-4 mt-0.5 flex-shrink-0',
-                                plan.popular ? 'text-emerald-400' : 'text-white/25'
-                              )}
-                            />
-                            <span className="text-sm text-slate-300">{f}</span>
+                            <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: plan.accentColor }} />
+                            <span className={cx('text-sm font-semibold leading-relaxed', isDark ? 'text-slate-200' : 'text-slate-800')}>{f}</span>
                           </li>
                         ))}
                       </ul>
 
-                      <div className="grid grid-cols-1 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openStripeInNewTab(plan)}
-                          disabled={isLoading || !!openingPaidPlan}
-                          className="w-full font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm bg-white/10 text-white border border-white/10 hover:bg-white/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {isOpening ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" /> Opening Stripe…
-                            </>
-                          ) : (
-                            <>
-                              {plan.buttonText} <ExternalLink className="h-4 w-4" />
-                            </>
-                          )}
-                        </button>
+                      {/* CTA button */}
+                      <button type="button" onClick={() => openStripeInNewTab(plan)}
+                        disabled={isLoading || !!openingPaidPlan}
+                        className="w-full py-2.5 px-4 rounded-xl text-sm font-black text-white transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:brightness-110"
+                        style={{ background: plan.badgeGradient }}>
+                        {isOpening ? <><Loader2 className="h-4 w-4 animate-spin" /> Opening…</> : <>{plan.buttonText} <ExternalLink className="h-3.5 w-3.5" /></>}
+                      </button>
 
-                        {plan.key === 'enterprise' && (
-                          <a
-                            href="/contact?plan=enterprise"
-                            className="w-full font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm border border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center justify-center gap-2"
-                          >
-                            Contact Sales <Mail className="h-4 w-4" />
-                          </a>
-                        )}
-
-                        <p className="text-xs text-slate-300/60 text-center">
-                          Opens checkout in a new tab (popups must be allowed).
-                        </p>
-                      </div>
+                      {plan.key === 'enterprise' && (
+                        <a href="/contact?plan=enterprise"
+                          className={cx('mt-2 w-full py-2 px-4 rounded-xl text-xs font-semibold text-center transition-all flex items-center justify-center gap-1.5 border',
+                            isDark ? 'border-white/20 text-slate-300 hover:bg-white/10' : 'border-slate-200 bg-white/80 text-slate-600 hover:bg-white')}>
+                          Contact Sales <Mail className="h-3 w-3" />
+                        </a>
+                      )}
+                      <p className={cx('text-center text-xs font-medium mt-2', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                        Opens in new tab · popups must be allowed
+                      </p>
                     </div>
                   )
                 })}
@@ -1386,16 +802,13 @@ export default function AccessControlModal({isOpen,
             </div>
           </div>
 
-          {/* Maybe Later footer */}
-          <div className="mt-6 flex flex-col items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors underline underline-offset-4"
-            >
+          {/* Footer */}
+          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center gap-2">
+            <button type="button" onClick={onClose}
+              className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-4">
               Maybe later — continue browsing
             </button>
-            <p className="text-xs text-slate-500 text-center">
+            <p className="text-[10px] text-slate-300">
               By continuing, you agree to our Terms of Service and Privacy Policy
             </p>
           </div>

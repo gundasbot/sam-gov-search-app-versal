@@ -104,58 +104,58 @@ export default function ProfileCompletionReminder() {
   if (!show) return null
 
   return (
-    <div className="mb-6 rounded-2xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-sm p-5 shadow-lg">
+    <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-md">
       <div className="flex items-start gap-4">
-        <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-          <User className="h-5 w-5 text-amber-400" />
+        <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 border border-amber-200">
+          <User className="h-5 w-5 text-amber-600" />
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold text-white">Complete Your Profile</h3>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+            <h3 className="text-base font-bold text-amber-900">Complete Your Profile</h3>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-semibold">
               {state.displayCount}/{MAX_DISPLAYS} reminders
             </span>
           </div>
-          
-          <p className="text-sm text-slate-300 mb-3">
-            Unlock advanced features and personalized recommendations by completing your company profile. 
+
+          <p className="text-sm text-amber-800 mb-3 leading-relaxed">
+            Unlock advanced features and personalized recommendations by completing your company profile.
             Add your NAICS codes, set-aside preferences, and location to get better-targeted opportunities.
           </p>
-          
+
           <div className="flex flex-wrap items-center gap-2">
             <a
               href="/account/profile"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:from-amber-600 hover:to-orange-600 transition-all text-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold hover:from-amber-600 hover:to-orange-600 transition-all text-sm shadow-sm"
             >
               <CheckCircle className="h-4 w-4" />
               Complete Profile
             </a>
-            
+
             {state.remindLaterCount < MAX_REMIND_LATER && (
               <button
                 onClick={handleRemindLater}
-                className="px-4 py-2 rounded-xl bg-slate-800/50 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700 transition-all text-sm"
+                className="px-4 py-2 rounded-xl bg-white text-amber-800 hover:bg-amber-100 border border-amber-300 transition-all text-sm font-semibold"
               >
                 Remind Me Later ({MAX_REMIND_LATER - state.remindLaterCount} left)
               </button>
             )}
-            
+
             <button
               onClick={handleDismiss}
-              className="px-4 py-2 rounded-xl text-slate-400 hover:text-white transition-colors text-sm"
+              className="px-4 py-2 rounded-xl text-amber-700 hover:text-amber-900 hover:bg-amber-100 transition-colors text-sm font-semibold"
             >
               Don't Show Again
             </button>
           </div>
         </div>
-        
+
         <button
           onClick={handleDismiss}
-          className="p-2 hover:bg-slate-800/50 rounded-xl transition-colors flex-shrink-0"
+          className="p-2 hover:bg-amber-100 rounded-xl transition-colors flex-shrink-0"
           aria-label="Close"
         >
-          <X className="h-5 w-5 text-slate-400" />
+          <X className="h-5 w-5 text-amber-600" />
         </button>
       </div>
     </div>

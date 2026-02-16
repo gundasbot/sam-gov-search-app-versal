@@ -18,11 +18,17 @@ type Brand = {
 
 export function getBrand() {
   const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "")
-  
+
+  // Logo must always be an absolute URL for emails - relative paths don't work
+  const rawLogoUrl = process.env.BRAND_LOGO_URL || ""
+  const logoUrl = rawLogoUrl.startsWith("http")
+    ? rawLogoUrl
+    : `https://precisegovcon.com/precise-govcon-logo-light.png`
+
   return {
     appUrl,
     name: process.env.BRAND_NAME || "Precise GovCon",
-    logoUrl: process.env.BRAND_LOGO_URL || `${appUrl}/precise-govcon-logo.jpg`,
+    logoUrl,
     supportEmail: process.env.SUPPORT_EMAIL || "support@precisegovcon.com",
     tagline: "contracting intelligence and procurement experts",
     colors: {

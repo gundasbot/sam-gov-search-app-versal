@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import AccessControlModal from '@/components/AccessControlModal'
 import {
   Check,
   Shield,
@@ -163,6 +164,11 @@ export default function PricingClient() {
   const [livePrices, setLivePrices] = useState<LivePrices>({})
   const [pricesLoading, setPricesLoading] = useState(true)
 
+  // Modal for unauthenticated users clicking a pricing card
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalPlan, setModalPlan] = useState<'basic' | 'professional' | 'enterprise' | undefined>(undefined)
+  const [modalBilling, setModalBilling] = useState<'monthly' | 'annual'>('monthly')
+
   const [showChangeWarning, setShowChangeWarning] = useState<{
     tier: PricingTier
     type: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
@@ -248,6 +254,9 @@ export default function PricingClient() {
 
   // Load user's current plan
   const loadPlan = useCallback(async () => {
+    // Never call the API for unauthenticated users — it will 401
+    if (status !== 'authenticated') return null
+
     try {
       setError(null)
 
@@ -351,7 +360,7 @@ export default function PricingClient() {
       console.error('❌ Failed to load plan:', err)
       return null
     }
-  }, [])
+  }, [status])
 
   // --- Stripe sync helper ---
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -403,49 +412,40 @@ export default function PricingClient() {
   )
 
   useEffect(() => {
-    if (status === 'authenticated') loadPlan()
-  }, [status, loadPlan])
+    // Don't fire while NextAuth is still resolving the session
+    if (status === 'loading') return
+    loadPlan()
+  }, [loadPlan, status])
 
   useEffect(() => {
-    const successParam = searchParams?.get('success')
-    if (successParam === 'true') {
-      setSuccess('✅ Payment received — syncing your subscription…')
-      startPlanSyncPolling('return-from-checkout')
-      const newUrl = window.location.pathname
-      window.history.replaceState({}, '', newUrl)
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current)
+        syncTimerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const canceled = searchParams.get('canceled')
+    const sessionId = searchParams.get('session_id')
+
+    if (success === 'true' && sessionId) {
+      setSuccess('✅ Payment successful! Syncing your subscription…')
+      startPlanSyncPolling('success-callback')
+    } else if (canceled === 'true') {
+      setError('Payment was canceled. You can try again anytime.')
     }
   }, [searchParams, startPlanSyncPolling])
 
   useEffect(() => {
-    const statusLower = String(subscription.status || '').toLowerCase()
-    const shouldSync =
-      status === 'authenticated' &&
-      !subscription.hasSubscription &&
-      subscription.tier === 'NONE' &&
-      statusLower === 'pending' &&
-      Boolean(subscription.stripeCustomerId)
-
-    if (shouldSync) {
-      setSuccess('⏳ Syncing your subscription (waiting for Stripe)…')
-      startPlanSyncPolling('pending-plan-detected')
-    }
-  }, [
-    status,
-    subscription.status,
-    subscription.hasSubscription,
-    subscription.tier,
-    subscription.stripeCustomerId,
-    startPlanSyncPolling,
-  ])
-
-  useEffect(() => {
-    if (status === 'authenticated' && typeof window !== 'undefined') {
-      const pendingPlan = sessionStorage.getItem('pendingPlanSelection')
-      if (pendingPlan) {
+    if (status === 'authenticated') {
+      const stored = sessionStorage.getItem('pendingPlanSelection')
+      if (stored) {
         try {
-          const { tierId, interval } = JSON.parse(pendingPlan)
+          const { tierId, interval } = JSON.parse(stored)
           const tier = TIERS.find((t) => t.id === tierId)
-
           if (tier) {
             console.log('🎯 Resuming pending plan selection:', { tierId, interval })
             sessionStorage.removeItem('pendingPlanSelection')
@@ -517,6 +517,7 @@ export default function PricingClient() {
     return 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50'
   }
 
+  // ✨ UPDATED executePlanChange with trial activation logic
   async function executePlanChange(tier: PricingTier, type: 'upgrade' | 'downgrade' | 'new' | 'interval-change') {
     try {
       setLoading(tier.id)
@@ -524,23 +525,52 @@ export default function PricingClient() {
       setError(null)
       setSuccess(null)
 
+      // 🔹 CASE 1: Not authenticated → Open AccessControlModal with plan pre-selected
       if (status !== 'authenticated') {
-        // Store pending selection for after signup/login
-        sessionStorage.setItem(
-          'pendingPlanSelection',
-          JSON.stringify({ tierId: tier.id, interval: billingInterval })
-        )
-        router.push('/auth/signup')
+        setModalPlan(tier.id.toLowerCase() as 'basic' | 'professional' | 'enterprise')
+        setModalBilling(billingInterval)
+        setModalOpen(true)
         return
       }
 
+      // 🔹 CASE 2: New user starting trial (no existing subscription)
+      if (type === 'new' && !subscription.hasSubscription) {
+        const res = await fetch('/api/trial/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tier: tier.id,
+            billingInterval,
+          }),
+        })
+
+        const data = await res.json().catch(() => ({}))
+
+        if (!res.ok) {
+          const msg = data?.error || data?.message || 'Failed to start trial.'
+          setError(String(msg))
+          return
+        }
+
+        setSuccess('✅ 7-day free trial activated! No payment required.')
+        
+        // Reload plan data
+        await loadPlan()
+        
+        // Redirect to search after a brief delay
+        setTimeout(() => {
+          router.push('/search')
+          router.refresh()
+        }, 1500)
+        return
+      }
+
+      // 🔹 CASE 3: Existing subscriber changing plan/interval → Use Stripe
       const payload = {
         tier: tier.id,
         billingInterval,
       }
 
-      // If you already have an active subscription and are changing plan/interval,
-      // your backend should interpret this appropriately.
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -550,20 +580,21 @@ export default function PricingClient() {
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        const msg = data?.error || data?.message || 'Failed to start checkout.'
+        const msg = data?.error || data?.message || 'Failed to update plan.'
         setError(String(msg))
         return
       }
 
       if (data?.url) {
-        // Redirect to Stripe Checkout
+        // Redirect to Stripe Checkout for plan changes
         window.location.href = data.url
         return
       }
 
       // Fallback: if backend does inline update, poll
-      setSuccess('✅ Request received — syncing your subscription…')
-      startPlanSyncPolling('checkout-no-url')
+      setSuccess('✅ Plan updated successfully.')
+      startPlanSyncPolling('plan-change')
+      
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Something went wrong.')
@@ -600,112 +631,58 @@ export default function PricingClient() {
     closeWarning()
   }
 
-  const currentPeriodEndLabel = useMemo(() => {
-    const formatted = formatDate(subscription.currentPeriodEnd)
-    return formatted ? `Renews / ends on ${formatted}` : null
-  }, [subscription.currentPeriodEnd])
-
-  const planStatusLabel = useMemo(() => {
-    const st = String(subscription.status || '').toLowerCase()
-    if (!st) return null
-    if (st === 'active') return 'Active'
-    if (st === 'trialing' || st === 'trial') return 'Trial'
-    if (st === 'canceled' || st === 'cancelled') return 'Canceled'
-    if (st === 'past_due') return 'Past Due'
-    if (st === 'unpaid') return 'Unpaid'
-    if (st === 'incomplete') return 'Incomplete'
-    if (st === 'incomplete_expired') return 'Expired'
-    if (st === 'paused') return 'Paused'
-    if (st === 'pending') return 'Pending'
-    return st
-  }, [subscription.status])
-
-  // ----- UI -----
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-white">
-      <div className="mx-auto max-w-6xl px-4 py-14">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Pricing
-            </h1>
-            <p className="mt-2 text-slate-300">
-              Choose the plan that fits your workflow. Upgrade or downgrade anytime.
-            </p>
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-48 -top-48 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute -right-48 top-1/3 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
+      </div>
 
-            {planStatusLabel && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-200 ring-1 ring-white/10">
-                <CreditCard className="h-4 w-4 text-slate-200" />
-                <span>
-                  Current: <span className="font-semibold">{subscription.tier}</span>
-                  {subscription.interval ? (
-                    <span className="text-slate-300">
-                      {' '}
-                      ({subscription.interval === 'month' ? 'Monthly' : 'Annual'})
-                    </span>
-                  ) : null}
-                  {subscription.cancelAtPeriodEnd ? (
-                    <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-300 ring-1 ring-amber-500/20">
-                      Canceling at period end
-                    </span>
-                  ) : null}
-                </span>
-                <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-300 ring-1 ring-emerald-500/20">
-                  {planStatusLabel}
-                </span>
-                {currentPeriodEndLabel ? (
-                  <span className="ml-2 text-slate-400">{currentPeriodEndLabel}</span>
-                ) : null}
-              </div>
-            )}
-          </div>
+      <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+            Simple, Transparent Pricing
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300/90">
+            Choose the perfect plan for your contracting business. All plans include a 7-day free trial.
+          </p>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center rounded-full bg-white/5 p-1 ring-1 ring-white/10">
-              <button
-                type="button"
-                onClick={() => setBillingInterval('monthly')}
-                className={[
-                  'rounded-full px-4 py-2 text-sm font-semibold transition',
-                  billingInterval === 'monthly'
-                    ? 'bg-white text-slate-900'
-                    : 'text-slate-200 hover:bg-white/10',
-                ].join(' ')}
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => setBillingInterval('annual')}
-                className={[
-                  'rounded-full px-4 py-2 text-sm font-semibold transition',
-                  billingInterval === 'annual'
-                    ? 'bg-white text-slate-900'
-                    : 'text-slate-200 hover:bg-white/10',
-                ].join(' ')}
-              >
-                Annual
-                {!pricesLoading && (
-                  <span className="ml-1.5 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-500/30">
-                    Save up to {Math.max(...TIERS.map(t => savingsPercent(t)))}%
-                  </span>
-                )}
-              </button>
-            </div>
-
-            <div className="flex sm:hidden items-center gap-2 text-sm text-slate-300 mt-1">
-              <Gift className="h-4 w-4" />
-              <span>7-day free trial included</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-300">
-              <Gift className="h-4 w-4" />
-              <span>7-day free trial included</span>
-            </div>
+        <div className="mt-8 flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={() => setBillingInterval('monthly')}
+              className={[
+                'rounded-xl px-6 py-2 text-sm font-semibold transition',
+                billingInterval === 'monthly'
+                  ? 'bg-white text-slate-900 shadow-lg'
+                  : 'text-slate-200 hover:text-white',
+              ].join(' ')}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingInterval('annual')}
+              className={[
+                'rounded-xl px-6 py-2 text-sm font-semibold transition',
+                billingInterval === 'annual'
+                  ? 'bg-white text-slate-900 shadow-lg'
+                  : 'text-slate-200 hover:text-white',
+              ].join(' ')}
+            >
+              Annual
+              <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
+                Save up to 20%
+              </span>
+            </button>
           </div>
         </div>
 
         {(error || success) && (
-          <div className="mt-6 space-y-3">
+          <div className="mx-auto mt-8 max-w-2xl">
             {error && (
               <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-200">
                 <AlertCircle className="mt-0.5 h-5 w-5" />
@@ -852,7 +829,7 @@ export default function PricingClient() {
             <div>
               <div className="text-lg font-semibold text-white">Need help choosing?</div>
               <div className="mt-1 text-sm text-slate-300">
-                Contact support and we’ll help you pick the right tier.
+                Contact support and we'll help you pick the right tier.
               </div>
             </div>
             <Link
@@ -864,6 +841,17 @@ export default function PricingClient() {
           </div>
         </div>
       </div>
+
+      {/* Auth Modal — opens when unauthenticated user clicks a pricing card */}
+      <AccessControlModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        featureName="Precise GovCon"
+        initialMode="signup"
+        redirectTo="/search"
+        highlightPlan={modalPlan}
+        highlightBilling={modalBilling}
+      />
 
       {/* Warning Modal */}
       {showChangeWarning && (

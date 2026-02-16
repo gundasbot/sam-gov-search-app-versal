@@ -1,30 +1,36 @@
-// app/api/auth/signup/route.ts
+// app/api/auth/signup/route.ts - FIXED
 import { NextResponse } from 'next/server'
 import { hash } from 'bcryptjs'
 import crypto from 'crypto'
-import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { sendEmail } from '@/lib/email/send'
+import { getVerificationEmailHtml, getVerificationEmailText } from '@/lib/email/verification-email'
+import { getBrand } from '@/lib/email/brand'
 
 const TRIAL_DAYS = 7
 
-function endOfDay(d: Date) {
-  const x = new Date(d)
-  x.setHours(23, 59, 59, 999)
-  return x
+// ✨ Helper functions to normalize plan selection
+function normalizeTier(raw: any): string | null {
+  const v = String(raw || '').toUpperCase().trim()
+  if (v === 'BASIC' || v === 'PROFESSIONAL' || v === 'ENTERPRISE') return v
+  return null
 }
 
-function addDays(from: Date, days: number) {
-  const x = new Date(from)
-  x.setDate(x.getDate() + days)
-  return x
+function normalizeInterval(raw: any): string {
+  const v = String(raw || '').toLowerCase().trim()
+  return v === 'annual' ? 'ANNUAL' : 'MONTHLY'
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { email, password, first_name, last_name, phone, company } = body
+    const { email, password, selectedPlanTier, selectedBillingInterval } = body
+
+    // Accept both snake_case (landing page) and camelCase (AccessControlModal)
+    const first_name: string = (body.first_name || body.firstName || '').trim()
+    const last_name: string  = (body.last_name  || body.lastName  || '').trim()
+    const phone: string | undefined   = (body.phone   || '').trim() || undefined
+    const company: string | undefined = (body.company || '').trim() || undefined
 
     // Validation
     if (!email || !password || !first_name || !last_name) {
@@ -51,11 +57,13 @@ export async function POST(req: Request) {
     // Hash password
     const passwordHash = await hash(password, 12)
 
-    // Calculate trial dates (not used yet - trial starts after verification)
-    const now = new Date()
-    const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
+    // ✨ Normalize plan selection
+    const pendingTier = selectedPlanTier ? normalizeTier(selectedPlanTier) : null
+    const pendingInterval = selectedBillingInterval ? normalizeInterval(selectedBillingInterval) : 'MONTHLY'
 
-    // Create user - IMPORTANT: Trial does NOT start until email is verified
+    const now = new Date()
+
+    // ✨ Create user with pending plan (trial NOT active yet)
     const user = await prisma.users.create({
       data: {
         id: crypto.randomUUID(),
@@ -68,17 +76,24 @@ export async function POST(req: Request) {
         name: `${first_name.trim()} ${last_name.trim()}`,
         role: 'user',
         plan: 'trial',
-        plan_tier: 'trial',
-        plan_status: 'pending', // â† Not 'trialing' yet!
-        trial_active: false,    // â† Not active yet!
-        trial_started_at: null,  // â† Null until verified
-        trial_expires_at: null,  // â† Null until verified
-        trial_ends_at: null,     // â† Null until verified
-        email_verified: null,   // â† Must verify email
-        is_active: false,       // â† Not active yet
+        plan_tier: pendingTier || 'BASIC',
+        plan_status: 'pending',
+        trial_active: false,
+        trial_started_at: null,
+        trial_expires_at: null,
+        trial_ends_at: null,
+        billing_interval: pendingInterval,
+        email_verified: null,
+        is_active: false,
         is_suspended: false,
-        updated_at: new Date(),
+        updated_at: now,
       },
+    })
+
+    console.log('✅ User created with pending plan:', {
+      email: user.email,
+      tier: pendingTier || 'BASIC',
+      interval: pendingInterval,
     })
 
     // Generate verification token
@@ -97,131 +112,108 @@ export async function POST(req: Request) {
       },
     })
 
-    // Get app URL
-    const appUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const verificationUrl = `${appUrl}/api/verify-email?token=${rawToken}`
+    // Get brand and app URL
+    const brand = getBrand()
+    const verificationUrl = `${brand.appUrl}/api/auth/verify-email?token=${rawToken}`
 
-    // Send verification email
+    const selectedPlanName = pendingTier ? 
+      (pendingTier === 'BASIC' ? 'Basic' : 
+       pendingTier === 'PROFESSIONAL' ? 'Professional' : 
+       'Enterprise') : 'Professional'
+
+    // 🔧 FIXED: Properly handle email sending failures
+    let emailSent = false
+    let emailError: string | null = null
+
     try {
-      await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'noreply@preciseanalytics.io',
+      console.log('📧 Attempting to send verification email...')
+      console.log('📧 Recipient:', user.email)
+      console.log('📧 API Key exists:', !!process.env.RESEND_API_KEY)
+      console.log('📧 FROM email:', process.env.RESEND_FROM_EMAIL)
+
+      const html = getVerificationEmailHtml({
+        first_name: first_name,
+        verificationUrl: verificationUrl,
+      })
+
+      const text = getVerificationEmailText({
+        first_name: first_name,
+        verificationUrl: verificationUrl,
+      })
+
+      const result = await sendEmail({
         to: user.email,
-        subject: 'Verify Your Email - Precise GovCon',
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Verify Your Email</title>
-            </head>
-            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-              <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td align="center" style="padding: 40px 20px;">
-                    <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                      
-                      <!-- Header with Logo -->
-                      <tr>
-                        <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); border-radius: 16px 16px 0 0;">
-                          <!-- Logo -->
-                          <div style="margin-bottom: 20px;">
-                            <img src="${appUrl}/logo.png" alt="Precise GovCon" style="height: 60px; width: auto;" />
-                          </div>
-                          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">Welcome to Precise GovCon!</h1>
-                        </td>
-                      </tr>
-                      
-                      <!-- Body -->
-                      <tr>
-                        <td style="padding: 40px;">
-                          <p style="margin: 0 0 16px; color: #374151; font-size: 16px; line-height: 1.6;">
-                            Hi ${first_name},
-                          </p>
-                          
-                          <p style="margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;">
-                            Thanks for signing up! Click the button below to verify your email and automatically sign in to start your 7-day free trial:
-                          </p>
-                          
-                          <!-- Button -->
-                          <table role="presentation" style="margin: 32px 0; width: 100%;">
-                            <tr>
-                              <td align="center">
-                                <a href="${verificationUrl}" 
-                                   style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
-                                  Verify Email & Sign In
-                                </a>
-                              </td>
-                            </tr>
-                          </table>
-                          
-                          <div style="margin: 24px 0; padding: 20px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 8px;">
-                            <p style="margin: 0 0 12px; color: #166534; font-size: 14px; font-weight: 600;">
-                              ðŸŽ‰ What happens next:
-                            </p>
-                            <ul style="margin: 0; padding-left: 20px; color: #166534; font-size: 14px; line-height: 1.8;">
-                              <li>Your email will be verified</li>
-                              <li>Your 7-day free trial will start</li>
-                              <li>You'll be automatically signed in</li>
-                            </ul>
-                          </div>
-                          
-                          <p style="margin: 24px 0 16px; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                            Or copy and paste this link into your browser:
-                          </p>
-                          
-                          <p style="margin: 0 0 24px; padding: 12px; background-color: #f3f4f6; border-radius: 8px; color: #4b5563; font-size: 13px; word-break: break-all; font-family: monospace;">
-                            ${verificationUrl}
-                          </p>
-                          
-                          <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                            This link will expire in 24 hours.
-                          </p>
-                          
-                          <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                            If you didn't create an account with Precise GovCon, you can safely ignore this email.
-                          </p>
-                        </td>
-                      </tr>
-                      
-                      <!-- Footer -->
-                      <tr>
-                        <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 16px 16px; text-align: center;">
-                          <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                            Â© ${new Date().getFullYear()} Precise Govcon LLC. All rights reserved.
-                          </p>
-                          <p style="margin: 8px 0 0; color: #9ca3af; font-size: 12px;">
-                            Richmond, Virginia
-                          </p>
-                        </td>
-                      </tr>
-                      
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </body>
-          </html>
-        `,
+        subject: `Verify Your Email - ${brand.name}`,
+        html,
+        text,
       })
       
-      console.log(`âœ… Verification email sent to: ${user.email}`)
-    } catch (emailError) {
-      console.error('âŒ Failed to send verification email:', emailError)
-      // Don't fail signup if email fails - user can request resend
+      console.log('✅ Verification email sent successfully:', {
+        success: result.success,
+        data: result.data,
+        to: user.email,
+      })
+
+      emailSent = true
+
+    } catch (error: any) {
+      console.error('❌ FAILED to send verification email:', {
+        error: error.message,
+        statusCode: error.statusCode,
+        name: error.name,
+      })
+
+      // Check if it's the Resend test domain restriction
+      if (error.message?.includes('can only send testing emails')) {
+        emailError = 'test_domain_restriction'
+      } else {
+        emailError = 'email_send_failed'
+      }
     }
 
+    // 🎯 FIXED: Return appropriate response based on email status
+    if (!emailSent) {
+      // Email failed to send
+      if (emailError === 'test_domain_restriction') {
+        // Delete the user we just created since they can't verify
+        await prisma.users.delete({ where: { id: user.id } })
+        await prisma.email_verification_tokens.deleteMany({ where: { user_id: user.id } })
+
+        return NextResponse.json(
+          { 
+            error: 'This email address cannot receive verification emails in test mode. Please sign up with preciseanalyticsllc@gmail.com instead, or contact support.',
+            errorCode: 'TEST_DOMAIN_RESTRICTION'
+          },
+          { status: 400 }
+        )
+      } else {
+        // Other email error - keep account but warn user
+        return NextResponse.json(
+          { 
+            success: true,
+            emailSent: false,
+            message: 'Account created but verification email failed to send. Please contact support.',
+            user_id: user.id,
+            warning: 'EMAIL_SEND_FAILED'
+          },
+          { status: 201 }
+        )
+      }
+    }
+
+    // ✅ Email sent successfully
     return NextResponse.json(
       { 
         success: true,
-        message: 'Account created successfully! Please check your email to verify your account.',
+        emailSent: true,
+        message: `Account created successfully! Check your email to verify and activate your ${selectedPlanName} trial.`,
         user_id: user.id 
       },
       { status: 201 }
     )
 
   } catch (error: any) {
-    console.error('âŒ Signup error:', error)
+    console.error('❌ Signup error:', error)
     return NextResponse.json(
       { error: 'Failed to create account. Please try again.' },
       { status: 500 }

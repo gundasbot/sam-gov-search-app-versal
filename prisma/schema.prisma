@@ -215,6 +215,18 @@ model saved_search_runs {
   @@index([saved_search_id])
 }
 
+model AutoLoginToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  email     String
+  expires   DateTime
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
+  
+  @@index([token])
+  @@index([email])
+}
+
 model saved_searches {
   id                String              @id
   user_id           String

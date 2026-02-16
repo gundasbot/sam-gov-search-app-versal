@@ -374,13 +374,14 @@ export default function Header() {
                   )}
                 </div>
               ) : (
-                /* FIX: was href="/" — corrected to /login */
-                <Link href="/login" prefetch={false}
+                /* Open AccessControlModal for sign in */
+                <button
+                  onClick={() => setShowSignInModal(true)}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg text-sm sm:text-base"
                 >
                   <LogIn className="w-4 h-4 flex-shrink-0" />
                   <span>Sign In</span>
-                </Link>
+                </button>
               )}
 
               {/* Hamburger — visible below lg */}
@@ -476,11 +477,15 @@ export default function Header() {
             </div>
           ) : (
             <div className="border-t border-white/10 pt-4">
-              <Link href="/login" prefetch={false} onClick={() => setMobileMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  setShowSignInModal(true)
+                }}
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg"
               >
                 <LogIn className="w-5 h-5" />Sign In
-              </Link>
+              </button>
             </div>
           )}
         </div>

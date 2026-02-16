@@ -1,9 +1,6 @@
 // app/verify-success/VerifySuccessClient.tsx
 'use client'
 
-export const dynamic = 'force-dynamic';
-
-
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle, ArrowRight, Loader2, Mail } from 'lucide-react'
@@ -13,7 +10,7 @@ export default function VerifySuccessClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [countdown, setCountdown] = useState(5)
-
+  
   const userName = searchParams?.get('name') || 'there'
   const userEmail = searchParams?.get('email')
 
@@ -22,7 +19,8 @@ export default function VerifySuccessClient() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          router.push('/login?verified=true')
+          // Redirect to root login page (not /login)
+          router.push('/?mode=login')
           return 0
         }
         return prev - 1
@@ -33,61 +31,76 @@ export default function VerifySuccessClient() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <div className="bg-slate-800/60 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl text-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center mx-auto mb-6 shadow-2xl">
-            <CheckCircle className="w-10 h-10 text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 px-4">
+      <div className="max-w-md w-full">
+        {/* Success Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center space-y-6">
+          {/* Success Icon */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-green-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
+              <div className="relative bg-green-500 rounded-full p-4">
+                <CheckCircle className="w-16 h-16 text-white" />
+              </div>
+            </div>
           </div>
 
-          <h1 className="text-3xl font-black text-white mb-3">
-            Welcome to PreciseGovCon!
-          </h1>
+          {/* Success Message */}
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Email Verified! ✓
+            </h1>
+            <p className="text-lg text-gray-600">
+              Hi {userName}, your email has been verified successfully!
+            </p>
+            {userEmail && (
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <Mail className="w-4 h-4" />
+                <span>{userEmail}</span>
+              </div>
+            )}
+          </div>
 
-          <p className="text-lg text-slate-300 mb-2">
-            Hi {userName}, your email has been verified successfully!
-          </p>
-
-          {userEmail && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 mb-6">
-              <Mail className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm text-emerald-300 font-semibold">{userEmail}</span>
-            </div>
-          )}
-
-          <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-2 border-blue-500/40 rounded-2xl p-6 mb-6">
-            <p className="text-base text-white font-semibold mb-3">
+          {/* Info Box */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-green-800 text-sm font-medium">
               You're all set! Please sign in to access your account.
             </p>
-            <div className="flex items-center justify-center gap-2 text-slate-300">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-              <span className="text-sm">Redirecting in {countdown} seconds...</span>
+          </div>
+
+          {/* Security Notice */}
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+            <span>🔒</span>
+            <span>Your account is secure and ready to use</span>
+          </div>
+
+          {/* Redirect Info */}
+          <div className="pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-center gap-2 text-gray-600 mb-4">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <p className="text-sm">
+                Redirecting to login in <span className="font-bold text-green-600">{countdown}</span> seconds...
+              </p>
             </div>
-          </div>
 
-          <div className="space-y-3">
+            {/* Manual Login Button */}
             <Link
-              href="/login?verified=true"
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg"
+              href="/?mode=login"
+              className="inline-flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
             >
-              Sign In Now
-              <ArrowRight className="w-5 h-5" />
+              Go to Login Now
+              <ArrowRight className="w-4 h-4" />
             </Link>
-
-            <Link
-              href="/"
-              className="w-full py-3 rounded-xl border-2 border-slate-600 bg-slate-700/50 hover:bg-slate-700 text-white font-semibold transition-all flex items-center justify-center gap-2"
-            >
-              Go to Homepage
-            </Link>
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-slate-700">
-            <p className="text-xs text-slate-400">
-              🔒 Your account is secure and ready to use
-            </p>
           </div>
         </div>
+
+        {/* Help Text */}
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Having trouble signing in?{' '}
+          <Link href="/support" className="text-green-600 hover:text-green-700 font-medium">
+            Contact Support
+          </Link>
+        </p>
       </div>
     </div>
   )

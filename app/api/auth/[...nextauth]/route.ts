@@ -126,7 +126,6 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        auto_login_user_id: { label: "Auto Login User ID", type: "text" },
       },
       async authorize(credentials, req) {
         if (!credentials?.email) {
@@ -162,29 +161,19 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Account not found")
         }
 
-        // AUTO-LOGIN FLOW CHECK
-        if (
-          credentials.auto_login_user_id &&
-          credentials.auto_login_user_id === user.id
-        ) {
-          // Auto-login flow - token already validated by /api/auth/auto-login
-          console.log(`✅ Auto-login authorize for ${user.email}`)
-          // Skip password check - continue
-        } else {
-          // REGULAR PASSWORD LOGIN
-          if (!credentials.password) {
-            throw new Error("Password is required")
-          }
+        // PASSWORD LOGIN
+        if (!credentials.password) {
+          throw new Error("Password is required")
+        }
 
-          if (!user.password_hash) {
-            throw new Error("Please use a different login method")
-          }
+        if (!user.password_hash) {
+          throw new Error("Please use a different login method")
+        }
 
-          const { compare } = await import("bcryptjs")
-          const valid = await compare(credentials.password, user.password_hash)
-          if (!valid) {
-            throw new Error("Invalid credentials")
-          }
+        const { compare } = await import("bcryptjs")
+        const valid = await compare(credentials.password, user.password_hash)
+        if (!valid) {
+          throw new Error("Invalid credentials")
         }
 
         // Check email verification (for both flows)
@@ -228,30 +217,34 @@ export const authOptions: NextAuthOptions = {
     // Force sane post-login landing
     async redirect({ url, baseUrl }) {
       try {
-        const u = new URL(url, baseUrl)
+        // Ensure baseUrl is always a valid absolute URL
+        const base = baseUrl || process.env.NEXTAUTH_URL || "http://localhost:3000"
 
-        // If NextAuth is trying to send you to /account (or back to /login), override to /dashboard
-        if (u.pathname === "/account" || u.pathname === "/login") {
-          return `${baseUrl}/dashboard`
+        // Handle relative URLs
+        const absolute = url?.startsWith("/") ? `${base}${url}` : url
+
+        if (!absolute) return `${base}/dashboard`
+
+        const u = new URL(absolute)
+        const b = new URL(base)
+
+        // Override bad destinations (only override login/root pages, NOT /account or other app pages)
+        if (
+          u.pathname === "/login" ||
+          u.pathname === "/"
+        ) {
+          return `${base}/dashboard`
         }
 
-        // If callbackUrl is present and points to /account, override it
-        const cb = u.searchParams.get("callbackUrl")
-        if (cb) {
-          const cbUrl = new URL(cb, baseUrl)
-          if (cbUrl.pathname === "/account") {
-            return `${baseUrl}/dashboard`
-          }
-        }
-
-        // Allow same-origin safe redirects, otherwise default to /dashboard
-        if (u.origin === new URL(baseUrl).origin) {
+        // Allow same-origin redirects
+        if (u.origin === b.origin) {
           return u.toString()
         }
 
-        return `${baseUrl}/dashboard`
+        return `${base}/dashboard`
       } catch {
-        return `${baseUrl}/dashboard`
+        const base = process.env.NEXTAUTH_URL || "http://localhost:3000"
+        return `${base}/dashboard`
       }
     },
 
@@ -417,8 +410,8 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: "/",
+    error: "/",
   },
 
   secret: process.env.NEXTAUTH_SECRET,
