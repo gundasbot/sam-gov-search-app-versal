@@ -1893,7 +1893,7 @@ function AnimatedTipsCarousel() {
   }, [tips.length])
 
   return (
-    <div className="mt-6 relative h-24 overflow-hidden">
+    <div className="mt-3 relative h-16 overflow-hidden">
       {tips.map((tip, index) => (
         <div
           key={index}
@@ -1905,12 +1905,12 @@ function AnimatedTipsCarousel() {
                 : 'opacity-0 translate-y-full'
           }`}
         >
-          <div className={`bg-gradient-to-r ${tip.color} rounded-lg p-4 shadow-lg border border-gray-600`}>
+          <div className={`bg-gradient-to-r ${tip.color} rounded-lg p-3 shadow-lg border border-gray-600`}>
             <div className="flex items-center gap-4 text-white">
               <div className="flex-shrink-0 bg-white/10 rounded-lg p-3">
                 <FileText className="h-7 w-7" />
               </div>
-              <p className="text-lg font-bold leading-snug">
+              <p className="text-xl font-bold leading-snug">
                 {tip.text}
               </p>
             </div>
@@ -2106,7 +2106,7 @@ function SearchPageContent() {
   // ✅ QUICK SEARCH STATE
   const [quickKeyword, setQuickKeyword] = useState('')
   const [quickPostedDate, setQuickPostedDate] = useState(getSixMonthsAgo())
-  const [quickDeadlineDate, setQuickDeadlineDate] = useState(getOneMonthFromNow())
+  const [quickDeadlineDate, setQuickDeadlineDate] = useState(getToday())
   
   // Calculate default dates: 6 months back for "from", 1 month ahead for response deadline (both auto-update daily)
   const defaults = useMemo(() => {
@@ -2156,16 +2156,16 @@ function SearchPageContent() {
   // Separate keyword/date fields for Advanced Search client-side filtering
   const [advKeywords, setAdvKeywords] = useState('')
   const [advPostedAfter, setAdvPostedAfter] = useState(getSixMonthsAgo())
-  const [advResponseDeadline, setAdvResponseDeadline] = useState(getOneMonthFromNow())
+  const [advResponseDeadline, setAdvResponseDeadline] = useState(getToday())
 
   // ===== NEW CRITICAL SEARCH PARAMETERS =====
   // Phase 1: Critical
   const [solicitationNumber, setSolicitationNumber] = useState('') // Priority 1B - Direct lookup
   const [classificationCode, setClassificationCode] = useState('') // Priority 1C - PSC codes
-  const [responseDeadline, setResponseDeadline] = useState(getOneMonthFromNow())// Priority 1A - CRITICAL - Filter by specific deadline date (default: 1 month forward)
+  const [responseDeadline, setResponseDeadline] = useState(getToday())// Priority 1A - CRITICAL - Filter by specific deadline date (default: today)
   // Empty by default - no upper limit
   const [responseDeadlineAfter, setResponseDeadlineAfter] = useState('')
-  const [responseDeadlineBefore, setResponseDeadlineBefore] = useState(getOneMonthFromNow())
+  const [responseDeadlineBefore, setResponseDeadlineBefore] = useState(getToday())
 
   // Phase 2: High Value
   const [noticeId, setNoticeId] = useState('') // Priority 2B - Direct ID
@@ -3124,18 +3124,18 @@ useEffect(() => {
     // ── Quick Date Lookup card fields ──
     setQuickKeyword('')
     setQuickPostedDate(getSixMonthsAgo())
-    setQuickDeadlineDate(getOneMonthFromNow())
+    setQuickDeadlineDate(getToday())
 
     // ── Shared state (synced from Quick Search) ──
     setKeywords('')
     setPostedAfter(getSixMonthsAgo())
-    setResponseDeadlineBefore(getOneMonthFromNow())
-    setResponseDeadline(getOneMonthFromNow())
+    setResponseDeadlineBefore(getToday())
+    setResponseDeadline(getToday())
 
     // ── Advanced filter state ──
     setAdvKeywords('')
     setAdvPostedAfter(getSixMonthsAgo())
-    setAdvResponseDeadline(getOneMonthFromNow())
+    setAdvResponseDeadline(getToday())
     setAdvancedApplied(false)
 
     // ── All other filters ──
@@ -3718,29 +3718,14 @@ ${filteredResults.map(opp => `  <opportunity>
 
   return (
     <SearchErrorBoundary>
-      <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '12px' }} className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '12px' }} className="h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col overflow-hidden">
         {/* Main content - full height utilization */}
-        <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen flex flex-col">
-          {/* Action Buttons Row */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={() => handleOpenSaveModal('save')}
-              className="px-8 py-4 text-xl font-bold bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-all shadow-lg hover:shadow-xl"
-            >
-              Save Search
-            </button>
-            <button
-              onClick={() => router.push('/alerts')}
-              className="px-8 py-4 text-xl font-bold bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg hover:shadow-xl"
-            >
-              My Alerts
-            </button>
-          </div>
+        <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex-1 flex flex-col overflow-y-auto">
 
           {/* Professional Welcome Banner */}
-          <div className="mb-6">
+          <div className="mb-2">
             {/* Main Welcome Card - Professional Gray */}
-            <div className="bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 rounded-2xl p-8 shadow-lg border-2 border-gray-600">
+            <div className="bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 rounded-2xl p-4 shadow-lg border-2 border-gray-600">
               <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 {/* Icon - Simple Target */}
                 <div className="flex-shrink-0">
@@ -3831,6 +3816,24 @@ ${filteredResults.map(opp => `  <opportunity>
                       <RefreshCw className="h-6 w-6" />
                       Reset All
                     </button>
+
+                    {/* Save Search + My Alerts stacked column */}
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => handleOpenSaveModal('save')}
+                        className="px-8 py-3 text-lg font-bold bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                      >
+                        <Save className="h-5 w-5" />
+                        Save Search
+                      </button>
+                      <button
+                        onClick={() => router.push('/alerts')}
+                        className="px-8 py-3 text-lg font-bold bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                      >
+                        <Bell className="h-5 w-5" />
+                        My Alerts
+                      </button>
+                    </div>
                   </div>
 
                   {/* Loading message with user input */}
@@ -3846,15 +3849,15 @@ ${filteredResults.map(opp => `  <opportunity>
                   )}
 
                   {/* Two-column date layout - each column has date field + quick-fill buttons */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
                     
                     {/* LEFT COLUMN: Solicitation Posted Date */}
                     <div className="space-y-4">
                       {/* Posted Date Input Field */}
                       <div className="bg-emerald-50 p-5 rounded-xl border-2 border-emerald-200">
                         <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-6 w-6 text-emerald-700" />
-                          <label className="text-lg font-bold text-emerald-800">
+                          <Calendar className="h-8 w-8 text-emerald-700" />
+                          <label className="text-2xl font-bold text-emerald-800">
                             Solicitation Posted Date
                           </label>
                         </div>
@@ -3862,9 +3865,9 @@ ${filteredResults.map(opp => `  <opportunity>
                           type="date"
                           value={postedAfter}
                           onChange={(e) => setPostedAfter(e.target.value)}
-                          className="w-full px-4 py-4 text-lg font-medium rounded-lg border-2 border-emerald-300 bg-white text-gray-900 focus:border-emerald-700 focus:ring-4 focus:ring-emerald-200 transition-all"
+                          className="w-full px-4 py-4 text-2xl font-semibold rounded-lg border-2 border-emerald-300 bg-white text-gray-900 focus:border-emerald-700 focus:ring-4 focus:ring-emerald-200 transition-all"
                         />
-                        <p className="text-base text-emerald-700 mt-2 font-bold">
+                        <p className="text-lg text-emerald-700 mt-2 font-bold">
                           Find solicitations posted on or after this date
                         </p>
                       </div>
@@ -3872,15 +3875,15 @@ ${filteredResults.map(opp => `  <opportunity>
                       {/* Posted Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
                       <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 p-4 rounded-xl border-2 border-emerald-300">
                         <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-4 w-4 text-emerald-700" />
-                          <span className="text-base font-bold text-emerald-900">
+                          <Calendar className="h-6 w-6 text-emerald-700" />
+                          <span className="text-xl font-bold text-emerald-900">
                             Posted within the last:
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => setPostedAfter(getSixMonthsAgo())}
-                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
                           >
                             6 months
                           </button>
@@ -3890,7 +3893,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               d.setMonth(d.getMonth() - 3)
                               setPostedAfter(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
                           >
                             3 months
                           </button>
@@ -3900,7 +3903,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               d.setMonth(d.getMonth() - 1)
                               setPostedAfter(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
                           >
                             30 days
                           </button>
@@ -3910,7 +3913,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               d.setDate(d.getDate() - 14)
                               setPostedAfter(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
                           >
                             2 weeks
                           </button>
@@ -3923,8 +3926,8 @@ ${filteredResults.map(opp => `  <opportunity>
                       {/* Due Date Input Field */}
                       <div className="bg-amber-50 p-5 rounded-xl border-2 border-amber-200">
                         <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-6 w-6 text-amber-700" />
-                          <label className="text-lg font-bold text-amber-800">
+                          <Clock className="h-8 w-8 text-amber-700" />
+                          <label className="text-2xl font-bold text-amber-800">
                             Solicitation Due Date
                           </label>
                         </div>
@@ -3932,9 +3935,9 @@ ${filteredResults.map(opp => `  <opportunity>
                           type="date"
                           value={responseDeadlineBefore}
                           onChange={(e) => setResponseDeadlineBefore(e.target.value)}
-                          className="w-full px-4 py-4 text-lg font-medium rounded-lg border-2 border-amber-300 bg-white text-gray-900 focus:border-amber-700 focus:ring-4 focus:ring-amber-200 transition-all"
+                          className="w-full px-4 py-4 text-2xl font-semibold rounded-lg border-2 border-amber-300 bg-white text-gray-900 focus:border-amber-700 focus:ring-4 focus:ring-amber-200 transition-all"
                         />
-                        <p className="text-base text-amber-700 mt-2 font-bold">
+                        <p className="text-lg text-amber-700 mt-2 font-bold">
                           Find solicitations with response due date between today and any of these quick fill dates
                         </p>
                       </div>
@@ -3942,8 +3945,8 @@ ${filteredResults.map(opp => `  <opportunity>
                       {/* Due Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
                       <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border-2 border-amber-300">
                         <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-4 w-4 text-amber-700" />
-                          <span className="text-base font-bold text-amber-900">
+                          <Clock className="h-6 w-6 text-amber-700" />
+                          <span className="text-xl font-bold text-amber-900">
                             Due within the next:
                           </span>
                         </div>
@@ -3953,7 +3956,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               const d = new Date()
                               setResponseDeadlineBefore(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
                             Today
                           </button>
@@ -3963,7 +3966,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               d.setDate(d.getDate() + 14)
                               setResponseDeadlineBefore(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
                             2 weeks
                           </button>
@@ -3973,7 +3976,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               d.setMonth(d.getMonth() + 1)
                               setResponseDeadlineBefore(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
                             30 days
                           </button>
@@ -3983,7 +3986,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               d.setMonth(d.getMonth() + 3)
                               setResponseDeadlineBefore(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
                             90 days
                           </button>
@@ -3993,7 +3996,7 @@ ${filteredResults.map(opp => `  <opportunity>
                               d.setMonth(d.getMonth() + 6)
                               setResponseDeadlineBefore(d.toISOString().split('T')[0])
                             }}
-                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
                             6 months
                           </button>

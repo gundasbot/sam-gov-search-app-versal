@@ -321,7 +321,7 @@ function LoginPageContent() {
   )
 
   useEffect(() => {
-    if (status === 'authenticated') router.push('/dashboard')
+    if (status === 'authenticated') router.push('/search')
   }, [status, router])
 
   useEffect(() => {
@@ -383,7 +383,7 @@ function LoginPageContent() {
   const onLogin = useCallback(async () => {
     setBusy(true)
     setNotice(null)
-    const result = await signIn('credentials', { redirect: false, email, password, callbackUrl: '/dashboard' })
+    const result = await signIn('credentials', { redirect: false, email, password, callbackUrl: '/search' })
     setBusy(false)
     if (result?.error) {
       const msg = String(result.error)
@@ -426,12 +426,12 @@ function LoginPageContent() {
       setNotice({ variant: 'error', title: 'Login failed', description: msg })
       return
     }
-    window.location.href = '/dashboard'
+    window.location.href = '/search'
   }, [email, password, router, setUrlMode])
 
   const onGoogle = useCallback(async () => {
     setBusy(true)
-    signIn('google', { callbackUrl: '/dashboard', redirect: true })
+    signIn('google', { callbackUrl: '/search', redirect: true })
   }, [])
 
   const onResend = useCallback(async () => {
@@ -922,7 +922,7 @@ function LoginPageContent() {
       isOpen={signupModalOpen}
       onClose={() => setSignupModalOpen(false)}
       onSuccess={() => {
-        router.push('/dashboard')
+        router.push('/search')
       }}
     />
   )
