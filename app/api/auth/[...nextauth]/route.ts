@@ -1,4 +1,4 @@
-// app/api/auth/[...nextauth]/route.ts - FIXED
+// app/api/auth/[...nextauth]/route.ts
 
 import NextAuth, { type NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
@@ -214,37 +214,45 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    // Force sane post-login landing
     async redirect({ url, baseUrl }) {
+      // This callback should ONLY run after sign-in/sign-out, not on regular navigation
+      // Only handle relative redirects or same-origin URLs
+      
+      const base = baseUrl || process.env.NEXTAUTH_URL || "http://localhost:3000"
+      
+      // Handle relative URLs - make them absolute
+      if (url.startsWith("/")) {
+        const fullUrl = `${base}${url}`
+        const u = new URL(fullUrl)
+        
+        // Only redirect login/root to search, leave everything else alone
+        if (u.pathname === "/login" || u.pathname === "/" || u.pathname === "") {
+          return `${base}/search`
+        }
+        
+        // All other paths (like /account, /dashboard) - preserve as-is
+        return fullUrl
+      }
+      
+      // Handle absolute URLs
       try {
-        // Ensure baseUrl is always a valid absolute URL
-        const base = baseUrl || process.env.NEXTAUTH_URL || "http://localhost:3000"
-
-        // Handle relative URLs
-        const absolute = url?.startsWith("/") ? `${base}${url}` : url
-
-        if (!absolute) return `${base}/dashboard`
-
-        const u = new URL(absolute)
-        const b = new URL(base)
-
-        // Override bad destinations (only override login/root pages, NOT /account or other app pages)
-        if (
-          u.pathname === "/login" ||
-          u.pathname === "/"
-        ) {
-          return `${base}/dashboard`
+        const urlObj = new URL(url)
+        const baseObj = new URL(base)
+        
+        // If same origin, allow the redirect as-is
+        if (urlObj.origin === baseObj.origin) {
+          // Only override if going to login or root
+          if (urlObj.pathname === "/login" || urlObj.pathname === "/" || urlObj.pathname === "") {
+            return `${base}/search`
+          }
+          return url
         }
-
-        // Allow same-origin redirects
-        if (u.origin === b.origin) {
-          return u.toString()
-        }
-
-        return `${base}/dashboard`
+        
+        // Different origin - redirect to search for security
+        return `${base}/search`
       } catch {
-        const base = process.env.NEXTAUTH_URL || "http://localhost:3000"
-        return `${base}/dashboard`
+        // Invalid URL - default to search
+        return `${base}/search`
       }
     },
 

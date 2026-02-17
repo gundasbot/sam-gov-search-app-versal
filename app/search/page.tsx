@@ -13,6 +13,21 @@ import ProfileCompletionReminder from '@/components/ProfileCompletionReminder'
 import AIAnalytics from '@/components/AIAnalytics'
 import InlineDatePicker from '@/components/InlineDatePicker'
 import SaveSearchSuccessModal from '@/components/SaveSearchSuccessModal'
+// Import verified SAM.gov constants
+import {
+  SET_ASIDE_OPTIONS,
+  US_STATES_AND_TERRITORIES,
+  PROCUREMENT_TYPE_OPTIONS,
+  STATUS_OPTIONS,
+  getSetAsideLabel,
+  getLocationLabel,
+  SET_ASIDE_CODE_BY_LABEL,
+  setAsideCodesToString,
+  stringToSetAsideCodes,
+  locationCodesToString,
+  stringToLocationCodes,
+} from '@/lib/samGovConstants'
+import { MultiSelectDropdown } from '@/components/MultiSelectDropdown'
 import {
   Search,
   SlidersHorizontal,
@@ -99,7 +114,6 @@ import {
   Settings,
 } from 'lucide-react'
 import AccessControlModal from '@/components/AccessControlModal'
-export const dynamic = 'force-dynamic'
 
 // --- PERFORMANCE FIX: Debounce Hook ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -471,52 +485,7 @@ const US_STATES = [
   { value: 'DC', label: 'District of Columbia' },
   { value: 'FM', label: 'Federated States of Micronesia' },
   { value: 'GU', label: 'Guam' },
-  { value: 'MH', label: 'Marshall Islands' },
-  { value: 'MP', label: 'Northern Mariana Islands' },
-  { value: 'PW', label: 'Palau' },
-  { value: 'PR', label: 'Puerto Rico' },
-  { value: 'VI', label: 'U.S. Virgin Islands' },
-  { value: 'UM', label: 'U.S. Minor Outlying Islands' }
 ]
-
-// Set-Aside options
-const SET_ASIDE_OPTIONS = [
-  { value: '', label: 'Any Set-Aside' },
-  { value: 'SBA', label: 'Total Small Business Set-Aside' },
-  { value: 'SBP', label: 'Partial Small Business Set-Aside' },
-  { value: '8A', label: '8(a) Set-Aside' },
-  { value: '8AN', label: '8(a) Sole Source' },
-  { value: 'HZC', label: 'HUBZone Set-Aside' },
-  { value: 'SDV', label: 'VETERAN-OWNED' },
-  { value: 'SDVOSBC', label: 'VETERAN-OWNED Small Business Set Aside' },
-  { value: 'WOSB', label: 'Woman-Owned Small Business' },
-  { value: 'EDWOSB', label: 'Economically Disadvantaged WOSB' },
-  { value: 'SDB', label: 'Small Disadvantaged Business' },
-  { value: 'NONE', label: 'No Set-Aside' }
-]
-
-const SET_ASIDE_LABEL_BY_CODE: Record<string, string> = {
-  'SBA': 'Total Small Business Set-Aside',
-  'SBP': 'Partial Small Business Set-Aside',
-  '8A': '8(a) Set-Aside',
-  '8AN': '8(a) Sole Source',
-  'HZC': 'HUBZone Set-Aside',
-  'SDV': 'VETERAN-OWNED',
-  'SDVOSBC': 'VETERAN-OWNED Small Business Set Aside',
-  'WOSB': 'Woman-Owned Small Business',
-  'EDWOSB': 'Economically Disadvantaged WOSB',
-  'SDB': 'Small Disadvantaged Business',
-  'NONE': 'No Set-Aside',
-  // Common variations
-  'HUBZone': 'HUBZone Set-Aside',
-  'SDVOSB': 'VETERAN-OWNED'
-}
-
-// Reverse mapping: label -> code
-const SET_ASIDE_CODE_BY_LABEL: Record<string, string> = Object.entries(SET_ASIDE_LABEL_BY_CODE).reduce((acc, [code, label]) => {
-  acc[label] = code
-  return acc
-}, {} as Record<string, string>)
 
 // --- Utility Components ---
 const StatCard = ({ 
@@ -770,8 +739,8 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
   const responseDeadline = opportunity.responseDeadLine ? formatDate(opportunity.responseDeadLine) : 'N/A'
   const type = opportunity.type || 'N/A'
   const setAsideLabel = opportunity.typeOfSetAsideDescription || 
-                        (opportunity.typeOfSetAside && SET_ASIDE_LABEL_BY_CODE[opportunity.typeOfSetAside]) ||
-                        (opportunity.setAside && SET_ASIDE_LABEL_BY_CODE[opportunity.setAside]) ||
+                        (opportunity.typeOfSetAside && getSetAsideLabel(opportunity.typeOfSetAside)) ||
+                        (opportunity.setAside && getSetAsideLabel(opportunity.setAside)) ||
                         opportunity.setAside ||
                         'Not specified'
   const naics = opportunity.naicsCode || 'N/A'
@@ -923,8 +892,8 @@ const ResultCard = ({
   
   // Set-Aside display - FIXED: Use correct variable name
   const setAsideLabel = opportunity.typeOfSetAsideDescription || 
-                      (opportunity.typeOfSetAside && SET_ASIDE_LABEL_BY_CODE[opportunity.typeOfSetAside]) ||
-                      (opportunity.setAside && SET_ASIDE_LABEL_BY_CODE[opportunity.setAside]) ||
+                      (opportunity.typeOfSetAside && getSetAsideLabel(opportunity.typeOfSetAside)) ||
+                      (opportunity.setAside && getSetAsideLabel(opportunity.setAside)) ||
                       opportunity.setAside ||
                       'Not specified'
  
@@ -1412,7 +1381,7 @@ function normalizeSetAsideCode(o: Opp) {
 
 function groupLabelFromSetAside(o: Opp) {
   const code = normalizeSetAsideCode(o)
-  return SET_ASIDE_LABEL_BY_CODE[code] || code
+  return getSetAsideLabel(code) || code
 }
 
 function formatNaicsDisplay(o: Opp) {
@@ -1462,7 +1431,7 @@ function formatSearchQuery(query: string): string {
     
     const typeOfSetAside = params.get('typeOfSetAside')
     if (typeOfSetAside) {
-      parts.push(SET_ASIDE_LABEL_BY_CODE[typeOfSetAside] || `Set-Aside: ${typeOfSetAside}`)
+      parts.push(getSetAsideLabel(typeOfSetAside) || `Set-Aside: ${typeOfSetAside}`)
     }
     
     const state = params.get('state')
@@ -1692,27 +1661,13 @@ function QuickDateLookup({
 }: QuickDateLookupProps) {
   return (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-500 shadow-lg mb-4">
-      {/* Header row: logo + title on left, Save/Alert buttons on right */}
+      {/* Header row: title on left, Save/Alert buttons on right */}
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          {/* PreciseGovCon logo */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo.png"
-            alt="PreciseGovCon"
-            className="h-10 w-auto object-contain"
-            onError={(e) => {
-              const img = e.currentTarget as HTMLImageElement
-              img.onerror = null
-              img.style.display = 'none'
-            }}
-          />
-          <div>
-            <h3 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
-              Quick Date Lookup
-            </h3>
-            <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters below</p>
-          </div>
+        <div>
+          <h3 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
+            Quick Solicitations Lookup
+          </h3>
+          <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters</p>
         </div>
         {/* Save Search + Create Alert */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -1889,6 +1844,240 @@ interface QuickSearchProps {
 function QuickSearch(_p: QuickSearchProps) { return null }
 
 // --- Main Component ---
+// ============================================================
+// ANIMATED COMPONENTS FOR DYNAMIC SEARCH PAGE
+// ============================================================
+
+// Animated Tips Carousel Component
+function AnimatedTipsCarousel() {
+  const [currentTip, setCurrentTip] = useState(0)
+  
+  const tips = [
+    {
+      icon: <FileText className="h-5 w-5" />,
+      text: "Pro tip: Try specific keywords like 'cybersecurity services' instead of just 'IT' for better matches",
+      color: "from-gray-700 to-gray-800"
+    },
+    {
+      icon: <Calendar className="h-5 w-5" />,
+      text: "Quick trick: Use the date buttons below to instantly search popular timeframes - we've done the math for you",
+      color: "from-emerald-600 to-emerald-700"
+    },
+    {
+      icon: <Bell className="h-5 w-5" />,
+      text: "Never miss out: Set up email alerts and we'll notify you the moment new opportunities match your criteria",
+      color: "from-orange-600 to-orange-700"
+    },
+    {
+      icon: <Shield className="h-5 w-5" />,
+      text: "As a VOSB, you have exclusive access to set-aside contracts - use the filter to find opportunities reserved just for you",
+      color: "from-gray-700 to-gray-800"
+    },
+    {
+      icon: <MapPin className="h-5 w-5" />,
+      text: "Local advantage: Filter by your state (Virginia) to find nearby opportunities with less competition",
+      color: "from-emerald-600 to-emerald-700"
+    },
+    {
+      icon: <Clock className="h-5 w-5" />,
+      text: "Heads up: Red badges mean deadlines within 7 days - these need your attention first",
+      color: "from-orange-600 to-orange-700"
+    }
+  ]
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTip((prev) => (prev + 1) % tips.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [tips.length])
+
+  return (
+    <div className="mt-6 relative h-24 overflow-hidden">
+      {tips.map((tip, index) => (
+        <div
+          key={index}
+          className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+            index === currentTip 
+              ? 'opacity-100 translate-y-0' 
+              : index < currentTip 
+                ? 'opacity-0 -translate-y-full' 
+                : 'opacity-0 translate-y-full'
+          }`}
+        >
+          <div className={`bg-gradient-to-r ${tip.color} rounded-lg p-4 shadow-lg border border-gray-600`}>
+            <div className="flex items-center gap-4 text-white">
+              <div className="flex-shrink-0 bg-white/10 rounded-lg p-3">
+                <FileText className="h-7 w-7" />
+              </div>
+              <p className="text-lg font-bold leading-snug">
+                {tip.text}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+      
+      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 flex gap-1.5">
+        {tips.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentTip(index)}
+            className={`w-1.5 h-1.5 rounded-full transition-all ${
+              index === currentTip 
+                ? 'bg-emerald-400 w-4' 
+                : 'bg-gray-500 hover:bg-gray-400'
+            }`}
+            aria-label={`Go to tip ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Quick Start Guide Component
+function QuickStartGuide() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="mt-4">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 bg-white rounded-xl border-2 border-gray-300 hover:border-emerald-600 transition-all shadow-sm"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+            <HelpCircle className="h-6 w-6 text-white" />
+          </div>
+          <span className="text-base font-bold text-gray-900">
+            {isOpen ? 'Hide Quick Start Guide' : 'New here? Click for Quick Start Guide'}
+          </span>
+        </div>
+        {isOpen ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
+      </button>
+
+      {isOpen && (
+        <div className="mt-3 bg-gray-50 rounded-xl p-6 border-2 border-gray-300 shadow-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                  1
+                </div>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Enter Your Search</h3>
+                <p className="text-base text-gray-700 leading-relaxed">
+                  Type keywords, company names, products, or services. Leave blank to see all opportunities.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                  2
+                </div>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Select Date Ranges</h3>
+                <p className="text-base text-gray-700 leading-relaxed">
+                  Use quick-fill buttons or pick custom dates to narrow your search.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                  3
+                </div>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Click Search</h3>
+                <p className="text-base text-gray-700 leading-relaxed">
+                  Hit the green Search button to find matching opportunities from SAM.gov.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                  4
+                </div>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Refine & Save</h3>
+                <p className="text-base text-gray-700 leading-relaxed">
+                  Use filters to narrow results, then save your search or create an email alert.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t-2 border-gray-300">
+            <h3 className="text-sm font-bold text-gray-900 mb-3">Pro Tips</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="flex items-start gap-2 text-base text-gray-700">
+                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span><strong>Be Specific:</strong> "Cloud services" beats "IT"</span>
+              </div>
+              <div className="flex items-start gap-2 text-base text-gray-700">
+                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span><strong>Check Daily:</strong> New opportunities posted constantly</span>
+              </div>
+              <div className="flex items-start gap-2 text-base text-gray-700">
+                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span><strong>Save Searches:</strong> Rerun successful searches quickly</span>
+              </div>
+              <div className="flex items-start gap-2 text-base text-gray-700">
+                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span><strong>Set Alerts:</strong> Get emailed automatically</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Searching Facts Component
+function SearchingFacts({ duration }: { duration: number }) {
+  const [currentFact, setCurrentFact] = useState(0)
+
+  const facts = [
+    "💼 The U.S. government spends over $600 billion annually on contracts",
+    "📊 Small businesses win over 25% of federal contract dollars each year",
+    "🎯 Set-aside opportunities give small businesses exclusive access to bids",
+    "⚡ SAM.gov posts thousands of new opportunities every week",
+    "🏆 Veterans can access special set-asides through the SDVOSB program",
+    "🌟 Women-owned businesses have dedicated WOSB opportunities",
+    "📈 Federal contracts can transform small businesses into major players",
+    "🔍 Being specific in searches helps you find better-matched opportunities"
+  ]
+
+  useEffect(() => {
+    if (duration > 0 && duration % 3 === 0) {
+      setCurrentFact((prev) => (prev + 1) % facts.length)
+    }
+  }, [duration, facts.length])
+
+  return (
+    <div className="mt-4 pt-4 border-t-2 border-blue-300">
+      <div className="flex items-center gap-3">
+        <Sparkles className="h-5 w-5 text-blue-600 animate-pulse" />
+        <p className="text-base font-semibold text-blue-800">
+          <strong>Did you know?</strong> {facts[currentFact]}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+
 function SearchPageContent() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -1912,8 +2101,8 @@ function SearchPageContent() {
   const [keywords, setKeywords] = useState('')
   const [naics, setNaics] = useState('')
   const [agency, setAgency] = useState('')
-  const [setAside, setSetAside] = useState('')
-  const [stateOfPerformance, setStateOfPerformance] = useState('')
+  const [selectedSetAsides, setSelectedSetAsides] = useState<string[]>([])
+  const [selectedStates, setSelectedStates] = useState<string[]>([])
   // ✅ QUICK SEARCH STATE
   const [quickKeyword, setQuickKeyword] = useState('')
   const [quickPostedDate, setQuickPostedDate] = useState(getSixMonthsAgo())
@@ -2001,7 +2190,7 @@ function SearchPageContent() {
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState<"posted-desc" | "posted-asc" | "deadline-desc" | "deadline-asc" | "relevance">("posted-desc")
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   
@@ -2191,8 +2380,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         setKeywords(mappedParams.keywords);
         setNaics(mappedParams.naics);
         setAgency(mappedParams.agency);
-        setSetAside(mappedParams.setAside);
-        setStateOfPerformance(mappedParams.stateOfPerformance);
+        setSelectedSetAsides(stringToSetAsideCodes(mappedParams.setAside));
+        setSelectedStates(stringToLocationCodes(mappedParams.stateOfPerformance));
         setProcurementType(mappedParams.procurementType);
         setPostedAfter(mappedParams.postedAfter);
         setPostedBefore(mappedParams.postedBefore);
@@ -2255,23 +2444,23 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
     }
   }, [searchParams, hasValidAccess, canBrowse])
 
-  // Save current search state
-  useEffect(() => {
-    const searchState = {
-      keywords, naics, agency, setAside, stateOfPerformance,
-      postedAfter, postedBefore, procurementType, isActive,
-      solicitationNumber, classificationCode, responseDeadline,
-      noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode
-    };
-    saveSearchState(searchState);
-  }, [
-    keywords, naics, agency, setAside, stateOfPerformance,
+
+// Save current search state
+useEffect(() => {
+  const searchState = {
+    keywords, naics, agency, selectedSetAsides, selectedStates,  // ✅ FIXED
     postedAfter, postedBefore, procurementType, isActive,
     solicitationNumber, classificationCode, responseDeadline,
-    noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode,
-    saveSearchState
-  ]);
-
+    noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode
+  };
+  saveSearchState(searchState);
+}, [
+  keywords, naics, agency, selectedSetAsides, selectedStates,  // ✅ FIXED
+  postedAfter, postedBefore, procurementType, isActive,
+  solicitationNumber, classificationCode, responseDeadline,
+  noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode,
+  saveSearchState
+]);
   // Check if user has access - Robust version
   /**
    * Gate a premium action - if user doesn't have access, show modal
@@ -2642,8 +2831,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
       planLoading,
       canBrowse,
       procurementType, 
-      setAside,
-      stateOfPerformance,
+      selectedSetAsides,
+      selectedStates,
       keywords,
       currentPage 
     })
@@ -2740,9 +2929,10 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         qs.set('organizationCode', organizationCode.trim())
       }
       
-      // SET-ASIDE TYPE - Only filter if user selected a specific set-aside
-      if (setAside && setAside.trim() !== '') {
-        qs.set('typeOfSetAside', setAside.trim());
+      // SET-ASIDE TYPE - convert array to comma-separated string for API
+      const setAsideString = setAsideCodesToString(selectedSetAsides)
+      if (setAsideString) {
+        qs.set('typeOfSetAside', setAsideString)
       }
 
       // Procurement Type (ptype)
@@ -2750,10 +2940,10 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         qs.set('ptype', procurementType.trim())
       }
       
-      // ===== LOCATION =====
-      // State
-      if (stateOfPerformance.trim() && stateOfPerformance !== '') {
-        qs.set('state', stateOfPerformance.trim())
+      // STATE - convert array to comma-separated string for API
+      const stateString = locationCodesToString(selectedStates)
+      if (stateString) {
+        qs.set('state', stateString)
       }
       // ZIP Code (NEW)
       if (placeOfPerformanceZip.trim()) {
@@ -2894,7 +3084,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         totalRecords: total,
         hasMoreResults: currentTotalLoaded < total,
         procurementType: procurementType,
-        setAsideFilter: setAside,
+        setAsideFilter: setAsideCodesToString(selectedSetAsides),
         isLoadMore 
       })
       
@@ -2951,8 +3141,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
     // ── All other filters ──
     setNaics('')
     setAgency('')
-    setSetAside('')
-    setStateOfPerformance('')
+    setSelectedSetAsides([])
+    setSelectedStates([])
     setPostedBefore('')
     setProcurementType('')
     setIsActive('')
@@ -2980,12 +3170,12 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
 
   // Filter functions
   const filterBySetAside = (setAsideCode: string) => {
-    setSetAside(setAsideCode)
+    setSelectedSetAsides(setAsideCode ? [setAsideCode] : [])
     setShowSetAsideDrilldown(false)
   }
 
   const filterByState = (state: string) => {
-    setStateOfPerformance(state)
+    setSelectedStates(state ? [state] : [])
     setShowStateDrilldown(false)
   }
 
@@ -3010,7 +3200,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
     // Set the filter
     switch (type) {
       case 'setAside':
-        setSetAside(filterValue)
+        setSelectedSetAsides(filterValue ? [filterValue] : [])
         break
       case 'naics':
         setNaics(filterValue)
@@ -3019,7 +3209,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         setAgency(filterValue)
         break
       case 'state':
-        setStateOfPerformance(filterValue)
+        setSelectedStates(filterValue ? [filterValue] : [])
         break
     }
 
@@ -3030,9 +3220,9 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
   // Clear specific filters - NO AUTO-REFRESH
   const clearAllClientFilters = () => {
     setAgency('')
-    setSetAside('')
+    setSelectedSetAsides([])
     setNaics('')
-    setStateOfPerformance('')
+    setSelectedStates([])
   }
 
   // Update search when filter is removed (user must click search button)
@@ -3042,13 +3232,13 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
         setAgency('')
         break
       case 'setAside':
-        setSetAside('')
+        setSelectedSetAsides([])
         break
       case 'naics':
         setNaics('')
         break
       case 'state':
-        setStateOfPerformance('')
+        setSelectedStates([])
         break
     }
     
@@ -3250,7 +3440,7 @@ ${filteredResults.map(opp => `  <opportunity>
       
       if (advKeywords) setKeywords(advKeywords)
       if (advPostedAfter) setPostedAfter(advPostedAfter)
-      if (advResponseDeadline) setResponseDeadline(advResponseDeadline)
+      if (advResponseDeadline) setAdvResponseDeadline(advResponseDeadline)
       
       // Defer to next tick so state is flushed before runSearch reads it
       setTimeout(() => {
@@ -3266,7 +3456,7 @@ ${filteredResults.map(opp => `  <opportunity>
       setActiveFilter(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results.length, advPostedAfter, advResponseDeadline, advKeywords, postedAfter, responseDeadline, keywords, setAside, naics, stateOfPerformance])
+  }, [results.length, advPostedAfter, advResponseDeadline, advKeywords, postedAfter, responseDeadline, keywords, selectedSetAsides, naics, selectedStates])
 
   const clearAdvancedFilters = useCallback(() => {
     setAdvancedApplied(false)
@@ -3277,10 +3467,14 @@ ${filteredResults.map(opp => `  <opportunity>
     let arr = results.slice()
 
     // ── ALWAYS filter by set-aside if selected (SAM.gov API doesn't filter reliably) ──
-    if (setAside.trim()) {
+    if (selectedSetAsides.length > 0) {
       arr = arr.filter(o => {
         const oppSetAside = (o.typeOfSetAside || o.setAside || o.setAsideCode || '').toUpperCase()
-        return oppSetAside === setAside.toUpperCase()
+        const oppSetAsideDesc = (o.typeOfSetAsideDescription || '').toUpperCase()
+        return selectedSetAsides.some(code => {
+          const selectedCode = code.toUpperCase()
+          return oppSetAside === selectedCode || oppSetAsideDesc.includes(selectedCode)
+        })
       })
     }
 
@@ -3332,9 +3526,11 @@ ${filteredResults.map(opp => `  <opportunity>
       }
 
       // State
-      if (stateOfPerformance.trim()) {
+      if (selectedStates.length > 0) {
         arr = arr.filter(o =>
-          (o.placeOfPerformance?.state?.code || '').toUpperCase() === stateOfPerformance.toUpperCase()
+          selectedStates.some(code =>
+            (o.placeOfPerformance?.state?.code || '').toUpperCase() === code.toUpperCase()
+          )
         )
       }
 
@@ -3410,7 +3606,7 @@ ${filteredResults.map(opp => `  <opportunity>
     return arr
   }, [results, sortBy, activeFilter, advancedApplied,
       advKeywords, advPostedAfter, advResponseDeadline,
-      agency, setAside, naics, classificationCode, stateOfPerformance,
+      agency, selectedSetAsides, naics, classificationCode, selectedStates,
       procurementType, opportunityStatus, solicitationNumber, organizationCode])
 
   // Summary statistics - ENHANCED with detailed breakdowns
@@ -3514,1470 +3710,799 @@ ${filteredResults.map(opp => `  <opportunity>
     }
   }, [loading]);
 
+  // Google-style color palette
+  const companyBlue = '#1a73e8'
+  const companyGreen = '#0f9d58'
+  const companyYellow = '#f4b400'
+  const companyRed = '#db4437'
+
   return (
     <SearchErrorBoundary>
-      <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '18px' }} className="min-h-screen bg-white text-gray-900">
-        <div className="fixed inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-        <div className="relative z-10 w-full px-3 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6 lg:py-10">
-          <div className="w-full max-w-full sm:max-w-[95%] lg:max-w-[90%] xl:max-w-[85%] mx-auto">
+      <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '12px' }} className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        {/* Main content - full height utilization */}
+        <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen flex flex-col">
+          {/* Action Buttons Row */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => handleOpenSaveModal('save')}
+              className="px-8 py-4 text-xl font-bold bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-all shadow-lg hover:shadow-xl"
+            >
+              Save Search
+            </button>
+            <button
+              onClick={() => router.push('/alerts')}
+              className="px-8 py-4 text-xl font-bold bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              My Alerts
+            </button>
+          </div>
 
-          {/* Welcome Banner for Authenticated Users */}
-          
-          <ProfileCompletionReminder />
-          {/* Enhanced Welcome Banner - MORE PROMINENT */}
-          <div className="mb-6 rounded-2xl border-2 border-blue-400 bg-gradient-to-r from-white to-blue-50 px-6 py-5 shadow-lg">
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Icon + title */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-md">
-                  <Search className="h-6 w-6 text-white" />
+          {/* Professional Welcome Banner */}
+          <div className="mb-6">
+            {/* Main Welcome Card - Professional Gray */}
+            <div className="bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 rounded-2xl p-8 shadow-lg border-2 border-gray-600">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                {/* Icon - Simple Target */}
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Target className="h-10 w-10 text-white" />
+                  </div>
                 </div>
-                <div>
-                  <h1 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xl font-bold text-gray-900 leading-none flex items-center gap-2">
-                    Welcome to Precise Govcon Bid Search
-                    <span className="px-2 py-1 text-xs font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-full shadow-sm">
-                      Pro
-                    </span>
+                
+                {/* Content */}
+                <div className="flex-1">
+                  {session?.user?.name && (
+                    <p className="text-emerald-400 font-semibold mb-1 text-lg">
+                      Welcome back, {session.user.name.split(' ')[0]}!
+                    </p>
+                  )}
+                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 leading-tight">
+                    Let's Find Your Next Government Contract
                   </h1>
-                  <p style={{ fontFamily: 'Aptos, sans-serif' }} className="text-sm text-gray-700 mt-1 font-semibold">
-                    Find, analyze, and track federal contracting opportunities
+                  <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
+                    We'll help you search millions of opportunities from SAM.gov and find contracts that match your business perfectly.
                   </p>
                 </div>
-              </div>
 
-              {/* Feature dots — visible on medium screens and up */}
-              <div className="hidden md:flex items-center gap-4 text-sm text-gray-700 font-semibold">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-blue-600 inline-block" />
-                  Real-time SAM.gov
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-blue-600 inline-block" />
-                  Advanced filtering
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-blue-600 inline-block" />
-                  Export ready
-                </span>
-              </div>
-
-              {/* Buttons — pushed to the right */}
-              <div className="flex items-center gap-2 ml-auto flex-wrap">
-                <button
-                  onClick={() => handleOpenSaveModal('save')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold hover:shadow-lg transition-all text-sm"
-                  aria-label="Save current search"
-                >
-                  <Save className="h-4 w-4 flex-shrink-0" />
-                  Save Search
-                </button>
-
-                <button
-                  onClick={() => handleOpenSaveModal('alert')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold hover:shadow-lg transition-all text-sm"
-                  aria-label="Create email alert"
-                >
-                  <Bell className="h-4 w-4 flex-shrink-0" />
-                  Create Alert
-                </button>
-
-                <Link href="/alerts">
-                  <button
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-white font-bold hover:bg-amber-600 hover:shadow-lg transition-all text-sm"
-                    aria-label="Manage alerts"
-                  >
-                    <Settings className="h-4 w-4 flex-shrink-0" />
-                    Manage Alerts
-                  </button>
-                </Link>
-
-                <Link href="/dashboard">
-                  <button
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-gray-900 border-2 border-gray-400 font-bold hover:bg-gray-50 hover:shadow-lg transition-all text-sm"
-                    aria-label="View dashboard"
-                  >
-                    <BarChart3 className="h-4 w-4 flex-shrink-0" />
-                    Dashboard
-                  </button>
-                </Link>
-              </div>
-            </div>
-            
-            {/* Results Analytics - Interactive with Expandable Lists */}
-            {filteredResults.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <PieChart className="h-5 w-5 text-white" />
-                  <span className="text-lg font-semibold text-gray-900">Results Breakdown</span>
-                  <span className="ml-auto text-base text-gray-900 font-medium">
-                    {summaryStats.total.toLocaleString()} total records
-                  </span>
-                </div>
-
-                {/* AI-Powered Analytics */}
-                {filteredResults.length > 0 && (
-                  <AIAnalytics 
-                    opportunities={filteredResults}
-                    filters={{
-                      setAside,
-                      procurementType,
-                      naics,
-                      agency
-                    }}
-                  />
-                )}
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Set-Asides Breakdown - INTERACTIVE */}
-                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Target className="h-4 w-4 text-white" />
-                      <h4 className="font-semibold text-white/85">Set-Asides</h4>
-                    </div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'setAsides' ? null : 'setAsides')}
-                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
-                        aria-label={expandedBreakdown === 'setAsides' ? 'Collapse set-asides breakdown' : 'Expand set-asides breakdown'}
-                      >
-                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                          {summaryStats.uniqueSetAsides}
-                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'setAsides' ? 'rotate-180' : ''}`} />
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {expandedBreakdown === 'setAsides' ? 'Click to collapse' : 'Click to expand all'}
-                        </div>
-                      </button>
-                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'setAsides' ? 'max-h-96' : 'max-h-32'}`}>
-                        {(expandedBreakdown === 'setAsides' ? summaryStats.topSetAsides : summaryStats.topSetAsides.slice(0, 5)).map(([name, count]) => (
-                          <button
-                            key={name}
-                            onClick={() => handleBreakdownFilter('setAside', name)}
-                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                            title={`Click to filter by: ${name}`}
-                            aria-label={`Filter by ${name}, ${count} opportunities`}
-                          >
-                            <span className="text-gray-700 truncate mr-2 group-hover:text-gray-900 transition-colors">
-                              {name.length > 20 ? name.substring(0, 20) + '...' : name}
-                            </span>
-                            <span className="text-white font-medium whitespace-nowrap flex items-center gap-1">
-                              {count}
-                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                {/* Quick Stats Badge */}
+                <div className="flex-shrink-0 bg-emerald-600 rounded-xl p-4 text-center shadow-lg">
+                  <div className="text-2xl font-bold text-white mb-1">
+                    {data?.totalRecords ? data.totalRecords.toLocaleString() : '2M+'}
                   </div>
-
-                  {/* NAICS Codes Breakdown - INTERACTIVE */}
-                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Tag className="h-4 w-4 text-cyan-400" />
-                      <h4 className="font-semibold text-white/85">NAICS Codes</h4>
-                    </div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'naics' ? null : 'naics')}
-                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
-                        aria-label={expandedBreakdown === 'naics' ? 'Collapse NAICS breakdown' : 'Expand NAICS breakdown'}
-                      >
-                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                          {summaryStats.uniqueNaics}
-                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'naics' ? 'rotate-180' : ''}`} />
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {expandedBreakdown === 'naics' ? 'Click to collapse' : 'Click to expand all'}
-                        </div>
-                      </button>
-                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'naics' ? 'max-h-96' : 'max-h-32'}`}>
-                        {(expandedBreakdown === 'naics' ? summaryStats.topNaics : summaryStats.topNaics.slice(0, 5)).map(([code, count]) => (
-                          <button
-                            key={code}
-                            onClick={() => handleBreakdownFilter('naics', code)}
-                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                            title={`Click to filter by NAICS: ${code}`}
-                            aria-label={`Filter by NAICS ${code}, ${count} opportunities`}
-                          >
-                            <span className="text-gray-700 font-mono group-hover:text-gray-900 transition-colors">{code}</span>
-                            <span className="text-cyan-400 font-medium flex items-center gap-1">
-                              {count}
-                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Agencies Breakdown - INTERACTIVE */}
-                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Building2 className="h-4 w-4 text-white" />
-                      <h4 className="font-semibold text-white/85">Agencies</h4>
-                    </div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'agencies' ? null : 'agencies')}
-                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
-                        aria-label={expandedBreakdown === 'agencies' ? 'Collapse agencies breakdown' : 'Expand agencies breakdown'}
-                      >
-                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                          {summaryStats.uniqueAgencies}
-                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'agencies' ? 'rotate-180' : ''}`} />
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {expandedBreakdown === 'agencies' ? 'Click to collapse' : 'Click to expand all'}
-                        </div>
-                      </button>
-                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'agencies' ? 'max-h-96' : 'max-h-32'}`}>
-                        {(expandedBreakdown === 'agencies' ? summaryStats.topAgencies : summaryStats.topAgencies.slice(0, 5)).map(([name, count]) => (
-                          <button
-                            key={name}
-                            onClick={() => handleBreakdownFilter('agency', name)}
-                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                            title={`Click to filter by agency: ${name}`}
-                            aria-label={`Filter by ${name}, ${count} opportunities`}
-                          >
-                            <span className="text-gray-700 truncate mr-2 group-hover:text-gray-900 transition-colors">
-                              {name.length > 20 ? name.substring(0, 20) + '...' : name}
-                            </span>
-                            <span className="text-white font-medium whitespace-nowrap flex items-center gap-1">
-                              {count}
-                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* States Breakdown - INTERACTIVE */}
-                  <div className="rounded-xl border border-gray-200 bg-white/6 p-4 hover:border-gray-300 transition-colors">
-                    <div className="flex items-center gap-2 mb-3">
-                      <MapPin className="h-4 w-4 text-white" />
-                      <h4 className="font-semibold text-white/85">States</h4>
-                    </div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setExpandedBreakdown(expandedBreakdown === 'states' ? null : 'states')}
-                        className="w-full text-left hover:bg-white/6 rounded-lg p-2 -m-2 transition-colors group"
-                        aria-label={expandedBreakdown === 'states' ? 'Collapse states breakdown' : 'Expand states breakdown'}
-                      >
-                        <div className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                          {summaryStats.uniqueStates}
-                          <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${expandedBreakdown === 'states' ? 'rotate-180' : ''}`} />
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {expandedBreakdown === 'states' ? 'Click to collapse' : 'Click to expand all'}
-                        </div>
-                      </button>
-                      <div className={`space-y-1.5 overflow-y-auto transition-all ${expandedBreakdown === 'states' ? 'max-h-96' : 'max-h-32'}`}>
-                        {(expandedBreakdown === 'states' ? summaryStats.topStates : summaryStats.topStates.slice(0, 5)).map(([code, count]) => (
-                          <button
-                            key={code}
-                            onClick={() => handleBreakdownFilter('state', code)}
-                            className="w-full flex items-center justify-between text-xs hover:bg-white/6 rounded px-2 py-1.5 transition-colors cursor-pointer group"
-                            title={`Click to filter by state: ${code}`}
-                            aria-label={`Filter by ${code}, ${count} opportunities`}
-                          >
-                            <span className="text-gray-700 font-medium group-hover:text-gray-900 transition-colors">{code}</span>
-                            <span className="text-white font-medium flex items-center gap-1">
-                              {count}
-                              <Filter className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="text-xs font-semibold text-emerald-100 uppercase tracking-wide">
+                    Active Opportunities
                   </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Enhanced Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatCard 
-              label="Total Results" 
-              value={summaryStats.total.toLocaleString()}
-              icon={<TrendingUp className="h-5 w-5 text-white" />}
-              onClick={scrollToResults}
-              loading={loading}
-            />
-            
-            <StatCard 
-              label="Urgent (=7 days)" 
-              value={summaryStats.urgentCount.toLocaleString()}
-              icon={<AlertTriangle className="h-5 w-5 text-white" />}
-              onClick={() => {
-                const today = new Date()
-                const nextWeek = new Date(today)
-                nextWeek.setDate(today.getDate() + 7)
-                setPostedAfter(today.toISOString().split('T')[0])
-                setPostedBefore(nextWeek.toISOString().split('T')[0])
-                // User needs to click search button
-              }}
-              loading={loading}
-            />
-            
-            <StatCard 
-              label="Small Business Set-Asides" 
-              value={summaryStats.smallBusinessCount.toLocaleString()}
-              icon={<Target className="h-5 w-5 text-white" />}
-              onClick={() => {
-                setSetAside('SBA')
-                // User needs to click search button
-              }}
-              loading={loading}
-            />
-            
-            <StatCard 
-              label="Saved Opportunities" 
-              value={summaryStats.savedCount.toLocaleString()}
-              icon={<BookmarkCheck className="h-5 w-5 text-white" />}
-              onClick={() => router.push('/alerts?tab=searches')}
-              loading={loading}
-            />
-          </div>
-
-          {/* ✅ QUICK DATE LOOKUP — standalone card above Advanced Filters */}
-          <QuickDateLookup
-            keywords={keywords}
-            setKeywords={setKeywords}
-            postedAfter={postedAfter}
-            setPostedAfter={setPostedAfter}
-            responseDeadlineBefore={responseDeadlineBefore}
-            setResponseDeadlineBefore={setResponseDeadlineBefore}
-            onRunSearch={() => runSearch(false)}
-            onStopSearch={stopSearch}
-            onReset={resetAll}
-            loading={loading}
-            searchDuration={searchDuration}
-            onSaveSearch={() => handleOpenSaveModal('save')}
-            onCreateAlert={() => handleOpenSaveModal('alert')}
-          />
-
-          {/* Enhanced Search Filters - IMPROVED COMPACT VERSION */}
-          <div ref={filtersRef} className="mb-4 rounded-lg border-2 border-lime-400 bg-white shadow-lg p-3 sm:p-4">
-            <div className="flex items-center justify-between gap-3 mb-3 pb-2 border-b-2 border-gray-200">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-lime-500 to-emerald-500 shadow-lg">
-                  <SlidersHorizontal className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h2 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-2xl font-bold text-green-900 uppercase tracking-wide">Advanced Search Filters</h2>
-                  <p style={{ fontFamily: 'Aptos, sans-serif' }} className="text-sm font-semibold text-gray-700">Refine your search with detailed filters</p>
-                </div>
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                icon={showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                aria-label={showFilters ? 'Hide filters' : 'Show filters'}
-              >
-                {showFilters ? 'Hide' : 'Show'}
-              </Button>
+              {/* Animated Tips Carousel - Professional */}
+              <AnimatedTipsCarousel />
             </div>
 
-            {showFilters && (
-              <div className="space-y-3">
+            {/* Quick Start Guide */}
+            <QuickStartGuide />
+          </div>
 
-                {/* Flow status banner */}
-                {advancedApplied ? (
-                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-bold shadow">
-                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                    <span>Advanced filters active — showing {filteredResults.length.toLocaleString()} of {results.length.toLocaleString()} results.</span>
-                  </div>
-                ) : results.length > 0 ? (
-                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-bold shadow">
-                    <Info className="h-4 w-4 flex-shrink-0" />
-                    <span>{results.length.toLocaleString()} results loaded. Set filters below then click <span className="underline">APPLY ADVANCED FILTERS</span> — no extra API call.</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 px-6 py-5 rounded-xl text-white shadow-lg" style={{ background: 'linear-gradient(90deg, #1e40af 0%, #1e3a8a 100%)' }}>
-                    <Info className="h-7 w-7 flex-shrink-0 text-blue-200" />
-                    <span className="flex-1 text-lg font-bold leading-snug">
-                      Set any filters below and click <span className="underline font-extrabold text-yellow-300">RUN ADVANCED SEARCH</span> to query SAM.gov directly — or use Quick Search above first to load results and filter them here.
-                    </span>
-                  </div>
-                )}
 
-                {/* Advanced Filters — 6 columns × 2 rows */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
 
-                  {/* ── ROW 1 — Keywords + dates with quick-fills first, then remaining ── */}
-
-                  {/* 1. Keywords */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Keywords</label>
-                    <div onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyAdvancedFilters() } }} className="relative">
-                      <Input
-                        value={advKeywords}
-                        onChange={setAdvKeywords}
-                        placeholder="e.g., 'Data Analytics'"
-                        icon={<Search className="h-4 w-4" />}
+          {/* Search Card - compact with full width */}
+          <div className="flex-1 flex flex-col">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+              <div className="p-6">
+                {/* Main search form */}
+                <div className="w-full">
+                  {/* Search input row */}
+                  <div className="flex flex-col md:flex-row gap-3 mb-6">
+                    <div className="flex-1 relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Search className="h-6 w-6" />
+                      </div>
+                      <input
+                        type="text"
+                        value={keywords}
+                        onChange={(e) => setKeywords(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+                        placeholder="Search by keyword, solicitation #, NAICS, or company name..."
+                        className="w-full pl-14 pr-4 py-5 text-xl rounded-xl border-2 border-gray-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all outline-none text-gray-900 placeholder-gray-500"
                       />
                     </div>
-                  </div>
-
-                  {/* 2. Posted Date — with quick-fill month buttons */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Solicitation Posted Date</label>
-                    <input
-                      type="date"
-                      value={advPostedAfter}
-                      onChange={(e) => setAdvPostedAfter(e.target.value)}
-                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
-                      aria-label="Posted after date"
-                    />
-                    <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-600 mb-1">POSTED WITHIN:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {([['1 Mo', -1, 'from-blue-500 to-cyan-500'], ['3 Mo', -3, 'from-indigo-500 to-purple-500'], ['6 Mo', -6, 'from-violet-500 to-purple-500'], ['9 Mo', -9, 'from-purple-500 to-pink-500'], ['12 Mo', -12, 'from-slate-600 to-slate-800']] as [string, number, string][]).map(([label, months, color]) => (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => {
-                            const d = new Date()
-                            d.setMonth(d.getMonth() + months)
-                            setAdvPostedAfter(d.toISOString().split('T')[0])
-                          }}
-                          className={`px-2.5 py-1 text-xs font-bold bg-gradient-to-r ${color} text-white rounded-lg hover:shadow-md transition-all`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 3. Response Deadline — with quick-fill month buttons */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Response Deadline</label>
-                    <input
-                      type="date"
-                      value={advResponseDeadline}
-                      onChange={(e) => setAdvResponseDeadline(e.target.value)}
-                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
-                      aria-label="Response deadline date filter"
-                    />
-                    <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-600 mb-1">DEADLINE WITHIN:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {([['1 Mo', 1, 'from-rose-500 to-pink-500'], ['3 Mo', 3, 'from-orange-500 to-amber-500'], ['6 Mo', 6, 'from-amber-500 to-yellow-500'], ['9 Mo', 9, 'from-emerald-500 to-teal-500'], ['12 Mo', 12, 'from-cyan-500 to-blue-500']] as [string, number, string][]).map(([label, months, color]) => (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => {
-                            const d = new Date()
-                            d.setMonth(d.getMonth() + months)
-                            setAdvResponseDeadline(d.toISOString().split('T')[0])
-                          }}
-                          className={`px-2.5 py-1 text-xs font-bold bg-gradient-to-r ${color} text-white rounded-lg hover:shadow-md transition-all`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 4. Set-Aside */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Set-Aside</label>
-                    <select
-                      value={setAside}
-                      onChange={(e) => setSetAside(e.target.value)}
-                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                      aria-label="Set-aside type filter"
-                    >
-                      <option value="">Any Set-Aside</option>
-                      <option value="8A">8(a) Set-Aside (FAR 19.8)</option>
-                      <option value="8AN">8(a) Sole Source (FAR 19.8)</option>
-                      <option value="BICiv">Buy Indian Set-Aside (IHS)</option>
-                      <option value="EDWOSB">EDWOSB Set-Aside (FAR 19.15)</option>
-                      <option value="EDWOSBSS">EDWOSB Sole Source (FAR 19.15)</option>
-                      <option value="HZC">HUBZone Set-Aside (FAR 19.13)</option>
-                      <option value="HZS">HUBZone Sole Source (FAR 19.13)</option>
-                      <option value="IEE">Indian Economic Enterprise (Interior)</option>
-                      <option value="ISBEE">Indian Small Business EE (Interior)</option>
-                      <option value="LAS">Local Area Set-Aside (FAR 26.2)</option>
-                      <option value="SBA">Total Small Business (FAR 19.5)</option>
-                      <option value="SBP">Partial Small Business (FAR 19.5)</option>
-                      <option value="SDVOSBC">SDVOSB Set-Aside (FAR 19.14)</option>
-                      <option value="SDVOSBS">SDVOSB Sole Source (FAR 19.14)</option>
-                      <option value="VSA">Veteran-Owned SB Set-Aside (VA)</option>
-                      <option value="VSS">Veteran-Owned SB Sole Source (VA)</option>
-                      <option value="WOSB">WOSB Set-Aside (FAR 19.15)</option>
-                      <option value="WOSBSS">WOSB Sole Source (FAR 19.15)</option>
-                    </select>
-                  </div>
-
-                  {/* 5. Status */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Status</label>
-                    <select
-                      value={opportunityStatus}
-                      onChange={(e) => setOpportunityStatus(e.target.value)}
-                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                      aria-label="Opportunity status filter"
-                    >
-                      <option value="">All Statuses</option>
-                      <option value="active">Active</option>
-                      <option value="archived">Archived</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="deleted">Deleted</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-
-                  {/* 6. State / Territory */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">State / Territory</label>
-                    <select
-                      value={stateOfPerformance}
-                      onChange={(e) => setStateOfPerformance(e.target.value)}
-                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                      aria-label="State filter"
-                    >
-                      {US_STATES.map(state => (
-                        <option key={state.value} value={state.value}>{state.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* ── ROW 2 ── */}
-
-                  {/* 7. Procurement Type */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Procurement Type</label>
-                    <select
-                      value={procurementType}
-                      onChange={(e) => setProcurementType(e.target.value)}
-                      className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-300 text-gray-900 hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-colors"
-                      aria-label="Procurement type filter"
-                    >
-                      <option value="">All Types</option>
-                      <option value="a">Award Notice</option>
-                      <option value="k">Combined Synopsis/Solicitation</option>
-                      <option value="i">Intent to Bundle (DoD)</option>
-                      <option value="u">Justification (J&amp;A)</option>
-                      <option value="p">Pre-Solicitation</option>
-                      <option value="g">Sale of Surplus Property</option>
-                      <option value="o">Solicitation</option>
-                      <option value="s">Special Notice</option>
-                      <option value="r">Sources Sought</option>
-                    </select>
-                  </div>
-
-                  {/* 8. Agency / Department */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Agency / Department</label>
-                    <Input
-                      value={agency}
-                      onChange={setAgency}
-                      placeholder="e.g., Dept of Defense"
-                      icon={<Building2 className="h-4 w-4" />}
-                    />
-                  </div>
-
-                  {/* 9. NAICS Code */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">NAICS Code</label>
-                    <Input
-                      value={naics}
-                      onChange={setNaics}
-                      placeholder="e.g., 541511, 541512"
-                      icon={<Tag className="h-4 w-4" />}
-                    />
-                  </div>
-
-                  {/* 10. PSC Code */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">PSC Code</label>
-                    <Input
-                      value={classificationCode}
-                      onChange={setClassificationCode}
-                      placeholder="e.g., R425, 7030"
-                      icon={<Layers className="h-4 w-4" />}
-                    />
-                  </div>
-
-                  {/* 11. Solicitation Number */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Solicitation Number</label>
-                    <Input
-                      value={solicitationNumber}
-                      onChange={setSolicitationNumber}
-                      placeholder="e.g., W912DY24R0001"
-                      icon={<FileText className="h-4 w-4" />}
-                    />
-                  </div>
-
-                  {/* 12. Organization Code */}
-                  <div>
-                    <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">Organization Code</label>
-                    <Input
-                      value={organizationCode}
-                      onChange={setOrganizationCode}
-                      placeholder="e.g., DOD, HHS"
-                      icon={<Building className="h-4 w-4" />}
-                    />
-                  </div>
-
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
-                  <button
-                    onClick={applyAdvancedFilters}
-                    disabled={loading}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label={results.length === 0 ? 'Run SAM.gov search using advanced fields' : 'Filter loaded results with advanced fields'}
-                    title={results.length === 0 ? 'Runs a new SAM.gov search using these fields' : 'Filters the already-loaded results client-side'}
-                  >
-                    {results.length === 0 ? (
-                      <><Search className="h-4 w-4" />RUN ADVANCED SEARCH</>
-                    ) : advancedApplied ? (
-                      <><Filter className="h-4 w-4" />UPDATE FILTERS</>
-                    ) : (
-                      <><Filter className="h-4 w-4" />APPLY ADVANCED FILTERS</>
-                    )}
-                  </button>
-
-                  {advancedApplied && (
                     <button
-                      onClick={clearAdvancedFilters}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-white border-2 border-gray-400 text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
-                      aria-label="Clear advanced filters"
+                      onClick={() => runSearch()}
+                      disabled={loading}
+                      className="px-10 py-5 bg-emerald-700 text-white font-bold text-xl rounded-xl hover:bg-emerald-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 min-w-[200px]"
                     >
-                      <X className="h-4 w-4" />
-                      CLEAR FILTERS
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                          Searching
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-6 w-6" />
+                          Search
+                        </>
+                      )}
                     </button>
-                  )}
-
-                  {/* Save Search */}
-                  <button
-                    onClick={() => handleOpenSaveModal('save')}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 transition-all shadow-md"
-                    aria-label="Save current search"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save Search
-                  </button>
-
-                  {/* Create Alert */}
-                  <button
-                    onClick={() => handleOpenSaveModal('alert')}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:shadow-lg hover:shadow-violet-500/25 transition-all shadow-md"
-                    aria-label="Create email alert"
-                  >
-                    <Bell className="h-4 w-4" />
-                    Create Alert
-                  </button>
-                  
-                  <button
-                    onClick={resetAll}
-                    disabled={loading}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-900 transition-all shadow-sm disabled:opacity-50"
-                    aria-label="Reset all filters"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    Reset All
-                  </button>
-                  
-                  {/* Export/Share Dropdown */}
-                  <div className="ml-auto relative">
                     <button
-                      onClick={() => setShowExportMenu(!showExportMenu)}
-                      disabled={!filteredResults.length || loading}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-900 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Export and share options"
+                      onClick={resetAll}
+                      className="px-10 py-5 bg-white text-gray-800 font-bold text-xl rounded-xl border-2 border-gray-400 hover:bg-gray-100 hover:border-gray-500 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-3 min-w-[200px]"
+                      aria-label="Reset all fields"
                     >
-                      <Share2 className="h-3.5 w-3.5" />
-                      Export / Share
-                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                      <RefreshCw className="h-6 w-6" />
+                      Reset All
                     </button>
-                    
-                    {showExportMenu && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                        <div className="px-3 py-2 border-b border-gray-200">
-                          <p className="text-xs font-bold text-gray-900">Export Results</p>
-                          <p className="text-xs text-gray-500">Download in your preferred format</p>
-                        </div>
-                        
-                        <button
-                          onClick={() => { exportCsv(); setShowExportMenu(false); }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
-                        >
-                          <Download className="h-4 w-4 text-green-600" />
-                          <div>
-                            <div className="font-semibold">CSV</div>
-                            <div className="text-xs text-gray-500">Excel-compatible spreadsheet</div>
-                          </div>
-                        </button>
-                        
-                        <button
-                          onClick={() => { exportJson(); setShowExportMenu(false); }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
-                        >
-                          <Download className="h-4 w-4 text-blue-600" />
-                          <div>
-                            <div className="font-semibold">JSON</div>
-                            <div className="text-xs text-gray-500">For developers & integrations</div>
-                          </div>
-                        </button>
-                        
-                        <button
-                          onClick={() => { exportTxt(); setShowExportMenu(false); }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
-                        >
-                          <FileText className="h-4 w-4 text-gray-600" />
-                          <div>
-                            <div className="font-semibold">TXT</div>
-                            <div className="text-xs text-gray-500">Plain text file</div>
-                          </div>
-                        </button>
-                        
-                        <button
-                          onClick={() => { exportXml(); setShowExportMenu(false); }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
-                        >
-                          <FileText className="h-4 w-4 text-orange-600" />
-                          <div>
-                            <div className="font-semibold">XML</div>
-                            <div className="text-xs text-gray-500">Structured data format</div>
-                          </div>
-                        </button>
-                        
-                        <div className="border-t border-gray-200 my-1"></div>
-                        
-                        <button
-                          onClick={() => { exportEmail(); setShowExportMenu(false); }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
-                        >
-                          <MessageSquare className="h-4 w-4 text-cyan-600" />
-                          <div>
-                            <div className="font-semibold">Email Results</div>
-                            <div className="text-xs text-gray-500">Send via email</div>
-                          </div>
-                        </button>
-                      </div>
-                    )}
                   </div>
-                </div>
-                
-                {error && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <div className="text-amber-900 font-semibold text-sm">Search Limitation</div>
-                        <div className="text-amber-700 text-xs">{error}</div>
-                        <button
-                          onClick={() => setError(null)}
-                          className="mt-2 px-3 py-1 rounded-lg border border-amber-400 hover:bg-amber-100 text-amber-700 font-semibold text-xs transition-colors"
-                          aria-label="Dismiss error"
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
-          {/* Results Section */}
-          <div ref={resultsRef} className="rounded-3xl border border-gray-200 bg-white p-3 sm:p-6">
-            {/* Results Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-              <div className="flex flex-col gap-3 flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
-                    <Database className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">Search Results</h2>
-                    {!data && !loading && (
-                      <p className="text-base text-gray-900 font-medium mt-0.5">Set filters and click "Search Opportunities" to see results</p>
-                    )}
-                  </div>
+                  {/* Loading message with user input */}
                   {loading && (
-                    <div className="flex items-center gap-1.5 text-base text-gray-900 font-medium ml-2">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Searching...
+                    <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-xl">
+                      <div className="flex items-center gap-3 text-blue-800">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span className="text-lg font-semibold">
+                          Searching {keywords ? `"${keywords}"` : ''} opportunities, please wait... ({searchDuration}s)
+                        </span>
+                      </div>
                     </div>
                   )}
-                </div>
 
-                {/* 💡 Save & Subscribe Prompt Banner */}
-                {data && filteredResults.length > 0 && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm" data-save-prompt>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-600 rounded-lg flex-shrink-0">
-                        <Bell className="h-4 w-4 text-white" />
+                  {/* Two-column date layout - each column has date field + quick-fill buttons */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8">
+                    
+                    {/* LEFT COLUMN: Solicitation Posted Date */}
+                    <div className="space-y-4">
+                      {/* Posted Date Input Field */}
+                      <div className="bg-emerald-50 p-5 rounded-xl border-2 border-emerald-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Calendar className="h-6 w-6 text-emerald-700" />
+                          <label className="text-lg font-bold text-emerald-800">
+                            Solicitation Posted Date
+                          </label>
+                        </div>
+                        <input
+                          type="date"
+                          value={postedAfter}
+                          onChange={(e) => setPostedAfter(e.target.value)}
+                          className="w-full px-4 py-4 text-lg font-medium rounded-lg border-2 border-emerald-300 bg-white text-gray-900 focus:border-emerald-700 focus:ring-4 focus:ring-emerald-200 transition-all"
+                        />
+                        <p className="text-base text-emerald-700 mt-2 font-bold">
+                          Find solicitations posted on or after this date
+                        </p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                            Found opportunities you like?
-                          </h3>
+
+                      {/* Posted Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
+                      <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 p-4 rounded-xl border-2 border-emerald-300">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Calendar className="h-4 w-4 text-emerald-700" />
+                          <span className="text-base font-bold text-emerald-900">
+                            Posted within the last:
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setPostedAfter(getSixMonthsAgo())}
+                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                          >
+                            6 months
+                          </button>
                           <button
                             onClick={() => {
-                              const banner = document.querySelector('[data-save-prompt]');
-                              if (banner) (banner as HTMLElement).style.display = 'none';
+                              const d = new Date()
+                              d.setMonth(d.getMonth() - 3)
+                              setPostedAfter(d.toISOString().split('T')[0])
                             }}
-                            className="text-gray-400 hover:text-gray-600 flex-shrink-0 p-0.5 rounded"
-                            title="Dismiss"
-                            aria-label="Dismiss save prompt"
+                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
                           >
-                            <X className="h-4 w-4" />
+                            3 months
+                          </button>
+                          <button
+                            onClick={() => {
+                              const d = new Date()
+                              d.setMonth(d.getMonth() - 1)
+                              setPostedAfter(d.toISOString().split('T')[0])
+                            }}
+                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                          >
+                            30 days
+                          </button>
+                          <button
+                            onClick={() => {
+                              const d = new Date()
+                              d.setDate(d.getDate() - 14)
+                              setPostedAfter(d.toISOString().split('T')[0])
+                            }}
+                            className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                          >
+                            2 weeks
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mb-3">
-                          Save this search to get automatic email alerts when new matching opportunities appear.
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: Solicitation Due Date */}
+                    <div className="space-y-4">
+                      {/* Due Date Input Field */}
+                      <div className="bg-amber-50 p-5 rounded-xl border-2 border-amber-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="h-6 w-6 text-amber-700" />
+                          <label className="text-lg font-bold text-amber-800">
+                            Solicitation Due Date
+                          </label>
+                        </div>
+                        <input
+                          type="date"
+                          value={responseDeadlineBefore}
+                          onChange={(e) => setResponseDeadlineBefore(e.target.value)}
+                          className="w-full px-4 py-4 text-lg font-medium rounded-lg border-2 border-amber-300 bg-white text-gray-900 focus:border-amber-700 focus:ring-4 focus:ring-amber-200 transition-all"
+                        />
+                        <p className="text-base text-amber-700 mt-2 font-bold">
+                          Find solicitations with response due date between today and any of these quick fill dates
                         </p>
+                      </div>
+
+                      {/* Due Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
+                      <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border-2 border-amber-300">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="h-4 w-4 text-amber-700" />
+                          <span className="text-base font-bold text-amber-900">
+                            Due within the next:
+                          </span>
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => {
-                              if (!requireAccess("Save Searches")) return;
-                              const params = new URLSearchParams({
-                                tab: 'saved-searches',
-                                title: keywords.trim(),
-                                naics: naics.trim(),
-                                agency: agency.trim(),
-                                setAside: setAside.trim(),
-                                state: stateOfPerformance.trim(),
-                                ptype: procurementType,
-                                status: opportunityStatus.trim(),
-                                solnum: solicitationNumber.trim(),
-                                noticeid: noticeId.trim(),
-                                ccode: classificationCode.trim(),
-                                zip: placeOfPerformanceZip.trim(),
-                                organizationCode: organizationCode.trim(),
-                                postedFrom: postedAfter.trim(),
-                                postedTo: postedBefore.trim(),
-                                rdlfrom: responseDeadline.trim(),
-                              });
-                              const filteredParams = new URLSearchParams();
-                              for (const [key, value] of params.entries()) {
-                                if (value) filteredParams.set(key, value);
-                              }
-                              window.location.href = `/alerts?${filteredParams.toString()}`;
+                              const d = new Date()
+                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors"
-                            aria-label="Save this search"
+                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
-                            <Save className="h-3.5 w-3.5" />
-                            Save This Search
+                            Today
                           </button>
                           <button
                             onClick={() => {
-                              if (!requireAccess("Manage Alerts")) return;
-                              window.location.href = '/alerts?tab=subscriptions';
+                              const d = new Date()
+                              d.setDate(d.getDate() + 14)
+                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-colors"
-                            aria-label="Manage subscriptions"
+                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
-                            <Bell className="h-3.5 w-3.5" />
-                            Manage Subscriptions
+                            2 weeks
                           </button>
                           <button
-                            onClick={() => { window.location.href = '/alerts'; }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-colors"
-                            aria-label="Manage your alerts and subscriptions"
+                            onClick={() => {
+                              const d = new Date()
+                              d.setMonth(d.getMonth() + 1)
+                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
+                            }}
+                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
                           >
-                            <Bell className="h-3.5 w-3.5" />
-                            Manage Alerts
+                            30 days
+                          </button>
+                          <button
+                            onClick={() => {
+                              const d = new Date()
+                              d.setMonth(d.getMonth() + 3)
+                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
+                            }}
+                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                          >
+                            90 days
+                          </button>
+                          <button
+                            onClick={() => {
+                              const d = new Date()
+                              d.setMonth(d.getMonth() + 6)
+                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
+                            }}
+                            className="px-4 py-2.5 bg-amber-600 text-white font-bold text-sm rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                          >
+                            6 months
                           </button>
                         </div>
                       </div>
                     </div>
+
                   </div>
-                )}
 
-                {/* ── Search Parameters Summary — always visible when results exist ── */}
-                {data && (
-                  <div className="rounded-xl border-2 border-blue-800 bg-blue-900 shadow-lg p-5">
-                    {/* Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <Search className="h-5 w-5 text-blue-300 flex-shrink-0" />
-                      <span className="text-base font-extrabold text-white uppercase tracking-widest">
-                        {advancedApplied ? 'Quick Search + Advanced Filters Applied' : 'Quick Search Parameters'}
-                      </span>
-                      {advancedApplied && (
-                        <span className="ml-auto px-3 py-1 rounded-full bg-emerald-500 text-white text-sm font-extrabold whitespace-nowrap">
-                          FILTERED: {filteredResults.length} of {results.length}
-                        </span>
-                      )}
+                  {/* Stop button when loading */}
+                  {loading && (
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        onClick={stopSearch}
+                        className="px-8 py-4 bg-red-600 text-white font-bold text-lg rounded-xl hover:bg-red-700 transition-colors shadow-md flex items-center gap-3"
+                      >
+                        <StopCircle className="h-6 w-6" />
+                        Stop Search
+                      </button>
                     </div>
+                  )}
 
-                    {/* ── SECTION 1: Quick Search fields — always shown ── */}
-                    <div className="flex flex-wrap gap-3 mb-3">
-
-                      {/* Keyword */}
-                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-700 border-2 border-blue-500">
-                        <Search className="h-4 w-4 text-blue-200 flex-shrink-0" />
-                        <span className="text-sm font-extrabold text-blue-200 uppercase tracking-wide">Keyword:</span>
-                        <span className="text-base font-extrabold text-white">
-                          {keywords ? `"${keywords}"` : <span className="text-blue-300 italic font-semibold">Any</span>}
-                        </span>
-                      </div>
-
-                      {/* Posted From */}
-                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-700 border-2 border-blue-500">
-                        <Calendar className="h-4 w-4 text-blue-200 flex-shrink-0" />
-                        <span className="text-sm font-extrabold text-blue-200 uppercase tracking-wide">Posted From:</span>
-                        <span className="text-base font-extrabold text-white">
-                          {postedAfter ? formatDate(postedAfter) : <span className="text-blue-300 italic font-semibold">Any</span>}
-                        </span>
-                      </div>
-
-                      {/* Submission Deadline */}
-                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-700 border-2 border-amber-500">
-                        <Clock className="h-4 w-4 text-amber-200 flex-shrink-0" />
-                        <span className="text-sm font-extrabold text-amber-200 uppercase tracking-wide">Deadline By:</span>
-                        <span className="text-base font-extrabold text-white">
-                          {responseDeadlineBefore ? formatDate(responseDeadlineBefore) : <span className="text-amber-300 italic font-semibold">Any</span>}
-                        </span>
-                      </div>
-
-                    </div>
-
-                    {/* ── SECTION 2: Advanced filters — only shown when applied ── */}
-                    {advancedApplied && (
-                      <>
-                        <div className="border-t-2 border-emerald-700 my-3" />
-                        <div className="text-sm font-extrabold text-emerald-300 uppercase tracking-widest mb-3">Advanced Filters Active</div>
-                        <div className="flex flex-wrap gap-3">
-
-                          {advKeywords && advKeywords !== keywords && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Search className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Keyword:</span>
-                              <span className="text-base font-extrabold text-white">"{advKeywords}"</span>
-                            </div>
-                          )}
-                          {advPostedAfter && advPostedAfter !== postedAfter && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Calendar className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Posted From:</span>
-                              <span className="text-base font-extrabold text-white">{formatDate(advPostedAfter)}</span>
-                            </div>
-                          )}
-                          {advResponseDeadline && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Clock className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Deadline By:</span>
-                              <span className="text-base font-extrabold text-white">{formatDate(advResponseDeadline)}</span>
-                            </div>
-                          )}
-                          {agency && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Building2 className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Agency:</span>
-                              <span className="text-base font-extrabold text-white">{agency}</span>
-                            </div>
-                          )}
-                          {setAside && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Shield className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Set-Aside:</span>
-                              <span className="text-base font-extrabold text-white">{SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}</span>
-                            </div>
-                          )}
-                          {naics && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Tag className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">NAICS:</span>
-                              <span className="text-base font-extrabold text-white">{naics}</span>
-                            </div>
-                          )}
-                          {classificationCode && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Layers className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">PSC:</span>
-                              <span className="text-base font-extrabold text-white">{classificationCode}</span>
-                            </div>
-                          )}
-                          {stateOfPerformance && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <MapPin className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">State:</span>
-                              <span className="text-base font-extrabold text-white">{US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}</span>
-                            </div>
-                          )}
-                          {procurementType && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <FileText className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Type:</span>
-                              <span className="text-base font-extrabold text-white">{procurementType}</span>
-                            </div>
-                          )}
-                          {opportunityStatus && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <CheckCircle className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Status:</span>
-                              <span className="text-base font-extrabold text-white capitalize">{opportunityStatus}</span>
-                            </div>
-                          )}
-                          {solicitationNumber && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Hash className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Sol #:</span>
-                              <span className="text-base font-extrabold text-white">{solicitationNumber}</span>
-                            </div>
-                          )}
-                          {organizationCode && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-700 border-2 border-emerald-500">
-                              <Building className="h-4 w-4 text-emerald-200 flex-shrink-0" />
-                              <span className="text-sm font-extrabold text-emerald-200 uppercase tracking-wide">Org Code:</span>
-                              <span className="text-base font-extrabold text-white">{organizationCode}</span>
-                            </div>
-                          )}
-                          {!advKeywords && !advPostedAfter && !advResponseDeadline && !agency && !setAside && !naics && !classificationCode && !stateOfPerformance && !procurementType && !opportunityStatus && !solicitationNumber && !organizationCode && (
-                            <span className="text-base font-semibold text-emerald-300 italic">No additional advanced filters — showing all Quick Search results</span>
-                          )}
+                  {/* Error display */}
+                  {error && (
+                    <div className="mt-4 p-5 bg-red-50 border-2 border-red-300 rounded-xl">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h4 className="font-bold text-red-800 text-lg mb-1">Search Error</h4>
+                          <p className="text-red-700 text-base">{error}</p>
                         </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Showing X of Y + status pills */}
-                {data && results.length > 0 && (
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <span className="text-sm text-gray-900">
-                      Showing <span className="font-semibold text-blue-600">{filteredResults.length.toLocaleString()}</span> of <span className="font-semibold text-blue-600">{totalRecords > 0 ? totalRecords.toLocaleString() : results.length.toLocaleString()}</span> returned results
-                    </span>
-                    <span className="text-slate-700 hidden sm:inline">|</span>
-                    {/* Status pills — only when Status filter is "All" */}
-                    {isActive === '' && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setActiveFilter(null)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-                            activeFilter === null
-                              ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800'
-                          }`}
-                          aria-label="Show all opportunities"
-                        >
-                          All <span className={`font-normal ml-1 ${activeFilter === null ? 'text-blue-100' : 'text-gray-400'}`}>{statusCounts.all.toLocaleString()}</span>
-                        </button>
-                        <button
-                          onClick={() => setActiveFilter('true')}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-                            activeFilter === 'true'
-                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800'
-                          }`}
-                          aria-label="Show active opportunities"
-                        >
-                          Active <span className={`font-normal ml-1 ${activeFilter === 'true' ? 'text-emerald-100' : 'text-gray-400'}`}>{statusCounts.active.toLocaleString()}</span>
-                        </button>
-                        <button
-                          onClick={() => setActiveFilter('false')}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-                            activeFilter === 'false'
-                              ? 'bg-gray-700 border-gray-700 text-white shadow-sm'
-                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-800'
-                          }`}
-                          aria-label="Show inactive opportunities"
-                        >
-                          Inactive <span className={`font-normal ml-1 ${activeFilter === 'false' ? 'text-gray-300' : 'text-gray-400'}`}>{statusCounts.inactive.toLocaleString()}</span>
-                        </button>
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
-              
-              {/* Results Controls - Only show when we have results */}
-              {data && (
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Sort Controls */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-base text-gray-900 font-medium">Sort by:</span>
-                    <select 
-                      value={sortBy} 
-                      onChange={(e) =>
-                        setSortBy(
-                          e.target.value as
-                            | 'posted-desc'
-                            | 'posted-asc'
-                            | 'deadline-desc'
-                            | 'deadline-asc'
-                            | 'relevance'
-                        )
-                      }
-                      className="px-3 py-2 border-2 border-gray-400 rounded-lg bg-white text-gray-900 font-semibold"
-                      aria-label="Sort results by"
-                    >
-                      <option value="posted-desc">Posted Date (Newest First)</option>
-                      <option value="posted-asc">Posted Date (Oldest First)</option>
-                      <option value="deadline-desc">Deadline (Latest First)</option>
-                      <option value="deadline-asc">Deadline (Soonest First)</option>
-                      <option value="relevance">Relevance</option>
-                    </select>
+            </div>
+          </div>
 
+          {/* Results section - only shown after search */}
+          {results.length > 0 && (
+            <div ref={resultsRef} className="transition-all duration-500 mt-6">
+              {/* Results header with filter toggle */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-4xl font-bold text-gray-900">
+                    {filteredResults.length.toLocaleString()} opportunities found
+                  </h2>
+                  {data?.totalRecords && data.totalRecords > filteredResults.length && (
+                    <p className="text-lg text-gray-700 font-semibold mt-2">
+                      Filtered from {data.totalRecords.toLocaleString()} total results
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                      showFilters 
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700' 
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                    {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                  
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="px-4 py-2 rounded-lg border-2 border-gray-200 focus:border-emerald-600 outline-none text-gray-900 font-semibold"
+                  >
+                    <option value="deadline-asc">Deadline (Soonest)</option>
+                    <option value="deadline-desc">Deadline (Latest)</option>
+                    <option value="posted-desc">Newest first</option>
+                    <option value="posted-asc">Oldest first</option>
+                  </select>
+
+                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-100">
                     <button
-                      onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                      className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-100 transition-colors"
-                      aria-label={sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'}
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 rounded transition-all ${
+                        viewMode === 'list' ? 'bg-white shadow-sm' : 'text-gray-500'
+                      }`}
                     >
-                      {sortOrder === 'asc' ? (
-                        <SortAsc className="h-4 w-4 text-gray-600" />
-                      ) : (
-                        <SortDesc className="h-4 w-4 text-gray-600" />
-                      )}
+                      <List className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 rounded transition-all ${
+                        viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-gray-500'
+                      }`}
+                    >
+                      <Grid className="h-4 w-4" />
                     </button>
                   </div>
-                  
-                  {/* View Toggle - List and Grid */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-600 font-medium">View:</span>
-                    <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-slate-100 to-blue-100 border-2 border-blue-300">
-                      <button
-                        onClick={() => setViewMode('list')}
-                        className={`p-2 rounded transition-all ${
-                          viewMode === 'list' 
-                            ? 'bg-white text-blue-600 shadow-sm' 
-                            : 'text-slate-400 hover:text-slate-600'
-                        }`}
-                        title="List view"
-                        aria-label="List view"
+                </div>
+              </div>
+
+              {/* Filter panel - collapsible */}
+              {showFilters && (
+                <div className="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-xl text-gray-900 mb-4 flex items-center gap-2">
+                    <Filter className="h-5 w-5 text-emerald-600" />
+                    Refine Results
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* KEYWORD - FIRST */}
+                    <div>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Keyword</label>
+                      <input
+                        type="text"
+                        value={keywords}
+                        onChange={(e) => setKeywords(e.target.value)}
+                        placeholder="e.g., Data Analytics"
+                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                      />
+                    </div>
+                    {/* SET-ASIDE - SECOND */}
+                    <div>
+                      <MultiSelectDropdown
+                        label="Set-Aside"
+                        options={SET_ASIDE_OPTIONS.filter(opt => opt.code !== '')}
+                        selected={selectedSetAsides}
+                        onChange={setSelectedSetAsides}
+                        placeholder="Any Set-Aside"
+                      />
+                    </div>
+                    {/* STATE - THIRD */}
+                    <div>
+                      <MultiSelectDropdown
+                        label="State"
+                        options={US_STATES_AND_TERRITORIES.filter(loc => loc.code !== '').map(loc => ({ code: loc.code, label: loc.label }))}
+                        selected={selectedStates}
+                        onChange={setSelectedStates}
+                        placeholder="Any State/Territory"
+                      />
+                    </div>
+                    {/* AGENCY */}
+                    <div>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Agency</label>
+                      <input
+                        type="text"
+                        value={agency}
+                        onChange={(e) => setAgency(e.target.value)}
+                        placeholder="e.g., Department of Defense"
+                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                      />
+                    </div>
+                    {/* NAICS CODE */}
+                    <div>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">NAICS Code</label>
+                      <input
+                        type="text"
+                        value={naics}
+                        onChange={(e) => setNaics(e.target.value)}
+                        placeholder="e.g., 541511"
+                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                      />
+                    </div>
+                    {/* PROCUREMENT TYPE */}
+                    <div>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Procurement Type</label>
+                      <select
+                        value={procurementType}
+                        onChange={(e) => setProcurementType(e.target.value)}
+                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
                       >
-                        <List className="h-5 w-5" />
+                        <option value="">All Types</option>
+                        <option value="a">Award Notice</option>
+                        <option value="k">Combined Synopsis/Solicitation</option>
+                        <option value="p">Pre-Solicitation</option>
+                        <option value="o">Solicitation</option>
+                        <option value="r">Sources Sought</option>
+                      </select>
+                    </div>
+                    {/* PSC CODE */}
+                    <div>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">PSC Code</label>
+                      <input
+                        type="text"
+                        value={classificationCode}
+                        onChange={(e) => setClassificationCode(e.target.value)}
+                        placeholder="e.g., R425"
+                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                      />
+                    </div>
+                    {/* SOLICITATION # */}
+                    <div>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Solicitation #</label>
+                      <input
+                        type="text"
+                        value={solicitationNumber}
+                        onChange={(e) => setSolicitationNumber(e.target.value)}
+                        placeholder="e.g., W912DY24R0001"
+                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                      />
+                    </div>
+                    {/* STATUS */}
+                    <div>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Status</label>
+                      <select
+                        value={opportunityStatus}
+                        onChange={(e) => setOpportunityStatus(e.target.value)}
+                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="archived">Archived</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Active filters display */}
+                  {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-base font-bold text-gray-900">Active filters:</span>
+                        <button
+                          onClick={() => {
+                            setAgency('')
+                            setSelectedSetAsides([])
+                            setNaics('')
+                            setSelectedStates([])
+                            setProcurementType('')
+                            setClassificationCode('')
+                            setSolicitationNumber('')
+                            setOpportunityStatus('')
+                          }}
+                          className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {agency && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            Agency: {agency}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setAgency('')} />
+                          </span>
+                        )}
+                        {selectedSetAsides.length > 0 && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            Set-Aside: {selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} selected`}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setSelectedSetAsides([])} />
+                          </span>
+                        )}
+                        {naics && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            NAICS: {naics}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setNaics('')} />
+                          </span>
+                        )}
+                        {selectedStates.length > 0 && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            State: {selectedStates.length === 1 ? (getLocationLabel(selectedStates[0]) || selectedStates[0]) : `${selectedStates.length} selected`}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setSelectedStates([])} />
+                          </span>
+                        )}
+                        {procurementType && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            Type: {procurementType}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setProcurementType('')} />
+                          </span>
+                        )}
+                        {classificationCode && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            PSC: {classificationCode}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setClassificationCode('')} />
+                          </span>
+                        )}
+                        {solicitationNumber && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            Sol #: {solicitationNumber}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setSolicitationNumber('')} />
+                          </span>
+                        )}
+                        {opportunityStatus && (
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                            Status: {opportunityStatus}
+                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setOpportunityStatus('')} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Results count and save prompt */}
+              {filteredResults.length > 0 && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl border border-emerald-100 shadow-sm">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-semibold text-gray-900">
+                        {filteredResults.length >= 100 ? 'Excellent! ' : filteredResults.length >= 10 ? 'Great! ' : ''}
+                        We found <span className="font-bold text-emerald-700">{filteredResults.length.toLocaleString()}</span> {filteredResults.length === 1 ? 'opportunity' : 'opportunities'} that match your search
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenSaveModal('save')}
+                        className="px-4 py-2 bg-white text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
+                      >
+                        <Save className="h-4 w-4" />
+                        Save this search
                       </button>
                       <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded transition-all ${
-                          viewMode === 'grid' 
-                            ? 'bg-white text-blue-600 shadow-sm' 
-                            : 'text-slate-400 hover:text-slate-600'
-                        }`}
-                        title="Grid view"
-                        aria-label="Grid view"
+                        onClick={() => handleOpenSaveModal('alert')}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
                       >
-                        <Grid className="h-5 w-5" />
+                        <Bell className="h-4 w-4" />
+                        Get alerts
                       </button>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Active Filters - Only show after search */}
-            {data && (agency || setAside || naics || stateOfPerformance) && (
-              <div className="mb-6 p-6 rounded-xl border-2 border-amber-400 bg-amber-50 shadow-md">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Filter className="h-6 w-6 text-amber-700" />
-                    <span className="text-xl font-bold text-amber-900">Active Filters</span>
-                    <span className="text-base font-semibold text-amber-800 ml-2">
-                      (Update filters and click "Search" to refresh)
-                    </span>
+              {/* Results display */}
+              {filteredResults.length > 0 ? (
+                <>
+                  {viewMode === 'list' ? (
+                    <div className="space-y-4">
+                      {filteredResults.map((opp, idx) => (
+                        <ResultCard
+                          key={`${opp.noticeId || idx}`}
+                          opportunity={opp}
+                          index={idx}
+                          isExpanded={!!expanded[opp.noticeId || String(idx)]}
+                          toggleExpanded={toggleExpanded}
+                          isSaved={!!saved[opp.noticeId || String(idx)]}
+                          toggleSaved={toggleSaved}
+                          copyText={copyText}
+                          copiedId={copiedId}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredResults.map((opp, idx) => (
+                        <OpportunityCard
+                          key={`${opp.noticeId || idx}`}
+                          opportunity={opp}
+                          index={idx}
+                          isSaved={!!saved[opp.noticeId || String(idx)]}
+                          toggleSaved={toggleSaved}
+                          copyText={copyText}
+                          copiedId={copiedId}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Load more */}
+                  {hasMoreResults && (
+                    <div className="mt-8 text-center">
+                      <button
+                        onClick={loadMoreResults}
+                        disabled={loadingMore}
+                        className="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl hover:border-emerald-600 hover:text-emerald-600 transition-all font-medium inline-flex items-center gap-2"
+                      >
+                        {loadingMore ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4" />
+                            Load more results
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
+                  <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No matches yet, but don't worry!</h3>
+                  <p className="text-gray-600 mb-4">Let's try broadening your search. Here are some tips:</p>
+                  <div className="text-left max-w-md mx-auto mb-6 space-y-2 text-sm text-gray-700">
+                    <p>• Try removing some filters to see more results</p>
+                    <p>• Use broader keywords (e.g., "IT services" instead of specific product names)</p>
+                    <p>• Expand your date range to include more opportunities</p>
                   </div>
                   <button
-                    onClick={clearAllClientFilters}
-                    className="text-base text-amber-900 font-bold hover:text-amber-950 transition-colors flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-amber-200 border-2 border-amber-400"
-                    aria-label="Clear all filters"
+                    onClick={resetAll}
+                    className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
                   >
-                    <X className="h-5 w-5" />
-                    Clear All
+                    Start fresh - Clear all filters
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  {agency && (
-                    <Pill 
-                      tone="info" 
-                      onRemove={() => handleFilterRemoveAndSearch('agency')}
-                    >
-                      Agency: {agency}
-                    </Pill>
-                  )}
-                  {setAside && (
-                    <Pill 
-                      tone="info" 
-                      onRemove={() => handleFilterRemoveAndSearch('setAside')}
-                    >
-                      Set-Aside: {SET_ASIDE_LABEL_BY_CODE[setAside] || setAside}
-                    </Pill>
-                  )}
-                  {naics && (
-                    <Pill 
-                      tone="info" 
-                      onRemove={() => handleFilterRemoveAndSearch('naics')}
-                    >
-                      NAICS: {naics}
-                    </Pill>
-                  )}
-                  {stateOfPerformance && (
-                    <Pill 
-                      tone="info" 
-                      onRemove={() => handleFilterRemoveAndSearch('state')}
-                    >
-                      State: {US_STATES.find(s => s.value === stateOfPerformance)?.label || stateOfPerformance}
-                    </Pill>
-                  )}
-                </div>
-                <div className="mt-3 text-base font-semibold text-amber-900">
-                  After removing filters, click "Search Opportunities" to update results
-                </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
+        </div>
 
-            {/* Loading States */}
-            {loading && !loadingMore && (
-              <div className="py-12 text-center">
-                <div className="inline-flex flex-col items-center gap-4">
-                  <div className="h-12 w-12 rounded-full border-2 border-blue-600/30 border-t-blue-600 animate-spin" />
-                  <div className="text-gray-600">Searching SAM.gov opportunities...</div>
-                </div>
-              </div>
-            )}
+        {/* Modals */}
+        <UnifiedSaveSearchModal
+          mode={saveModalMode}
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          searchParams={{
+            title: keywords.trim(),
+            postedFrom: postedAfter.trim(),
+            rdlto: responseDeadlineBefore.trim(),
+            solnum: solicitationNumber.trim(),
+            ptype: procurementType,
+            typeOfSetAside: setAsideCodesToString(selectedSetAsides),
+            status: opportunityStatus.trim(),
+            state: locationCodesToString(selectedStates),
+            ncode: naics.trim(),
+            ccode: classificationCode.trim(),
+            organizationName: agency.trim(),
+          }}
+          onSave={handleSaveSuccess}
+        />
 
-            {/* Results - List View */}
-            {!loading && filteredResults.length > 0 && viewMode === 'list' && (
-              <>
-                <div className="space-y-6">
-                  {filteredResults.map((opp, idx) => (
-                    <ResultCard
-                      key={`${opp.noticeId || 'no-id'}-${idx}`}
-                      opportunity={opp}
-                      index={idx}
-                      isExpanded={!!expanded[opp.noticeId || String(idx)]}
-                      toggleExpanded={(id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))}
-                      isSaved={!!saved[opp.noticeId || String(idx)]}
-                      toggleSaved={(id) => toggleSaved(id)}
-                      copyText={copyText}
-                      copiedId={copiedId}
-                    />
-                  ))}
-                </div>
+        <SaveSearchSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          searchName={successData.searchName}
+          isSubscription={successData.isSubscription}
+        />
 
-                {/* Load More */}
-                {hasMoreResults && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="text-base text-gray-900 font-medium">
-                        Showing {filteredResults.length} of {totalRecords.toLocaleString()} opportunities
-                      </div>
-                      <Button
-                        variant="primary"
-                        onClick={loadMoreResults}
-                        loading={loadingMore}
-                        icon={<Plus className="h-5 w-5" />}
-                        aria-label="Load more results"
-                      >
-                        {loadingMore ? 'Loading...' : `Load ${LOAD_MORE_INCREMENT} More`}
-                      </Button>
-                    </div>
+        <AccessControlModal
+          isOpen={showAccessModal}
+          onClose={() => setShowAccessModal(false)}
+          featureName={blockedFeature}
+        />
+
+        {/* Reminder Modal - Shows at 10 minutes */}
+        {showReminderModal && !showLockoutModal && (
+          <AccessControlModal
+            isOpen={showReminderModal}
+            onClose={() => setShowReminderModal(false)}
+            featureName="Continue Browsing"
+            onAccessGranted={() => {
+              setShowReminderModal(false)
+            }}
+            initialMode="signup"
+          />
+        )}
+
+        {/* Lockout Modal */}
+        {showLockoutModal && status === 'unauthenticated' && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="max-w-md w-full mx-4">
+              <div className="rounded-2xl bg-white p-8 shadow-2xl">
+                <div className="flex flex-col items-center text-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+                    <Lock className="h-8 w-8 text-red-600" />
                   </div>
-                )}
-              </>
-            )}
-
-            {/* Results - Grid View */}
-            {!loading && filteredResults.length > 0 && viewMode === 'grid' && (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-6">
-                  {filteredResults.map((opp, idx) => (
-                    <OpportunityCard
-                      key={`${opp.noticeId || 'no-id'}-${idx}`}
-                      opportunity={opp}
-                      index={idx}
-                      isSaved={!!saved[opp.noticeId || String(idx)]}
-                      toggleSaved={(id) => toggleSaved(id)}
-                      copyText={copyText}
-                      copiedId={copiedId}
-                    />
-                  ))}
-                </div>
-
-                {/* Load More */}
-                {hasMoreResults && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="text-lg text-gray-900 font-medium">
-                        Showing {filteredResults.length} of {totalRecords.toLocaleString()} opportunities
-                      </div>
-                      <Button
-                        variant="primary"
-                        onClick={loadMoreResults}
-                        loading={loadingMore}
-                        icon={<Plus className="h-5 w-5" />}
-                        aria-label="Load more results"
-                      >
-                        {loadingMore ? 'Loading...' : `Load ${LOAD_MORE_INCREMENT} More`}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Empty State */}
-            {!loading && !filteredResults.length && data && (
-              <div className="py-12 text-center">
-                <div className="inline-flex flex-col items-center gap-4 max-w-md mx-auto">
-                  <div className="h-16 w-16 rounded-2xl border border-gray-200 bg-white flex items-center justify-center">
-                    <Search className="h-8 w-8 text-slate-600" />
-                  </div>
+                  
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No matching opportunities</h3>
-                    <p className="text-gray-600">
-                      Try adjusting your search filters or using different keywords.
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                      Session Expired
+                    </h2>
+                    <p className="text-slate-600 leading-relaxed">
+                      Your 15-minute free browsing session has ended. Sign up or sign in to continue accessing federal contracting opportunities.
                     </p>
                   </div>
-                  <Button
-                    variant="secondary"
-                    onClick={resetAll}
-                    icon={<RefreshCw className="h-5 w-5" />}
-                    aria-label="Reset all filters"
-                  >
-                    Reset Filters
-                  </Button>
+
+                  <div className="w-full space-y-3 mt-4">
+                    <button
+                      onClick={() => {
+                        setShowLockoutModal(false)
+                        setShowAccessModal(true)
+                      }}
+                      className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
+                      aria-label="Sign up now"
+                    >
+                      Sign Up Now
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setShowLockoutModal(false)
+                        setShowAccessModal(true)
+                      }}
+                      className="w-full px-6 py-3 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-all"
+                      aria-label="Sign in"
+                    >
+                      Sign In
+                    </button>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
+        )}
+      </main>
+    </SearchErrorBoundary>
+  )
+}
 
-                {/* ✅ FIXED: Unified Save/Alert Modal */}
-                <UnifiedSaveSearchModal
-                  mode={saveModalMode}
-                  isOpen={showSaveModal}
-                  onClose={() => setShowSaveModal(false)}
-                  searchParams={{
-                    title: keywords.trim(),
-                    solnum: solicitationNumber.trim(),
-                    noticeid: noticeId.trim(),
-                    ptype: procurementType,
-                    typeOfSetAside: setAside.trim(),
-                    status: opportunityStatus.trim(),
-                    state: stateOfPerformance.trim(),
-                    ncode: naics.trim(),
-                    ccode: classificationCode.trim(),
-                    zip: placeOfPerformanceZip.trim(),
-                    organizationName: agency.trim(),
-                    organizationCode: organizationCode.trim(),
-                    postedFrom: postedAfter.trim(),
-                    postedTo: postedBefore.trim(),
-                    rdlfrom: responseDeadline.trim(),
-                  }}
-                  onSave={handleSaveSuccess}
-                />
-
-
-                {/* ✅ FIXED: Success Modal */}
-                <SaveSearchSuccessModal
-                  isOpen={showSuccessModal}
-                  onClose={() => setShowSuccessModal(false)}
-                  searchName={successData.searchName}
-                  isSubscription={successData.isSubscription}
-                />
-
-          {/* Reminder Modal - Shows at 10 minutes */}
-                  {showReminderModal && !showLockoutModal && (
-                    <AccessControlModal
-                      isOpen={showReminderModal}
-                      onClose={() => setShowReminderModal(false)}
-                      featureName="Continue Browsing"
-                      onAccessGranted={() => {
-                        setShowReminderModal(false)
-                      }}
-                      initialMode="signup"
-                    />
-                  )}
-
-                  {/* ✅ NEW - Only show for unauthenticated users */}
-                  {showLockoutModal && status === 'unauthenticated' && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                      <div className="max-w-md w-full mx-4">
-                        <div className="rounded-2xl bg-white p-8 shadow-2xl">
-                          <div className="flex flex-col items-center text-center gap-4">
-                            <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                              <Lock className="h-8 w-8 text-red-600" />
-                            </div>
-                            
-                            <div>
-                              <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                                Session Expired
-                              </h2>
-                              <p className="text-slate-600 leading-relaxed">
-                                Your 15-minute free browsing session has ended. Sign up or sign in to continue accessing federal contracting opportunities.
-                              </p>
-                            </div>
-
-                            <div className="w-full space-y-3 mt-4">
-                              <button
-                                onClick={() => {
-                                  setShowLockoutModal(false)
-                                  setShowAccessModal(true)
-                                }}
-                                className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
-                                aria-label="Sign up now"
-                              >
-                                Sign Up Now
-                              </button>
-                              
-                              <button
-                                onClick={() => {
-                                  setShowLockoutModal(false)
-                                  setShowAccessModal(true)
-                                }}
-                                className="w-full px-6 py-3 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-all"
-                                aria-label="Sign in"
-                              >
-                                Sign In
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-          {/* Access Control Modal */}
-                  {showAccessModal && (
-                    <AccessControlModal
-                      isOpen={showAccessModal}
-                      onClose={() => {
-                        setShowAccessModal(false)
-                        pendingActionRef.current = null
-                      }}
-                      featureName={blockedFeature}
-                      onAccessGranted={() => {
-                        setShowAccessModal(false)
-                        // Execute pending action if there was one
-                        if (pendingActionRef.current) {
-                          setTimeout(() => {
-                            pendingActionRef.current?.()
-                            pendingActionRef.current = null
-                          }, 500)
-                        }
-                      }}
-                    />
-                  )}
-                  </div> {/* Close max-w-[85%] container */}
-                </div>
-              </main>
-            </SearchErrorBoundary>
-          )
-        }
-
-
-        // Suspense wrapper for useSearchParams
-        export default function SearchPage() {
-          return (
-            <Suspense fallback={
-              <div className="min-h-screen bg-white flex items-center justify-center">
-                <div className="animate-spin h-12 w-12 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
-              </div>
-            }>
-              <SearchPageContent />
-            </Suspense>
-          )
-        }
+// Export with Suspense wrapper
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin h-12 w-12 border-4 border-emerald-600 border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
+  )
+}

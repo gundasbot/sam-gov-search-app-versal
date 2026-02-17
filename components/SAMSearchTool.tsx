@@ -19,7 +19,9 @@ import {
   SlidersHorizontal,
   ArrowUpDown,
   X,
+  Save,
 } from 'lucide-react'
+import UnifiedSaveSearchModal from '@/components/UnifiedSaveSearchModal'
 
 const US_STATES = [
   { code: '', name: 'All States' },
@@ -197,6 +199,25 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
     dueInDays: '',
     sort: 'relevance',
   })
+
+  // Save search modal state
+  const [showSaveModal, setShowSaveModal] = useState(false)
+
+  // Build current search params for pre-filling the save modal
+  const currentSearchParamsForModal = useMemo(() => {
+    const today = new Date()
+    const sixMonthsAgo = new Date()
+    sixMonthsAgo.setMonth(today.getMonth() - 6)
+    return {
+      title: filters.keywords || undefined,
+      ncode: filters.naicsCode || undefined,
+      state: filters.state || undefined,
+      typeOfSetAside: filters.setAside || undefined,
+      ptype: filters.procurementType || undefined,
+      postedFrom: filters.postedFrom || undefined,
+      postedTo: filters.postedTo || undefined,
+    }
+  }, [filters])
 
   const setAsideTypes = [
     { value: '', label: 'All opportunities' },
@@ -710,7 +731,34 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                 onChange={(e) => handleFilterChange('postedFrom', e.target.value)}
                 className={`w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
               />
-              <p className="text-slate-500 text-xs mt-1">Optional — defaults to 6 months ago</p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[
+                  { label: '1 Yr Ago', days: 364 },
+                  { label: '9 Mo Ago', months: 9 },
+                  { label: '6 Mo Ago', months: 6 },
+                  { label: '3 Mo Ago', months: 3 },
+                  { label: '1 Mo Ago', months: 1 },
+                ].map((btn) => {
+                  const d = new Date()
+                  if (btn.days) d.setDate(d.getDate() - btn.days)
+                  else if (btn.months) d.setMonth(d.getMonth() - btn.months)
+                  const val = d.toISOString().split('T')[0]
+                  return (
+                    <button
+                      key={btn.label}
+                      type="button"
+                      onClick={() => handleFilterChange('postedFrom', val)}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-all ${
+                        filters.postedFrom === val
+                          ? 'bg-emerald-600 border-emerald-500 text-white'
+                          : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
+                      }`}
+                    >
+                      {btn.label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <div>
@@ -753,6 +801,15 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                     Search
                   </>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSaveModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg transition-all shadow-lg shadow-blue-500/20"
+              >
+                <Save className="w-5 h-5" />
+                Save Search
               </button>
 
               {filteredResults.length > 0 && (
@@ -850,8 +907,8 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
                     Search within results
@@ -866,15 +923,15 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                       value={resultFilters.q}
                       onChange={(e) => setResultFilters((p) => ({ ...p, q: e.target.value }))}
                       placeholder="title, agency, solicitation, description…"
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg} ${inputPlaceholder}`}
+                      className={`w-full pl-9 pr-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg} ${inputPlaceholder}`}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
                     Agency
@@ -882,7 +939,7 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                   <select
                     value={resultFilters.agency}
                     onChange={(e) => setResultFilters((p) => ({ ...p, agency: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
+                    className={`w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
                   >
                     <option value="">All agencies</option>
                     {facets.agencies.map((a) => (
@@ -895,8 +952,8 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
 
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
                     Notice type
@@ -904,7 +961,7 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                   <select
                     value={resultFilters.noticeType}
                     onChange={(e) => setResultFilters((p) => ({ ...p, noticeType: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
+                    className={`w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
                   >
                     <option value="">All types</option>
                     {facets.types.map((t) => (
@@ -917,8 +974,8 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
 
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
                     Set-aside
@@ -926,7 +983,7 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                   <select
                     value={resultFilters.setAsideText}
                     onChange={(e) => setResultFilters((p) => ({ ...p, setAsideText: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
+                    className={`w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
                   >
                     <option value="">All set-asides</option>
                     {facets.setAsides.map((s) => (
@@ -939,8 +996,8 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
 
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
                     NAICS
@@ -948,7 +1005,7 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                   <select
                     value={resultFilters.naics}
                     onChange={(e) => setResultFilters((p) => ({ ...p, naics: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
+                    className={`w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
                   >
                     <option value="">All NAICS</option>
                     {facets.naics.map((n) => (
@@ -961,8 +1018,8 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
 
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
                     Place of Performance (State)
@@ -970,7 +1027,7 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                   <select
                     value={resultFilters.state}
                     onChange={(e) => setResultFilters((p) => ({ ...p, state: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
+                    className={`w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
                   >
                     <option value="">All</option>
                     {facets.states.map((st) => (
@@ -999,12 +1056,39 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
 
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
-                    Deadline within (days)
+                    Due within
                   </label>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {[
+                      { label: '2 Wks', days: 14 },
+                      { label: '1 Mo', days: 30 },
+                      { label: '45 Days', days: 45 },
+                      { label: '60 Days', days: 60 },
+                      { label: '75 Days', days: 75 },
+                    ].map((btn) => (
+                      <button
+                        key={btn.label}
+                        type="button"
+                        onClick={() =>
+                          setResultFilters((p) => ({
+                            ...p,
+                            dueInDays: p.dueInDays === btn.days ? '' : btn.days,
+                          }))
+                        }
+                        className={`px-3 py-1.5 rounded-md text-sm font-semibold border transition-all ${
+                          resultFilters.dueInDays === btn.days
+                            ? 'bg-amber-600 border-amber-500 text-white'
+                            : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white'
+                        }`}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="number"
                     min={1}
@@ -1019,15 +1103,15 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                             : Math.max(1, Math.min(365, Number(e.target.value))),
                       }))
                     }
-                    placeholder="e.g., 14"
-                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg} ${inputPlaceholder}`}
+                    placeholder="or enter custom days…"
+                    className={`w-full mt-2 px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg} ${inputPlaceholder}`}
                   />
                 </div>
 
                 <div>
                   <label
-                    className={`block text-xs font-semibold mb-1 ${
-                      'text-slate-400'
+                    className={`block text-sm font-semibold mb-1 ${
+                      'text-slate-300'
                     }`}
                   >
                     Sort
@@ -1041,7 +1125,7 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
                     <select
                       value={resultFilters.sort}
                       onChange={(e) => setResultFilters((p) => ({ ...p, sort: e.target.value as ResultSort }))}
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
+                      className={`w-full pl-9 pr-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/40 ${inputBg}`}
                     >
                       <option value="relevance">Relevance (API order)</option>
                       <option value="deadline_asc">Deadline: Soonest first</option>
@@ -1341,6 +1425,17 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
           <p className="text-slate-400 text-sm font-medium">Powered by SAM.gov API • Built for Precise GovCon</p>
         </div>
       </div>
+
+      {/* Save Search Modal — pre-fills with current filters */}
+      <UnifiedSaveSearchModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        mode="save"
+        searchParams={currentSearchParamsForModal}
+        onSave={(result) => {
+          setShowSaveModal(false)
+        }}
+      />
     </div>
   )
 }

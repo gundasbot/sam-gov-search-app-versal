@@ -20,7 +20,9 @@ import {
   MapPin,
   Hash,
   Filter,
+  Shield,
 } from 'lucide-react'
+import { MultiSelectDropdown } from '@/components/MultiSelectDropdown'
 
 // Import constants
 import {
@@ -28,6 +30,12 @@ import {
   SET_ASIDE_CODES,
   US_STATES,
 } from '@/lib/sam-gov-constants'
+import {
+  stringToSetAsideCodes,
+  stringToLocationCodes,
+  getSetAsideLabel as getSetAsideLabelFromConstants,
+  getLocationLabel,
+} from '@/lib/samGovConstants'
 
 /* =========================================================
    DEFAULT DATE LOGIC
@@ -234,9 +242,9 @@ export default function UnifiedSaveSearchModal({
 
   // Search Criteria - Dropdowns
   const [procurementType, setProcurementType] = useState('')
-  const [setAsideType, setSetAsideType] = useState('')
+  const [setAsideType, setSetAsideType] = useState<string[]>([])
   const [opportunityStatus, setOpportunityStatus] = useState('')
-  const [state, setState] = useState('')
+  const [state, setState] = useState<string[]>([])
 
   // Search Criteria - Codes
   const [naicsCode, setNaicsCode] = useState('')
@@ -287,9 +295,9 @@ export default function UnifiedSaveSearchModal({
       setSolicitationNumber(existingSearch.solnum || '')
       setNoticeId(existingSearch.noticeId || '')
       setProcurementType(existingSearch.ptype || '')
-      setSetAsideType(existingSearch.typeOfSetAside || '')
+      setSetAsideType(stringToSetAsideCodes(existingSearch.typeOfSetAside || ''))
       setOpportunityStatus(existingSearch.status || '')
-      setState(existingSearch.state || '')
+      setState(stringToLocationCodes(existingSearch.state || ''))
       setNaicsCode(existingSearch.ncode || '')
       setClassificationCode(existingSearch.ccode || '')
       setZip(existingSearch.zip || '')
@@ -319,9 +327,9 @@ export default function UnifiedSaveSearchModal({
       setSolicitationNumber(initialSearchParams.solnum || '')
       setNoticeId(initialSearchParams.noticeid || '')
       setProcurementType(initialSearchParams.ptype || '')
-      setSetAsideType(initialSearchParams.typeOfSetAside || '')
+      setSetAsideType(stringToSetAsideCodes(initialSearchParams.typeOfSetAside || ''))
       setOpportunityStatus(initialSearchParams.status || '')
-      setState(initialSearchParams.state || '')
+      setState(stringToLocationCodes(initialSearchParams.state || ''))
       setNaicsCode(initialSearchParams.ncode || '')
       setClassificationCode(initialSearchParams.ccode || '')
       setZip(initialSearchParams.zip || '')
@@ -368,15 +376,16 @@ export default function UnifiedSaveSearchModal({
         name: searchName,
         description: searchDescription,
         // Flag to indicate this is a subscription alert
+        subscription_enabled: enableAlert,
         isSubscription: enableAlert,
         // Search criteria
         title: keywords,
         solnum: solicitationNumber,
         noticeid: noticeId,
         ptype: procurementType,
-        typeOfSetAside: setAsideType,
+        typeOfSetAside: setAsideType.join(','),
         status: opportunityStatus,
-        state,
+        state: state.join(','),
         ncode: naicsCode,
         ccode: classificationCode,
         zip,
@@ -386,7 +395,17 @@ export default function UnifiedSaveSearchModal({
         postedTo,
         rdlfrom: responseDeadlineFrom,
         rdlto: responseDeadlineTo,
-        // Alert settings
+        // Alert settings (flattened for API compatibility)
+        ...(enableAlert ? {
+          recipients: emailRecipients,
+          frequency,
+          deliveryTime,
+          fileFormat,
+          includeLinks,
+          sendEmptyResults,
+          maxResults,
+        } : {}),
+        // Also nested for modals that expect alertSettings
         alertSettings: enableAlert
           ? {
               enabled: true,
@@ -401,12 +420,12 @@ export default function UnifiedSaveSearchModal({
           : undefined,
       }
 
-      // Call parent onSave handler if provided
+      // Delegate to parent — parent owns the API call
       if (onSave) {
         await onSave(payload)
       }
 
-      // Close modal on success
+      // Close modal on success (parent throws on error)
       onClose()
     } catch (err: any) {
       setError(err.message || 'Failed to save search')
@@ -422,9 +441,15 @@ export default function UnifiedSaveSearchModal({
     if (solicitationNumber) parts.push(`Sol #: ${solicitationNumber}`)
     if (noticeId) parts.push(`Notice ID: ${noticeId}`)
     if (procurementType) parts.push(`Type: ${getProcurementTypeLabel(procurementType)}`)
-    if (setAsideType) parts.push(`Set-Aside: ${getSetAsideLabel(setAsideType, true)}`)
+    if (setAsideType.length > 0) {
+      if (setAsideType.length === 1) parts.push(`Set-Aside: ${getSetAsideLabel(setAsideType[0], true)}`)
+      else parts.push(`Set-Asides: ${setAsideType.length} selected`)
+    }
     if (opportunityStatus) parts.push(`Status: ${getStatusLabel(opportunityStatus)}`)
-    if (state) parts.push(`State: ${getStateLabel(state)}`)
+    if (state.length > 0) {
+      if (state.length === 1) parts.push(`State: ${getLocationLabel(state[0])}`)
+      else parts.push(`States: ${state.length} selected`)
+    }
     if (naicsCode) parts.push(`NAICS: ${naicsCode}`)
     if (classificationCode) parts.push(`Class Code: ${classificationCode}`)
     if (zip) parts.push(`ZIP: ${zip}`)
@@ -628,21 +653,17 @@ export default function UnifiedSaveSearchModal({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-base font-medium text-slate-700 mb-2">
-                        Set-Aside Type
-                      </label>
-                      <select
-                        value={setAsideType}
-                        onChange={(e) => setSetAsideType(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      >
-                        <option value="">All Set-Asides</option>
-                        {SET_ASIDE_OPTIONS.map((sa, index: number) => (
-                          <option key={sa.code || `setaside-${index}`} value={sa.code}>
-                            {sa.description}
-                          </option>
-                        ))}
-                      </select>
+                      <MultiSelectDropdown
+                        label="Set-Aside Type"
+                        options={SET_ASIDE_OPTIONS.filter(sa => sa.code !== '').map(sa => ({
+                          value: sa.code,
+                          label: sa.description,
+                          code: sa.code
+                        }))}
+                        selected={setAsideType}
+                        onChange={setSetAsideType}
+                        placeholder="All Set-Asides"
+                      />
                     </div>
                     <div>
                       <label className="block text-base font-medium text-slate-700 mb-2">
@@ -672,20 +693,13 @@ export default function UnifiedSaveSearchModal({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-base font-medium text-slate-700 mb-2">
-                        State
-                      </label>
-                      <select
-                        value={state}
-                        onChange={(e) => setState(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      >
-                        {US_STATES.map((s: any, index: number) => (
-                          <option key={s.value || s.code || `state-${index}`} value={s.value || s.code}>
-                            {s.label || s.name}
-                          </option>
-                        ))}
-                      </select>
+                      <MultiSelectDropdown
+                        label="State"
+                        options={US_STATES.filter((s: any) => s.value || s.code).map((s: any) => ({ code: s.value || s.code, label: s.label || s.name }))}
+                        selected={state}
+                        onChange={setState}
+                        placeholder="All States"
+                      />
                     </div>
                     <div>
                       <label className="block text-base font-medium text-slate-700 mb-2">
