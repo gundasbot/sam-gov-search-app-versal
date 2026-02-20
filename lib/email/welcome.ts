@@ -2,24 +2,22 @@
 import { sendEmail } from './send'
 import { getBrand } from './brand'
 
-export async function sendWelcomeEmail(email: string, name: string) {
+export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
   const brand = getBrand()
   const firstName = name.split(' ')[0] || 'there'
 
-  const html = getWelcomeEmailHtml(firstName)
-  const text = getWelcomeEmailText(firstName)
-
   await sendEmail({
     to: email,
-    subject: `Welcome to ${brand.name}! Your Trial is Active`,
-    html,
-    text,
+    subject: `You're in, ${firstName}! Your Precise GovCon trial is active 🚀`,
+    html: getWelcomeEmailHtml(firstName),
+    text: getWelcomeEmailText(firstName),
   })
 }
 
-function getWelcomeEmailHtml(firstName: string) {
+function getWelcomeEmailHtml(firstName: string): string {
   const brand = getBrand()
-  
+  const appUrl = brand.appUrl
+
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -32,27 +30,30 @@ function getWelcomeEmailHtml(firstName: string) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0f172a;">
     <tr>
       <td align="center" style="padding:40px 20px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#1e293b;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:600px;width:100%;background:#1e293b;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
 
           <!-- Logo header -->
           <tr>
             <td style="padding:30px 40px 20px;background-color:#0f172a;text-align:center;">
               <img src="${brand.logoUrl}" alt="${brand.name}"
-                style="max-width:220px;height:auto;display:inline-block;border:0;margin-bottom:8px;" />
+                   style="max-width:220px;height:auto;display:inline-block;border:0;margin-bottom:8px;" />
               <div style="font-size:11px;color:#94a3b8;letter-spacing:0.3px;">${brand.tagline}</div>
             </td>
           </tr>
 
-          <!-- Success header -->
+          <!-- Hero banner -->
           <tr>
             <td style="background:linear-gradient(135deg,#166534 0%,#14532d 100%);padding:36px 40px 28px;text-align:center;">
               <div style="width:72px;height:72px;margin:0 auto 16px;background:rgba(255,255,255,0.15);border-radius:18px;text-align:center;line-height:72px;font-size:36px;">
-                🎉
+                🚀
               </div>
               <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">
-                Your Trial is Active!
+                You're in, ${firstName}!
               </h1>
-              <p style="margin:8px 0 0;color:#bbf7d0;font-size:15px;">Start searching federal contracts now</p>
+              <p style="margin:8px 0 0;color:#bbf7d0;font-size:15px;">
+                Your 7-day free trial is now active — no credit card required.
+              </p>
             </td>
           </tr>
 
@@ -63,17 +64,18 @@ function getWelcomeEmailHtml(firstName: string) {
                 Hi ${firstName},
               </p>
               <p style="margin:0 0 28px;color:#cbd5e1;font-size:15px;line-height:1.7;">
-                Your email is verified and your <strong style="color:#4ade80;">7-day free trial</strong> is now active! 
-                You can now access all features of ${brand.name}.
+                Welcome to <strong style="color:#ffffff;">Precise GovCon</strong> — your all-in-one platform for finding,
+                tracking, and winning government contract opportunities. Your email is verified and your
+                <strong style="color:#4ade80;">7-day free trial</strong> is live. Start exploring now.
               </p>
 
-              <!-- CTA Button -->
+              <!-- CTA -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td align="center" style="padding:0 0 28px;">
-                    <a href="${brand.appUrl}/dashboard"
-                       style="display:inline-block;padding:16px 44px;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:700;font-size:17px;border-radius:12px;box-shadow:0 8px 24px rgba(22,163,74,0.35);">
-                      Go to Dashboard &rarr;
+                  <td align="center" style="padding:0 0 32px;">
+                    <a href="${appUrl}/search"
+                       style="display:inline-block;padding:16px 48px;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:700;font-size:17px;border-radius:12px;box-shadow:0 8px 24px rgba(22,163,74,0.35);">
+                      Start Searching Now &rarr;
                     </a>
                   </td>
                 </tr>
@@ -88,47 +90,73 @@ function getWelcomeEmailHtml(firstName: string) {
                       What's included in your trial:
                     </p>
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">✓ Unlimited opportunity searches</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">✓ Real-time contract alerts</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">✓ Save & track opportunities</td></tr>
-                      <tr><td style="padding:0;color:#dcfce7;font-size:14px;line-height:1.6;">✓ Advanced filtering & search</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Unlimited opportunity searches across federal, state &amp; local</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Real-time contract alerts by NAICS code, keyword &amp; agency</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Save &amp; track opportunities through your pipeline</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Export results to CSV / Excel</td></tr>
+                      <tr><td style="padding:0;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Advanced filtering &amp; saved searches</td></tr>
                     </table>
                   </td>
                 </tr>
               </table>
 
-              <!-- Getting started -->
-              <p style="margin:0 0 12px;color:#f1f5f9;font-size:15px;font-weight:700;">
-                Getting Started Tips:
+              <!-- Getting started steps -->
+              <p style="margin:0 0 14px;color:#f1f5f9;font-size:15px;font-weight:700;">
+                3 things to do right now:
               </p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+                <tr><td style="padding:0 0 12px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td width="28" valign="top" style="color:#4ade80;font-size:15px;font-weight:800;padding-top:1px;">1.</td>
+                      <td style="color:#cbd5e1;font-size:14px;line-height:1.6;"><strong style="color:#f1f5f9;">Set up your NAICS code filters</strong> — focus on contracts that match your capabilities</td>
+                    </tr>
+                  </table>
+                </td></tr>
+                <tr><td style="padding:0 0 12px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td width="28" valign="top" style="color:#4ade80;font-size:15px;font-weight:800;padding-top:1px;">2.</td>
+                      <td style="color:#cbd5e1;font-size:14px;line-height:1.6;"><strong style="color:#f1f5f9;">Enable email alerts</strong> — get notified the moment new matching opportunities are posted</td>
+                    </tr>
+                  </table>
+                </td></tr>
+                <tr><td style="padding:0;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td width="28" valign="top" style="color:#4ade80;font-size:15px;font-weight:800;padding-top:1px;">3.</td>
+                      <td style="color:#cbd5e1;font-size:14px;line-height:1.6;"><strong style="color:#f1f5f9;">Save your first opportunity</strong> — track deadlines and submission requirements</td>
+                    </tr>
+                  </table>
+                </td></tr>
+              </table>
+
+              <!-- VOSB callout -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;border-radius:12px;margin-bottom:28px;">
                 <tr>
-                  <td style="padding:0 0 12px;color:#cbd5e1;font-size:14px;line-height:1.6;">
-                    1. <strong style="color:#f1f5f9;">Set up your search filters</strong> – Focus on the contracts that matter to you
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:0 0 12px;color:#cbd5e1;font-size:14px;line-height:1.6;">
-                    2. <strong style="color:#f1f5f9;">Enable email alerts</strong> – Get notified about new opportunities
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:0;color:#cbd5e1;font-size:14px;line-height:1.6;">
-                    3. <strong style="color:#f1f5f9;">Save your favorites</strong> – Track deadlines and submission requirements
+                  <td style="padding:18px 22px;text-align:center;">
+                    <p style="margin:0 0 4px;color:#c7d2fe;font-size:14px;font-weight:700;">
+                      &#127482;&#127480; Built for businesses like yours
+                    </p>
+                    <p style="margin:0;color:#a5b4fc;font-size:13px;line-height:1.6;">
+                      Precise GovCon is a Minority-Owned, Veteran-Owned Small Business based in Richmond, Virginia —
+                      we understand the contracting landscape because we operate in it.
+                    </p>
                   </td>
                 </tr>
               </table>
 
-              <!-- Support -->
+              <!-- Support box -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                      style="background:#1e3a5f;border:1px solid #1e40af;border-radius:8px;">
                 <tr>
                   <td style="padding:16px 20px;text-align:center;">
                     <p style="margin:0 0 6px;color:#bfdbfe;font-size:14px;">
-                      Need help getting started?
+                      Questions? We typically respond within one business day.
                     </p>
                     <p style="margin:0;color:#93c5fd;font-size:13px;">
-                      Contact us at <a href="mailto:${brand.supportEmail}" style="color:#60a5fa;text-decoration:underline;">${brand.supportEmail}</a>
+                      <a href="mailto:${brand.supportEmail}" style="color:#60a5fa;text-decoration:underline;">${brand.supportEmail}</a>
                     </p>
                   </td>
                 </tr>
@@ -136,21 +164,33 @@ function getWelcomeEmailHtml(firstName: string) {
             </td>
           </tr>
 
+          <!-- Trial reminder bar -->
+          <tr>
+            <td style="padding:16px 40px;background:#0c1a0c;border-top:1px solid #14532d;text-align:center;">
+              <p style="margin:0;color:#86efac;font-size:13px;font-weight:600;">
+                &#9200; Your 7-day trial gives you full access — subscribe any time from account settings to keep it going.
+              </p>
+            </td>
+          </tr>
+
           <!-- Footer -->
           <tr>
             <td style="padding:28px 40px;background-color:#0f172a;text-align:center;border-top:1px solid rgba(100,116,139,0.2);">
               <img src="${brand.logoUrl}" alt="${brand.name}"
-                style="max-width:140px;height:auto;display:inline-block;border:0;opacity:0.85;margin-bottom:12px;" />
+                   style="max-width:140px;height:auto;display:inline-block;border:0;opacity:0.85;margin-bottom:12px;" />
               <p style="margin:0;color:#475569;font-size:12px;font-weight:600;">
                 &copy; ${new Date().getFullYear()} ${brand.name}
               </p>
               <p style="margin:4px 0 0;color:#475569;font-size:11px;">
-                VETERAN-OWNED Small Business &middot; Richmond, Virginia
+                Minority-Owned &middot; Veteran-Owned Small Business &middot; Richmond, Virginia
               </p>
               <p style="margin:8px 0 0;font-size:12px;">
                 <a href="https://precisegovcon.com/privacy" style="color:#64748b;text-decoration:none;">Privacy</a>
                 &nbsp;&bull;&nbsp;
                 <a href="https://precisegovcon.com/terms" style="color:#64748b;text-decoration:none;">Terms</a>
+              </p>
+              <p style="margin:8px 0 0;color:#334155;font-size:11px;">
+                You're receiving this because you created an account at precisegovcon.com.
               </p>
             </td>
           </tr>
@@ -163,35 +203,40 @@ function getWelcomeEmailHtml(firstName: string) {
 </html>`.trim()
 }
 
-function getWelcomeEmailText(firstName: string) {
+function getWelcomeEmailText(firstName: string): string {
   const brand = getBrand()
-  
+  const appUrl = brand.appUrl
+
   return `
 ${brand.name.toUpperCase()} — ${brand.tagline}
 
-Your Trial is Active!
+You're in, ${firstName}! Your 7-day free trial is now active.
 
 Hi ${firstName},
 
-Your email is verified and your 7-day free trial is now active! You can now access all features of ${brand.name}.
+Welcome to Precise GovCon — your all-in-one platform for finding, tracking, and winning government contract opportunities. Your email is verified and your 7-day free trial is live.
 
-Go to Dashboard: ${brand.appUrl}/dashboard
+Start searching now: ${appUrl}/search
 
-What's included in your trial:
-✓ Unlimited opportunity searches
-✓ Real-time contract alerts
-✓ Save & track opportunities
-✓ Advanced filtering & search
+WHAT'S INCLUDED IN YOUR TRIAL:
+- Unlimited opportunity searches across federal, state & local
+- Real-time contract alerts by NAICS code, keyword & agency
+- Save & track opportunities through your pipeline
+- Export results to CSV / Excel
+- Advanced filtering & saved searches
 
-Getting Started Tips:
-1. Set up your search filters – Focus on the contracts that matter to you
-2. Enable email alerts – Get notified about new opportunities
-3. Save your favorites – Track deadlines and submission requirements
+3 THINGS TO DO RIGHT NOW:
+1. Set up your NAICS code filters — focus on contracts that match your capabilities
+2. Enable email alerts — get notified the moment new matching opportunities are posted
+3. Save your first opportunity — track deadlines and submission requirements
 
-Need help? Contact us at ${brand.supportEmail}
+Your 7-day trial gives you full access. Subscribe any time from account settings to keep it going.
+
+Questions? Email us at ${brand.supportEmail} — we respond within one business day.
 
 ---
 © ${new Date().getFullYear()} ${brand.name}
-VETERAN-OWNED Small Business · Richmond, Virginia
-`.trim()
+Minority-Owned · Veteran-Owned Small Business · Richmond, Virginia
+https://precisegovcon.com
+  `.trim()
 }

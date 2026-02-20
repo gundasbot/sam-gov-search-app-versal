@@ -1,34 +1,21 @@
 // app/page.tsx
 'use client'
-
 export const dynamic = 'force-dynamic'
-
 import React, { useCallback, useEffect, useMemo, useState, Suspense } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
 import CustomSignupModal from '../components/CustomSignupModal'
 import {
-  CheckCircle2,
-  AlertTriangle,
-  Loader2,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  RefreshCw,
-  Search,
-  FileText,
-  Award,
-  Lock,
-  ArrowRight,
+  CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Shield,
+  Search, FileText, Award, Zap, ArrowRight, Mail,
+  LayoutDashboard, Briefcase, Bell, LineChart, CreditCard,
+  Building, ShieldCheck, TrendingUp,
 } from 'lucide-react'
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 type Mode = 'login' | 'verify' | 'resend' | 'forgot' | 'reset'
-
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ')
-}
 
 function getMode(sp: ReturnType<typeof useSearchParams>): Mode {
   if (!sp) return 'login'
@@ -36,1370 +23,545 @@ function getMode(sp: ReturnType<typeof useSearchParams>): Mode {
   if (m === 'verify') return 'verify'
   if (m === 'resend') return 'resend'
   if (m === 'forgot') return 'forgot'
-  if (m === 'reset') return 'reset'
+  if (m === 'reset')  return 'reset'
   return 'login'
 }
 
 function getQueryToken(sp: ReturnType<typeof useSearchParams>) {
-  if (!sp) return
-  return (
-    sp.get('token') ||
-    sp.get('verificationtoken') ||
-    sp.get('verifyToken') ||
-    sp.get('resettoken') ||
-    sp.get('resetToken')
-  )
+  if (!sp) return undefined
+  return sp.get('token') || sp.get('verificationtoken') || sp.get('verifyToken') || sp.get('resettoken') || sp.get('resetToken') || undefined
 }
 
 async function safeJson(res: Response) {
   const text = await res.text()
-  try {
-    return JSON.parse(text)
-  } catch {
-    return { message: text }
-  }
+  try { return JSON.parse(text) } catch { return { message: text } }
 }
 
-async function postWithFallback(
-  endpoints: string[],
-  body: Record<string, any>
-): Promise<{ ok: boolean; status?: number; error?: string; data?: any }> {
-  let lastErr = { ok: false, error: 'No endpoints tried' }
+async function postWithFallback(endpoints: string[], body: Record<string, unknown>) {
+  let lastErr: { ok: false; error: string } = { ok: false, error: 'No endpoints tried' }
   for (const url of endpoints) {
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (res.status === 404) {
-        lastErr = { ok: false, error: `Not found: ${url}` }
-        continue
-      }
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.status === 404) { lastErr = { ok: false, error: `Not found: ${url}` }; continue }
       const json = await safeJson(res)
-      if (!res.ok) {
-        return {
-          ok: false,
-          status: res.status,
-          error: json?.error || json?.message || `Request failed (${res.status})`,
-          data: json,
-        }
-      }
-      return { ok: true, status: res.status, data: json }
-    } catch (e: any) {
-      lastErr = { ok: false, error: e?.message || 'Network error' }
-    }
+      if (!res.ok) return { ok: false as const, status: res.status, error: json?.error || json?.message || `Request failed (${res.status})`, data: json }
+      return { ok: true as const, status: res.status, data: json }
+    } catch (e: unknown) { lastErr = { ok: false, error: (e as Error)?.message || 'Network error' } }
   }
   return lastErr
 }
 
-const BG_SLIDES = [
-  { src: '/auth-slides/01.jpg', alt: 'Contractors reviewing solicitations' },
-  { src: '/auth-slides/02.jpg', alt: 'Consulting meeting' },
-  { src: '/auth-slides/03.jpg', alt: 'Compliance documents and laptop' },
-  { src: '/auth-slides/04.jpg', alt: 'Government district skyline' },
-]
-
-function HeroBackgroundSlides() {
-  const [index, setIndex] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setIndex((i) => (i + 1) % BG_SLIDES.length), 8500)
-    return () => clearInterval(id)
-  }, [])
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function Notice({ variant, title, description }: { variant: 'success'|'error'|'warning'|'info'; title: string; description?: string }) {
+  const c = { success:{ bg:'rgba(22,163,74,0.12)', border:'rgba(22,163,74,0.4)', text:'#4ADE80' }, error:{ bg:'rgba(239,68,68,0.12)', border:'rgba(239,68,68,0.4)', text:'#FCA5A5' }, warning:{ bg:'rgba(245,158,11,0.12)', border:'rgba(245,158,11,0.4)', text:'#FCD34D' }, info:{ bg:'rgba(59,130,246,0.12)', border:'rgba(59,130,246,0.4)', text:'#93C5FD' } }[variant]
+  const Icon = variant === 'success' ? CheckCircle2 : variant === 'info' ? Shield : AlertCircle
   return (
-    <div style={{ pointerEvents: 'none', position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      {BG_SLIDES.map((s, i) => (
-        <Image
-          key={s.src}
-          src={s.src}
-          alt={s.alt}
-          fill
-          priority={i === 0}
-          style={{ objectFit: 'cover', transition: 'opacity 1s', opacity: i === index ? 0.2 : 0 }}
-        />
-      ))}
+    <div style={{ display:'flex', gap:'10px', padding:'10px 13px', borderRadius:'9px', fontSize:'12.5px', marginBottom:'12px', alignItems:'flex-start', background:c.bg, border:`1px solid ${c.border}`, color:c.text }}>
+      <Icon style={{ width:'16px', height:'16px', flexShrink:0, marginTop:'1px' }} />
+      <div><div style={{ fontWeight:700 }}>{title}</div>{description && <div style={{ fontSize:'11px', marginTop:'2px', opacity:0.85 }}>{description}</div>}</div>
     </div>
   )
 }
 
-function InlineNotice({
-  variant,
-  title,
-  description,
-  action,
-}: {
-  variant: 'success' | 'warning' | 'info' | 'error'
-  title: string
-  description?: string
-  action?: React.ReactNode
-}) {
-  const colors: Record<string, { border: string; bg: string; text: string; descText: string }> = {
-    success: { border: '#10b981', bg: '#d1fae5', text: '#065f46', descText: '#047857' },
-    warning: { border: '#f59e0b', bg: '#fef3c7', text: '#92400e', descText: '#b45309' },
-    error: { border: '#ef4444', bg: '#fee2e2', text: '#991b1b', descText: '#dc2626' },
-    info: { border: '#3b82f6', bg: '#dbeafe', text: '#1e40af', descText: '#2563eb' },
-  }
-  const c = colors[variant]
-  const Icon = variant === 'success' ? CheckCircle2 : variant === 'info' ? ShieldCheck : AlertTriangle
+function FormInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '0.75rem',
-        borderRadius: '0.75rem',
-        border: `2px solid ${c.border}`,
-        background: c.bg,
-        color: c.text,
-        padding: '1rem 1.25rem',
-        fontSize: '0.875rem',
-      }}
-    >
-      <Icon style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0, marginTop: '0.1rem' }} />
-      <div>
-        <p style={{ fontWeight: 700, margin: 0, fontSize: '0.9375rem' }}>{title}</p>
-        {description && (
-          <p
-            style={{
-              fontSize: '0.8125rem',
-              color: c.descText,
-              fontWeight: 500,
-              margin: '0.375rem 0 0',
-              lineHeight: 1.5,
-            }}
-          >
-            {description}
-          </p>
-        )}
-        {action && <div style={{ marginTop: '0.25rem' }}>{action}</div>}
-      </div>
-    </div>
-  )
-}
-
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      style={{
-        height: '3rem',
-        width: '100%',
-        borderRadius: '0.75rem',
-        border: '1px solid #cbd5e1',
-        background: 'rgba(255,255,255,0.9)',
-        padding: '0 1rem',
-        fontSize: '0.875rem',
-        color: '#0f172a',
-        outline: 'none',
-        boxSizing: 'border-box',
-        ...props.style,
-      }}
-      className={props.className}
+    <input {...props}
+      style={{ width:'100%', height:'40px', background:'rgba(0,0,0,0.35)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'8px', padding:'0 12px', fontSize:'13px', color:'#F1F5F9', fontFamily:'inherit', outline:'none', transition:'border-color 0.2s, box-shadow 0.2s', boxSizing:'border-box', ...props.style }}
+      onFocus={e => { e.currentTarget.style.borderColor='#f97316'; e.currentTarget.style.boxShadow='0 0 0 3px rgba(249,115,22,0.12)'; props.onFocus?.(e) }}
+      onBlur={e  => { e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';  e.currentTarget.style.boxShadow='none'; props.onBlur?.(e)  }}
     />
   )
 }
 
-function PrimaryButton({
-  children,
-  loading,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) {
+function PrimaryBtn({ children, loading, variant = 'green', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean; variant?: 'green'|'orange' }) {
+  const bg  = variant === 'green' ? 'linear-gradient(135deg,#16A34A,#15803D)' : 'linear-gradient(135deg,#f97316,#ea580c)'
+  const shd = variant === 'green' ? '0 3px 12px rgba(22,163,74,0.28)' : '0 3px 12px rgba(249,115,22,0.28)'
   return (
-    <button
-      {...props}
-      style={{
-        display: 'inline-flex',
-        height: '3rem',
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        borderRadius: '0.75rem',
-        background: 'linear-gradient(to right, #10b981, #059669)',
-        border: 'none',
-        color: 'white',
-        fontSize: '0.875rem',
-        fontWeight: 700,
-        cursor: props.disabled ? 'not-allowed' : 'pointer',
-        opacity: props.disabled ? 0.6 : 1,
-        ...props.style,
-      }}
-    >
-      {loading && (
-        <Loader2 style={{ width: '1rem', height: '1rem', animation: 'spin 1s linear infinite' }} />
-      )}
-      <span>{children}</span>
+    <button {...props} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%', height:'40px', borderRadius:'8px', fontFamily:'inherit', fontSize:'13px', fontWeight:700, cursor:props.disabled?'not-allowed':'pointer', border:'none', background:loading?'#475569':bg, color:'white', transition:'all 0.2s', opacity:props.disabled?0.5:1, boxShadow:loading?'none':shd, ...props.style }}
+      onMouseEnter={e => { if(!props.disabled&&!loading){ e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.filter='brightness(1.08)' } }}
+      onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.filter='' }}>
+      {loading && <Loader2 style={{ width:'14px', height:'14px', animation:'spin 0.65s linear infinite' }} />}
+      {children}
     </button>
   )
 }
 
-function SecondaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+function SecondaryBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      {...props}
-      style={{
-        display: 'inline-flex',
-        height: '3rem',
-        width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        borderRadius: '0.75rem',
-        border: '2px solid #e2e8f0',
-        background: 'white',
-        color: '#334155',
-        fontSize: '0.875rem',
-        fontWeight: 600,
-        cursor: props.disabled ? 'not-allowed' : 'pointer',
-        opacity: props.disabled ? 0.6 : 1,
-        ...props.style,
-      }}
-    >
+    <button {...props} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%', height:'40px', borderRadius:'8px', fontFamily:'inherit', fontSize:'13px', fontWeight:700, cursor:props.disabled?'not-allowed':'pointer', border:'1px solid rgba(255,255,255,0.12)', background:'rgba(255,255,255,0.04)', color:'#CBD5E1', transition:'all 0.2s', opacity:props.disabled?0.5:1, ...props.style }}
+      onMouseEnter={e => { if(!props.disabled){ e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.22)' } }}
+      onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.12)' }}>
       {props.children}
     </button>
   )
 }
 
-const GoogleIcon = (
-  <svg style={{ width: '1.25rem', height: '1.25rem' }} viewBox="0 0 24 24">
-    <path
-      fill="#4285F4"
-      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-    />
-    <path
-      fill="#34A853"
-      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-    />
-  </svg>
-)
+const GoogleIcon = (<svg style={{ width:'16px', height:'16px' }} viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>)
+const MicrosoftIcon = (<svg style={{ width:'16px', height:'16px' }} viewBox="0 0 24 24"><rect x="1" y="1" width="10.5" height="10.5" fill="#f25022"/><rect x="12.5" y="1" width="10.5" height="10.5" fill="#7fba00"/><rect x="1" y="12.5" width="10.5" height="10.5" fill="#00a4ef"/><rect x="12.5" y="12.5" width="10.5" height="10.5" fill="#ffb900"/></svg>)
 
-function LoginPageContent() {
+// ─── Service cards — exact titles & hrefs from Header.tsx ─────────────────────
+const SERVICES = [
+  { href:'/search',                         title:'Search',                  subtitle:'Live federal opportunities',       gradient:'from-emerald-600 to-blue-600',   Icon:Search,     badge:undefined        },
+  { href:'/services/sam-registration',      title:'SAM Registration',        subtitle:'Expert guidance & support',        gradient:'from-blue-600 to-cyan-500',      Icon:FileText,   badge:'Most Popular'   },
+  { href:'/services/set-aside-certifications', title:'Set-Aside Certifications', subtitle:'8(a), SDVOSB, HUBZone, WOSB', gradient:'from-purple-600 to-pink-500',    Icon:ShieldCheck, badge:'Gov Special'   },
+  { href:'/services/proposal-writing',      title:'Proposal Writing',        subtitle:'Win-focused writing',              gradient:'from-orange-500 to-red-500',     Icon:Award,      badge:undefined        },
+  { href:'/services/bid-no-bid-review',     title:'Bid/No-Bid Analysis',     subtitle:'Strategic pursuit decisions',      gradient:'from-indigo-600 to-blue-500',    Icon:Zap,        badge:'AI Powered'     },
+  { href:'/services/capability-statements', title:'Capability Statements',   subtitle:'Professional one-pagers',          gradient:'from-teal-500 to-emerald-500',   Icon:TrendingUp, badge:undefined        },
+]
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+function LandingPageContent() {
   const router = useRouter()
-  const sp = useSearchParams()
+  const sp     = useSearchParams()
   const { status } = useSession()
-
-  const mode = useMemo(() => getMode(sp), [sp])
-
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [password2, setPassword2] = useState('')
-  const [showPw, setShowPw] = useState(false)
-  const [showPw2, setShowPw2] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [notice, setNotice] = useState<null | {
-    variant: 'success' | 'warning' | 'info' | 'error'
-    title: string
-    description?: string
-  }>(null)
-  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
-
+  const mode  = useMemo(() => getMode(sp), [sp])
   const token = useMemo(() => getQueryToken(sp), [sp])
 
-  // NEW Mobile state to control auth form visibility
-  const [showMobileAuth, setShowMobileAuth] = useState(false)
+  const [email,     setEmail]     = useState('')
+  const [password,  setPassword]  = useState('')
+  const [password2, setPassword2] = useState('')
+  const [showPw,    setShowPw]    = useState(false)
+  const [showPw2,   setShowPw2]   = useState(false)
+  const [busy,      setBusy]      = useState(false)
+  const [notice,    setNotice]    = useState<null|{ variant:'success'|'error'|'warning'|'info'; title:string; description?:string }>(null)
+  const [countdown, setCountdown] = useState<number|null>(null)
+  const [signupOpen, setSignupOpen] = useState(false)
+  const [authTab,    setAuthTab]    = useState<'login'|'signup'>('login')
 
-  // Desktop modal state
-  const [showDesktopModal, setShowDesktopModal] = useState(false)
+  const setUrlMode = useCallback((nextMode: Mode, params?: Record<string,string>) => {
+    const q = new URLSearchParams(params); q.set('mode', nextMode)
+    router.push(`?${q.toString()}`, { scroll:false })
+  }, [router])
 
-  // Email validation
-  const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email)
-
-  const setUrlMode = useCallback(
-    (nextMode: Mode, params?: Record<string, string>) => {
-      const query = new URLSearchParams(params)
-      query.set('mode', nextMode)
-      router.push(`?${query.toString()}`, { scroll: false })
-    },
-    [router]
-  )
-
-  useEffect(() => {
-    if (status === 'authenticated') router.push('/search')
-  }, [status, router])
+  useEffect(() => { if (status === 'authenticated') router.push('/search') }, [status, router])
 
   useEffect(() => {
-    if (redirectCountdown !== null && redirectCountdown > 0) {
-      const t = setTimeout(() => setRedirectCountdown(redirectCountdown - 1), 1000)
-      return () => clearTimeout(t)
-    } else if (redirectCountdown === 0) {
-      setUrlMode('login')
-    }
-  }, [redirectCountdown, setUrlMode])
+    if (countdown === null) return
+    if (countdown > 0) { const t = setTimeout(() => setCountdown(c => (c??1)-1), 1000); return () => clearTimeout(t) }
+    setUrlMode('login')
+  }, [countdown, setUrlMode])
 
   useEffect(() => {
     if (mode !== 'verify' || !token || busy) return
     setBusy(true)
     ;(async () => {
       try {
-        const res = await postWithFallback(['/api/auth/verify', '/api/auth/verify-email'], { token })
-        if (res.ok) {
-          setNotice({
-            variant: 'success',
-            title: 'Email verified!',
-            description: 'Redirecting in 5 seconds...',
-          })
-          setRedirectCountdown(5)
-        } else {
-          setNotice({ variant: 'error', title: 'Verification failed', description: res.error || 'Please try again.' })
-        }
-      } catch {
-        setNotice({ variant: 'error', title: 'Verification failed', description: 'Please try again.' })
-      } finally {
-        setBusy(false)
-      }
+        const res = await postWithFallback(['/api/auth/verify','/api/auth/verify-email'], { token })
+        if (res.ok) { setNotice({ variant:'success', title:'Email verified!', description:'Redirecting in 5 seconds…' }); setCountdown(5) }
+        else setNotice({ variant:'error', title:'Verification failed', description: res.error || 'Please try again.' })
+      } catch { setNotice({ variant:'error', title:'Verification failed', description:'Please try again.' }) }
+      finally { setBusy(false) }
     })()
-  }, [mode, token, busy])
+  }, [mode, token]) // eslint-disable-line
+
+  useEffect(() => { const t=getQueryToken(sp); if(!t||sp?.get('mode')) return; setUrlMode('verify') }, [sp, setUrlMode])
 
   useEffect(() => {
-    const t = getQueryToken(sp)
-    if (!t || sp?.get('mode')) return
-    setUrlMode('verify')
-  }, [sp, setUrlMode])
-
-  // After email verification, pre-fill email and show success message
-  useEffect(() => {
-    const autoLogin = sp?.get('autoLogin')
-    const emailParam = sp?.get('email')
-    const verified = sp?.get('verified')
-
-    if (autoLogin === 'true' && emailParam && verified === 'true') {
+    const autoLogin=sp?.get('autoLogin'), emailParam=sp?.get('email'), verified=sp?.get('verified')
+    if (autoLogin==='true'&&emailParam&&verified==='true') {
       setEmail(decodeURIComponent(emailParam))
-      setNotice({
-        variant: 'success',
-        title: '✅ Email Verified!',
-        description: 'Your trial is active. Enter your password below to sign in.',
-      })
+      setNotice({ variant:'success', title:'✅ Email Verified!', description:'Your trial is active. Enter your password below to sign in.' })
       setUrlMode('login')
     }
-  }, [sp])
+  }, [sp]) // eslint-disable-line
+
+  useEffect(() => { if(sp?.get('signup')==='true'||sp?.get('action')==='signup') setSignupOpen(true) }, [sp])
+
+  useEffect(() => {
+    if (!signupOpen) return
+    const handleEsc = (e: KeyboardEvent) => { if(e.key==='Escape') setSignupOpen(false) }
+    document.addEventListener('keydown', handleEsc)
+    document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', handleEsc); document.body.style.overflow = '' }
+  }, [signupOpen])
 
   const onLogin = useCallback(async () => {
-    setBusy(true)
-    setNotice(null)
-    const result = await signIn('credentials', { redirect: false, email, password, callbackUrl: '/search' })
+    setBusy(true); setNotice(null)
+
+    // Pre-check: verify account isn't suspended before calling NextAuth
+    const preCheck = await fetch('/api/auth/pre-login-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    if (!preCheck.ok) {
+      const data = await preCheck.json().catch(() => ({}))
+      setBusy(false)
+      if (data.code === 'SUSPENDED') {
+        setNotice({ variant:'error', title:'Account suspended', description:'Your account has been suspended. Contact support@precisegovcon.com.' })
+        return
+      }
+    }
+
+    const result = await signIn('credentials', { redirect:false, email, password, callbackUrl:'/search' })
     setBusy(false)
     if (result?.error) {
       const msg = String(result.error)
-      // Unverified email - carry email into resend flow
-      if (
-        msg.toLowerCase().includes('not verified') ||
-        msg.toLowerCase().includes('email not verified') ||
-        msg.toLowerCase().includes('verify your email')
-      ) {
-        setNotice({
-          variant: 'warning',
-          title: 'Email verification required',
-          description: 'Your email is not yet verified. We can send you a new verification link.',
-        })
-        setUrlMode('resend')
-        return
-      }
-      // Account not found after password reset - user may have typed wrong email
-      if (
-        msg.toLowerCase().includes('account not found') ||
-        msg.toLowerCase().includes('no user') ||
-        msg.toLowerCase().includes('user not found')
-      ) {
-        setNotice({
-          variant: 'error',
-          title: 'Account not found',
-          description: 'No account exists with this email address. Please check the email or create a new account.',
-        })
-        return
-      }
-      // Generic credentials error - don't expose internal message
-      if (msg.toLowerCase().includes('credentialssignin') || msg.toLowerCase().includes('invalid credentials')) {
-        setNotice({
-          variant: 'error',
-          title: 'Login failed',
-          description: 'Incorrect email or password. Please try again.',
-        })
-        return
-      }
-      setNotice({ variant: 'error', title: 'Login failed', description: msg })
-      return
+      if (msg.toLowerCase().includes('not verified')) { setNotice({ variant:'warning', title:'Email verification required', description:'We can send you a new verification link.' }); setUrlMode('resend'); return }
+      if (msg.toLowerCase().includes('account not found')||msg.toLowerCase().includes('no user')) { setNotice({ variant:'error', title:'Account not found', description:'No account exists with this email address.' }); return }
+      if (msg.toLowerCase().includes('suspended')) { setNotice({ variant:'error', title:'Account suspended', description:'Your account has been suspended. Contact support@precisegovcon.com.' }); return }
+      setNotice({ variant:'error', title:'Login failed', description:'Incorrect email or password.' }); return
     }
     window.location.href = '/search'
-  }, [email, password, router, setUrlMode])
+  }, [email, password, setUrlMode])
 
-  const onGoogle = useCallback(async () => {
-    setBusy(true)
-    signIn('google', { callbackUrl: '/search', redirect: true })
-  }, [])
+  const onGoogle    = useCallback(() => { setBusy(true); signIn('google',             { callbackUrl:'/search', redirect:true }) }, [])
+  const onMicrosoft = useCallback(() => { setBusy(true); signIn('microsoft-entra-id', { callbackUrl:'/search', redirect:true }) }, [])
 
   const onResend = useCallback(async () => {
-    setBusy(true)
-    setNotice(null)
-    const res = await postWithFallback(['/api/auth/resend-verification', '/api/auth/send-verification'], { email })
+    setBusy(true); setNotice(null)
+    const res = await postWithFallback(['/api/auth/resend-verification','/api/auth/send-verification'], { email })
     setBusy(false)
-    if (!res.ok) {
-      setNotice({ variant: 'error', title: 'Resend failed', description: res.error || 'Please try again.' })
-      return
-    }
-    setNotice({ variant: 'success', title: 'Verification email sent', description: 'Please check your inbox.' })
+    if (!res.ok) { setNotice({ variant:'error', title:'Resend failed', description:res.error||'Please try again.' }); return }
+    setNotice({ variant:'success', title:'Verification email sent', description:'Please check your inbox.' })
   }, [email])
 
   const onForgot = useCallback(async () => {
-    setBusy(true)
-    setNotice(null)
-    const res = await postWithFallback(['/api/auth/forgot-password', '/api/forgot-password'], { email })
+    setBusy(true); setNotice(null)
+    const res = await postWithFallback(['/api/auth/forgot-password','/api/forgot-password'], { email })
     setBusy(false)
-    if (!res.ok) {
-      setNotice({ variant: 'error', title: 'Request failed', description: res.error || 'Please try again.' })
-      return
-    }
-    setNotice({
-      variant: 'success',
-      title: 'Reset link sent',
-      description: 'Check your email. Redirecting in 3 seconds...',
-    })
+    if (!res.ok) { setNotice({ variant:'error', title:'Request failed', description:res.error||'Please try again.' }); return }
+    setNotice({ variant:'success', title:'Reset link sent', description:'Check your email.' })
     setTimeout(() => setUrlMode('login'), 3000)
   }, [email, setUrlMode])
 
   const onReset = useCallback(async () => {
-    if (!token) {
-      setNotice({
-        variant: 'error',
-        title: 'Missing reset token',
-        description: 'Please use the link from your email.',
-      })
-      return
-    }
-    if (password.length < 8) {
-      setNotice({ variant: 'warning', title: 'Password too short', description: 'Use at least 8 characters.' })
-      return
-    }
-    if (password !== password2) {
-      setNotice({ variant: 'warning', title: 'Passwords do not match' })
-      return
-    }
-    setBusy(true)
-    setNotice(null)
-    const res = await postWithFallback(['/api/auth/reset-password', '/api/reset-password'], { token, password })
+    if (!token) { setNotice({ variant:'error', title:'Missing reset token', description:'Please use the link from your email.' }); return }
+    if (password.length < 8) { setNotice({ variant:'warning', title:'Password too short', description:'Use at least 8 characters.' }); return }
+    if (password !== password2) { setNotice({ variant:'warning', title:'Passwords do not match' }); return }
+    setBusy(true); setNotice(null)
+    const res = await postWithFallback(['/api/auth/reset-password','/api/reset-password'], { token, password })
     setBusy(false)
-    if (!res.ok) {
-      setNotice({
-        variant: 'error',
-        title: 'Reset failed',
-        description: res.error || 'Your link may have expired.',
-      })
-      return
-    }
-    setPassword('')
-    setPassword2('')
-    setNotice({
-      variant: 'success',
-      title: 'Password updated!',
-      description: 'Your password has been changed. Please sign in with your new password.',
-    })
-    // Stay on login mode - do NOT auto-redirect, so user can see the success message
+    if (!res.ok) { setNotice({ variant:'error', title:'Reset failed', description:res.error||'Your link may have expired.' }); return }
+    setPassword(''); setPassword2('')
+    setNotice({ variant:'success', title:'Password updated!', description:'You can now sign in with your new password.' })
     setUrlMode('login')
   }, [password, password2, setUrlMode, token])
 
-  const cardTitle = useMemo(() => {
-    if (mode === 'verify') return 'Verify email'
-    if (mode === 'resend') return 'Resend verification'
-    if (mode === 'forgot') return 'Forgot password'
-    if (mode === 'reset') return 'Reset password'
-    return 'Welcome back'
-  }, [mode])
-
-  const cardSubtitle = useMemo(() => {
-    if (mode === 'verify') return token ? 'Verifying your email…' : 'Open the link from your email.'
-    if (mode === 'resend') return 'Enter your email for a new link.'
-    if (mode === 'forgot') return "We'll email you a reset link."
-    if (mode === 'reset') return token ? 'Create a new password.' : 'Your reset link is missing a token.'
-    return 'Access your Precise GovCon dashboard.'
-  }, [mode, token])
-
-  // Modal state - all account creation goes through CustomSignupModal
-  const [signupModalOpen, setSignupModalOpen] = useState(false)
-
-  // Check if we should open signup modal on load (e.g., from header "Sign In" button)
-  useEffect(() => {
-    if (sp?.get('signup') === 'true' || sp?.get('action') === 'signup') {
-      setSignupModalOpen(true)
-    }
-  }, [sp])
-
-  // ESC key to close modal
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && signupModalOpen) setSignupModalOpen(false)
-    }
-    if (signupModalOpen) {
-      document.addEventListener('keydown', handleEsc)
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.removeEventListener('keydown', handleEsc)
-        document.body.style.overflow = 'unset'
-      }
-    }
-  }, [signupModalOpen])
-
   if (status === 'loading') {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          minHeight: '100vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #f8fafc, #ecfdf5, #f0f9ff)',
-        }}
-      >
-        <Loader2 style={{ width: '2.5rem', height: '2.5rem', color: '#10b981', animation: 'spin 1s linear infinite' }} />
-      </div>
-    )
+    return <div className="flex min-h-screen items-center justify-center bg-slate-900"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>
   }
 
-  // Shared login card body
-  const loginCardBody = (
-    <>
-      {/* Tab Switcher - Sign In / Sign Up */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '1.5rem',
-          borderBottom: '2px solid #e2e8f0',
-          padding: '0 0 0.5rem 0',
-        }}
-      >
-        <button
-          onClick={() => {
-            /* Already on sign in view */
-          }}
-          style={{
-            flex: 1,
-            padding: '0.75rem 1rem',
-            background: 'linear-gradient(to right, #10b981, #059669)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem 0.5rem 0 0',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
-          }}
-        >
-          Sign In
-        </button>
-        <button
-          onClick={() => setSignupModalOpen(true)}
-          style={{
-            flex: 1,
-            padding: '0.75rem 1rem',
-            background: 'transparent',
-            color: '#64748b',
-            border: 'none',
-            borderRadius: '0.5rem 0.5rem 0 0',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#f1f5f9'
-            e.currentTarget.style.color = '#10b981'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.color = '#64748b'
-          }}
-        >
-          Sign Up
-        </button>
-      </div>
+  // ─── Auth form ───────────────────────────────────────────────────────────
+  const fieldLabel = (text: string) => (
+    <label style={{ display:'block', fontSize:'11px', fontWeight:600, color:'#94A3B8', marginBottom:'5px', letterSpacing:'0.04em', textTransform:'uppercase' }}>{text}</label>
+  )
 
-      <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{cardTitle}</h2>
-        <p style={{ fontSize: '0.875rem', color: '#475569', marginTop: '0.375rem' }}>{cardSubtitle}</p>
-      </div>
-
-      {notice && <InlineNotice variant={notice.variant} title={notice.title} description={notice.description} />}
-
-      {redirectCountdown !== null && redirectCountdown >= 0 && (
-        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-          <p style={{ fontSize: '0.875rem', color: '#475569' }}>
-            Redirecting in <strong style={{ color: '#10b981' }}>{redirectCountdown}</strong>s…
-          </p>
-          <button
-            onClick={() => {
-              setRedirectCountdown(null)
-              setUrlMode('login')
-            }}
-            style={{
-              fontSize: '0.875rem',
-              color: '#10b981',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-          >
-            Go to login now
-          </button>
-        </div>
+  const authForm = (
+    <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+      {notice && <Notice variant={notice.variant} title={notice.title} description={notice.description} />}
+      {countdown !== null && countdown >= 0 && (
+        <p style={{ textAlign:'center', fontSize:'12px', color:'#94A3B8' }}>Redirecting in <strong style={{ color:'#4ADE80' }}>{countdown}</strong>s…</p>
       )}
 
-      {/* LOGIN */}
+      {/* ── LOGIN ── */}
       {mode === 'login' && (
-        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.375rem' }}>
-              Email
-            </label>
-            <Input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              type="email"
-              autoComplete="email"
-              style={{ borderColor: email && !isValidEmail(email) ? '#ef4444' : undefined }}
-            />
-            {email && !isValidEmail(email) && (
-              <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
-                Please enter a valid email address
-              </p>
-            )}
+        <>
+          <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+            <SecondaryBtn onClick={onGoogle}    disabled={busy}>{GoogleIcon}    Continue with Google</SecondaryBtn>
+            <SecondaryBtn onClick={onMicrosoft} disabled={busy}>{MicrosoftIcon} Continue with Microsoft</SecondaryBtn>
           </div>
-
+          <div style={{ display:'flex', alignItems:'center', gap:'8px', margin:'4px 0', fontSize:'10.5px', color:'#64748b', fontWeight:500 }}>
+            <div style={{ flex:1, height:'1px', background:'rgba(255,255,255,0.07)' }} />or sign in with email<div style={{ flex:1, height:'1px', background:'rgba(255,255,255,0.07)' }} />
+          </div>
+          <div>{fieldLabel('Email')}<FormInput value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" type="email" autoComplete="email" /></div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.375rem' }}>
-              Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                type={showPw ? 'text' : 'password'}
-                autoComplete="current-password"
-                style={{ paddingRight: '3rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPw((v) => !v)}
-                style={{
-                  position: 'absolute',
-                  right: '0.75rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#64748b',
-                  padding: '0.375rem',
-                }}
-              >
-                {showPw ? <EyeOff style={{ width: '1rem', height: '1rem' }} /> : <Eye style={{ width: '1rem', height: '1rem' }} />}
+            {fieldLabel('Password')}
+            <div style={{ position:'relative' }}>
+              <FormInput value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" type={showPw?'text':'password'} autoComplete="current-password" style={{ paddingRight:'40px' }} />
+              <button type="button" onClick={()=>setShowPw(v=>!v)} style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'3px', display:'flex' }} onMouseEnter={e=>e.currentTarget.style.color='#f1f5f9'} onMouseLeave={e=>e.currentTarget.style.color='#94A3B8'}>
+                {showPw ? <EyeOff style={{ width:'14px', height:'14px' }} /> : <Eye style={{ width:'14px', height:'14px' }} />}
               </button>
             </div>
           </div>
-
-          <div style={{ textAlign: 'right' }}>
-            <button
-              type="button"
-              onClick={() => setUrlMode('forgot')}
-              style={{ fontSize: '0.875rem', color: '#10b981', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Forgot password?
-            </button>
+          <div style={{ display:'flex', justifyContent:'flex-end', marginTop:'-4px' }}>
+            <button type="button" onClick={()=>setUrlMode('forgot')} style={{ background:'none', border:'none', fontSize:'11.5px', fontWeight:600, color:'#fb923c', cursor:'pointer', fontFamily:'inherit', padding:0 }} onMouseEnter={e=>e.currentTarget.style.color='#f97316'} onMouseLeave={e=>e.currentTarget.style.color='#fb923c'}>Forgot password?</button>
           </div>
-
-          <PrimaryButton type="button" onClick={onLogin} loading={busy}>
-            Log in
-          </PrimaryButton>
-          <SecondaryButton type="button" onClick={onGoogle} disabled={busy}>
-            {GoogleIcon} Continue with Google
-          </SecondaryButton>
-
-          <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#64748b' }}>
-            Need to verify?{' '}
-            <button
-              type="button"
-              onClick={() => setUrlMode('resend')}
-              style={{ fontWeight: 600, color: '#10b981', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Resend
-            </button>
+          <PrimaryBtn onClick={onLogin} loading={busy}>Sign In</PrimaryBtn>
+          <p style={{ textAlign:'center', fontSize:'12px', color:'#64748b', marginTop:'4px' }}>
+            No account?{' '}
+            <button type="button" onClick={()=>setSignupOpen(true)} style={{ background:'none', border:'none', color:'#fb923c', cursor:'pointer', fontWeight:700, fontFamily:'inherit', padding:0 }} onMouseEnter={e=>e.currentTarget.style.color='#f97316'} onMouseLeave={e=>e.currentTarget.style.color='#fb923c'}>Create one free</button>
+            {' · '}
+            <button type="button" onClick={()=>setUrlMode('resend')} style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontFamily:'inherit', padding:0 }}>Resend verify</button>
           </p>
-
-          <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#64748b' }}>
-            New here?{' '}
-            <button
-              type="button"
-              onClick={() => setSignupModalOpen(true)}
-              style={{ fontWeight: 600, color: '#10b981', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Create a free account
-            </button>
-          </p>
-        </div>
+        </>
       )}
 
-      {/* VERIFY */}
+      {/* ── VERIFY ── */}
       {mode === 'verify' && (
-        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {!token && (
-            <InlineNotice
-              variant="info"
-              title="Verification link required"
-              description="Use the link sent to your email."
-              action={
-                <button
-                  type="button"
-                  onClick={() => setUrlMode('resend')}
-                  style={{
-                    fontWeight: 600,
-                    color: '#1d4ed8',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  Resend
-                </button>
-              }
-            />
-          )}
-          {busy && <InlineNotice variant="info" title="Verifying your email…" description="This will only take a moment." />}
-          <SecondaryButton type="button" onClick={() => setUrlMode('login')} disabled={busy}>
-            Back to login
-          </SecondaryButton>
-        </div>
-      )}
-
-      {/* RESEND */}
-      {mode === 'resend' && (
-        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {email && (
-            <div
-              style={{
-                padding: '0.75rem 1rem',
-                borderRadius: '0.75rem',
-                background: '#dbeafe',
-                border: '1px solid #93c5fd',
-                fontSize: '0.875rem',
-                color: '#1e40af',
-              }}
-            >
-              Sending to <strong>{email}</strong>
+        <>
+          <div style={{ textAlign:'center', padding:'12px 0' }}>
+            <div style={{ width:'52px', height:'52px', background:'rgba(22,163,74,0.1)', border:'2px solid #16A34A', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
+              <Mail style={{ width:'22px', height:'22px', color:'#4ADE80' }} />
             </div>
-          )}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.375rem' }}>
-              Email address
-            </label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" type="email" />
+            <p style={{ fontSize:'13px', color:'#94A3B8', lineHeight:1.6 }}>Click the link in your email to verify your account and activate your free trial.</p>
           </div>
-          <PrimaryButton type="button" onClick={onResend} loading={busy}>
-            Send verification link
-          </PrimaryButton>
-          <SecondaryButton type="button" onClick={() => setUrlMode('login')} disabled={busy}>
-            Back to login
-          </SecondaryButton>
-        </div>
+          {!token && <Notice variant="info" title="Use the link from your email" />}
+          {busy   && <Notice variant="info" title="Verifying…" description="Just a moment." />}
+          <SecondaryBtn onClick={()=>setUrlMode('login')} disabled={busy}>← Back to Sign In</SecondaryBtn>
+        </>
       )}
 
-      {/* FORGOT */}
+      {/* ── RESEND ── */}
+      {mode === 'resend' && (
+        <>
+          <div>{fieldLabel('Email')}<FormInput value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" type="email" /></div>
+          <PrimaryBtn onClick={onResend} loading={busy} variant="orange">Send Verification Link</PrimaryBtn>
+          <SecondaryBtn onClick={()=>setUrlMode('login')} disabled={busy}>← Back to Sign In</SecondaryBtn>
+        </>
+      )}
+
+      {/* ── FORGOT ── */}
       {mode === 'forgot' && (
-        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.375rem' }}>
-              Email address
-            </label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" type="email" autoFocus />
-            {email && <p style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem' }}>✓ Email pre-filled from your login attempt</p>}
-          </div>
-          <PrimaryButton type="button" onClick={onForgot} loading={busy}>
-            Send reset link
-          </PrimaryButton>
-          <SecondaryButton type="button" onClick={() => setUrlMode('login')} disabled={busy}>
-            Back to login
-          </SecondaryButton>
-        </div>
+        <>
+          <div>{fieldLabel('Email')}<FormInput value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" type="email" autoFocus /></div>
+          <PrimaryBtn onClick={onForgot} loading={busy} variant="orange">Send Reset Link</PrimaryBtn>
+          <SecondaryBtn onClick={()=>setUrlMode('login')} disabled={busy}>← Back to Sign In</SecondaryBtn>
+        </>
       )}
 
-      {/* RESET */}
+      {/* ── RESET ── */}
       {mode === 'reset' && (
-        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {!token ? (
-            <InlineNotice variant="error" title="Reset link issue" description="Your link is missing a token." />
-          ) : (
-            <>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.375rem' }}>
-                  New password
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="New password"
-                    type={showPw ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    style={{ paddingRight: '3rem' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    style={{
-                      position: 'absolute',
-                      right: '0.75rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#64748b',
-                      padding: '0.375rem',
-                    }}
-                  >
-                    {showPw ? <EyeOff style={{ width: '1rem', height: '1rem' }} /> : <Eye style={{ width: '1rem', height: '1rem' }} />}
-                  </button>
+        <>
+          {!token
+            ? <Notice variant="error" title="Reset link issue" description="Your link is missing a token." />
+            : <>
+                <div>
+                  {fieldLabel('New Password')}
+                  <div style={{ position:'relative' }}>
+                    <FormInput value={password} onChange={e=>setPassword(e.target.value)} placeholder="New password" type={showPw?'text':'password'} autoComplete="new-password" style={{ paddingRight:'40px' }} />
+                    <button type="button" onClick={()=>setShowPw(v=>!v)} style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'3px', display:'flex' }}>
+                      {showPw ? <EyeOff style={{ width:'14px', height:'14px' }} /> : <Eye style={{ width:'14px', height:'14px' }} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#334155', marginBottom: '0.375rem' }}>
-                  Confirm password
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Input
-                    value={password2}
-                    onChange={(e) => setPassword2(e.target.value)}
-                    placeholder="Confirm password"
-                    type={showPw2 ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    style={{ paddingRight: '3rem' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw2((v) => !v)}
-                    style={{
-                      position: 'absolute',
-                      right: '0.75rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#64748b',
-                      padding: '0.375rem',
-                    }}
-                  >
-                    {showPw2 ? <EyeOff style={{ width: '1rem', height: '1rem' }} /> : <Eye style={{ width: '1rem', height: '1rem' }} />}
-                  </button>
+                <div>
+                  {fieldLabel('Confirm Password')}
+                  <div style={{ position:'relative' }}>
+                    <FormInput value={password2} onChange={e=>setPassword2(e.target.value)} placeholder="Confirm password" type={showPw2?'text':'password'} autoComplete="new-password" style={{ paddingRight:'40px' }} />
+                    <button type="button" onClick={()=>setShowPw2(v=>!v)} style={{ position:'absolute', right:'10px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:'#94A3B8', padding:'3px', display:'flex' }}>
+                      {showPw2 ? <EyeOff style={{ width:'14px', height:'14px' }} /> : <Eye style={{ width:'14px', height:'14px' }} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-          <PrimaryButton type="button" onClick={onReset} loading={busy}>
-            Reset password
-          </PrimaryButton>
-          <SecondaryButton type="button" onClick={() => setUrlMode('login')} disabled={busy}>
-            Back to login
-          </SecondaryButton>
-        </div>
+              </>
+          }
+          <PrimaryBtn onClick={onReset} loading={busy}>Update Password</PrimaryBtn>
+          <SecondaryBtn onClick={()=>setUrlMode('login')} disabled={busy}>← Back to Sign In</SecondaryBtn>
+        </>
       )}
-    </>
+    </div>
   )
 
-  // Signup modal - triggered by "Create a free account" link
-  const signupModal = (
-    <CustomSignupModal
-      isOpen={signupModalOpen}
-      onClose={() => setSignupModalOpen(false)}
-      onSuccess={() => {
-        router.push('/search')
-      }}
-    />
-  )
-
-  const serviceCards = [
-    {
-      href: '/search',
-      image: '/auth-cards/auth-bid-search.jpg',
-      alt: 'Bid search',
-      gradient: 'linear-gradient(135deg,#10b981,#3b82f6)',
-      icon: Search,
-      label: 'Bid Search',
-      sub: 'Live federal opportunities',
-    },
-    {
-      href: '/services/sam-registration',
-      image: '/auth-cards/auth-sam-registration.jpg',
-      alt: 'SAM registration',
-      gradient: 'linear-gradient(135deg,#3b82f6,#06b6d4)',
-      icon: ShieldCheck,
-      label: 'SAM Registration',
-      sub: 'Expert guidance & support',
-    },
-    {
-      href: '/services/set-aside-certifications',
-      image: '/auth-cards/auth-certifications.jpg',
-      alt: 'Certifications',
-      gradient: 'linear-gradient(135deg,#a855f7,#ec4899)',
-      icon: Award,
-      label: 'Certifications',
-      sub: 'Set-aside compliance',
-    },
-    {
-      href: '/services/proposal-writing',
-      image: '/auth-cards/auth-proposals.jpg',
-      alt: 'Proposals',
-      gradient: 'linear-gradient(135deg,#f97316,#ef4444)',
-      icon: FileText,
-      label: 'Proposals',
-      sub: 'AI-powered assistance',
-    },
-    {
-      href: '/services/bid-no-bid-review',
-      image: '/auth-cards/auth-compliance.jpg',
-      alt: 'Bid/No-Bid',
-      gradient: 'linear-gradient(135deg,#6366f1,#3b82f6)',
-      icon: Lock,
-      label: 'Bid/No-Bid Analysis',
-      sub: 'Strategic pursuit decisions',
-    },
-    {
-      href: '/services/capability-statements',
-      image: '/auth-cards/auth-pipeline.jpg',
-      alt: 'Capability Statements',
-      gradient: 'linear-gradient(135deg,#14b8a6,#22c55e)',
-      icon: RefreshCw,
-      label: 'Capability Statements',
-      sub: 'Professional one-pagers',
-    },
-  ]
-
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #ecfdf5 50%, #f0f9ff 100%)',
-        overflowX: 'hidden',
-      }}
-    >
+    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans">
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        /* Ensure modals appear above all content */
-        [role="dialog"], [data-modal="true"] {
-          z-index: 10000 !important;
-        }
-
-        /* Desktop two-row layout */
-        .login-page-outer {
-          margin: 0 auto;
-          width: 80%;
-          padding-top: 1.5vh;
-          padding-bottom: 1.5vh;
-          min-height: 97vh;
-          display: flex;
-          flex-direction: column;
-        }
-        .login-row1 {
-          height: 50vh;
-          display: grid;
-          grid-template-columns: 1fr 34%;
-          gap: 2%;
-          margin-bottom: 0.5vh;
-          flex-shrink: 0;
-        }
-        .login-hero {
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-start;
-          gap: 0.3vh;
-          padding: 0;
-        }
-        .login-card-wrap {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-        }
-        .login-card {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          border-radius: 1rem;
-          border: 1px solid rgba(226,232,240,0.8);
-          background: rgba(255,255,255,0.95);
-          backdrop-filter: blur(8px);
-          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
-          max-height: 100%;
-        }
-        .login-card-inner {
-          flex: 1;
-          overflow-y: auto;
-          padding: clamp(0.8rem, 1.6vw, 2rem);
-          max-height: 56vh;
-          scrollbar-width: thin;
-          scrollbar-color: #10b981 #e2e8f0;
-        }
-        .login-card-inner::-webkit-scrollbar {
-          width: 6px;
-        }
-        .login-card-inner::-webkit-scrollbar-track {
-          background: #e2e8f0;
-          border-radius: 3px;
-        }
-        .login-card-inner::-webkit-scrollbar-thumb {
-          background: #10b981;
-          border-radius: 3px;
-        }
-        .login-row2 {
-          height: 46vh;
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          grid-template-rows: repeat(2, 1fr);
-          gap: 1.5%;
-          flex-shrink: 0;
-          align-items: stretch;
-        }
-        .svc-card {
-          display: flex;
-          flex-direction: column;
-          border-radius: 1rem;
-          border: 1px solid #e2e8f0;
-          background: white;
-          overflow: hidden;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-          transition: all 0.2s;
-          text-decoration: none;
-          height: 100%;
-        }
-        .svc-card:hover {
-          border-color: #6ee7b7;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          transform: translateY(-2px);
-        }
-        .svc-card-img {
-          flex: 1;
-          position: relative;
-          min-height: 0;
-          height: 100%;
-        }
-        .svc-card-label {
-          display: flex;
-          align-items: center;
-          gap: 0.5vw;
-          padding: 0.6vh 0.8vw;
-          flex-shrink: 0;
-          background: white;
-          border-top: 1px solid #e2e8f0;
-        }
-        .mobile-only { display: none !important; }
-        .desktop-only { display: block; }
-        .mobile-hero {
-          border-radius: 1rem;
-          border: 1px solid rgba(226,232,240,0.6);
-          background: rgba(255,255,255,0.5);
-          backdrop-filter: blur(10px);
-          box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-          padding: 1.5rem;
-          margin-bottom: 1rem;
-        }
-        .mobile-cta-buttons {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          margin-top: 1.25rem;
-        }
-        
-        /* Mobile stacked layout */
-        @media (max-width: 767px) {
-          .mobile-only { display: block !important; }
-          .desktop-only { display: none !important; }
-          .login-page-outer {
-            width: 100%;
-            padding: 1rem;
-            box-sizing: border-box;
-            min-height: auto;
-          }
-          .mobile-login-card {
-            border-radius: 1rem;
-            border: 1px solid rgba(226,232,240,0.8);
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(8px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            max-height: 80vh;
-            overflow-y: auto;
-          }
-          .mobile-cards-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-          }
-          .svc-card-img {
-            height: 90px;
-            flex: none;
-          }
-        }
+        @keyframes spin      { to { transform:rotate(360deg); } }
+        @keyframes blobDrift { 0%,100%{transform:translate(0,0)scale(1)}33%{transform:translate(30px,-25px)scale(1.05)}66%{transform:translate(-18px,32px)scale(0.97)} }
+        @keyframes pulseDot  { 0%,100%{opacity:1}50%{opacity:0.35} }
+        .page-blob { position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none; animation:blobDrift 22s ease-in-out infinite; }
+        .svc-card  { transition:all 0.2s; }
+        .svc-card:hover { border-color:rgba(249,115,22,0.45)!important; transform:translateY(-3px); box-shadow:0 10px 28px rgba(0,0,0,0.4)!important; }
       `}</style>
 
-      <HeroBackgroundSlides />
-
-      <div className="login-page-outer" style={{ position: 'relative', zIndex: 10 }}>
-        {/* DESKTOP layout */}
-        <div className="desktop-only">
-          <div className="login-row1">
-            {/* Hero */}
-            <div className="login-hero">
-              <div style={{ marginBottom: '1.5rem' }}>
-                <Image
-                  src="/logo.png"
-                  alt="Precise GovCon"
-                  width={200}
-                  height={60}
-                  priority
-                  style={{ maxWidth: '100%', height: 'auto' }}
-                />
-              </div>
-              <h1 style={{ fontSize: 'clamp(2rem, 3.5vw, 4rem)', fontWeight: 800, color: '#0f172a', lineHeight: 1.15, margin: '0 0 1rem 0' }}>
-                Welcome to <span style={{ color: '#10b981' }}>Precise GovCon</span>
-              </h1>
-              <p style={{ fontSize: 'clamp(1.1rem, 1.5vw, 1.75rem)', fontWeight: 600, color: '#475569', lineHeight: 1.4, margin: '0 0 1.5rem 0' }}>
-                Your trusted partner in government contracting success
-              </p>
-              <div style={{ 
-                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                border: '2px solid #10b981',
-                borderRadius: '1rem',
-                padding: '1.5rem',
-                marginBottom: '1.5rem',
-              }}>
-                <p style={{ fontSize: 'clamp(1rem, 1.3vw, 1.5rem)', fontWeight: 700, color: '#065f46', lineHeight: 1.5, margin: 0 }}>
-                  Sign up to get started with your <span style={{ color: '#10b981' }}>7-day free trial</span>
-                </p>
-              </div>
-              <h2 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 3rem)', fontWeight: 700, color: '#0f172a', lineHeight: 1.2, margin: '0 0 1rem 0' }}>
-                Find. Qualify. Win.
-              </h2>
-              <p style={{ fontSize: 'clamp(0.95rem, 1.2vw, 1.35rem)', color: '#334155', lineHeight: 1.6, margin: 0 }}>
-                Unified opportunity search across federal, state, and local sources — plus workflows and expert support to help you
-                compete with confidence.
-              </p>
-            </div>
-
-            {/* Login card */}
-            <div className="login-card-wrap">
-              <div className="login-card">
-                <div className="login-card-inner">{loginCardBody}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Service cards */}
-          <div className="login-row2">
-            {serviceCards.map((c) => (
-              <Link key={c.href} href={c.href} className="svc-card">
-                <div className="svc-card-img" style={{ background: c.gradient }}>
-                  <Image
-                    src={c.image}
-                    alt={c.alt}
-                    fill
-                    style={{ objectFit: 'cover', transition: 'transform 0.3s' }}
-                    onError={(e) => ((e.currentTarget as HTMLImageElement).style.opacity = '0')}
-                  />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)' }} />
-                </div>
-                <div className="svc-card-label">
-                  <c.icon
-                    style={{ width: 'clamp(0.8rem,1vw,1.2rem)', height: 'clamp(0.8rem,1vw,1.2rem)', flexShrink: 0, color: '#059669' }}
-                  />
-                  <div>
-                    <p style={{ fontSize: 'clamp(0.65rem,0.85vw,1rem)', fontWeight: 600, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
-                      {c.label}
-                    </p>
-                    <p style={{ fontSize: 'clamp(0.55rem,0.7vw,0.8rem)', color: '#475569', margin: 0, lineHeight: 1.3 }}>{c.sub}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* MOBILE layout with HERO FIRST */}
-        <div className="mobile-only">
-          {/* Hero Section - Always visible on mobile */}
-          <div className="mobile-hero">
-            <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-              <Image
-                src="/logo.png"
-                alt="Precise GovCon"
-                width={150}
-                height={45}
-                priority
-                style={{ maxWidth: '100%', height: 'auto' }}
-              />
-            </div>
-
-            <div
-              style={{
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: 'white',
-                padding: '1rem',
-                borderRadius: '0.75rem',
-                marginBottom: '1rem',
-                textAlign: 'center',
-              }}
-            >
-              <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>
-                🎉 7-Day Free Trial - No Credit Card Required
-              </p>
-            </div>
-
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2, margin: '0 0 0.75rem', textAlign: 'center' }}>
-              Welcome to <span style={{ color: '#10b981' }}>Precise GovCon</span>
-            </h1>
-            <p style={{ fontSize: '1rem', fontWeight: 600, color: '#475569', lineHeight: 1.4, margin: '0 0 1rem', textAlign: 'center' }}>
-              Your trusted partner in government contracting
-            </p>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', lineHeight: 1.15, margin: '0 0 0.75rem' }}>
-              Find. Qualify. Win.
-            </h2>
-            <p style={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.5, margin: '0 0 1rem' }}>
-              Unified opportunity search across federal, state, and local sources — plus workflows and expert support to help you
-              compete with confidence.
-            </p>
-
-            {/* CTAs - Only show when auth form is NOT visible */}
-            {!showMobileAuth && (
-              <div className="mobile-cta-buttons">
-                <PrimaryButton onClick={() => setSignupModalOpen(true)}>
-                  Get Started <ArrowRight style={{ width: '1rem', height: '1rem' }} />
-                </PrimaryButton>
-                <Link href="/search" style={{ textDecoration: 'none', width: '100%' }}>
-                  <SecondaryButton style={{ width: '100%' }}>Browse Opportunities</SecondaryButton>
-                </Link>
-                <button
-                  onClick={() => setShowMobileAuth(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '0.875rem',
-                    color: '#059669',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    padding: '0.5rem',
-                  }}
-                >
-                  Already have an account? Sign in
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Auth Card - Only show when user clicks CTA */}
-          {showMobileAuth && (
-            <div className="mobile-login-card">
-              <button
-                onClick={() => setShowMobileAuth(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '0.875rem',
-                  color: '#059669',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  marginBottom: '1rem',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                ← Back
-              </button>
-              {loginCardBody}
-            </div>
-          )}
-
-          {/* Service Cards - Always visible */}
-          <div className="mobile-cards-grid">
-            {serviceCards.map((c) => (
-              <Link key={c.href} href={c.href} className="svc-card">
-                <div className="svc-card-img" style={{ background: c.gradient }}>
-                  <Image
-                    src={c.image}
-                    alt={c.alt}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    onError={(e) => ((e.currentTarget as HTMLImageElement).style.opacity = '0')}
-                  />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)' }} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', flexShrink: 0 }}>
-                  <c.icon style={{ width: '0.875rem', height: '0.875rem', flexShrink: 0, color: '#059669' }} />
-                  <div>
-                    <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>{c.label}</p>
-                    <p style={{ fontSize: '0.65rem', color: '#475569', margin: 0 }}>{c.sub}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+      {/* Background blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="page-blob w-[480px] h-[480px] bg-emerald-500/8 -top-40 -left-24" />
+        <div className="page-blob w-[400px] h-[400px] bg-orange-500/7 -bottom-28 -right-16" style={{ animationDelay:'-9s' }} />
+        <div className="absolute inset-0" style={{ backgroundImage:'linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)', backgroundSize:'48px 48px' }} />
       </div>
 
-      {signupModal}
+      {/* ══════════════════════════════════════════════════════════════════════
+          80% CONTAINER wraps EVERYTHING
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="relative z-10 w-[80%] mx-auto" style={{ minWidth:'320px' }}>
+
+        {/* ── HERO + AUTH — side by side, no extra height ─────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 py-8 items-start">
+
+          {/* ── LEFT: Hero — compact, no excess vertical space ── */}
+          <div className="flex flex-col gap-5">
+
+            {/* Trial badge */}
+            <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide text-emerald-400 bg-emerald-500/10 border border-emerald-500/25">
+              <span style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#4ADE80', animation:'pulseDot 2s ease-in-out infinite', flexShrink:0, display:'inline-block' }} />
+              7-Day Free Trial — No Credit Card Required
+            </div>
+
+            {/* Logo + wordmark — exact match to Header */}
+            <div className="flex items-center gap-3">
+              <Image src="/logo.png" alt="Precise GovCon" width={56} height={56} className="w-12 h-12 rounded-xl" />
+              <div>
+                <div className="text-2xl lg:text-3xl font-black leading-none tracking-tight">
+                  <span className="text-white">PRECISE</span>{' '}
+                  <span className="text-[#f97316]">GOVCON</span>
+                </div>
+                <div className="text-xs text-slate-400 font-medium tracking-wide mt-1">
+                  Contracting Intelligence and Procurement Experts
+                </div>
+              </div>
+            </div>
+
+            {/* Headline */}
+            <h1 className="text-4xl lg:text-5xl font-black leading-[1.08] tracking-tight text-slate-100">
+              Find<span className="text-[#f97316]">.</span>{' '}
+              Qualify<span className="text-[#f97316]">.</span>{' '}
+              <span className="text-emerald-400">Win.</span>
+            </h1>
+
+            {/* Description */}
+            <p className="text-sm lg:text-base text-slate-400 leading-relaxed max-w-[460px]">
+              Your trusted partner in government contracting success. Access live federal, state &amp; local opportunities, expert proposal support, and AI-powered tools — built for minority-owned and veteran-owned small businesses.
+            </p>
+
+            {/* CTA buttons */}
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setSignupOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all"
+                style={{ background:'linear-gradient(135deg,#16A34A,#15803D)', boxShadow:'0 3px 12px rgba(22,163,74,0.28)' }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.filter='brightness(1.08)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.filter='' }}
+              >
+                <Zap className="w-4 h-4" /> Get Started Free
+              </button>
+              <Link href="/search" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-slate-300 border border-white/12 bg-transparent transition-all hover:border-white/28 hover:text-white no-underline">
+                <Search className="w-4 h-4" /> Browse Opportunities
+              </Link>
+            </div>
+
+            {/* Stats */}
+            <div className="flex flex-wrap gap-6 pt-1">
+              {[
+                { val:'$2.4B+', label:'Contract Value',   color:'text-slate-100'   },
+                { val:'15+',    label:'Years Experience', color:'text-[#f97316]'   },
+                { val:'98%',    label:'Client Retention', color:'text-emerald-400' },
+              ].map(({ val, label, color }) => (
+                <div key={label}>
+                  <div className={`text-xl font-black ${color} leading-none`}>{val}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-slate-500 mt-1">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── RIGHT: Auth panel ── */}
+          <div className="rounded-2xl p-6 border" style={{ background:'rgba(30,41,59,0.8)', border:'1px solid rgba(255,255,255,0.09)', backdropFilter:'blur(20px)' }}>
+
+            {/* Tab switcher */}
+            <div className="grid grid-cols-2 rounded-xl p-1 mb-5 gap-0" style={{ background:'rgba(0,0,0,0.3)' }}>
+              {(['login','signup'] as const).map(tab => (
+                <button key={tab}
+                  onClick={() => { setAuthTab(tab); if (tab==='signup') setSignupOpen(true) }}
+                  className="py-2 rounded-lg text-sm font-bold transition-all"
+                  style={{ background:authTab===tab?'#f97316':'transparent', color:authTab===tab?'white':'#94A3B8', boxShadow:authTab===tab?'0 2px 8px rgba(249,115,22,0.3)':'none' }}>
+                  {tab === 'login' ? 'Sign In' : 'Sign Up'}
+                </button>
+              ))}
+            </div>
+
+            {/* Mode heading */}
+            <div className="text-center mb-4">
+              {mode==='login'  && <><h2 className="text-lg font-bold text-slate-100">Welcome back</h2><p className="text-xs text-slate-400 mt-0.5">Access your Precise GovCon dashboard</p></>}
+              {mode==='verify' && <><h2 className="text-lg font-bold text-slate-100">Check Your Email</h2><p className="text-xs text-slate-400 mt-0.5">We&apos;ve sent a verification link</p></>}
+              {mode==='resend' && <><h2 className="text-lg font-bold text-slate-100">Resend Verification</h2><p className="text-xs text-slate-400 mt-0.5">Enter your email to get a new link</p></>}
+              {mode==='forgot' && <><h2 className="text-lg font-bold text-slate-100">Reset Password</h2><p className="text-xs text-slate-400 mt-0.5">We&apos;ll email you a reset link</p></>}
+              {mode==='reset'  && <><h2 className="text-lg font-bold text-slate-100">Create New Password</h2><p className="text-xs text-slate-400 mt-0.5">Minimum 8 characters</p></>}
+            </div>
+
+            {/* Form */}
+            {authTab === 'login'
+              ? authForm
+              : (
+                <div className="text-center py-3">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-emerald-500/10 border-2 border-emerald-500">
+                    <Zap className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-100 mb-1.5">Create Your Account</h3>
+                  <p className="text-xs text-slate-400 mb-4 leading-relaxed">Start your 7-day free trial — no credit card required</p>
+                  <PrimaryBtn onClick={() => setSignupOpen(true)}>Start Free Trial <ArrowRight className="w-4 h-4" /></PrimaryBtn>
+                  <p className="text-xs text-slate-400 mt-3">Already have an account?{' '}
+                    <button onClick={() => setAuthTab('login')} className="text-orange-400 font-semibold hover:text-orange-300 bg-transparent border-none cursor-pointer p-0 text-xs">Sign in</button>
+                  </p>
+                </div>
+              )
+            }
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            SERVICE CARDS — all 6 visible, below hero, within 80% container
+        ══════════════════════════════════════════════════════════════════ */}
+        <div className="border-t border-white/8 pt-6 pb-8">
+
+          {/* Section label */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-slate-500">Our Services</span>
+            <div className="flex-1 h-px bg-white/8" />
+            <span className="text-[10px] font-bold text-orange-400 whitespace-nowrap">6 Core Solutions</span>
+          </div>
+
+          {/* 6-column card grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {SERVICES.map(({ href, title, subtitle, gradient, Icon, badge }) => (
+              <Link key={href} href={href}
+                className="svc-card flex flex-col rounded-xl overflow-hidden no-underline"
+                style={{ background:'#1e293b', border:'1px solid rgba(255,255,255,0.09)', textDecoration:'none' }}>
+                {/* Gradient banner */}
+                <div className={`relative h-14 bg-gradient-to-br ${gradient} overflow-hidden flex-shrink-0`}>
+                  <Icon className="absolute bottom-1 right-1.5 w-8 h-8 text-white/18" />
+                  {badge && (
+                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/30 backdrop-blur-sm text-white text-[8px] font-bold rounded-full">{badge}</span>
+                  )}
+                </div>
+                {/* Body */}
+                <div className="flex items-start gap-2 p-2 border-t border-white/8">
+                  <Icon className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-slate-100 leading-tight">{title}</div>
+                    <div className="text-[9px] text-slate-500 leading-tight mt-0.5">{subtitle}</div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Quick nav links — matches Header nav items */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 pt-4 border-t border-white/8">
+            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-600">Quick Links</span>
+            {[
+              { href:'/dashboard',     label:'Dashboard',        Icon:LayoutDashboard },
+              { href:'/opportunities', label:'Opportunities',    Icon:Briefcase       },
+              { href:'/alerts',        label:'Alerts & Searches',Icon:Bell            },
+              { href:'/insights',      label:'Insights',         Icon:LineChart       },
+              { href:'/services',      label:'All Services',     Icon:Building        },
+              { href:'/pricing',       label:'Pricing',          Icon:CreditCard      },
+              { href:'/support',       label:'Support',          Icon:Mail            },
+            ].map(({ href, label, Icon: NavIcon }) => (
+              <Link key={href} href={href} className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-orange-400 transition-colors no-underline">
+                <NavIcon className="w-3 h-3" />{label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+      </div>{/* end 80% container */}
+
+      {/* Signup Modal */}
+      <CustomSignupModal isOpen={signupOpen} onClose={() => setSignupOpen(false)} onSuccess={() => router.push('/search')} />
     </div>
   )
 }
 
-export default function LoginPage() {
+export default function LandingPage() {
   return (
-    <Suspense
-      fallback={
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div
-            style={{
-              width: '2rem',
-              height: '2rem',
-              border: '2px solid #3b82f6',
-              borderTopColor: 'transparent',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-        </div>
-      }
-    >
-      <LoginPageContent />
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+      </div>
+    }>
+      <LandingPageContent />
     </Suspense>
   )
 }

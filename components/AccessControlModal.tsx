@@ -90,6 +90,44 @@ function UnverifiedEmailBanner({ email }: { email: string }) {
   )
 }
 
+function ResendVerificationButton({ email }: { email: string }) {
+  const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const handleResend = async () => {
+    setBusy(true)
+    try {
+      await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      setSent(true)
+    } catch {}
+    setBusy(false)
+  }
+
+  if (sent) {
+    return (
+      <p className="text-sm font-black mb-3" style={{ color: '#065f46' }}>
+        ✓ Verification email resent! Check your inbox.
+      </p>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleResend}
+      disabled={busy}
+      className="w-full py-3 rounded-xl font-black text-base transition-all disabled:opacity-60 mb-1 flex items-center justify-center gap-2 shadow-md"
+      style={{ background: '#059669', color: '#ffffff' }}
+    >
+      {busy ? <><Loader2 className="h-5 w-5 animate-spin" /> Sending…</> : '↺ Resend Verification Email'}
+    </button>
+  )
+}
+
 function InputField({
   label, icon: Icon, error, ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon?: any; error?: string }) {
@@ -324,9 +362,14 @@ export default function AccessControlModal({
         setGeneralError('An account with this email already exists. Please sign in.')
         setAuthMode('signin'); setConfirmPassword(''); setIsLoading(false); setAuthMethod(null); return
       }
+      // Test-domain restriction — account created but email can't be sent in test mode
+      if (data?.errorCode === 'TEST_DOMAIN_RESTRICTION') {
+        setGeneralError(data.error || 'Verification email could not be sent in test mode. Please contact support.')
+        setIsLoading(false); setAuthMethod(null); return
+      }
       if (!signupResponse.ok) {
         let msg = 'Failed to create account. Please try again.'
-        try { const d = raw ? JSON.parse(raw) : {}; msg = d?.error || d?.message || msg } catch {}
+        try { msg = data?.error || data?.message || msg } catch {}
         throw new Error(msg)
       }
       const confirmedEmail = email.toLowerCase().trim()
@@ -489,24 +532,27 @@ export default function AccessControlModal({
                       style={{ background: '#ecfdf5', border: '3px solid #10b981' }}>
                       <CheckCircle className="h-9 w-9" style={{ color: '#059669' }} />
                     </div>
-                    <h3 className="text-xl font-black text-slate-900 mb-2">Check Your Email</h3>
+                    <h3 className="text-xl font-black text-slate-900 mb-2">Check Your Email!</h3>
                     <p className="text-sm font-bold text-slate-600 mb-1">We sent a verification link to:</p>
                     <p className="text-base font-black mb-5" style={{ color: '#059669' }}>{signupEmail}</p>
-                    <div className="rounded-xl p-4 mb-6 text-left" style={{ background: '#f0fdf4', border: '2px solid #bbf7d0' }}>
-                      <p className="text-sm font-black text-slate-800 mb-2">What to do next:</p>
+                    <div className="rounded-xl p-4 mb-5 text-left" style={{ background: '#f0fdf4', border: '2px solid #bbf7d0' }}>
+                      <p className="text-sm font-black text-slate-800 mb-2">What happens next:</p>
                       <ol className="space-y-1.5">
-                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2"><span className="font-black text-emerald-600">1.</span> Open the email from Precise GovCon</li>
-                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2"><span className="font-black text-emerald-600">2.</span> Click "Verify Email & Start Trial"</li>
-                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2"><span className="font-black text-emerald-600">3.</span> Come back and sign in below</li>
+                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2">
+                          <span className="font-black text-emerald-600">1.</span> Open the email from Precise GovCon
+                        </li>
+                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2">
+                          <span className="font-black text-emerald-600">2.</span> Click &quot;Verify Email &amp; Start Trial&quot;
+                        </li>
+                        <li className="text-sm font-bold text-slate-700 flex items-start gap-2">
+                          <span className="font-black text-emerald-600">3.</span> You&apos;re automatically signed in and taken to search — no extra steps!
+                        </li>
                       </ol>
                     </div>
-                    <p className="text-xs font-bold text-slate-500 mb-4">Check your spam folder if you don't see it within 2 minutes.</p>
-                    <button type="button"
-                      onClick={() => { setSignupComplete(false); setAuthMode('signin'); setShowEmailForm(true) }}
-                      className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all shadow-md"
-                      style={{ background: '#059669' }}>
-                      Go to Sign In
-                    </button>
+                    <p className="text-xs font-bold text-slate-500 mb-4">
+                      Don&apos;t see it? Check your spam/junk folder.
+                    </p>
+                    <ResendVerificationButton email={signupEmail} />
                     <button type="button" onClick={onClose}
                       className="mt-3 w-full py-2.5 rounded-xl font-black text-base border-2 border-slate-300 text-slate-700 hover:bg-slate-50 transition-all">
                       Close Window

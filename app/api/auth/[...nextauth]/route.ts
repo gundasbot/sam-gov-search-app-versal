@@ -153,6 +153,7 @@ export const authOptions: NextAuthOptions = {
             trial_ends_at: true,
             trial_expires_at: true,
             trial_active: true,
+            is_suspended: true,
             stripe_subscription_id: true,
           },
         })
@@ -174,6 +175,11 @@ export const authOptions: NextAuthOptions = {
         const valid = await compare(credentials.password, user.password_hash)
         if (!valid) {
           throw new Error("Invalid credentials")
+        }
+
+        // Block suspended accounts
+        if (user.is_suspended) {
+          throw new Error("Your account has been suspended. Contact support@precisegovcon.com.")
         }
 
         // Check email verification (for both flows)

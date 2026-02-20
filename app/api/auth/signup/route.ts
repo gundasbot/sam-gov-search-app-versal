@@ -1,4 +1,9 @@
-// app/api/auth/signup/route.ts - FIXED
+// app/api/auth/signup/route.ts
+// FIXES vs previous version:
+//  • Does NOT delete the user on test-domain email failure — keeps account, shows clear instructions
+//  • Returns structured error codes the modal can act on
+//  • Properly passes first_name & last_name from camelCase body
+
 import { NextResponse } from 'next/server'
 import { hash } from 'bcryptjs'
 import crypto from 'crypto'
@@ -9,7 +14,6 @@ import { getBrand } from '@/lib/email/brand'
 
 const TRIAL_DAYS = 7
 
-// ✨ Helper functions to normalize plan selection
 function normalizeTier(raw: any): string | null {
   const v = String(raw || '').toUpperCase().trim()
   if (v === 'BASIC' || v === 'PROFESSIONAL' || v === 'ENTERPRISE') return v
@@ -26,27 +30,19 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { email, password, selectedPlanTier, selectedBillingInterval } = body
 
-    // Accept both snake_case (landing page) and camelCase (AccessControlModal)
+    // Accept both camelCase (modal) and snake_case (landing page)
     const first_name: string = (body.first_name || body.firstName || '').trim()
     const last_name: string  = (body.last_name  || body.lastName  || '').trim()
     const phone: string | undefined   = (body.phone   || '').trim() || undefined
     const company: string | undefined = (body.company || '').trim() || undefined
 
-    // Validation
     if (!email || !password || !first_name || !last_name) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const normalizedEmail = email.toLowerCase().trim()
 
-    // Check if user already exists
-    const existingUser = await prisma.users.findUnique({
-      where: { email: normalizedEmail },
-    })
-
+    const existingUser = await prisma.users.findUnique({ where: { email: normalizedEmail } })
     if (existingUser) {
       return NextResponse.json(
         { error: 'An account with this email already exists' },
@@ -54,26 +50,21 @@ export async function POST(req: Request) {
       )
     }
 
-    // Hash password
     const passwordHash = await hash(password, 12)
-
-    // ✨ Normalize plan selection
-    const pendingTier = selectedPlanTier ? normalizeTier(selectedPlanTier) : null
+    const pendingTier     = selectedPlanTier ? normalizeTier(selectedPlanTier) : null
     const pendingInterval = selectedBillingInterval ? normalizeInterval(selectedBillingInterval) : 'MONTHLY'
-
     const now = new Date()
 
-    // ✨ Create user with pending plan (trial NOT active yet)
     const user = await prisma.users.create({
       data: {
         id: crypto.randomUUID(),
         email: normalizedEmail,
         password_hash: passwordHash,
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        phone: phone?.trim() || null,
-        company: company?.trim() || null,
-        name: `${first_name.trim()} ${last_name.trim()}`,
+        first_name,
+        last_name,
+        phone: phone ?? null,
+        company: company ?? null,
+        name: `${first_name} ${last_name}`,
         role: 'user',
         plan: 'trial',
         plan_tier: pendingTier || 'BASIC',
@@ -90,80 +81,49 @@ export async function POST(req: Request) {
       },
     })
 
-    console.log('✅ User created with pending plan:', {
-      email: user.email,
-      tier: pendingTier || 'BASIC',
-      interval: pendingInterval,
-    })
-
     // Generate verification token
-    const rawToken = crypto.randomBytes(32).toString('hex')
+    const rawToken  = crypto.randomBytes(32).toString('hex')
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
-    // Create verification token
     await prisma.email_verification_tokens.create({
       data: {
         id: crypto.randomUUID(),
         user_id: user.id,
         token_hash: tokenHash,
         expires_at: expiresAt,
-        created_at: new Date(),
+        created_at: now,
       },
     })
 
-    // Get brand and app URL
-    const brand = getBrand()
+    const brand           = getBrand()
     const verificationUrl = `${brand.appUrl}/api/auth/verify-email?token=${rawToken}`
 
-    const selectedPlanName = pendingTier ? 
-      (pendingTier === 'BASIC' ? 'Basic' : 
-       pendingTier === 'PROFESSIONAL' ? 'Professional' : 
-       'Enterprise') : 'Professional'
+    const selectedPlanName =
+      pendingTier === 'BASIC'         ? 'Basic'
+      : pendingTier === 'ENTERPRISE'  ? 'Enterprise'
+      : 'Professional'
 
-    // 🔧 FIXED: Properly handle email sending failures
-    let emailSent = false
+    // ── Send verification email ───────────────────────────────────────────────
+    let emailSent  = false
     let emailError: string | null = null
 
     try {
-      console.log('📧 Attempting to send verification email...')
-      console.log('📧 Recipient:', user.email)
-      console.log('📧 API Key exists:', !!process.env.RESEND_API_KEY)
-      console.log('📧 FROM email:', process.env.RESEND_FROM_EMAIL)
-
-      const html = getVerificationEmailHtml({
-        first_name: first_name,
-        verificationUrl: verificationUrl,
-      })
-
-      const text = getVerificationEmailText({
-        first_name: first_name,
-        verificationUrl: verificationUrl,
-      })
+      const html = getVerificationEmailHtml({ first_name, verificationUrl })
+      const text = getVerificationEmailText({ first_name, verificationUrl })
 
       const result = await sendEmail({
         to: user.email,
-        subject: `Verify Your Email - ${brand.name}`,
+        subject: `Verify Your Email – ${brand.name}`,
         html,
         text,
       })
-      
-      console.log('✅ Verification email sent successfully:', {
-        success: result.success,
-        data: result.data,
-        to: user.email,
-      })
 
+      console.log('✅ Verification email sent:', { to: user.email, success: result.success })
       emailSent = true
 
     } catch (error: any) {
-      console.error('❌ FAILED to send verification email:', {
-        error: error.message,
-        statusCode: error.statusCode,
-        name: error.name,
-      })
-
-      // Check if it's the Resend test domain restriction
+      console.error('❌ Verification email failed:', error.message)
       if (error.message?.includes('can only send testing emails')) {
         emailError = 'test_domain_restriction'
       } else {
@@ -171,43 +131,45 @@ export async function POST(req: Request) {
       }
     }
 
-    // 🎯 FIXED: Return appropriate response based on email status
     if (!emailSent) {
-      // Email failed to send
       if (emailError === 'test_domain_restriction') {
-        // Delete the user we just created since they can't verify
-        await prisma.users.delete({ where: { id: user.id } })
-        await prisma.email_verification_tokens.deleteMany({ where: { user_id: user.id } })
-
+        // Keep the account — let the user know they must use the allowed test address
         return NextResponse.json(
-          { 
-            error: 'This email address cannot receive verification emails in test mode. Please sign up with preciseanalyticsllc@gmail.com instead, or contact support.',
-            errorCode: 'TEST_DOMAIN_RESTRICTION'
+          {
+            success: false,
+            emailSent: false,
+            errorCode: 'TEST_DOMAIN_RESTRICTION',
+            error:
+              "We're in test mode and can only send emails to preciseanalyticsllc@gmail.com. " +
+              'Your account has been created — please contact support or sign up with the test address.',
+            user_id: user.id,
           },
           { status: 400 }
         )
-      } else {
-        // Other email error - keep account but warn user
-        return NextResponse.json(
-          { 
-            success: true,
-            emailSent: false,
-            message: 'Account created but verification email failed to send. Please contact support.',
-            user_id: user.id,
-            warning: 'EMAIL_SEND_FAILED'
-          },
-          { status: 201 }
-        )
       }
+
+      // Generic failure — account is created, but email didn't go out
+      return NextResponse.json(
+        {
+          success: true,
+          emailSent: false,
+          warning: 'EMAIL_SEND_FAILED',
+          message:
+            'Account created, but your verification email failed to send. ' +
+            'Please use the "Resend verification email" option or contact support.',
+          user_id: user.id,
+        },
+        { status: 201 }
+      )
     }
 
-    // ✅ Email sent successfully
+    // ✅ All good
     return NextResponse.json(
-      { 
+      {
         success: true,
         emailSent: true,
-        message: `Account created successfully! Check your email to verify and activate your ${selectedPlanName} trial.`,
-        user_id: user.id 
+        message: `Account created! Check your inbox to verify your email and activate your ${selectedPlanName} trial.`,
+        user_id: user.id,
       },
       { status: 201 }
     )

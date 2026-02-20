@@ -159,6 +159,7 @@ export const authOptions: NextAuthOptions = {
             trial_active: true,
             stripe_subscription_id: true,
             stripe_customer_id: true,
+            is_suspended: true,
           },
         })
 
@@ -198,6 +199,10 @@ export const authOptions: NextAuthOptions = {
             data: { used_at: now },
           })
 
+          if (user.is_suspended) {
+            throw new Error("Your account has been suspended. Contact support@precisegovcon.com.")
+          }
+
           // Successful login via token
           return {
             id: user.id,
@@ -225,6 +230,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid password")
         }
 
+        // Check suspension
+        if ((user as any).is_suspended) {
+          throw new Error("Your account has been suspended. Contact support@precisegovcon.com.")
+        }
+
         // Successful login
         return {
           id: user.id,
@@ -246,6 +256,14 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (!user?.email) return false
+
+      // Block suspended users from Google sign-in too
+      const existing = await prisma.users.findUnique({
+        where: { email: user.email.toLowerCase().trim() },
+        select: { is_suspended: true },
+      })
+      if (existing?.is_suspended) return false
+
       await ensureUserRow({
         email: user.email,
         name: user.name ?? null,
@@ -278,6 +296,7 @@ export const authOptions: NextAuthOptions = {
             billing_interval: true,
             stripe_subscription_id: true,
             stripe_customer_id: true,
+            is_suspended: true,
           },
         })
 
