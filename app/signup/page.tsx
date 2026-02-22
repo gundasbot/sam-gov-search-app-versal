@@ -105,7 +105,12 @@ function SignupForm() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, company, email, password, offerCode, plan: selectedPlan }),
+        body: JSON.stringify({ 
+          first_name: name.split(' ')[0] || name,
+          last_name:  name.split(' ').slice(1).join(' ') || '.',
+          company, email, password, offerCode, 
+          plan: selectedPlan 
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Registration failed')

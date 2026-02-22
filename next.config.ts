@@ -28,6 +28,13 @@ const nextConfig: NextConfig = {
   },
 
   // Add rewrites for icon redirects to Precise GovCon logo
+  async redirects() {
+    return [
+      { source: '/signin',   destination: '/login',  permanent: true },
+      { source: '/sign-in',  destination: '/login',  permanent: true },
+      { source: '/register', destination: '/signup', permanent: true },
+    ]
+  },
   async rewrites() {
     return [
       {
