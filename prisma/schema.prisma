@@ -152,6 +152,40 @@ model email_verification_tokens {
   @@index([user_id])
 }
 
+model Contractor {
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  company          String?
+  naics_code       String?
+  state            String?
+  business_type    String?
+  uei_number       String?
+  is_test          Boolean   @default(false)
+  contacted        Boolean   @default(false)
+  enrolled         Boolean   @default(false)
+  contact_attempts Int       @default(0)
+  offer_code       String?
+  notes            String?
+  priority         String?
+  score            Int       @default(0)
+  pipeline_stage   String?   @default("new")
+  trial_start      DateTime?
+  trial_end        DateTime?
+  revenue          Float?
+  last_contact     DateTime?
+  registration_date DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  @@index([email])
+  @@index([is_test])
+  @@index([pipeline_stage])
+  @@index([state])
+  @@index([naics_code])
+}
+
+
 model opportunity_daily_stats {
   id           String   @id
   day          DateTime @unique @db.Date

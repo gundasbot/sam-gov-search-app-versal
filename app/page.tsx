@@ -6,7 +6,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, useSession } from 'next-auth/react'
-import CustomSignupModal from '../components/CustomSignupModal'
 import {
   CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Shield,
   Search, FileText, Award, Zap, ArrowRight, Mail,
@@ -99,14 +98,14 @@ function SecondaryBtn(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
 const GoogleIcon = (<svg style={{ width:'16px', height:'16px' }} viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>)
 const MicrosoftIcon = (<svg style={{ width:'16px', height:'16px' }} viewBox="0 0 24 24"><rect x="1" y="1" width="10.5" height="10.5" fill="#f25022"/><rect x="12.5" y="1" width="10.5" height="10.5" fill="#7fba00"/><rect x="1" y="12.5" width="10.5" height="10.5" fill="#00a4ef"/><rect x="12.5" y="12.5" width="10.5" height="10.5" fill="#ffb900"/></svg>)
 
-// ─── Service cards — exact titles & hrefs from Header.tsx ─────────────────────
+// ─── Service cards ─────────────────────────────────────────────────────────────
 const SERVICES = [
-  { href:'/search',                         title:'Search',                  subtitle:'Live federal opportunities',       gradient:'from-emerald-600 to-blue-600',   Icon:Search,     badge:undefined        },
-  { href:'/services/sam-registration',      title:'SAM Registration',        subtitle:'Expert guidance & support',        gradient:'from-blue-600 to-cyan-500',      Icon:FileText,   badge:'Most Popular'   },
-  { href:'/services/set-aside-certifications', title:'Set-Aside Certifications', subtitle:'8(a), SDVOSB, HUBZone, WOSB', gradient:'from-purple-600 to-pink-500',    Icon:ShieldCheck, badge:'Gov Special'   },
-  { href:'/services/proposal-writing',      title:'Proposal Writing',        subtitle:'Win-focused writing',              gradient:'from-orange-500 to-red-500',     Icon:Award,      badge:undefined        },
-  { href:'/services/bid-no-bid-review',     title:'Bid/No-Bid Analysis',     subtitle:'Strategic pursuit decisions',      gradient:'from-indigo-600 to-blue-500',    Icon:Zap,        badge:'AI Powered'     },
-  { href:'/services/capability-statements', title:'Capability Statements',   subtitle:'Professional one-pagers',          gradient:'from-teal-500 to-emerald-500',   Icon:TrendingUp, badge:undefined        },
+  { href:'/search',                            title:'Search',                  subtitle:'Live federal opportunities',       gradient:'from-emerald-600 to-blue-600',   Icon:Search,      badge:undefined        },
+  { href:'/services/sam-registration',         title:'SAM Registration',        subtitle:'Expert guidance & support',        gradient:'from-blue-600 to-cyan-500',      Icon:FileText,    badge:'Most Popular'   },
+  { href:'/services/set-aside-certifications', title:'Set-Aside Certifications',subtitle:'8(a), SDVOSB, HUBZone, WOSB',    gradient:'from-purple-600 to-pink-500',    Icon:ShieldCheck,  badge:'Gov Special'   },
+  { href:'/services/proposal-writing',         title:'Proposal Writing',        subtitle:'Win-focused writing',              gradient:'from-orange-500 to-red-500',     Icon:Award,       badge:undefined        },
+  { href:'/services/bid-no-bid-review',        title:'Bid/No-Bid Analysis',     subtitle:'Strategic pursuit decisions',      gradient:'from-indigo-600 to-blue-500',    Icon:Zap,         badge:'AI Powered'     },
+  { href:'/services/capability-statements',    title:'Capability Statements',   subtitle:'Professional one-pagers',          gradient:'from-teal-500 to-emerald-500',   Icon:TrendingUp,  badge:undefined        },
 ]
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -125,8 +124,7 @@ function LandingPageContent() {
   const [busy,      setBusy]      = useState(false)
   const [notice,    setNotice]    = useState<null|{ variant:'success'|'error'|'warning'|'info'; title:string; description?:string }>(null)
   const [countdown, setCountdown] = useState<number|null>(null)
-  const [signupOpen, setSignupOpen] = useState(false)
-  const [authTab,    setAuthTab]    = useState<'login'|'signup'>('login')
+  const [activeTab, setActiveTab] = useState<'login'|'signup'>('login')
 
   const setUrlMode = useCallback((nextMode: Mode, params?: Record<string,string>) => {
     const q = new URLSearchParams(params); q.set('mode', nextMode)
@@ -165,20 +163,8 @@ function LandingPageContent() {
     }
   }, [sp]) // eslint-disable-line
 
-  useEffect(() => { if(sp?.get('signup')==='true'||sp?.get('action')==='signup') setSignupOpen(true) }, [sp])
-
-  useEffect(() => {
-    if (!signupOpen) return
-    const handleEsc = (e: KeyboardEvent) => { if(e.key==='Escape') setSignupOpen(false) }
-    document.addEventListener('keydown', handleEsc)
-    document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', handleEsc); document.body.style.overflow = '' }
-  }, [signupOpen])
-
   const onLogin = useCallback(async () => {
     setBusy(true); setNotice(null)
-
-    // Pre-check: verify account isn't suspended before calling NextAuth
     const preCheck = await fetch('/api/auth/pre-login-check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -192,7 +178,6 @@ function LandingPageContent() {
         return
       }
     }
-
     const result = await signIn('credentials', { redirect:false, email, password, callbackUrl:'/search' })
     setBusy(false)
     if (result?.error) {
@@ -280,7 +265,7 @@ function LandingPageContent() {
           <PrimaryBtn onClick={onLogin} loading={busy}>Sign In</PrimaryBtn>
           <p style={{ textAlign:'center', fontSize:'12px', color:'#64748b', marginTop:'4px' }}>
             No account?{' '}
-            <button type="button" onClick={()=>setSignupOpen(true)} style={{ background:'none', border:'none', color:'#fb923c', cursor:'pointer', fontWeight:700, fontFamily:'inherit', padding:0 }} onMouseEnter={e=>e.currentTarget.style.color='#f97316'} onMouseLeave={e=>e.currentTarget.style.color='#fb923c'}>Create one free</button>
+            <Link href="/signup" style={{ color:'#fb923c', fontWeight:700, textDecoration:'none' }}>Create one free →</Link>
             {' · '}
             <button type="button" onClick={()=>setUrlMode('resend')} style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontFamily:'inherit', padding:0 }}>Resend verify</button>
           </p>
@@ -372,15 +357,13 @@ function LandingPageContent() {
         <div className="absolute inset-0" style={{ backgroundImage:'linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px)', backgroundSize:'48px 48px' }} />
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          80% CONTAINER wraps EVERYTHING
-      ══════════════════════════════════════════════════════════════════════ */}
+      {/* 80% container */}
       <div className="relative z-10 w-[80%] mx-auto" style={{ minWidth:'320px' }}>
 
-        {/* ── HERO + AUTH — side by side, no extra height ─────────────────── */}
+        {/* ── HERO + AUTH ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 py-8 items-start">
 
-          {/* ── LEFT: Hero — compact, no excess vertical space ── */}
+          {/* LEFT: Hero */}
           <div className="flex flex-col gap-5">
 
             {/* Trial badge */}
@@ -389,7 +372,7 @@ function LandingPageContent() {
               7-Day Free Trial — No Credit Card Required
             </div>
 
-            {/* Logo + wordmark — exact match to Header */}
+            {/* Logo + wordmark */}
             <div className="flex items-center gap-3">
               <Image src="/logo.png" alt="Precise GovCon" width={56} height={56} className="w-12 h-12 rounded-xl" />
               <div>
@@ -417,15 +400,15 @@ function LandingPageContent() {
 
             {/* CTA buttons */}
             <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => setSignupOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all"
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all no-underline"
                 style={{ background:'linear-gradient(135deg,#16A34A,#15803D)', boxShadow:'0 3px 12px rgba(22,163,74,0.28)' }}
                 onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.filter='brightness(1.08)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.filter='' }}
               >
                 <Zap className="w-4 h-4" /> Get Started Free
-              </button>
+              </Link>
               <Link href="/search" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-slate-300 border border-white/12 bg-transparent transition-all hover:border-white/28 hover:text-white no-underline">
                 <Search className="w-4 h-4" /> Browse Opportunities
               </Link>
@@ -446,16 +429,26 @@ function LandingPageContent() {
             </div>
           </div>
 
-          {/* ── RIGHT: Auth panel ── */}
+          {/* RIGHT: Auth panel */}
           <div className="rounded-2xl p-6 border" style={{ background:'rgba(30,41,59,0.8)', border:'1px solid rgba(255,255,255,0.09)', backdropFilter:'blur(20px)' }}>
 
             {/* Tab switcher */}
-            <div className="grid grid-cols-2 rounded-xl p-1 mb-5 gap-0" style={{ background:'rgba(0,0,0,0.3)' }}>
+            <div className="grid grid-cols-2 rounded-xl p-1 mb-5" style={{ background:'rgba(0,0,0,0.3)' }}>
               {(['login','signup'] as const).map(tab => (
                 <button key={tab}
-                  onClick={() => { setAuthTab(tab); if (tab==='signup') setSignupOpen(true) }}
+                  onClick={() => {
+                    if (tab === 'signup') {
+                      router.push('/signup')
+                    } else {
+                      setActiveTab('login')
+                    }
+                  }}
                   className="py-2 rounded-lg text-sm font-bold transition-all"
-                  style={{ background:authTab===tab?'#f97316':'transparent', color:authTab===tab?'white':'#94A3B8', boxShadow:authTab===tab?'0 2px 8px rgba(249,115,22,0.3)':'none' }}>
+                  style={{
+                    background: activeTab === tab ? '#f97316' : 'transparent',
+                    color: activeTab === tab ? 'white' : '#94A3B8',
+                    boxShadow: activeTab === tab ? '0 2px 8px rgba(249,115,22,0.3)' : 'none',
+                  }}>
                   {tab === 'login' ? 'Sign In' : 'Sign Up'}
                 </button>
               ))}
@@ -470,52 +463,31 @@ function LandingPageContent() {
               {mode==='reset'  && <><h2 className="text-lg font-bold text-slate-100">Create New Password</h2><p className="text-xs text-slate-400 mt-0.5">Minimum 8 characters</p></>}
             </div>
 
-            {/* Form */}
-            {authTab === 'login'
-              ? authForm
-              : (
-                <div className="text-center py-3">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-emerald-500/10 border-2 border-emerald-500">
-                    <Zap className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-100 mb-1.5">Create Your Account</h3>
-                  <p className="text-xs text-slate-400 mb-4 leading-relaxed">Start your 7-day free trial — no credit card required</p>
-                  <PrimaryBtn onClick={() => setSignupOpen(true)}>Start Free Trial <ArrowRight className="w-4 h-4" /></PrimaryBtn>
-                  <p className="text-xs text-slate-400 mt-3">Already have an account?{' '}
-                    <button onClick={() => setAuthTab('login')} className="text-orange-400 font-semibold hover:text-orange-300 bg-transparent border-none cursor-pointer p-0 text-xs">Sign in</button>
-                  </p>
-                </div>
-              )
-            }
+            {/* Auth form — always login mode content here, signup routes away */}
+            {authForm}
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            SERVICE CARDS — all 6 visible, below hero, within 80% container
-        ══════════════════════════════════════════════════════════════════ */}
+        {/* ── SERVICE CARDS ── */}
         <div className="border-t border-white/8 pt-6 pb-8">
 
-          {/* Section label */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-slate-500">Our Services</span>
             <div className="flex-1 h-px bg-white/8" />
             <span className="text-[10px] font-bold text-orange-400 whitespace-nowrap">6 Core Solutions</span>
           </div>
 
-          {/* 6-column card grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {SERVICES.map(({ href, title, subtitle, gradient, Icon, badge }) => (
               <Link key={href} href={href}
                 className="svc-card flex flex-col rounded-xl overflow-hidden no-underline"
                 style={{ background:'#1e293b', border:'1px solid rgba(255,255,255,0.09)', textDecoration:'none' }}>
-                {/* Gradient banner */}
                 <div className={`relative h-14 bg-gradient-to-br ${gradient} overflow-hidden flex-shrink-0`}>
                   <Icon className="absolute bottom-1 right-1.5 w-8 h-8 text-white/18" />
                   {badge && (
                     <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/30 backdrop-blur-sm text-white text-[8px] font-bold rounded-full">{badge}</span>
                   )}
                 </div>
-                {/* Body */}
                 <div className="flex items-start gap-2 p-2 border-t border-white/8">
                   <Icon className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
                   <div className="min-w-0">
@@ -527,17 +499,17 @@ function LandingPageContent() {
             ))}
           </div>
 
-          {/* Quick nav links — matches Header nav items */}
+          {/* Quick nav links */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 pt-4 border-t border-white/8">
             <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-600">Quick Links</span>
             {[
-              { href:'/dashboard',     label:'Dashboard',        Icon:LayoutDashboard },
-              { href:'/opportunities', label:'Opportunities',    Icon:Briefcase       },
-              { href:'/alerts',        label:'Alerts & Searches',Icon:Bell            },
-              { href:'/insights',      label:'Insights',         Icon:LineChart       },
-              { href:'/services',      label:'All Services',     Icon:Building        },
-              { href:'/pricing',       label:'Pricing',          Icon:CreditCard      },
-              { href:'/support',       label:'Support',          Icon:Mail            },
+              { href:'/dashboard',     label:'Dashboard',         Icon:LayoutDashboard },
+              { href:'/opportunities', label:'Opportunities',     Icon:Briefcase       },
+              { href:'/alerts',        label:'Alerts & Searches', Icon:Bell            },
+              { href:'/insights',      label:'Insights',          Icon:LineChart       },
+              { href:'/services',      label:'All Services',      Icon:Building        },
+              { href:'/pricing',       label:'Pricing',           Icon:CreditCard      },
+              { href:'/support',       label:'Support',           Icon:Mail            },
             ].map(({ href, label, Icon: NavIcon }) => (
               <Link key={href} href={href} className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-orange-400 transition-colors no-underline">
                 <NavIcon className="w-3 h-3" />{label}
@@ -547,9 +519,6 @@ function LandingPageContent() {
         </div>
 
       </div>{/* end 80% container */}
-
-      {/* Signup Modal */}
-      <CustomSignupModal isOpen={signupOpen} onClose={() => setSignupOpen(false)} onSuccess={() => router.push('/search')} />
     </div>
   )
 }
