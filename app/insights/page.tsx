@@ -180,9 +180,9 @@ const PLACEHOLDER_INSIGHTS: AIInsight[] = [
 ];
 
 const WELCOME_MESSAGES = [
-  "Here's what matters most in today�s federal market.",
+  "Here's what matters most in today’s federal market.",
   'Your GovCon intelligence dashboard is ready.',
-  'Let�s prioritize your next bids and alerts.',
+  'Let’s prioritize your next bids and alerts.',
   'Fresh signals, clear next steps.',
 ];
 
@@ -756,7 +756,7 @@ export default function InsightsPage() {
         ).length,
       },
       {
-        label: '1�3d',
+        label: '1–3d',
         count: expiringSorted.filter(
           (o: any) =>
             o.daysToDeadline > 1 &&
@@ -764,7 +764,7 @@ export default function InsightsPage() {
         ).length,
       },
       {
-        label: '4�7d',
+        label: '4–7d',
         count: expiringSorted.filter(
           (o: any) =>
             o.daysToDeadline > 3 &&
@@ -962,18 +962,18 @@ export default function InsightsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm">
-        <div className="max-w-[1800px] mx-auto px-6 lg:px-10 xl:px-12 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 py-5 sm:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-emerald-500 flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-emerald-500 flex items-center justify-center shadow-md flex-shrink-0">
                   <LineChart className="h-5 w-5 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h1 className="text-2xl font-extrabold text-gray-900">
                     Insights Dashboard
                   </h1>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 truncate">
                     {welcomeMessage || 'Your intelligence hub'}
                   </p>
                 </div>
@@ -1018,10 +1018,10 @@ export default function InsightsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-gray-800 transition disabled:opacity-70"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-gray-800 transition disabled:opacity-70"
                 disabled={refreshing}
               >
                 {refreshing ? (
@@ -1035,7 +1035,7 @@ export default function InsightsPage() {
                 onClick={() =>
                   router.push('/opportunities')
                 }
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-gray-900 border border-gray-200 shadow-sm hover:bg-gray-50 transition"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-gray-900 border border-gray-200 shadow-sm hover:bg-gray-50 transition"
               >
                 <ArrowUpRight className="h-4 w-4" />
                 <span>Open Opportunities</span>
@@ -1059,7 +1059,7 @@ export default function InsightsPage() {
                     {a.sub}
                   </div>
                 </div>
-                <div className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-900 transition">
+                <div className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-900 transition flex-shrink-0">
                   <ArrowUpRight className="h-4 w-4 text-gray-700 group-hover:text-white transition" />
                 </div>
               </button>
@@ -1069,7 +1069,7 @@ export default function InsightsPage() {
       </div>
 
       {/* Main */}
-      <div className="max-w-[1800px] mx-auto px-6 lg:px-10 xl:px-12 py-8">
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 py-8">
         {!!error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 mt-0.5" />
@@ -1139,7 +1139,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Expiring =7d
+                  Expiring &le;7d
                 </div>
                 <div className="mt-1 text-3xl font-extrabold text-gray-900">
                   {formatCompact(stats.expiringSoon)}
@@ -1303,7 +1303,7 @@ export default function InsightsPage() {
                     <span className="text-orange-600">
                       {dashboard.expiring24h}
                     </span>{' '}
-                    &lt;24h �{' '}
+                    &lt;24h ·{' '}
                     <span className="text-orange-600">
                       {dashboard.expiring72h}
                     </span>{' '}
@@ -1358,7 +1358,7 @@ export default function InsightsPage() {
                     <span>Quick rule</span>
                   </div>
                   <div className="text-sm text-gray-600 mt-1">
-                    If it�s a good fit and &lt;72 hours to
+                    If it’s a good fit and &lt;72 hours to
                     deadline, assign an owner and decide today.
                   </div>
                 </div>
@@ -1408,7 +1408,7 @@ export default function InsightsPage() {
                           }
                         : days <= 7
                         ? {
-                            label: '=7d',
+                            label: '≤7d',
                             cls: 'bg-amber-50 text-amber-800 border-amber-200',
                           }
                         : {
@@ -1599,7 +1599,7 @@ export default function InsightsPage() {
                     <span>Market trends</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    What�s rising or falling in your opportunity
+                    What’s rising or falling in your opportunity
                     stream.
                   </div>
                 </div>
@@ -1816,7 +1816,7 @@ export default function InsightsPage() {
               </div>
               <div className="text-sm text-gray-600">
                 Quick preview of recent opportunities; tap
-                �Open� to view in the explorer.
+                “Open” to view in the explorer.
               </div>
             </div>
             <button
@@ -1897,7 +1897,7 @@ export default function InsightsPage() {
             <div className="mt-6 rounded-2xl bg-gray-50 border border-gray-200 p-5 flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
               <div className="text-sm text-gray-700">
-                Loading live data; you�ll see real analytics
+                Loading live data; you’ll see real analytics
                 once the SAM feed arrives.
               </div>
             </div>
