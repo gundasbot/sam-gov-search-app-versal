@@ -1,4 +1,4 @@
-//app/api/outreach/test-contractors/route
+// app/api/outreach/test-contractors/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -12,17 +12,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
     }
 
-    // Use 'Contractor' with capital C - matches your schema model name
-    const contractor = await prisma.contractor.create({
+    const contractor = await prisma.contractors.create({
       data: {
+        id: crypto.randomUUID(),
         name,
         email,
         naics_code: naics_code || null,
         state: state || null,
         business_type: business_type || null,
         score: 0,
-        // priority field removed since it's not in the destructured variables
-        // and the schema shows it's an optional String? field
         pipeline_stage: 'new',
         contacted: false,
         enrolled: false,
@@ -39,8 +37,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE() {
   try {
-    // Use 'Contractor' with capital C here too
-    const result = await prisma.contractor.deleteMany({
+    const result = await prisma.contractors.deleteMany({
       where: { is_test: true },
     });
     return NextResponse.json({ deleted: result.count });

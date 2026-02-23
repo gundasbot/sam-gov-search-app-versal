@@ -13,6 +13,8 @@ import ProfileCompletionReminder from '@/components/ProfileCompletionReminder'
 import AIAnalytics from '@/components/AIAnalytics'
 import InlineDatePicker from '@/components/InlineDatePicker'
 import SaveSearchSuccessModal from '@/components/SaveSearchSuccessModal'
+import ExportSharePanel from '@/components/ExportSharePanel'
+import BrowsingTimerBanner from '@/components/BrowsingTimerBanner'
 // Import verified SAM.gov constants
 import {
   SET_ASIDE_OPTIONS,
@@ -261,7 +263,7 @@ function useBrowsingSession() {
         const startTime = parseInt(storedStartTime, 10)
         const elapsed = now - startTime
         
-        if (elapsed >= 900000) { // 15 minutes = 900000ms
+      if (elapsed >= 1200000) {
           setShowLockoutModal(true)
         } else {
           setBrowsingStartTime(startTime)
@@ -287,13 +289,12 @@ function useBrowsingSession() {
       const now = Date.now()
       const elapsed = now - browsingStartTime
 
-      // Show reminder at 10 minutes (5 minutes left)
-      if (elapsed >= 600000 && elapsed < 601000) {
+      // Show reminder at 13 minutes (7 minutes left)
+      if (elapsed >= 780000 && elapsed < 781000) {
         setShowReminderModal(true)
       }
-
-      // Show lockout at 15 minutes
-      if (elapsed >= 900000) {
+      // Show lockout at 20 minutes
+      if (elapsed >= 1200000) {
         setShowLockoutModal(true)
         clearInterval(interval)
       }
@@ -721,7 +722,7 @@ interface OpportunityCardProps {
   opportunity: Opp
   index: number
   isSaved: boolean
-  toggleSaved: (id: string) => void
+  toggleSaved: (id: string, data?: any) => void
   copyText: (text: string) => void
   copiedId: string | null
 }
@@ -778,21 +779,23 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
             )}
           </div>
           <button
-            onClick={() => toggleSaved(id)}
-            className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            onClick={() => toggleSaved(id, opportunity)}
+            className={`flex-shrink-0 p-2 rounded-lg transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-100'}`}
             aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
+            title={isSaved ? 'Saved — click to unsave' : 'Save this opportunity'}
           >
             {isSaved ? (
-              <BookmarkCheck className="h-5 w-5 text-blue-600" />
-            ) : (
-              <Bookmark className="h-5 w-5 text-gray-400" />
-            )}
+              <div className="relative w-5 h-5">
+                <Shield className="h-5 w-5 text-amber-500 fill-amber-400" />
+                <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" strokeWidth={3} />
+              </div>
+            ) : (<Bookmark className="h-5 w-5 text-gray-400" />)}
           </button>
         </div>
         
         <div className="flex items-center gap-2 text-base text-gray-700 mb-2">
           <Building2 className="h-4 w-4 flex-shrink-0 text-gray-400" />
-          <span className="truncate">{department}</span>
+          <span className="truncate font-bold">{department}</span>
         </div>
         
         {daysUntilDeadline !== null && (
@@ -822,27 +825,38 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
       <div className="p-5 space-y-3 flex-1 overflow-y-auto">
         <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <span className="text-sm font-bold text-gray-500 uppercase tracking-wide">Posted:</span>
+          <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">Posted:</span>
           <span className="text-base font-extrabold text-gray-900">{postedDate}</span>
         </div>
         
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-red-600 flex-shrink-0" />
-          <span className="text-sm font-bold text-gray-500 uppercase tracking-wide">Deadline:</span>
+          <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">Deadline:</span>
           <span className="text-base font-extrabold text-red-700">{responseDeadline}</span>
         </div>
+
+        {/* Place of Performance */}
+        {(opportunity.placeOfPerformance?.city?.name || opportunity.placeOfPerformance?.state?.code) && (
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-indigo-500 flex-shrink-0" />
+            <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">Location:</span>
+            <span className="text-base font-extrabold text-indigo-700">
+              {[opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(', ')}
+            </span>
+          </div>
+        )}
         
         {setAsideLabel !== 'Not specified' && (
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-            <span className="text-base font-medium text-emerald-700 line-clamp-1">{setAsideLabel}</span>
+            <span className="text-base font-extrabold text-emerald-700 line-clamp-1">{setAsideLabel}</span>
           </div>
         )}
         
-        <div className="flex items-center gap-2 text-base text-gray-600">
-          <Hash className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <span className="text-sm text-gray-500">NAICS:</span>
-          <span className="font-mono font-medium">{naics}</span>
+        <div className="flex items-center gap-2">
+          <Hash className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">NAICS:</span>
+          <span className="text-base font-extrabold text-blue-700">{naics}</span>
         </div>
       </div>
 
@@ -879,7 +893,7 @@ const ResultCard = ({
   isExpanded: boolean,
   toggleExpanded: (id: string) => void,
   isSaved: boolean,
-  toggleSaved: (id: string) => void,
+  toggleSaved: (id: string, data?: any) => void,
   copyText: (text: string) => void,
   copiedId: string | null
 }) => {
@@ -927,16 +941,17 @@ const ResultCard = ({
           )}
         </button>
         <button
-          onClick={() => toggleSaved(id)}
-          className="p-1.5 rounded-lg bg-white/6 hover:bg-white/7 transition-colors"
-          title={isSaved ? 'Remove from saved' : 'Save opportunity'}
+          onClick={() => toggleSaved(id, opportunity)}
+          className={`p-1.5 rounded-lg transition-all ${isSaved ? 'bg-amber-100 hover:bg-amber-200' : 'hover:bg-gray-100'}`}
+          title={isSaved ? 'Saved — click to unsave' : 'Save this opportunity'}
           aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
         >
           {isSaved ? (
-            <BookmarkCheck className="h-4 w-4 text-white" />
-          ) : (
-            <Bookmark className="h-4 w-4 text-gray-600" />
-          )}
+            <div className="relative w-4 h-4">
+              <Shield className="h-4 w-4 text-amber-500 fill-amber-400" />
+              <Check className="h-2.5 w-2.5 text-white absolute top-0.5 left-0.5" strokeWidth={3} />
+            </div>
+          ) : (<Bookmark className="h-4 w-4 text-gray-600" />)}
         </button>
       </div>
       
@@ -1017,12 +1032,12 @@ const ResultCard = ({
               </div>
             </div>
             
-            {/* Place of Performance (City/State) - NEW */}
+            {/* Place of Performance (City/State) */}
             <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+              <MapPin className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-sm font-bold text-orange-500">Place of Performance</div>
-                <div className="text-sm text-gray-700 font-medium break-words">{placeOfPerformance}</div>
+                <div className="text-sm font-extrabold text-orange-500">Place of Performance</div>
+                <div className="text-sm font-extrabold text-indigo-700 break-words">{placeOfPerformance || 'N/A'}</div>
               </div>
             </div>
             
@@ -1051,8 +1066,8 @@ const ResultCard = ({
               <div className="flex items-start gap-2">
                 <Tag className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-sm font-bold text-orange-500">NAICS Code</div>
-                  <div className="text-sm text-gray-700 font-medium">{opportunity.naicsCode}</div>
+                  <div className="text-sm font-extrabold text-orange-500">NAICS Code</div>
+                  <div className="text-base font-extrabold text-blue-700">{opportunity.naicsCode}</div>
                 </div>
               </div>
             )}
@@ -1526,21 +1541,63 @@ const useSearchHistory = () => {
   return { recentSearches, saveSearchToHistory, setRecentSearches };
 };
 
-// Opportunity Management Hook
-const useOpportunityManagement = () => {
+// Opportunity Management Hook — persists to DB via API so dashboard & alerts show saved opps
+const useOpportunityManagement = (showToast?: (msg: string) => void) => {
   const [saved, setSaved] = useState<Record<string, boolean>>({});
+  // Store full opportunity data keyed by id so we can POST it to the API
+  const opportunityDataRef = React.useRef<Record<string, any>>({});
 
-  const toggleSaved = useCallback((id: string) => {
+  const toggleSaved = useCallback((id: string, opportunityData?: any) => {
     setSaved((p) => {
-      const newSaved = { ...p, [id]: !p[id] }
+      const isNowSaved = !p[id]
+      const newSaved = { ...p, [id]: isNowSaved }
+
+      // Show toast notification
+      if (showToast) {
+        if (isNowSaved && opportunityData) {
+          showToast(`✓ Saved: ${opportunityData.title?.slice(0, 45) || 'Opportunity'}`)
+        } else if (!isNowSaved) {
+          showToast('Removed from saved opportunities')
+        }
+      }
+
+      // Persist to localStorage as a fallback
       try {
         localStorage.setItem('govcon_saved_opportunities', JSON.stringify(newSaved))
       } catch (error) {
-        console.error('Failed to save opportunities:', error)
+        console.error('Failed to save to localStorage:', error)
       }
+
+      // Persist to DB via API
+      if (isNowSaved && opportunityData) {
+        opportunityDataRef.current[id] = opportunityData
+        fetch('/api/saved-opportunities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            noticeId: id,
+            title: opportunityData.title,
+            solicitationNumber: opportunityData.solicitationNumber,
+            department: opportunityData.department || opportunityData.fullParentPathName,
+            postedDate: opportunityData.postedDate,
+            responseDeadLine: opportunityData.responseDeadLine,
+            naicsCode: opportunityData.naicsCode,
+            type: opportunityData.type,
+            setAside: opportunityData.typeOfSetAsideDescription || opportunityData.typeOfSetAside || opportunityData.setAside,
+            placeOfPerformance: opportunityData.placeOfPerformance,
+            uiLink: opportunityData.uiLink,
+            organizationName: opportunityData.organizationName,
+          }),
+        }).catch(err => console.error('Failed to save opportunity to DB:', err))
+      } else if (!isNowSaved) {
+        // Remove from DB
+        fetch(`/api/saved-opportunities/${id}`, { method: 'DELETE' })
+          .catch(err => console.error('Failed to delete saved opportunity from DB:', err))
+      }
+
       return newSaved
     });
-  }, []);
+  }, [showToast]);
 
   return { saved, toggleSaved, setSaved };
 };
@@ -1844,6 +1901,78 @@ interface QuickSearchProps {
   isSearching: boolean; isLoading: boolean
 }
 function QuickSearch(_p: QuickSearchProps) { return null }
+
+// ── STEP 2: Add these helpers OUTSIDE the component (above SearchPageContent) ──
+
+/** Write last search to sessionStorage so Dashboard & Insights can read it */
+function writeSearchContext(results: any[], params: Record<string, string>) {
+  try {
+    sessionStorage.setItem('lastSearchResults', JSON.stringify({
+      results: results.slice(0, 50),
+      params,
+      searchedAt: new Date().toISOString(),
+      count: results.length,
+    }))
+  } catch { /* quota — ignore */ }
+}
+
+/** Simple toast hook (paste once near the top of the file) */
+function useToast() {
+  const [toast, setToast] = useState<string | null>(null)
+  const showToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 2500)
+  }, [])
+  const ToastUI = toast ? (
+    <div className="fixed bottom-6 right-6 z-[200] flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold">
+      <Check className="h-4 w-4 text-emerald-400" />
+      {toast}
+    </div>
+  ) : null
+  return { showToast, ToastUI }
+}
+
+// ── STEP 8: Add sticky prompt component + render ──
+// Add this component definition above SearchPageContent:
+function StickyResultsPrompt({
+  count, keywords, onSave, onAlert, onDismiss,
+}: { count: number; keywords: string; onSave: () => void; onAlert: () => void; onDismiss: () => void }) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-700 to-teal-700 text-white px-4 py-3 shadow-2xl border-t-2 border-emerald-500">
+      <div className="max-w-[1760px] mx-auto flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="h-5 w-5 text-emerald-300 flex-shrink-0" />
+          <span className="font-bold text-sm">
+            Found <span className="text-emerald-200 text-base">{count.toLocaleString()}</span> results
+            {keywords ? <> for <span className="text-emerald-200">"{keywords}"</span></> : ''}
+            — save this search or get alerts so you never miss an update
+          </span>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={onSave}
+            className="flex items-center gap-1.5 px-4 py-2 bg-white text-emerald-800 font-bold text-sm rounded-lg hover:bg-emerald-50 transition-colors shadow-sm"
+          >
+            <Save className="h-4 w-4" />Save Search
+          </button>
+          <button
+            onClick={onAlert}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white font-bold text-sm rounded-lg hover:bg-emerald-600 transition-colors border border-emerald-400"
+          >
+            <Bell className="h-4 w-4" />Get Alerts
+          </button>
+          <button
+            onClick={onDismiss}
+            className="p-1.5 hover:bg-emerald-600 rounded-lg transition-colors"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // --- Main Component ---
 // ============================================================
@@ -2190,6 +2319,7 @@ function SearchPageContent() {
   const [data, setData] = useState<ApiResponse | null>(null)
   const [showFilters, setShowFilters] = useState(true)
   const [showExportMenu, setShowExportMenu] = useState(false)
+  const [showSavedOnly, setShowSavedOnly] = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -2240,7 +2370,10 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
 
   // Custom hooks
   const { recentSearches, saveSearchToHistory, setRecentSearches } = useSearchHistory();
-  const { saved, toggleSaved, setSaved } = useOpportunityManagement();
+  const { showToast, ToastUI } = useToast()
+  const [showStickyPrompt, setShowStickyPrompt] = useState(false)
+  const [stickyPromptDismissed, setStickyPromptDismissed] = useState(false)
+  const { saved, toggleSaved, setSaved } = useOpportunityManagement(showToast);
   const { saveSearchState, restoreSearchState } = useSearchStatePersistence();
 
   // Timer effect - updates search duration every second
@@ -2774,6 +2907,10 @@ useEffect(() => {
       setActiveFilter(null);
       
       saveSearchToHistory(qs.toString());
+
+      // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
+      writeSearchContext(opps || [], Object.fromEntries(qs.entries()))
+      if (!stickyPromptDismissed) setShowStickyPrompt(true)
       
       console.log('API Search successful:', {
         results: (opps?.length ?? 0),
@@ -2901,14 +3038,10 @@ useEffect(() => {
       // ===== TEXT SEARCH =====
       // PERFORMANCE FIX: Use debounced keywords
       if (debouncedKeywords.trim()) {
-        const keywords = debouncedKeywords.trim()
-        
-        // Use 'title' parameter to search ONLY in opportunity titles
-        // This gives more relevant results than 'q' which searches all fields
-        qs.set('title', keywords)
-        
-        // NOTE: Searching titles only ensures results actually contain the search term
-        // in the opportunity name, not buried in description text
+        const kw = debouncedKeywords.trim()
+        const isNaicsLike = /^\d{2,6}$/.test(kw)
+        if (isNaicsLike && !naics.trim()) { qs.set('ncode', kw) }
+        else if (!isNaicsLike) { qs.set('title', kw) }
       }
       
       // ===== CLASSIFICATION CODES =====
@@ -2942,11 +3075,9 @@ useEffect(() => {
         qs.set('ptype', procurementType.trim())
       }
       
-      // STATE - convert array to comma-separated string for API
+      // STATE — skip if ncode is set (SAM.gov returns 0 when both sent together)
       const stateString = locationCodesToString(selectedStates)
-      if (stateString) {
-        qs.set('state', stateString)
-      }
+      if (stateString && !qs.has('ncode')) { qs.set('state', stateString) }
       // ZIP Code (NEW)
       if (placeOfPerformanceZip.trim()) {
         qs.set('zip', placeOfPerformanceZip.trim())
@@ -2974,8 +3105,15 @@ useEffect(() => {
       // NOTE: Do NOT add postedTo=today automatically — it restricts to 1 day and filters too aggressively
       
       // ===== RESPONSE DEADLINE (DEADLINE BY - LESS THAN OR EQUAL TO) =====
-      if (responseDeadline.trim()) {
-        qs.set('rdlto', formatDateForAPI(responseDeadline.trim()))
+      // Use responseDeadlineBefore (the UI date picker) as rdlto upper bound.
+      // Fall back to legacy responseDeadline for saved-search compatibility.
+      const deadlineUpperBound = responseDeadlineBefore.trim() || responseDeadline.trim()
+      if (deadlineUpperBound) {
+        qs.set('rdlto', formatDateForAPI(deadlineUpperBound))
+      }
+      // Only send rdlfrom if user explicitly set it (avoids conflicting with route.ts default)
+      if (responseDeadlineAfter.trim()) {
+        qs.set('rdlfrom', formatDateForAPI(responseDeadlineAfter.trim()))
       }
       
       // ===== PAGINATION =====
@@ -3079,6 +3217,9 @@ useEffect(() => {
         setActiveFilter(null) // reset subset view on fresh search
         // Save search to history
         saveSearchToHistory(qs.toString())
+        // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
+        writeSearchContext(opps || [], Object.fromEntries(qs.entries()))
+        if (!stickyPromptDismissed) setShowStickyPrompt(true)
       }
 
       console.log('API Search successful', { 
@@ -3419,13 +3560,14 @@ ${filteredResults.map(opp => `  <opportunity>
   // so they're ready to refine — but DON'T auto-apply the advanced filter
   useEffect(() => {
     if (results.length > 0) {
-      setAdvKeywords(keywords)
+      // Only sync if user hasn't typed their own filter keyword yet
+      if (!advKeywords) setAdvKeywords(keywords)
       setAdvPostedAfter(postedAfter)
-      setAdvResponseDeadline(responseDeadline)
-      setAdvancedApplied(false) // reset so advanced doesn't auto-filter
+      setAdvResponseDeadline(responseDeadlineBefore || responseDeadline)
+      setAdvancedApplied(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]) // fire only when data (search results) change
+  }, [data])
 
   // Filtered results with memoization - PERFORMANCE OPTIMIZED
   // ===== APPLY ADVANCED FILTERS (client-side if results exist, API search if not) =====
@@ -3481,8 +3623,16 @@ ${filteredResults.map(opp => `  <opportunity>
     }
 
     // ── ALWAYS filter by status if selected ──
-    // NOTE: Only filter OUT if explicitly inactive/archived - assume active if field missing
-    if (opportunityStatus.trim() && opportunityStatus.toLowerCase() !== 'active') {
+    if (!opportunityStatus.trim() || opportunityStatus.toLowerCase() === 'active') {
+      // When status=active: ALSO drop past-deadline opportunities.
+      // SAM.gov status=active means "not archived", NOT "deadline in future".
+      // Opportunities with no responseDeadLine are kept (open-ended contracts).
+      const now = Date.now()
+      arr = arr.filter(o => {
+        if (!o.responseDeadLine) return true
+        return new Date(o.responseDeadLine).getTime() >= now
+      })
+    } else {
       // User selected a specific non-active status (archived, cancelled, etc.)
       arr = arr.filter(o => {
         const oppActive = (o.active || '').toString().toLowerCase()
@@ -3490,100 +3640,26 @@ ${filteredResults.map(opp => `  <opportunity>
         return oppActive === opportunityStatus.toLowerCase() || oppStatus === opportunityStatus.toLowerCase()
       })
     }
-    // If status is "active" (default), don't filter - SAM.gov doesn't always include status field
 
+    // ── Always-on Refine Filters (instant client-side) ──
+    if (agency.trim()) { const ag = agency.trim().toLowerCase(); arr = arr.filter(o => (o.organizationName||'').toLowerCase().includes(ag)||(o.fullParentPathName||'').toLowerCase().includes(ag)) }
+    if (naics.trim()) { arr = arr.filter(o => (o.naicsCode||'').startsWith(naics.trim())) }
+    if (classificationCode.trim()) { arr = arr.filter(o => (o.classificationCode||'').toLowerCase().startsWith(classificationCode.trim().toLowerCase())) }
+    if (selectedStates.length > 0) { arr = arr.filter(o => selectedStates.some(code => (o.placeOfPerformance?.state?.code||'').toUpperCase()===code.toUpperCase())) }
+    if (procurementType.trim()) { arr = arr.filter(o => (o.type||'').toLowerCase().startsWith(procurementType.toLowerCase())||(o.baseType||'').toLowerCase().startsWith(procurementType.toLowerCase())) }
+    if (solicitationNumber.trim()) { arr = arr.filter(o => (o.solicitationNumber||'').toLowerCase().includes(solicitationNumber.trim().toLowerCase())) }
+    if (organizationCode.trim()) { arr = arr.filter(o => (o.organizationId||'').toLowerCase().includes(organizationCode.trim().toLowerCase())) }
     if (advancedApplied) {
-      // ── Client-side advanced filtering ──
-
-      // Keyword match (title or description)
       const kw = advKeywords.trim().toLowerCase()
-      if (kw) {
-        arr = arr.filter(o =>
-          (o.title || '').toLowerCase().includes(kw) ||
-          (o.description || '').toLowerCase().includes(kw)
-        )
-      }
-
-      // Agency
-      if (agency.trim()) {
-        const ag = agency.trim().toLowerCase()
-        arr = arr.filter(o =>
-          (o.organizationName || '').toLowerCase().includes(ag) ||
-          (o.fullParentPathName || '').toLowerCase().includes(ag)
-        )
-      }
-
-      // NAICS
-      if (naics.trim()) {
-        arr = arr.filter(o =>
-          (o.naicsCode || '').startsWith(naics.trim())
-        )
-      }
-
-      // PSC / Classification code
-      if (classificationCode.trim()) {
-        arr = arr.filter(o =>
-          (o.classificationCode || '').toLowerCase().startsWith(classificationCode.trim().toLowerCase())
-        )
-      }
-
-      // State
-      if (selectedStates.length > 0) {
-        arr = arr.filter(o =>
-          selectedStates.some(code =>
-            (o.placeOfPerformance?.state?.code || '').toUpperCase() === code.toUpperCase()
-          )
-        )
-      }
-
-      // Procurement Type
-      if (procurementType.trim()) {
-        arr = arr.filter(o =>
-          (o.type || '').toLowerCase().startsWith(procurementType.toLowerCase()) ||
-          (o.baseType || '').toLowerCase().startsWith(procurementType.toLowerCase())
-        )
-      }
-
-      // Solicitation number
-      if (solicitationNumber.trim()) {
-        arr = arr.filter(o =>
-          (o.solicitationNumber || '').toLowerCase().includes(solicitationNumber.trim().toLowerCase())
-        )
-      }
-
-      // Organization code
-      if (organizationCode.trim()) {
-        arr = arr.filter(o =>
-          (o.organizationId || '').toLowerCase().includes(organizationCode.trim().toLowerCase())
-        )
-      }
-
-      // Posted date (from)
-      if (advPostedAfter) {
-        const from = new Date(advPostedAfter).getTime()
-        arr = arr.filter(o => {
-          const d = new Date(o.postedDate || 0).getTime()
-          return d >= from
-        })
-      }
-
-      // Response deadline (up to)
-      if (advResponseDeadline) {
-        const to = new Date(advResponseDeadline).getTime()
-        arr = arr.filter(o => {
-          const d = new Date(o.responseDeadLine || 0).getTime()
-          return d <= to
-        })
-      }
+      if (kw) { arr = arr.filter(o => (o.title||'').toLowerCase().includes(kw)||(o.description||'').toLowerCase().includes(kw)) }
+      if (advPostedAfter) { const from = new Date(advPostedAfter).getTime(); arr = arr.filter(o => new Date(o.postedDate||0).getTime()>=from) }
+      if (advResponseDeadline) { const to = new Date(advResponseDeadline).getTime(); arr = arr.filter(o => new Date(o.responseDeadLine||0).getTime()<=to) }
     } else {
-      // Filter by active/inactive subset pill only
-      if (activeFilter !== null) {
-        arr = arr.filter(o => {
-          const isActiveOpp = o.active === "Yes" || o.active === "true" || o.active === (true as any)
-          return activeFilter === "true" ? isActiveOpp : !isActiveOpp
-        })
-      }
+      if (activeFilter !== null) { arr = arr.filter(o => { const isActiveOpp = o.active==="Yes"||o.active==="true"||o.active===(true as any); return activeFilter==="true"?isActiveOpp:!isActiveOpp }) }
     }
+
+    // ── Saved-only toggle ──
+    if (showSavedOnly) { arr = arr.filter(o => saved[o.noticeId || '']) }
 
     // Apply sorting (always)
     arr.sort((a, b) => {
@@ -3606,7 +3682,7 @@ ${filteredResults.map(opp => `  <opportunity>
     })
 
     return arr
-  }, [results, sortBy, activeFilter, advancedApplied,
+  }, [results, sortBy, activeFilter, advancedApplied, showSavedOnly, saved,
       advKeywords, advPostedAfter, advResponseDeadline,
       agency, selectedSetAsides, naics, classificationCode, selectedStates,
       procurementType, opportunityStatus, solicitationNumber, organizationCode])
@@ -3721,6 +3797,9 @@ ${filteredResults.map(opp => `  <opportunity>
   return (
     <SearchErrorBoundary>
       <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '12px' }} className="h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col overflow-hidden">
+        {/* ── STEP 6: Add ToastUI render at the top of the JSX return ── */}
+        {ToastUI}
+        <BrowsingTimerBanner />
         {/* Main content - full height utilization */}
         <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex-1 flex flex-col overflow-y-auto">
 
@@ -3757,6 +3836,21 @@ ${filteredResults.map(opp => `  <opportunity>
                     Active Opportunities
                   </div>
                 </div>
+                {/* ── STEP 9: Add navigation links inside the welcome banner ── */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Link href="/dashboard"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-lg transition-colors border border-white/20">
+                    <BarChart3 className="h-4 w-4" />Dashboard
+                  </Link>
+                  <Link href="/insights"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-lg transition-colors border border-white/20">
+                    <TrendingUp className="h-4 w-4" />Insights
+                  </Link>
+                  <Link href="/alerts"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                    <Bell className="h-4 w-4" />My Alerts
+                  </Link>
+                </div>
               </div>
 
               {/* Animated Tips Carousel - Professional */}
@@ -3778,61 +3872,28 @@ ${filteredResults.map(opp => `  <opportunity>
                   {/* Search input row */}
                   <div className="flex flex-col md:flex-row gap-3 mb-6">
                     <div className="flex-1 relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                        <Search className="h-6 w-6" />
-                      </div>
                       <input
                         type="text"
                         value={keywords}
                         onChange={(e) => setKeywords(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                        placeholder="Search by keyword, solicitation #, NAICS, or company name..."
-                        className="w-full pl-14 pr-4 py-5 text-xl rounded-xl border-2 border-gray-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all outline-none text-gray-900 placeholder-gray-500"
+                        placeholder="Search by keyword, solicitation #, NAICS, or agency..."
+                        className="w-full pl-4 pr-4 py-3.5 text-base rounded-lg border-2 border-gray-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all outline-none text-gray-900 placeholder-gray-400 font-medium"
                       />
                     </div>
-                    <button
-                      onClick={() => runSearch()}
-                      disabled={loading}
-                      className="px-10 py-5 bg-emerald-700 text-white font-bold text-xl rounded-xl hover:bg-emerald-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 min-w-[200px]"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                          Searching
-                        </>
-                      ) : (
-                        <>
-                          <Search className="h-6 w-6" />
-                          Search
-                        </>
-                      )}
+                    <button onClick={() => runSearch()} disabled={loading}
+                      className="px-6 py-3.5 bg-emerald-700 text-white font-bold text-base rounded-lg hover:bg-emerald-800 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap">
+                      {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Searching...</> : <><Search className="h-4 w-4" />Search</>}
                     </button>
-                    <button
-                      onClick={resetAll}
-                      className="px-10 py-5 bg-white text-gray-800 font-bold text-xl rounded-xl border-2 border-gray-400 hover:bg-gray-100 hover:border-gray-500 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-3 min-w-[200px]"
-                      aria-label="Reset all fields"
-                    >
-                      <RefreshCw className="h-6 w-6" />
-                      Reset All
+                    <button onClick={resetAll} className="px-5 py-3.5 bg-white text-gray-700 font-semibold text-base rounded-lg border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center gap-2 whitespace-nowrap" aria-label="Reset all fields">
+                      <RefreshCw className="h-4 w-4" />Reset All
                     </button>
-
-                    {/* Save Search + My Alerts stacked column */}
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => handleOpenSaveModal('save')}
-                        className="px-8 py-3 text-lg font-bold bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                      >
-                        <Save className="h-5 w-5" />
-                        Save Search
-                      </button>
-                      <button
-                        onClick={() => router.push('/alerts')}
-                        className="px-8 py-3 text-lg font-bold bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                      >
-                        <Bell className="h-5 w-5" />
-                        My Alerts
-                      </button>
-                    </div>
+                    <button onClick={() => handleOpenSaveModal('save')} className="px-5 py-3.5 bg-emerald-700 text-white font-semibold text-base rounded-lg hover:bg-emerald-800 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                      <Save className="h-4 w-4" />Save Search
+                    </button>
+                    <button onClick={() => router.push('/alerts')} className="px-5 py-3.5 bg-orange-600 text-white font-semibold text-base rounded-lg hover:bg-orange-700 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                      <Bell className="h-4 w-4" />My Alerts
+                    </button>
                   </div>
 
                   {/* Loading message with user input */}
@@ -3880,42 +3941,26 @@ ${filteredResults.map(opp => `  <opportunity>
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => setPostedAfter(getSixMonthsAgo())}
-                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
-                          >
-                            6 months
-                          </button>
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              d.setMonth(d.getMonth() - 3)
-                              setPostedAfter(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
-                          >
-                            3 months
-                          </button>
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              d.setMonth(d.getMonth() - 1)
-                              setPostedAfter(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
-                          >
-                            30 days
-                          </button>
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              d.setDate(d.getDate() - 14)
-                              setPostedAfter(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-emerald-600 text-white font-bold text-lg rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
-                          >
-                            2 weeks
-                          </button>
+                          {[
+                            { label: '12 months', days: -365 },
+                            { label: '9 months', days: -274 },
+                            { label: '6 months', days: -182 },
+                            { label: '3 months', days: -91 },
+                            { label: '30 days', days: -30 },
+                            { label: '2 weeks', days: -14 },
+                          ].map(({ label, days }) => (
+                            <button
+                              key={label}
+                              onClick={() => {
+                                const d = new Date()
+                                d.setDate(d.getDate() + days)
+                                setPostedAfter(d.toISOString().split('T')[0])
+                              }}
+                              className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-base rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                            >
+                              {label}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -3950,55 +3995,25 @@ ${filteredResults.map(opp => `  <opportunity>
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
-                          >
-                            Today
-                          </button>
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              d.setDate(d.getDate() + 14)
-                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
-                          >
-                            2 weeks
-                          </button>
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              d.setMonth(d.getMonth() + 1)
-                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
-                          >
-                            30 days
-                          </button>
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              d.setMonth(d.getMonth() + 3)
-                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
-                          >
-                            90 days
-                          </button>
-                          <button
-                            onClick={() => {
-                              const d = new Date()
-                              d.setMonth(d.getMonth() + 6)
-                              setResponseDeadlineBefore(d.toISOString().split('T')[0])
-                            }}
-                            className="px-5 py-3 bg-amber-600 text-white font-bold text-lg rounded-lg hover:bg-amber-700 transition-colors shadow-md"
-                          >
-                            6 months
-                          </button>
+                          {[
+                            { label: '2 weeks', days: 14 },
+                            { label: '30 days', days: 30 },
+                            { label: '45 days', days: 45 },
+                            { label: '60 days', days: 60 },
+                            { label: '90 days', days: 90 },
+                          ].map(({ label, days }) => (
+                            <button
+                              key={label}
+                              onClick={() => {
+                                const d = new Date()
+                                d.setDate(d.getDate() + days)
+                                setResponseDeadlineBefore(d.toISOString().split('T')[0])
+                              }}
+                              className="px-4 py-2.5 bg-amber-600 text-white font-bold text-base rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                            >
+                              {label}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -4103,17 +4118,21 @@ ${filteredResults.map(opp => `  <opportunity>
                     <Filter className="h-5 w-5 text-emerald-600" />
                     Refine Results
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {/* KEYWORD - FIRST */}
                     <div>
                       <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Keyword</label>
                       <input
                         type="text"
-                        value={keywords}
-                        onChange={(e) => setKeywords(e.target.value)}
+                        value={advKeywords}
+                        onChange={(e) => {
+                          setAdvKeywords(e.target.value)
+                          setAdvancedApplied(true)
+                        }}
                         placeholder="e.g., Data Analytics"
                         className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
                       />
+                      <p className="text-xs text-gray-400 mt-1">Filters shown results instantly</p>
                     </div>
                     {/* SET-ASIDE - SECOND */}
                     <div>
@@ -4165,12 +4184,14 @@ ${filteredResults.map(opp => `  <opportunity>
                         onChange={(e) => setProcurementType(e.target.value)}
                         className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
                       >
-                        <option value="">All Types</option>
-                        <option value="a">Award Notice</option>
-                        <option value="k">Combined Synopsis/Solicitation</option>
-                        <option value="p">Pre-Solicitation</option>
-                        <option value="o">Solicitation</option>
-                        <option value="r">Sources Sought</option>
+                        <option value="">All Opportunity Types</option>
+                        <option value="o">Solicitation — Formal request for bids/proposals</option>
+                        <option value="k">Combined Synopsis/Solicitation — Simplified bid request</option>
+                        <option value="p">Pre-Solicitation — Early notice before bidding opens</option>
+                        <option value="r">Sources Sought — Agency researching vendors</option>
+                        <option value="a">Award Notice — Contract already awarded</option>
+                        <option value="u">Justification (J&A) — Sole-source justification</option>
+                        <option value="s">Special Notice — General announcements</option>
                       </select>
                     </div>
                     {/* PSC CODE */}
@@ -4211,106 +4232,133 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                   </div>
                   
-                  {/* Active filters display */}
-                  {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-base font-bold text-gray-900">Active filters:</span>
-                        <button
-                          onClick={() => {
-                            setAgency('')
-                            setSelectedSetAsides([])
-                            setNaics('')
-                            setSelectedStates([])
-                            setProcurementType('')
-                            setClassificationCode('')
-                            setSolicitationNumber('')
-                            setOpportunityStatus('')
-                          }}
-                          className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
-                        >
-                          Clear all
-                        </button>
+                  {/* Active Filters bar — always visible with Reset button */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold text-gray-900">Active Refine Filters</span>
+                        {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) ? (
+                          <span className="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                            {[agency, ...selectedSetAsides, naics, ...selectedStates, procurementType, classificationCode, solicitationNumber, opportunityStatus].filter(Boolean).length} active
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400 font-medium">None — showing all results</span>
+                        )}
                       </div>
+                      <button
+                        onClick={() => {
+                          setAgency('')
+                          setSelectedSetAsides([])
+                          setNaics('')
+                          setSelectedStates([])
+                          setProcurementType('')
+                          setClassificationCode('')
+                          setSolicitationNumber('')
+                          setOpportunityStatus('active')
+                          setAdvancedApplied(false)
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Reset Refine Filters
+                      </button>
+                    </div>
+                    {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
                       <div className="flex flex-wrap gap-2">
                         {agency && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
                             Agency: {agency}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setAgency('')} />
+                            <button onClick={() => setAgency('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                         {selectedSetAsides.length > 0 && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
                             Set-Aside: {selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} selected`}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setSelectedSetAsides([])} />
+                            <button onClick={() => setSelectedSetAsides([])} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                         {naics && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
                             NAICS: {naics}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setNaics('')} />
+                            <button onClick={() => setNaics('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                         {selectedStates.length > 0 && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
                             State: {selectedStates.length === 1 ? (getLocationLabel(selectedStates[0]) || selectedStates[0]) : `${selectedStates.length} selected`}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setSelectedStates([])} />
+                            <button onClick={() => setSelectedStates([])} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                         {procurementType && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
-                            Type: {procurementType}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setProcurementType('')} />
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
+                            Type: {({'o':'Solicitation','k':'Combined Synopsis','p':'Pre-Solicitation','r':'Sources Sought','a':'Award Notice','u':'J&A','s':'Special Notice'} as Record<string,string>)[procurementType] || procurementType}
+                            <button onClick={() => setProcurementType('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                         {classificationCode && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
                             PSC: {classificationCode}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setClassificationCode('')} />
+                            <button onClick={() => setClassificationCode('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                         {solicitationNumber && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
                             Sol #: {solicitationNumber}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setSolicitationNumber('')} />
+                            <button onClick={() => setSolicitationNumber('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                         {opportunityStatus && (
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm flex items-center gap-1">
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
                             Status: {opportunityStatus}
-                            <X className="h-5 w-5 cursor-pointer hover:text-emerald-900" onClick={() => setOpportunityStatus('')} />
+                            <button onClick={() => setOpportunityStatus('active')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
                           </span>
                         )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Results count and save prompt */}
-              {filteredResults.length > 0 && (
+              {/* Results count and action bar */}
+              {(results.length > 0) && (
                 <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl border border-emerald-100 shadow-sm">
                   <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-semibold text-gray-900">
-                        {filteredResults.length >= 100 ? 'Excellent! ' : filteredResults.length >= 10 ? 'Great! ' : ''}
-                        We found <span className="font-bold text-emerald-700">{filteredResults.length.toLocaleString()}</span> {filteredResults.length === 1 ? 'opportunity' : 'opportunities'} that match your search
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-base font-bold text-gray-900">
+                        {showSavedOnly
+                          ? <><span className="text-amber-600">Showing {filteredResults.length} saved</span> of {results.length} results</>
+                          : <>{filteredResults.length >= 100 ? 'Excellent! ' : filteredResults.length >= 10 ? 'Great! ' : ''}We found <span className="font-bold text-emerald-700">{filteredResults.length.toLocaleString()}</span> {filteredResults.length === 1 ? 'opportunity' : 'opportunities'}</>
+                        }
                       </span>
+                      {Object.values(saved).filter(Boolean).length > 0 && (
+                        <button
+                          onClick={() => setShowSavedOnly(prev => !prev)}
+                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${showSavedOnly ? 'bg-gray-700 text-white hover:bg-gray-800' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
+                        >
+                          <Shield className="h-3.5 w-3.5 fill-current" />
+                          {showSavedOnly ? '← Back To All Results' : `View Saved (${Object.values(saved).filter(Boolean).length})`}
+                        </button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenSaveModal('save')}
-                        className="px-4 py-2 bg-white text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
-                      >
-                        <Save className="h-4 w-4" />
-                        Save this search
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* NEW — Export & Share */}
+                      <ExportSharePanel
+                        results={filteredResults}
+                        searchLabel={[
+                          keywords || 'All opportunities',
+                          postedAfter ? `from ${postedAfter}` : '',
+                          responseDeadlineBefore ? `due by ${responseDeadlineBefore}` : '',
+                        ].filter(Boolean).join(' · ')}
+                      />
+
+                      <button onClick={() => handleOpenSaveModal('save')} className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                        <Save className="h-3.5 w-3.5" />Save Search
                       </button>
-                      <button
-                        onClick={() => handleOpenSaveModal('alert')}
-                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium flex items-center gap-2 shadow-sm"
-                      >
-                        <Bell className="h-4 w-4" />
-                        Get alerts
+                      <button onClick={() => router.push('/alerts')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                        <ExternalLink className="h-3.5 w-3.5" />Saved &amp; Alerts
+                      </button>
+                      <button onClick={() => handleOpenSaveModal('alert')} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                        <Bell className="h-3.5 w-3.5" />Get Alerts
                       </button>
                     </div>
                   </div>
@@ -4337,7 +4385,7 @@ ${filteredResults.map(opp => `  <opportunity>
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {filteredResults.map((opp, idx) => (
                         <OpportunityCard
                           key={`${opp.noticeId || idx}`}
@@ -4376,26 +4424,38 @@ ${filteredResults.map(opp => `  <opportunity>
                   )}
                 </>
               ) : (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No matches yet, but don't worry!</h3>
-                  <p className="text-gray-600 mb-4">Let's try broadening your search. Here are some tips:</p>
-                  <div className="text-left max-w-md mx-auto mb-6 space-y-2 text-sm text-gray-700">
-                    <p>• Try removing some filters to see more results</p>
-                    <p>• Use broader keywords (e.g., "IT services" instead of specific product names)</p>
-                    <p>• Expand your date range to include more opportunities</p>
+                <div className="text-center py-16 bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                    <AlertCircle className="h-9 w-9 text-red-500" />
                   </div>
-                  <button
-                    onClick={resetAll}
-                    className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium shadow-sm"
-                  >
-                    Start fresh - Clear all filters
+                  <h3 className="text-2xl font-black text-gray-900 mb-2">No Results Found</h3>
+                  <p className="text-base font-bold text-gray-500 mb-6 max-w-sm mx-auto">Your filters returned 0 opportunities. Try adjusting your search.</p>
+                  <div className="text-left max-w-sm mx-auto mb-8 space-y-2 bg-amber-50 rounded-xl p-5 border border-amber-200">
+                    <p className="text-sm font-bold text-amber-900 uppercase tracking-wide mb-2">Suggestions</p>
+                    <p className="text-sm font-semibold text-gray-700">✓ Remove or relax active filters</p>
+                    <p className="text-sm font-semibold text-gray-700">✓ Use broader keywords (e.g., "IT services")</p>
+                    <p className="text-sm font-semibold text-gray-700">✓ Expand your date range</p>
+                    <p className="text-sm font-semibold text-gray-700">✓ Try a different state or remove state filter</p>
+                  </div>
+                  <button onClick={resetAll} className="px-8 py-3.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-black text-base shadow-md">
+                    Clear All Filters &amp; Start Fresh
                   </button>
                 </div>
               )}
             </div>
           )}
         </div>
+
+        {/* ── STEP 8: Add sticky prompt render just before closing main tag ── */}
+        {showStickyPrompt && !stickyPromptDismissed && filteredResults.length > 0 && (
+          <StickyResultsPrompt
+            count={filteredResults.length}
+            keywords={keywords}
+            onSave={() => { handleOpenSaveModal('save'); setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
+            onAlert={() => { handleOpenSaveModal('alert'); setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
+            onDismiss={() => { setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
+          />
+        )}
 
         {/* Modals */}
         <UnifiedSaveSearchModal
@@ -4424,165 +4484,12 @@ ${filteredResults.map(opp => `  <opportunity>
           searchName={successData.searchName}
           isSubscription={successData.isSubscription}
         />
-
-        <AccessControlModal
+                <AccessControlModal
           isOpen={showAccessModal}
           onClose={() => setShowAccessModal(false)}
           featureName={blockedFeature}
         />
 
-        {/* Reminder Modal - Shows at 10 minutes */}
-        {showReminderModal && !showLockoutModal && (
-          <AccessControlModal
-            isOpen={showReminderModal}
-            onClose={() => setShowReminderModal(false)}
-            featureName="Continue Browsing"
-            onAccessGranted={() => {
-              setShowReminderModal(false)
-            }}
-            initialMode="signup"
-          />
-        )}
-
-        {/* Lockout Modal - Enhanced with navigation links */}
-        {showLockoutModal && status === 'unauthenticated' && (
-          <>
-            {/* Backdrop - clicking outside dismisses */}
-            <div 
-              className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm"
-              onClick={() => setShowLockoutModal(false)}
-            />
-            
-            {/* Modal */}
-            <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-              <div 
-                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-200"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Header with brand color */}
-                <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 pt-8 pb-6">
-                  {/* Close button */}
-                  <button
-                    onClick={() => setShowLockoutModal(false)}
-                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
-                    aria-label="Close and continue browsing"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center shadow-lg">
-                      <Lock className="w-8 h-8 text-white" />
-                    </div>
-                  </div>
-                  
-                  <h2 className="text-2xl font-bold text-white text-center mb-2">
-                    Search Session Expired
-                  </h2>
-                  
-                  <p className="text-slate-300 text-center text-sm leading-relaxed">
-                    Your 15-minute free browsing session has ended. Sign up for unlimited access to federal contracting opportunities.
-                  </p>
-                </div>
-
-                {/* Body */}
-                <div className="px-8 py-6">
-                  {/* Primary actions */}
-                  <div className="space-y-3 mb-6">
-                    <button
-                      onClick={() => {
-                        setShowLockoutModal(false)
-                        setShowAccessModal(true)
-                      }}
-                      className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 group"
-                    >
-                      <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                      Sign Up or Sign In
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
-
-                    <button
-                      onClick={() => setShowLockoutModal(false)}
-                      className="w-full py-3.5 px-6 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition-all"
-                    >
-                      Continue Browsing Other Pages
-                    </button>
-                  </div>
-
-                  {/* Browse other pages section */}
-                  <div className="border-t border-slate-200 pt-6">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 text-center">
-                      Explore unrestricted pages
-                    </p>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <Link
-                        href="/"
-                        onClick={() => setShowLockoutModal(false)}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                          <Home className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-semibold text-slate-900">Home</p>
-                          <p className="text-xs text-slate-500">Learn more</p>
-                        </div>
-                      </Link>
-
-                      <Link
-                        href="/pricing"
-                        onClick={() => setShowLockoutModal(false)}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                          <DollarSign className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-semibold text-slate-900">Pricing</p>
-                          <p className="text-xs text-slate-500">View plans</p>
-                        </div>
-                      </Link>
-
-                      <Link
-                        href="/services"
-                        onClick={() => setShowLockoutModal(false)}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                          <FileText className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-semibold text-slate-900">Services</p>
-                          <p className="text-xs text-slate-500">What we offer</p>
-                        </div>
-                      </Link>
-
-                      <Link
-                        href="/support"
-                        onClick={() => setShowLockoutModal(false)}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                          <HelpCircle className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-semibold text-slate-900">Support</p>
-                          <p className="text-xs text-slate-500">Get help</p>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Footer note */}
-                  <p className="text-xs text-slate-400 text-center mt-6">
-                    Free 7-day trial • No credit card required • Cancel anytime
-                  </p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
       </main>
     </SearchErrorBoundary>
   )

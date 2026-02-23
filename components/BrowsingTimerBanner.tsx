@@ -3,35 +3,109 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Clock, X, Zap, AlertTriangle, ArrowRight, Home, FileText, DollarSign, HelpCircle } from 'lucide-react'
+import Image from 'next/image'
+import {
+  Clock, X, ArrowRight,
+  Home, FileText, DollarSign, HelpCircle,
+  Shield, Bell, CheckCircle,
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 
+// ─── helpers ──────────────────────────────────────────────────────────────────
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function TimerRing({
+  seconds,
+  total = 300,
+  size = 64,
+  stroke = 6,
+  color = '#16a34a',
+}: {
+  seconds: number
+  total?: number
+  size?: number
+  stroke?: number
+  color?: string
+}) {
+  const r = (size - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const dash = circ * Math.max(0, seconds / total)
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="#e5e7eb"
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ}`}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dasharray 0.8s ease-out' }}
+      />
+    </svg>
+  )
+}
+
+// ─── component ────────────────────────────────────────────────────────────────
 export default function BrowsingTimerBanner() {
   const { status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
+
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
   const [isExpired, setIsExpired] = useState(false)
   const [delayCount, setDelayCount] = useState(0)
   const [maxDelays, setMaxDelays] = useState(2)
   const [isDismissed, setIsDismissed] = useState(false)
+  const [dontAskAgain, setDontAskAgain] = useState(false)
   const [showModal, setShowModal] = useState(false)
 
-  // Auto-dismiss the modal when the user navigates away from /search
+  const STORAGE_KEY = 'browsing-timer-dismissed-permanently'
+
+  // Check "don't ask again" on mount
   useEffect(() => {
-    if (!pathname.startsWith('/search')) {
-      setShowModal(false)
+    const dismissed = localStorage.getItem(STORAGE_KEY)
+    if (dismissed === 'true') {
+      setDontAskAgain(true)
+      setIsDismissed(true)
     }
+  }, [])
+
+  // Show gentle banner when ≤5 min left
+  const showBanner =
+    timeRemaining !== null &&
+    timeRemaining > 0 &&
+    timeRemaining <= 300 &&
+    !isDismissed &&
+    !dontAskAgain
+
+  // Hide modal when leaving /search pages
+  useEffect(() => {
+    if (!pathname.startsWith('/search')) setShowModal(false)
   }, [pathname])
 
+  // Poll server for browsing status
   useEffect(() => {
-    if (status === 'authenticated') return
+    if (status === 'authenticated' || dontAskAgain) return
 
-    const checkTimer = async () => {
+    const check = async () => {
       try {
-        const response = await fetch('/api/browsing-status')
-        const data = await response.json()
+        const res = await fetch('/api/browsing-status')
+        const data = await res.json()
 
         if (data.timeRemaining !== undefined) {
           setTimeRemaining(data.timeRemaining)
@@ -41,226 +115,219 @@ export default function BrowsingTimerBanner() {
           setIsExpired(true)
           setDelayCount(data.delayCount || 0)
           setMaxDelays(data.maxDelays || 2)
-          // Only show the modal if the user is currently on the search page
-          if (pathname.startsWith('/search')) {
+          if (pathname.startsWith('/search') && !dontAskAgain) {
             setShowModal(true)
           }
         }
-      } catch (error) {
-        console.error('Error checking browsing status:', error)
+      } catch {
+        // silent fail
       }
     }
 
-    checkTimer()
-    const interval = setInterval(checkTimer, 30000)
-    return () => clearInterval(interval)
-  }, [status, pathname])
+    check()
+    const id = setInterval(check, 25000)
+    return () => clearInterval(id)
+  }, [status, pathname, dontAskAgain])
 
+  // Client-side countdown
   useEffect(() => {
-    if (timeRemaining !== null && timeRemaining > 0) {
-      const timer = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev === null || prev <= 0) return 0
-          return prev - 1
-        })
-      }, 1000)
-      return () => clearInterval(timer)
-    }
+    if (!timeRemaining || timeRemaining <= 0) return
+    const id = setInterval(() => {
+      setTimeRemaining((p) => (p && p > 0 ? p - 1 : 0))
+    }, 1000)
+    return () => clearInterval(id)
   }, [timeRemaining])
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
 
   const handleDelay = async () => {
     try {
-      const response = await fetch('/api/delay-signin', { method: 'POST' })
-      if (response.ok) {
-        const data = await response.json()
+      const res = await fetch('/api/delay-signin', { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
         setTimeRemaining(data.newTimeLimit)
         setDelayCount(data.delayCount)
         setShowModal(false)
         setIsExpired(false)
       }
-    } catch (error) {
-      console.error('Error delaying sign-in:', error)
+    } catch {
+      // silent
     }
   }
 
   const handleSignIn = () => {
-    router.push('/login?callbackUrl=' + window.location.pathname)
+    router.push('/login?callbackUrl=' + encodeURIComponent(window.location.pathname))
   }
 
-  const handleDismissModal = () => {
+  const handleDontAskAgain = () => {
+    localStorage.setItem(STORAGE_KEY, 'true')
+    setDontAskAgain(true)
+    setIsDismissed(true)
     setShowModal(false)
+  }
+
+  const handleBannerDismiss = () => {
     setIsDismissed(true)
   }
 
-  const handleNavigateAway = (path: string) => {
-    setShowModal(false)
-    router.push(path)
-  }
+  if (status === 'authenticated' || dontAskAgain || isDismissed) return null
 
-  if (status === 'authenticated' || isDismissed) return null
-
-  // ── Expired modal ──
+  // ── Expired modal ─────────────────────────────────────────────────────────────
   if (showModal && isExpired) {
     const canDelay = delayCount < maxDelays
     const delaysRemaining = maxDelays - delayCount
 
+    const perks = [
+      { icon: <Shield className="w-5 h-5" />, text: 'Unlimited SAM.gov searches' },
+      { icon: <Bell className="w-5 h-5" />, text: 'Email alerts for new bid posts' },
+      { icon: <CheckCircle className="w-5 h-5" />, text: 'Save & track opportunities' },
+      { icon: <FileText className="w-5 h-5" />, text: 'Export to CSV, JSON & more' },
+    ]
+
+    const navLinks = [
+      { href: '/', icon: <Home className="w-5 h-5" />, label: 'Home', sub: 'Learn more' },
+      { href: '/pricing', icon: <DollarSign className="w-5 h-5" />, label: 'Pricing', sub: 'View plans' },
+      { href: '/services', icon: <FileText className="w-5 h-5" />, label: 'Services', sub: 'What we offer' },
+      { href: '/support', icon: <HelpCircle className="w-5 h-5" />, label: 'Support', sub: 'Get help' },
+    ]
+
     return (
       <>
-        {/* Backdrop - clicking outside dismisses */}
         <div
-          className="fixed inset-0 z-[99] bg-slate-950/70 backdrop-blur-sm transition-opacity"
-          onClick={handleDismissModal}
+          className="fixed inset-0 z-[99] bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowModal(false)}
         />
-        
-        {/* Modal */}
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
+
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
           <div
-            className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-200"
+            className="relative w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-200"
             onClick={(e) => e.stopPropagation()}
+            style={{ fontFamily: 'Aptos, "Segoe UI", system-ui, sans-serif' }}
           >
-            {/* Header with gradient */}
-            <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 pt-8 pb-6">
-              {/* Close button - prominent X in corner */}
+            <div className="h-3 w-full bg-green-600" />
+
+            <div className="px-8 pt-8 pb-6 text-center relative">
               <button
-                onClick={handleDismissModal}
-                aria-label="Close and continue browsing"
-                className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                onClick={() => setShowModal(false)}
+                className="absolute top-5 right-5 w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 transition-all shadow"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-7 h-7" />
               </button>
 
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
-                  <Clock className="w-8 h-8 text-white" />
-                </div>
+              <div className="mx-auto mb-6 w-20 h-20 relative">
+                <Image
+                  src="/precise-govcon-logo.jpg"
+                  alt="Precise GovCon Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
-              
-              <h2 className="text-2xl font-bold text-white text-center mb-2">
-                {canDelay ? 'Your Search Session Expired' : 'Sign In to Continue Searching'}
+
+              <h2 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">
+                Your free preview has ended
               </h2>
-              
-              <p className="text-slate-300 text-center text-sm leading-relaxed">
-                {canDelay
-                  ? `You've used your 15-minute free search session. Sign up for unlimited access, or extend your session.`
-                  : `You've used all your free extensions. Create a free account to keep searching federal contracts.`
-                }
+              <p className="text-lg text-gray-700 font-medium max-w-xl mx-auto">
+                Sign up free to pick up right where you left off — no credit card required.
               </p>
             </div>
 
-            {/* Body */}
-            <div className="px-8 py-6">
-              {/* Extension warning */}
-              {canDelay && (
-                <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-amber-900">
-                      {delaysRemaining} extension{delaysRemaining !== 1 ? 's' : ''} remaining
-                    </p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      You can extend your session twice before signing up.
-                    </p>
+            <div className="grid md:grid-cols-2 border-t border-gray-200">
+              <div className="px-8 py-8 bg-gray-50">
+                <p className="text-base font-bold text-green-700 uppercase tracking-wide mb-6">
+                  Free Account Benefits
+                </p>
+                <ul className="space-y-4">
+                  {perks.map(({ icon, text }) => (
+                    <li key={text} className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0">
+                        {icon}
+                      </div>
+                      <span className="text-base font-bold text-gray-900">{text}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-6 p-5 rounded-2xl bg-green-50 border border-green-200">
+                  <p className="text-xl font-bold text-green-800">7-day free trial included</p>
+                  <p className="text-base text-green-700 mt-1">
+                    No card required • Cancel anytime
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-8 py-8 flex flex-col gap-8">
+                <div className="space-y-4">
+                  <button
+                    onClick={handleSignIn}
+                    className="w-full py-5 rounded-2xl font-extrabold text-xl text-white flex items-center justify-center gap-3 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95"
+                    style={{
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    }}
+                  >
+                    Create free account
+                    <ArrowRight className="w-6 h-6" />
+                  </button>
+
+                  {canDelay && (
+                    <button
+                      onClick={handleDelay}
+                      className="w-full py-4 rounded-2xl text-lg font-bold text-green-800 bg-green-100 hover:bg-green-200 border-2 border-green-300 transition-all flex items-center justify-center gap-3"
+                    >
+                      <Clock className="w-5 h-5" />
+                      Extend time ({delaysRemaining} left)
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="w-full py-4 rounded-2xl text-lg font-bold text-gray-700 bg-white hover:bg-gray-100 border-2 border-gray-300 transition-all"
+                  >
+                    Continue browsing without saving
+                  </button>
+                </div>
+
+                <div>
+                  <p className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-4 text-center">
+                    Explore More
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {navLinks.map(({ href, icon, label, sub }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setShowModal(false)}
+                        className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50/40 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 text-green-600 flex items-center justify-center flex-shrink-0 group-hover:bg-green-100 transition-colors">
+                          {icon}
+                        </div>
+                        <div>
+                          <p className="text-base font-bold text-gray-900 group-hover:text-green-800">
+                            {label}
+                          </p>
+                          <p className="text-sm text-gray-600">{sub}</p>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
                 </div>
-              )}
 
-              {/* Primary actions */}
-              <div className="space-y-3 mb-6">
-                <button
-                  onClick={handleSignIn}
-                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 group"
-                >
-                  <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  Sign In or Create Free Account
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                {canDelay && (
-                  <button
-                    onClick={handleDelay}
-                    className="w-full py-3.5 px-6 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition-all flex items-center justify-center gap-2"
-                  >
-                    <Clock className="w-5 h-5 text-slate-500" />
-                    Extend 15 Minutes ({delaysRemaining} left)
-                  </button>
-                )}
-              </div>
-
-              {/* Browse other pages section */}
-              <div className="border-t border-slate-200 pt-6">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 text-center">
-                  Or continue browsing these pages
+                <p className="text-center text-base text-gray-700 font-medium">
+                  Free 7-day trial • No credit card • Cancel anytime
                 </p>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <Link
-                    href="/"
-                    onClick={() => setShowModal(false)}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                      <Home className="w-5 h-5 text-slate-600" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">Home</p>
-                      <p className="text-xs text-slate-500">Learn about us</p>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/pricing"
-                    onClick={() => setShowModal(false)}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                      <DollarSign className="w-5 h-5 text-slate-600" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">Pricing</p>
-                      <p className="text-xs text-slate-500">View plans</p>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/services"
-                    onClick={() => setShowModal(false)}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                      <FileText className="w-5 h-5 text-slate-600" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">Services</p>
-                      <p className="text-xs text-slate-500">What we offer</p>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/support"
-                    onClick={() => setShowModal(false)}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
-                      <HelpCircle className="w-5 h-5 text-slate-600" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">Support</p>
-                      <p className="text-xs text-slate-500">Get help</p>
-                    </div>
-                  </Link>
-                </div>
               </div>
+            </div>
 
-              {/* Footer note */}
-              <p className="text-xs text-slate-400 text-center mt-6">
-                Free accounts include 7-day trial with full access to all features
-              </p>
+            <div className="px-8 py-5 bg-gray-50 border-t border-gray-200 text-center">
+              <label className="inline-flex items-center gap-3 cursor-pointer text-base text-gray-800 hover:text-gray-900">
+                <input
+                  type="checkbox"
+                  checked={dontAskAgain}
+                  onChange={handleDontAskAgain}
+                  className="w-5 h-5 rounded border-gray-400 text-green-600 focus:ring-green-500"
+                />
+                Don't show this again on this device
+              </label>
             </div>
           </div>
         </div>
@@ -268,64 +335,67 @@ export default function BrowsingTimerBanner() {
     )
   }
 
-  // ── Low-time warning banner (last 5 min) ──
-  if (timeRemaining !== null && timeRemaining > 0 && timeRemaining <= 300) {
-    const isUrgent = timeRemaining <= 60
+  // ── Gentle low-time banner (≤ 5 min left) ────────────────────────────────────
+  if (showBanner) {
+    const isVeryLow = timeRemaining! <= 90
 
     return (
-      <div className={`fixed top-20 left-0 right-0 z-50 ${isDismissed ? 'hidden' : ''}`}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className={`rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${
-            isUrgent
-              ? 'bg-red-500/20 border-red-500/50'
-              : 'bg-amber-500/20 border-amber-500/50'
-          }`}>
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isUrgent
-                    ? 'bg-red-500/20 border-2 border-red-500/50'
-                    : 'bg-amber-500/20 border-2 border-amber-500/50'
-                }`}>
-                  <Clock className={`w-6 h-6 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
-                </div>
-
-                <div>
-                  <h3 className="text-white font-bold flex items-center gap-2">
-                    {isUrgent ? (
-                      <>
-                        <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        Time Running Out!
-                      </>
-                    ) : (
-                      'Search Session Ending Soon'
-                    )}
-                  </h3>
-                  <p className="text-sm text-slate-300">
-                    <strong className={isUrgent ? 'text-red-400' : 'text-amber-400'}>
-                      {formatTime(timeRemaining)}
-                    </strong>{' '}
-                    of search time remaining. Sign in for unlimited access.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSignIn}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold transition-all text-sm flex items-center gap-2 shadow-lg"
+      <div className="fixed top-16 sm:top-20 left-0 right-0 z-50 px-4 sm:px-6 pointer-events-auto">
+        <div className="max-w-5xl mx-auto">
+          <div
+            className="rounded-3xl shadow-xl flex items-center gap-6 px-8 py-5 bg-white border border-gray-200"
+            style={{
+              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+              fontFamily: 'Aptos, "Segoe UI", system-ui, sans-serif',
+            }}
+          >
+            <div className="relative flex-shrink-0">
+              <TimerRing
+                seconds={timeRemaining!}
+                total={300}
+                size={64}
+                stroke={6}
+                color={isVeryLow ? '#f97316' : '#16a34a'}
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span
+                  className="text-lg font-bold tabular-nums tracking-tight"
+                  style={{ color: isVeryLow ? '#c2410c' : '#15803d' }}
                 >
-                  <Zap className="w-4 h-4" />
-                  Sign In
-                </button>
-
-                <button
-                  onClick={() => setIsDismissed(true)}
-                  className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                  {formatTime(timeRemaining!)}
+                </span>
               </div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xl font-bold text-gray-900">
+                {isVeryLow ? 'Free preview almost up!' : 'Enjoying the search?'}
+              </p>
+              <p className="text-base text-gray-700 mt-1 font-medium">
+                {isVeryLow
+                  ? 'Sign up free to keep exploring opportunities.'
+                  : 'A few minutes remain — sign up free to continue!'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <button
+                onClick={handleSignIn}
+                className="px-8 py-4 rounded-2xl font-bold text-base text-white shadow-lg hover:shadow-xl transition-all active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                }}
+              >
+                Sign up free
+              </button>
+
+              <button
+                onClick={handleBannerDismiss}
+                className="p-3 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
+                aria-label="Dismiss banner"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
           </div>
         </div>

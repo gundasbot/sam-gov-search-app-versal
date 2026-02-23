@@ -27,14 +27,16 @@ model accounts {
 }
 
 model admin_users {
-  id         String       @id
-  email      String       @unique
-  name       String
-  password   String
-  role       AdminRole
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime
-  audit_logs audit_logs[]
+  id               String       @id
+  email            String       @unique
+  name             String
+  password         String
+  role             AdminRole
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime
+  resetToken       String?
+  resetTokenExpiry DateTime?    @db.Timestamp(6)
+  audit_logs       audit_logs[]
 }
 
 model alert_exports {
@@ -152,40 +154,6 @@ model email_verification_tokens {
   @@index([user_id])
 }
 
-model Contractor {
-  id               String    @id @default(cuid())
-  name             String
-  email            String    @unique
-  company          String?
-  naics_code       String?
-  state            String?
-  business_type    String?
-  uei_number       String?
-  is_test          Boolean   @default(false)
-  contacted        Boolean   @default(false)
-  enrolled         Boolean   @default(false)
-  contact_attempts Int       @default(0)
-  offer_code       String?
-  notes            String?
-  priority         String?
-  score            Int       @default(0)
-  pipeline_stage   String?   @default("new")
-  trial_start      DateTime?
-  trial_end        DateTime?
-  revenue          Float?
-  last_contact     DateTime?
-  registration_date DateTime?
-  created_at       DateTime  @default(now())
-  updated_at       DateTime  @updatedAt
-
-  @@index([email])
-  @@index([is_test])
-  @@index([pipeline_stage])
-  @@index([state])
-  @@index([naics_code])
-}
-
-
 model opportunity_daily_stats {
   id           String   @id
   day          DateTime @unique @db.Date
@@ -249,14 +217,37 @@ model saved_search_runs {
   @@index([saved_search_id])
 }
 
+model saved_opportunities {
+  id                   String    @id @default(cuid())
+  user_id              String
+  notice_id            String
+  title                String?
+  solicitation_number  String?
+  department           String?
+  organization_name    String?
+  posted_date          DateTime? @db.Timestamptz(6)
+  response_deadline    DateTime? @db.Timestamptz(6)
+  naics_code           String?
+  opportunity_type     String?
+  set_aside            String?
+  place_of_performance String?
+  ui_link              String?
+  created_at           DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  user                 users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
+
+  @@unique([user_id, notice_id], map: "uq_user_notice")
+  @@index([user_id], map: "idx_saved_opportunities_user_id")
+}
+
 model AutoLoginToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
+  id        String    @id @default(cuid())
+  token     String    @unique
   email     String
   expires   DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   usedAt    DateTime?
-  
+
   @@index([token])
   @@index([email])
 }
@@ -482,70 +473,76 @@ model two_factor_backup_codes {
 }
 
 model users {
-  id                        String                      @id
-  email                     String                      @unique
-  name                      String?
-  company                   String?
-  plan                      String?
-  account_status            String?
-  plan_status               String?
-  plan_tier                 String?
-  stripe_customer_id        String?                     @unique
-  stripe_subscription_id    String?                     @unique
-  stripe_price_id           String?
-  stripe_current_period_end DateTime?
-  cancel_at_period_end      Boolean                     @default(false)
-  billing_interval          String?
-  created_at                DateTime                    @default(now())
-  updated_at                DateTime
-  password_hash             String?
-  last_login_at             DateTime?
-  is_active                 Boolean?
-  is_suspended              Boolean?
-  first_name                String?
-  last_name                 String?
-  trial_active              Boolean?
-  trial_started_at          DateTime?
-  trial_expires_at          DateTime?
-  subscription_tier         String?
-  subscription_status       String?
-  role                      String?
-  trial_ends_at             DateTime?
-  subscription_plan         String?
-  address_line1             String?
-  address_line2             String?
-  city                      String?
-  country                   String?
-  current_period_end        DateTime?
-  image                     String?
-  phone                     String?
-  phone_verified            Boolean?
-  plan_interval             String?
-  postal_code               String?
-  state                     String?
-  subscriptions             Json?
-  title                     String?
-  email_verified            DateTime?                   @db.Timestamp(6)
-  two_factor_secret         String?
-  two_factor_enabled        Boolean?                    @default(false)
-  email_notifications       Boolean?                    @default(true)
-  notification_frequency    String?                     @default("daily")
-  last_notification_sent_at DateTime?
-  auto_login_user_id        String?                     @unique
-  accounts                  accounts[]
-  alert_exports             alert_exports[]
-  alert_subscriptions       alert_subscriptions[]
-  auto_login_tokens         auto_login_tokens[]
-  email_verification_tokens email_verification_tokens[]
-  recipient_contacts        recipient_contacts[]
-  saved_searches            saved_searches[]
-  saved_searches_new        saved_searches_new[]
-  saved_searches_v2         saved_searches_v2[]
-  search_alerts             search_alerts[]
-  search_exports            search_exports[]
-  searches                  searches[]
-  sessions                  sessions[]
-  two_factor_backup_codes   two_factor_backup_codes[]
+  id                         String                      @id
+  email                      String                      @unique
+  name                       String?
+  company                    String?
+  plan                       String?
+  account_status             String?
+  plan_status                String?
+  plan_tier                  String?
+  stripe_customer_id         String?                     @unique
+  stripe_subscription_id     String?                     @unique
+  stripe_price_id            String?
+  stripe_current_period_end  DateTime?
+  cancel_at_period_end       Boolean                     @default(false)
+  billing_interval           String?
+  created_at                 DateTime                    @default(now())
+  updated_at                 DateTime
+  password_hash              String?
+  last_login_at              DateTime?
+  is_active                  Boolean?
+  is_suspended               Boolean?
+  first_name                 String?
+  last_name                  String?
+  trial_active               Boolean?
+  trial_started_at           DateTime?
+  trial_expires_at           DateTime?
+  subscription_tier          String?
+  subscription_status        String?
+  role                       String?
+  trial_ends_at              DateTime?
+  subscription_plan          String?
+  address_line1              String?
+  address_line2              String?
+  city                       String?
+  country                    String?
+  current_period_end         DateTime?
+  image                      String?
+  phone                      String?
+  phone_verified             Boolean?
+  plan_interval              String?
+  postal_code                String?
+  state                      String?
+  subscriptions              Json?
+  title                      String?
+  email_verified             DateTime?                   @db.Timestamp(6)
+  two_factor_secret          String?
+  two_factor_enabled         Boolean?                    @default(false)
+  email_notifications        Boolean?                    @default(true)
+  notification_frequency     String?                     @default("daily")
+  last_notification_sent_at  DateTime?
+  auto_login_user_id         String?                     @unique
+  password                   String?
+  firstName                  String?
+  lastName                   String?
+  email_verification_token   String?                     @unique
+  email_verification_expires DateTime?                   @db.Timestamp(6)
+  accounts                   accounts[]
+  alert_exports              alert_exports[]
+  alert_subscriptions        alert_subscriptions[]
+  auto_login_tokens          auto_login_tokens[]
+  email_verification_tokens  email_verification_tokens[]
+  recipient_contacts         recipient_contacts[]
+  saved_opportunities        saved_opportunities[]
+  saved_searches             saved_searches[]
+  saved_searches_new         saved_searches_new[]
+  saved_searches_v2          saved_searches_v2[]
+  search_alerts              search_alerts[]
+  search_exports             search_exports[]
+  searches                   searches[]
+  sessions                   sessions[]
+  two_factor_backup_codes    two_factor_backup_codes[]
 
   @@index([email])
   @@index([plan_status])
@@ -559,6 +556,179 @@ model verification_tokens {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model prisma_migrations_backup_20260218 {
+  id                  String    @id(map: "_prisma_migrations_pkey") @db.VarChar(36)
+  checksum            String    @db.VarChar(64)
+  finished_at         DateTime? @db.Timestamptz(6)
+  migration_name      String    @db.VarChar(255)
+  logs                String?
+  rolled_back_at      DateTime? @db.Timestamptz(6)
+  started_at          DateTime  @default(now()) @db.Timestamptz(6)
+  applied_steps_count Int       @default(0)
+
+  @@map("_prisma_migrations_backup_20260218")
+}
+
+model cached_opportunities {
+  id                  String    @id
+  title               String
+  agency              String?
+  naics_code          String?
+  posted_date         DateTime?
+  response_deadline   DateTime?
+  set_aside           String?
+  description         String?
+  solicitation_number String?
+  url                 String?
+  created_at          DateTime  @default(now())
+  sam_notice_id       String    @unique
+  opportunity_type    String?
+  contract_value      String?
+  synced_at           DateTime?
+  active              Boolean   @default(true)
+}
+
+model contractors {
+  id                String           @id @default(cuid())
+  uei_number        String?          @unique
+  name              String?
+  email             String?
+  sam_gov_id        String?
+  cage_code         String?
+  naics_code        String?
+  state             String?
+  business_type     String?
+  registration_date DateTime?        @db.Date
+  contacted         Boolean?         @default(false)
+  enrolled          Boolean?         @default(false)
+  contact_attempts  Int?             @default(0)
+  offer_code        String?
+  last_contact      DateTime?        @db.Date
+  notes             String?
+  priority          String?          @default("Medium")
+  score             Int?
+  created_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  synced_at         DateTime?        @db.Timestamptz(6)
+  pipeline_stage    String?          @default("new")
+  trial_start       DateTime?        @db.Timestamp(6)
+  trial_end         DateTime?        @db.Timestamp(6)
+  revenue           Decimal?         @default(0) @db.Decimal
+  is_test           Boolean          @default(false)
+  crm_activities    crm_activities[]
+  crm_tasks         crm_tasks[]
+  email_logs        email_logs[]
+}
+
+model crm_activities {
+  id            String       @id @default(dbgenerated("(gen_random_uuid())::text"))
+  contractor_id String
+  offer_code_id String?
+  type          String
+  description   String
+  metadata      Json?
+  created_by    String?
+  created_at    DateTime     @default(now()) @db.Timestamptz(6)
+  contractors   contractors  @relation(fields: [contractor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  offer_codes   offer_codes? @relation(fields: [offer_code_id], references: [id], onUpdate: NoAction)
+
+  @@index([contractor_id], map: "idx_crm_activities_contractor")
+  @@index([created_at], map: "idx_crm_activities_created")
+  @@index([type], map: "idx_crm_activities_type")
+}
+
+model crm_tasks {
+  id              String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  contractor_id   String
+  contractor_name String
+  title           String
+  due_date        DateTime    @db.Date
+  priority        String      @default("medium")
+  status          String      @default("pending")
+  assignee        String?
+  notes           String?
+  created_at      DateTime    @default(now()) @db.Timestamptz(6)
+  completed_at    DateTime?   @db.Timestamptz(6)
+  contractors     contractors @relation(fields: [contractor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contractor_id], map: "idx_crm_tasks_contractor")
+  @@index([due_date], map: "idx_crm_tasks_due")
+  @@index([status], map: "idx_crm_tasks_status")
+}
+
+model email_logs {
+  id            String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+  contractor_id String
+  subject       String
+  body          String
+  offer_code    String?
+  campaign_type String?     @default("initial")
+  status        String?     @default("sent")
+  resend_id     String?
+  sent_at       DateTime?   @default(now()) @db.Timestamptz(6)
+  contractors   contractors @relation(fields: [contractor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([contractor_id], map: "idx_email_logs_contractor")
+  @@index([sent_at], map: "idx_email_logs_sent")
+}
+
+model email_templates {
+  id           String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name         String
+  subject      String
+  body         String
+  category     String    @default("cold")
+  offer_code   String?
+  tags         String[]  @default([])
+  ai_generated Boolean?  @default(false)
+  usage_count  Int?      @default(0)
+  active       Boolean?  @default(true)
+  created_by   String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([active], map: "idx_email_templates_active")
+  @@index([category], map: "idx_email_templates_category")
+  @@index([created_at], map: "idx_email_templates_created_at")
+}
+
+model offer_codes {
+  id             String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  code           String           @unique
+  description    String
+  discount       String
+  type           String           @default("trial")
+  usage_count    Int              @default(0)
+  max_usage      Int?
+  expires_at     DateTime?        @db.Date
+  active         Boolean          @default(true)
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime         @default(now()) @db.Timestamptz(6)
+  crm_activities crm_activities[]
+
+  @@index([active], map: "idx_offer_codes_active")
+  @@index([code], map: "idx_offer_codes_code")
+}
+
+model opportunity_sync_log {
+  id         Int       @id @default(autoincrement())
+  synced_at  DateTime?
+  count      Int?
+  naics_list String?
+}
+
+model sync_logs {
+  id                 String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  contractors_synced Int       @default(0)
+  new_contractors    Int       @default(0)
+  total_available    Int       @default(0)
+  date_range_from    DateTime  @db.Timestamptz(6)
+  date_range_to      DateTime  @db.Timestamptz(6)
+  status             String?   @default("success")
+  error              String?
+  duration_ms        Int?
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
 }
 
 enum AdminRole {

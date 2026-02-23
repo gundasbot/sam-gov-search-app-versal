@@ -210,13 +210,15 @@ export default function DashboardPage() {
 
     async function loadDashboard() {
       try {
-        const [searchesRes, savedOppsRes, weeklyRes, profileRes, notificationsRes] =
+        const sevenDaysAgo = new Date(Date.now() - 7 * 86400000)
+          .toISOString().split('T')[0].replace(/-/g, '/')
+
+        const [searchesRes, savedOppsRes, weeklyRes, profileRes] =
           await Promise.allSettled([
             fetch('/api/saved-searches').then(r => r.ok ? r.json() : { searches: [] }),
-            fetch('/api/saved-opportunities').then(r => r.ok ? r.json() : { opportunities: [] }),
-            fetch('/api/opportunities/weekly-count').then(r => r.ok ? r.json() : { count: 0, recent: [] }),
+            fetch('/api/saved-opportunities').then(r => r.ok ? r.json() : { savedOpportunities: [] }),
+            fetch(`/api/sam/opportunities?limit=5&postedFrom=${sevenDaysAgo}`).then(r => r.ok ? r.json() : { ok: false, totalRecords: 0, opportunities: [] }),
             fetch('/api/account/profile').then(r => r.ok ? r.json() : { goals: [] }),
-            fetch('/api/notifications?limit=5').then(r => r.ok ? r.json() : { notifications: [] }),
           ]);
 
         const searches: ActiveSearch[] =
@@ -232,26 +234,26 @@ export default function DashboardPage() {
                   agency: s.agency || '',
                   type: s.procurementType || '',
                 },
-                resultsCount: s.resultsCount ?? undefined,
+                resultsCount: s._count?.search_runs ?? s.resultsCount ?? undefined,
                 newCount: s.newResults ?? s.newCount ?? 0,
               }))
             : [];
 
         const savedOpps: SavedOpportunity[] =
           savedOppsRes.status === 'fulfilled'
-            ? (savedOppsRes.value?.opportunities ?? []).map((o: any) => ({
-                noticeId: o.noticeId || o.id,
+            ? (savedOppsRes.value?.savedOpportunities ?? []).map((o: any) => ({
+                noticeId: o.notice_id || o.noticeId || o.id,
                 title: o.title || 'Untitled',
-                agency: o.agency || o.department || '',
+                agency: o.organization_name || o.department || o.agency || '',
                 value: o.awardValue || o.value || undefined,
-                posted: o.postedDate ? formatRelativeDate(o.postedDate) : undefined,
-                deadline: o.responseDeadLine ? formatDaysUntil(o.responseDeadLine) : undefined,
-                naics: o.naicsCode || o.naics || undefined,
+                posted: (o.posted_date || o.postedDate) ? formatRelativeDate(o.posted_date || o.postedDate) : undefined,
+                deadline: (o.response_deadline || o.responseDeadLine) ? formatDaysUntil(o.response_deadline || o.responseDeadLine) : undefined,
+                naics: o.naics_code || o.naicsCode || o.naics || undefined,
               }))
             : [];
 
         const weeklyData =
-          weeklyRes.status === 'fulfilled' ? weeklyRes.value : { count: 0, recent: [] };
+          weeklyRes.status === 'fulfilled' ? weeklyRes.value : { totalRecords: 0, opportunities: [] };
 
         const profile =
           profileRes.status === 'fulfilled' ? profileRes.value : { goals: [] };
@@ -265,26 +267,35 @@ export default function DashboardPage() {
         }));
 
         const recentOpps: SavedOpportunity[] =
-          (weeklyData.recent ?? []).slice(0, 3).map((o: any) => ({
+          (weeklyData.opportunities ?? []).slice(0, 3).map((o: any) => ({
             noticeId: o.noticeId || o.id,
             title: o.title || 'Untitled',
-            agency: o.agency || o.department || '',
+            agency: o.department || o.agency || '',
             value: o.awardValue || o.value || undefined,
             posted: o.postedDate ? formatRelativeDate(o.postedDate) : undefined,
-            deadline: o.responseDeadLine ? formatDaysUntil(o.responseDeadLine) : undefined,
-            naics: o.naicsCode || o.naics || undefined,
+            deadline: (o.responseDeadline || o.responseDeadLine) ? formatDaysUntil(o.responseDeadline || o.responseDeadLine) : undefined,
+            naics: o.naics || o.naicsCode || undefined,
             match: computeOpportunityMatchScore(o, searches, goals),
           }));
 
-        const notifs =
-          notificationsRes.status === 'fulfilled'
-            ? (notificationsRes.value?.notifications ?? []).map((n: any) => ({
-                type: n.type || 'update',
-                title: n.message || n.title || '',
-                time: n.createdAt ? formatRelativeDate(n.createdAt) : '',
-                iconType: n.type || 'update',
-              }))
-            : [];
+        // Generate notifications from real data: upcoming deadlines + recent saves
+        const notifs = [
+          ...scoredSavedOpps
+            .filter(o => o.deadline && parseInt(o.deadline) <= 7 && !o.deadline.includes('Expired'))
+            .slice(0, 2)
+            .map(o => ({
+              type: 'deadline',
+              title: `Deadline in ${o.deadline}: ${o.title}`,
+              time: o.agency,
+              iconType: 'deadline',
+            })),
+          ...scoredSavedOpps.slice(0, 2).map(o => ({
+            type: 'match',
+            title: `Saved: ${o.title}`,
+            time: o.posted ? `Posted ${o.posted}` : '',
+            iconType: 'match',
+          })),
+        ].slice(0, 5);
 
         // ── Avg match across all scored items ──
         const allScored = [...scoredSavedOpps, ...recentOpps].filter(o => o.match);
@@ -306,7 +317,7 @@ export default function DashboardPage() {
           activeSearchesCount: searches.length,
           savedOppCount: scoredSavedOpps.length,
           avgMatchScore: avgMatch,
-          thisWeekCount: weeklyData.count ?? 0,
+          thisWeekCount: weeklyData.totalRecords ?? weeklyData.opportunities?.length ?? 0,
           activeSearches: searches,
           savedOpportunities: scoredSavedOpps,
           recentOpportunities: recentOpps,
@@ -789,8 +800,8 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                       <div className="space-y-2 text-sm">
                         <p className="text-slate-300">Name: <span className="text-white font-semibold">{welcomeName}</span></p>
                         <p className="text-slate-300">Email: <span className="text-white font-semibold">{session?.user?.email}</span></p>
-                        <button className="mt-2 text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
-                          Edit Profile ?
+                        <button onClick={() => { closeDrawer(); router.push('/account'); }} className="mt-2 text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
+                          Edit Profile →
                         </button>
                       </div>
                     </div>
@@ -1184,7 +1195,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                   <Bell className="w-5 h-5 text-cyan-400" />
                   <h2 className="text-lg font-bold text-white">Notifications</h2>
                 </div>
-                <span className="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-xs font-bold">3</span>
+                <span className="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-xs font-bold">{dashData.notifications.length || 0}</span>
               </div>
 
               <div className="space-y-3">
@@ -1205,7 +1216,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                 ))}
               </div>
 
-              <button className="w-full mt-4 py-2 text-center text-cyan-400 hover:text-cyan-300 text-sm font-semibold transition-colors">
+              <button onClick={() => setDrawer('notifications')} className="w-full mt-4 py-2 text-center text-cyan-400 hover:text-cyan-300 text-sm font-semibold transition-colors">
                 View All Notifications
               </button>
             </div>
@@ -1260,7 +1271,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                   <span className="text-white group-hover:text-purple-400 transition-colors">View Insights</span>
                 </Link>
 
-                <button className="w-full flex items-center gap-3 p-3 bg-slate-900/50 hover:bg-slate-900 rounded-lg text-left transition-all duration-300 group hover:translate-x-1">
+                <button onClick={() => router.push('/dashboard/saved-opportunities')} className="w-full flex items-center gap-3 p-3 bg-slate-900/50 hover:bg-slate-900 rounded-lg text-left transition-all duration-300 group hover:translate-x-1">
                   <Download className="w-5 h-5 text-green-400" />
                   <span className="text-white group-hover:text-green-400 transition-colors">Export Data</span>
                 </button>

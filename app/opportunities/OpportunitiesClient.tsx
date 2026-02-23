@@ -701,16 +701,51 @@ Provide analysis in JSON format with:
     }
   };
 
-  const handleSaveOpportunity = (noticeId: string) => {
+  const handleSaveOpportunity = async (noticeId: string) => {
+    const opp = allOpportunities.find(o => o.noticeId === noticeId);
+    const isCurrentlySaved = savedOpportunities.has(noticeId);
+
+    // Optimistic UI update
     setSavedOpportunities(prev => {
       const next = new Set(prev);
-      if (next.has(noticeId)) {
-        next.delete(noticeId);
-      } else {
-        next.add(noticeId);
-      }
+      if (isCurrentlySaved) { next.delete(noticeId); } else { next.add(noticeId); }
       return next;
     });
+
+    try {
+      if (isCurrentlySaved) {
+        // DELETE from DB
+        await fetch(`/api/saved-opportunities/${encodeURIComponent(noticeId)}`, { method: 'DELETE' });
+      } else if (opp) {
+        // POST to DB with full opportunity data
+        await fetch('/api/saved-opportunities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            noticeId: opp.noticeId,
+            title: opp.title,
+            solicitationNumber: opp.solicitationNumber,
+            department: opp.department,
+            postedDate: opp.postedDate,
+            responseDeadLine: opp.responseDeadLine,
+            naicsCode: opp.naicsCode,
+            type: opp.type,
+            setAside: opp.typeOfSetAside,
+            placeOfPerformance: opp.placeOfPerformance,
+            uiLink: opp.uiLink,
+            organizationName: opp.fullParentPathName?.split(':')[0]?.trim() || opp.department,
+          }),
+        });
+      }
+    } catch (err) {
+      // Revert optimistic update on failure
+      console.error('Failed to save/unsave opportunity:', err);
+      setSavedOpportunities(prev => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) { next.add(noticeId); } else { next.delete(noticeId); }
+        return next;
+      });
+    }
   };
 
   const handleViewOpportunity = (noticeId: string) => {
@@ -846,7 +881,19 @@ Provide analysis in JSON format with:
     localStorage.setItem('welcomeBannerDismissed', 'true');
   };
 
-  // Fetch ALL opportunities from SAM.gov
+  // Load saved opportunity IDs from DB on mount so bookmarks are persistent
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetch('/api/saved-opportunities')
+      .then(r => r.ok ? r.json() : { savedOpportunities: [] })
+      .then(data => {
+        const ids = (data.savedOpportunities ?? []).map((o: any) => o.notice_id || o.noticeId || o.id);
+        if (ids.length > 0) setSavedOpportunities(new Set(ids));
+      })
+      .catch(err => console.error('Failed to load saved opportunities:', err));
+  }, [isLoggedIn]);
+
+    // Fetch ALL opportunities from SAM.gov
   useEffect(() => {
     let isMounted = true;
     const abortController = new AbortController();

@@ -14,9 +14,8 @@ import {
   Pencil,
   Trash2,
   Clock,
-  ExternalLink,
-  AlertCircle,
-  ChevronDown,
+  Plus,
+  Zap,
 } from 'lucide-react'
 import UnifiedSaveSearchModal from '@/components/UnifiedSaveSearchModal'
 
@@ -51,6 +50,18 @@ interface SavedSearch {
 }
 
 type ViewFilter = 'all' | 'subscribed' | 'saved'
+
+// Helper: derive a readable label for set-aside codes
+function setAsideLabel(code?: string): string {
+  if (!code) return ''
+  const map: Record<string, string> = {
+    SBA: 'Small Business', SBP: 'Partial SB', '8A': '8(a)', '8AN': '8(a) Sole Source',
+    HZC: 'HUBZone', HZS: 'HUBZone Sole Source', SDVOSBC: 'SDVOSB', SDVOSBS: 'SDVOSB Sole Source',
+    VSA: 'VOSB', VSS: 'VOSB Sole Source', WOSB: 'WOSB', WOSBSS: 'WOSB Sole Source',
+    EDWOSB: 'EDWOSB', NONE: 'No Set-Aside',
+  }
+  return map[code.toUpperCase()] || code
+}
 
 export default function AlertsSearchesPage() {
   const { data: session, status } = useSession()
@@ -210,6 +221,17 @@ export default function AlertsSearchesPage() {
             </div>
           </div>
 
+          {/* Header actions */}
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={() => router.push('/search')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20"
+            >
+              <Plus className="h-4 w-4" />
+              New Search
+            </button>
+          </div>
+
           {/* View Filters - Larger and more readable */}
           <div className="flex items-center gap-4">
             {(['all', 'subscribed', 'saved'] as ViewFilter[]).map((filter) => (
@@ -249,13 +271,27 @@ export default function AlertsSearchesPage() {
           </div>
         )}
 
-        {/* Searches List - Larger cards with better spacing */}
+        {/* Searches List */}
         <div className="space-y-5">
           {filteredSearches.map((search) => (
             <div
               key={search.id}
-              className="bg-slate-900/50 border-2 border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 hover:shadow-xl transition-all"
+              className={`border-2 rounded-2xl overflow-hidden hover:shadow-xl transition-all ${
+                search.subscription_enabled
+                  ? 'bg-emerald-950/20 border-emerald-800/40 hover:border-emerald-700/60'
+                  : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+              }`}
             >
+              {/* Subscription status bar */}
+              {search.subscription_enabled && (
+                <div className="px-7 py-2 bg-gradient-to-r from-emerald-900/40 to-transparent border-b border-emerald-800/30 flex items-center gap-2">
+                  <Bell className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                    Active Alert · {search.frequency || 'Daily'} · {search.email_notification ? 'Email On' : 'Email Off'}
+                  </span>
+                </div>
+              )}
+
               {/* Main Row */}
               <div className="p-7">
                 <div className="flex items-start justify-between gap-6">
@@ -264,10 +300,9 @@ export default function AlertsSearchesPage() {
                       <h3 className="text-xl font-bold text-white truncate">
                         {search.name}
                       </h3>
-                      {search.subscription_enabled && (
-                        <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold">
-                          <Bell className="h-4 w-4" />
-                          {search.frequency}
+                      {!search.subscription_enabled && (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-700/60 border border-slate-600/40 text-slate-400 text-xs font-semibold">
+                          Saved Only
                         </span>
                       )}
                     </div>
@@ -276,26 +311,36 @@ export default function AlertsSearchesPage() {
                       <p className="text-base text-slate-400 mb-4">{search.description}</p>
                     )}
 
-                    {/* Search Criteria Pills - Larger and more readable */}
+                    {/* Search Criteria Pills */}
                     <div className="flex flex-wrap gap-2.5 mb-4">
                       {search.keywords && (
                         <span className="px-3 py-1.5 rounded-lg bg-slate-800/70 text-sm font-medium text-slate-200 border border-slate-700">
-                          Keywords: {search.keywords}
+                          🔍 {search.keywords}
+                        </span>
+                      )}
+                      {search.setAside && (
+                        <span className="px-3 py-1.5 rounded-lg bg-blue-900/30 text-sm font-medium text-blue-300 border border-blue-800/40">
+                          🏷 {setAsideLabel(search.setAside)}
                         </span>
                       )}
                       {search.naics && (
                         <span className="px-3 py-1.5 rounded-lg bg-slate-800/70 text-sm font-medium text-slate-200 border border-slate-700">
-                          NAICS: {search.naics}
+                          NAICS {search.naics}
                         </span>
                       )}
                       {search.agency && (
                         <span className="px-3 py-1.5 rounded-lg bg-slate-800/70 text-sm font-medium text-slate-200 border border-slate-700">
-                          Agency: {search.agency}
+                          {search.agency}
                         </span>
                       )}
-                      {search.setAside && (
+                      {search.stateOfPerformance && (
                         <span className="px-3 py-1.5 rounded-lg bg-slate-800/70 text-sm font-medium text-slate-200 border border-slate-700">
-                          Set-Aside: {search.setAside}
+                          📍 {search.stateOfPerformance}
+                        </span>
+                      )}
+                      {!search.keywords && !search.naics && !search.agency && !search.setAside && (
+                        <span className="px-3 py-1.5 rounded-lg bg-slate-800/40 text-sm text-slate-500 border border-slate-700/50 italic">
+                          All opportunities
                         </span>
                       )}
                     </div>
@@ -359,21 +404,24 @@ export default function AlertsSearchesPage() {
                       <Pencil className="h-5 w-5" />
                     </button>
 
-                    <button
-                      onClick={() => handleToggleSubscription(search.id, search.subscription_enabled)}
-                      className={`p-3.5 rounded-xl border-2 transition-all ${
-                        search.subscription_enabled
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                          : 'bg-slate-800/50 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white'
-                      }`}
-                      title={search.subscription_enabled ? 'Disable alerts' : 'Enable alerts'}
-                    >
-                      {search.subscription_enabled ? (
+                    {search.subscription_enabled ? (
+                      <button
+                        onClick={() => handleToggleSubscription(search.id, search.subscription_enabled)}
+                        className="p-3.5 rounded-xl bg-emerald-500/10 text-emerald-400 border-2 border-emerald-500/30 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all"
+                        title="Disable alert"
+                      >
                         <Bell className="h-5 w-5" />
-                      ) : (
-                        <BellOff className="h-5 w-5" />
-                      )}
-                    </button>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleToggleSubscription(search.id, search.subscription_enabled)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 border-2 border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all text-sm font-semibold"
+                        title="Enable daily email alerts for this search"
+                      >
+                        <Zap className="h-4 w-4" />
+                        Enable Alert
+                      </button>
+                    )}
 
                     <button
                       onClick={() => handleDeleteSearch(search.id, search.name)}
@@ -390,7 +438,7 @@ export default function AlertsSearchesPage() {
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Modal — opens in 'alert' mode for subscriptions, 'save' mode for plain saved searches */}
       {showEditModal && editingSearch && (
         <UnifiedSaveSearchModal
           isOpen={showEditModal}
@@ -398,7 +446,7 @@ export default function AlertsSearchesPage() {
             setShowEditModal(false)
             setEditingSearch(null)
           }}
-          mode="save"
+          mode={editingSearch.subscription_enabled ? 'alert' : 'save'}
           existingSearch={{
             id: editingSearch.id,
             name: editingSearch.name,
@@ -409,6 +457,10 @@ export default function AlertsSearchesPage() {
             setAside: editingSearch.setAside || '',
             stateOfPerformance: editingSearch.stateOfPerformance || '',
             procurementType: editingSearch.procurementType || '',
+            alertSettings: editingSearch.subscription_enabled ? {
+              enabled: true,
+              frequency: editingSearch.frequency || 'DAILY',
+            } : undefined,
           }}
           onSave={() => {
             loadSearches()

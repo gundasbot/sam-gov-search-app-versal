@@ -203,20 +203,62 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
   // Save search modal state
   const [showSaveModal, setShowSaveModal] = useState(false)
 
-  // Build current search params for pre-filling the save modal
-  const currentSearchParamsForModal = useMemo(() => {
-    const today = new Date()
-    const sixMonthsAgo = new Date()
-    sixMonthsAgo.setMonth(today.getMonth() - 6)
-    return {
-      title: filters.keywords || undefined,
-      ncode: filters.naicsCode || undefined,
-      state: filters.state || undefined,
-      typeOfSetAside: filters.setAside || undefined,
-      ptype: filters.procurementType || undefined,
-      postedFrom: filters.postedFrom || undefined,
-      postedTo: filters.postedTo || undefined,
+  // Build current search params for pre-filling the save modal.
+// We include both camelCase + snake_case aliases so it matches whichever SAMGovSearchParams expects.
+const currentSearchParamsForModal = useMemo(() => {
+  const keywords = filters.keywords || undefined
+  const naics = filters.naicsCode || undefined
+  const state = filters.state || undefined
+  const setAside = filters.setAside || undefined
+  const procurementType = filters.procurementType || undefined
+  const postedAfter = filters.postedFrom || undefined
+  const postedBefore = filters.postedTo || undefined
+
+  return {
+    // common / modal-friendly
+    keywords,
+    naics,
+
+    // camelCase variants
+    naicsCode: naics,
+    state,
+    stateOfPerformance: state,
+    setAside,
+    procurementType,
+    postedAfter,
+    postedBefore,
+    postedFrom: postedAfter,
+    postedTo: postedBefore,
+
+    // snake_case variants (matches your DB naming style)
+    naics_code: naics,
+    state_of_performance: state,
+    set_aside: setAside,
+    procurement_type: procurementType,
+    posted_after: postedAfter,
+    posted_before: postedBefore,
+    posted_from: postedAfter,
+    posted_to: postedBefore,
+  }
+}, [filters])
+
+  // Auto-generate a descriptive search name from active filters
+  const autoSearchName = useMemo(() => {
+    const parts: string[] = []
+    if (filters.keywords) parts.push(filters.keywords)
+    if (filters.setAside) {
+      const setAsideLabels: Record<string, string> = {
+        SBA: 'Small Business', VSA: 'VOSB', SDVOSB: 'SDVOSB',
+        '8A': '8(a)', HZC: 'HUBZone', WOSB: 'WOSB', EDWOSB: 'EDWOSB',
+        VSS: 'VOSB Sole Source', SDVOSBS: 'SDVOSB Sole Source',
+      }
+      parts.push(setAsideLabels[filters.setAside] || filters.setAside)
     }
+    if (filters.naicsCode) parts.push(`NAICS ${filters.naicsCode}`)
+    if (filters.state) parts.push(filters.state)
+    if (parts.length === 0) parts.push('All Opportunities')
+    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return `${parts.join(' · ')} — ${today}`
   }, [filters])
 
   const setAsideTypes = [
@@ -1434,6 +1476,16 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
         searchParams={currentSearchParamsForModal}
         onSave={(result) => {
           setShowSaveModal(false)
+          // Show a brief success toast or navigate to alerts page
+          const name = result?.search?.name || result?.name || 'Your search'
+          const isAlert = result?.search?.subscriptionEnabled || result?.subscriptionEnabled
+          // Use a non-blocking notification — works even without a toast library
+          const msg = isAlert
+            ? `✅ Alert created: "${name}" — You'll receive daily emails when new opportunities match.`
+            : `✅ Search saved: "${name}" — Find it anytime in Alerts & Searches.`
+          console.log(msg)
+          // If the modal itself shows a success state, this is enough.
+          // If not, we could navigate: router.push('/alerts-searches')
         }}
       />
     </div>
