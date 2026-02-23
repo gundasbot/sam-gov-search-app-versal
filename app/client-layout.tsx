@@ -53,7 +53,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       </head>
       
       <body 
-        className={`${inter.className} h-full text-base 
+        className={`${inter.className} min-h-screen text-base 
           selection:bg-primary-500 selection:text-white
           supports-[overflow-anchor:clip]:overflow-anchor-auto`} 
         style={{ 
@@ -65,30 +65,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <AuthProvider>
           <AuthModalProvider>
             <SmoothScrollProvider>
-              {/* Container with enhanced flexbox layout */}
-              <div className="h-full flex flex-col min-h-screen">
-                {/* Fixed Header - flex-none prevents shrinking */}
-                <div className="flex-none sticky top-0 z-50">
+              {/* Container - normal document flow, not flex column */}
+              <div className="relative">
+                {/* Header - sticky at top */}
+                <div className="sticky top-0 z-[101] w-full">
                   <Header />
                   <BrowsingTimerBanner />
                 </div>
                 
-                {/* Scrollable Content - flex-1 takes remaining space */}
-                <main 
-                  className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden 
-                    will-change-scroll touch-pan-y"
-                  style={{ minHeight: 0 }}
-                >
-                  {/* Special handling for login page - no extra padding */}
-                  <div className="flex-1">
-                    {children}
-                  </div>
+                {/* Main content - normal flow */}
+                <main className="w-full">
+                  {children}
                 </main>
 
-                {/* Fixed Footer - flex-none prevents shrinking */}
-                <div className="flex-none">
-                  <Footer />
-                </div>
+                {/* Footer - normal flow at bottom, NOT sticky */}
+                <Footer />
               </div>
               
               <FloatingCTA />

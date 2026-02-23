@@ -2,6 +2,7 @@
 
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 const data = [
@@ -12,6 +13,12 @@ const data = [
 ]
 
 export default function DeadlinesPage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 px-6 py-8">
       <header className="mb-6">
@@ -23,16 +30,20 @@ export default function DeadlinesPage() {
 
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-8">
         <h2 className="text-sm font-semibold mb-3">Deadlines by time window</h2>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="bucket" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip cursor={{ fill: 'rgba(55,65,81,0.4)' }} />
-              <Bar dataKey="count" fill="#fbbf24" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="w-full h-64 min-h-[240px]">
+          {mounted ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <XAxis dataKey="bucket" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip cursor={{ fill: 'rgba(55,65,81,0.4)' }} />
+                <Bar dataKey="count" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full rounded-lg border border-slate-800 bg-slate-950/30 animate-pulse" />
+          )}
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* ── Aptos font loading from Microsoft Fabric CDN ── */
 @font-face {
   font-family: 'Aptos';
   src: url('https://static2.sharepointonline.com/files/fabric/assets/fonts/aptos/aptos-regular.woff2') format('woff2');
@@ -7,6 +8,7 @@
   font-style: normal;
   font-display: swap;
 }
+
 @font-face {
   font-family: 'Aptos';
   src: url('https://static2.sharepointonline.com/files/fabric/assets/fonts/aptos/aptos-semibold.woff2') format('woff2');
@@ -14,6 +16,7 @@
   font-style: normal;
   font-display: swap;
 }
+
 @font-face {
   font-family: 'Aptos';
   src: url('https://static2.sharepointonline.com/files/fabric/assets/fonts/aptos/aptos-bold.woff2') format('woff2');
@@ -22,7 +25,7 @@
   font-display: swap;
 }
 
-/* 🎯 CSS Variables for consistent spacing */
+/* ── CSS Variables ── */
 :root {
   --container-max-width: 1800px;
   --container-padding: 1.5rem;
@@ -30,7 +33,7 @@
   --container-padding-xl: 3rem;
 }
 
-/* 🎯 UPDATED: Body styles */
+/* ── Base styles ── */
 html,
 body {
   min-height: 100vh;
@@ -42,11 +45,10 @@ body {
 body {
   background: linear-gradient(135deg, #020617 0%, #172554 50%, #020617 100%);
   color: #e5e7eb; /* slate-200 */
-  font-family: 'Aptos', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont,
-    Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Aptos', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 🎯 Consistent container utility */
+/* ── Consistent wide container ── */
 .container-wide {
   width: 100%;
   max-width: var(--container-max-width);
@@ -70,7 +72,7 @@ body {
   }
 }
 
-/* 🎯 Full width sections */
+/* ── Full-bleed sections ── */
 .full-width-section {
   width: 100vw;
   position: relative;
@@ -80,7 +82,7 @@ body {
   margin-right: -50vw;
 }
 
-/* 🎯 Page container for consistent content width */
+/* ── Standard page content container ── */
 .page-container {
   width: 100%;
   max-width: var(--container-max-width);
@@ -107,6 +109,7 @@ body {
   }
 }
 
+/* ── Selection highlight ── */
 ::selection {
   background: rgba(34, 211, 238, 0.25);
 }
@@ -115,12 +118,12 @@ a {
   transition: color 0.2s ease;
 }
 
-/* ── Mobile safe-area support (notched phones) ── */
+/* ── Mobile safe-area insets ── */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* ── Cookie consent animations ── */
+/* ── Animations ── */
 @keyframes slide-up {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
@@ -134,14 +137,14 @@ a {
 .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
 .animate-fade-in  { animation: fade-in  0.25s ease-out; }
 
-/* ── Scrollbar hide utility ── */
+/* ── Hide scrollbar ── */
 .scrollbar-none {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
-/* ── 🎯 FIXED: Mobile-specific footer fixes ── */
+/* ── Mobile-specific fixes ── */
 @media (max-width: 640px) {
   body, html {
     overflow-x: hidden;
@@ -176,7 +179,8 @@ a {
   }
 }
 
-/* 🎯 Ensure footer stays at bottom */
-#__next, main {
+/* ── Prevent layout collapse ── */
+#__next,
+main {
   min-height: 0;
 }

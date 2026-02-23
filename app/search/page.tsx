@@ -3741,9 +3741,6 @@ ${filteredResults.map(opp => `  <opportunity>
                       Welcome back, {session.user.name.split(' ')[0]}!
                     </p>
                   )}
-                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 leading-tight">
-                    Let's Find Your Next Government Contract
-                  </h1>
                   <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
                     We'll help you search millions of opportunities from SAM.gov and find contracts that match your business perfectly.
                   </p>

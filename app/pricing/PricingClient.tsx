@@ -1,117 +1,56 @@
-// app/pricing/PricingClient.tsx
 'use client'
 
-export const dynamic = 'force-dynamic';
-
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
+// app/pricing/PricingClient.tsx
+import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import AccessControlModal from '@/components/AccessControlModal'
-import {
-  Check,
-  Shield,
-  Zap,
-  Crown,
-  Loader2,
-  AlertCircle,
-  Gift,
-  ArrowRight,
-  CreditCard,
-  XCircle,
-} from 'lucide-react'
+import Image from 'next/image'
+import { Check, Zap, Shield, Users, Star, ArrowRight } from 'lucide-react'
 
-type BillingInterval = 'monthly' | 'annual'
-type PlanTier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
-
-type SubscriptionInfo = {
-  tier: PlanTier
-  interval: 'month' | 'year' | null
-  status?: string | null
-  subscriptionId?: string | null
-  cancelAtPeriodEnd?: boolean
-  currentPeriodEnd?: string | null
-  hasSubscription: boolean
-  stripeCustomerId?: string | null
-  stripeSubscriptionId?: string | null
-}
-
-type PricingTier = {
-  id: Exclude<PlanTier, 'NONE'>
-  name: string
-  tagline: string
-  description: string
-  monthlyPrice: number
-  annualPrice: number
-  tierLevel: number
-  highlight?: boolean
-  icon: any
-  gradient: string
-  border: string
-  glow: string
-  bestFor: string
-  features: string[]
-}
-
-// Prices fetched live from Stripe (keyed by tier id + interval)
-type LivePriceKey = `${Exclude<PlanTier, 'NONE'>}_monthly` | `${Exclude<PlanTier, 'NONE'>}_annual`
-type LivePrices = Partial<Record<LivePriceKey, number>>
-
-const TIERS: PricingTier[] = [
+const plans = [
   {
-    id: 'BASIC',
+    id: 'basic',
     name: 'Basic',
     tagline: 'For getting started',
-    description: 'Essential features to search and track opportunities.',
+    icon: <Shield className="w-5 h-5 text-slate-400" />,
     monthlyPrice: 24.99,
-    annualPrice: 240.00,
-    tierLevel: 1,
-    icon: Shield,
-    gradient: 'from-slate-700 via-slate-800 to-slate-900',
-    border: 'border-slate-700/40',
-    glow: 'shadow-slate-900/30',
+    annualPrice: 19.99,
     bestFor: 'New contractors exploring opportunities',
     features: [
-      'Search opportunities',
+      'Search all SAM.gov opportunities',
       'Basic filters (NAICS, keywords)',
       'Save up to 10 opportunities',
       'Email support',
     ],
+    cta: 'Start 7-Day Free Trial',
+    highlight: false,
+    ctaStyle: 'bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white',
   },
   {
-    id: 'PROFESSIONAL',
+    id: 'professional',
     name: 'Professional',
     tagline: 'For serious bidding teams',
-    description: 'Advanced tracking, alerts, and deeper analytics.',
-    monthlyPrice: 49.00,
-    annualPrice: 490.00,
-    tierLevel: 2,
-    highlight: true,
-    icon: Zap,
-    gradient: 'from-cyan-500 via-blue-500 to-indigo-600',
-    border: 'border-cyan-500/30',
-    glow: 'shadow-cyan-500/20',
+    icon: <Zap className="w-5 h-5 text-orange-400" />,
+    monthlyPrice: 49,
+    annualPrice: 39,
     bestFor: 'Teams actively bidding every week',
     features: [
       'Everything in Basic',
       'Unlimited saved opportunities',
-      'Saved searches & alerts',
+      'Saved searches & instant alerts',
       'Export results (CSV)',
       'Priority support',
     ],
+    cta: 'Start 7-Day Free Trial',
+    highlight: true,
+    ctaStyle: 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25',
   },
   {
-    id: 'ENTERPRISE',
+    id: 'enterprise',
     name: 'Enterprise',
     tagline: 'For organizations at scale',
-    description: 'Team features, admin controls, and maximum automation.',
-    monthlyPrice: 199.00,
-    annualPrice: 1990.00,
-    tierLevel: 3,
-    icon: Crown,
-    gradient: 'from-amber-500 via-orange-500 to-rose-600',
-    border: 'border-amber-500/30',
-    glow: 'shadow-amber-500/20',
+    icon: <Users className="w-5 h-5 text-cyan-400" />,
+    monthlyPrice: 199,
+    annualPrice: 159,
     bestFor: 'Organizations managing multiple bids',
     features: [
       'Everything in Professional',
@@ -120,792 +59,246 @@ const TIERS: PricingTier[] = [
       'Advanced reporting',
       'Dedicated onboarding',
     ],
+    cta: 'Start 7-Day Free Trial',
+    highlight: false,
+    ctaStyle: 'bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white',
   },
 ]
 
-function formatDate(timestampOrISO?: string | number | null) {
-  if (!timestampOrISO) return null
-  try {
-    const d =
-      typeof timestampOrISO === 'number'
-        ? new Date(timestampOrISO * 1000)
-        : new Date(timestampOrISO)
-    if (Number.isNaN(d.getTime())) return null
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-  } catch {
-    return null
-  }
-}
+const testimonials = [
+  {
+    quote: 'We went from missing bids to winning contracts within our first month. The alerts alone are worth the subscription.',
+    name: 'Marcus T.',
+    role: 'CEO, Federal Solutions Group',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face',
+  },
+  {
+    quote: 'The search filters save our team hours every week. We find the right opportunities instead of digging through noise.',
+    name: 'Priya S.',
+    role: 'Capture Manager, TechBridge LLC',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face',
+  },
+  {
+    quote: 'Finally a platform built for small businesses competing in the federal space. The value is unmatched.',
+    name: 'James W.',
+    role: 'Director, Apex Contracting',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face',
+  },
+]
 
 export default function PricingClient() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { status } = useSession()
-
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly')
-  const [subscription, setSubscription] = useState<SubscriptionInfo>({
-    tier: 'NONE',
-    interval: null,
-    status: null,
-    subscriptionId: null,
-    cancelAtPeriodEnd: false,
-    currentPeriodEnd: null,
-    hasSubscription: false,
-    stripeCustomerId: null,
-    stripeSubscriptionId: null,
-  })
-
-  const [loading, setLoading] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-
-  // Live Stripe prices
-  const [livePrices, setLivePrices] = useState<LivePrices>({})
-  const [pricesLoading, setPricesLoading] = useState(true)
-
-  // Modal for unauthenticated users clicking a pricing card
-  const [modalOpen, setModalOpen] = useState(false)
-  const [modalPlan, setModalPlan] = useState<'basic' | 'professional' | 'enterprise' | undefined>(undefined)
-  const [modalBilling, setModalBilling] = useState<'monthly' | 'annual'>('monthly')
-
-  const [showChangeWarning, setShowChangeWarning] = useState<{
-    tier: PricingTier
-    type: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
-  } | null>(null)
-
-  const [pendingAction, setPendingAction] = useState<{
-    tier: PricingTier
-    type: 'upgrade' | 'downgrade' | 'new' | 'interval-change'
-  } | null>(null)
-
-  // ── Fetch live prices from Stripe via our own API ──────────────────────────
-  const fetchLivePrices = useCallback(async () => {
-    try {
-      setPricesLoading(true)
-      const res = await fetch('/api/stripe/prices', { cache: 'no-store' })
-      if (!res.ok) throw new Error(`prices API returned ${res.status}`)
-      const data: Array<{
-        tier: Exclude<PlanTier, 'NONE'>
-        interval: 'monthly' | 'annual'
-        unitAmount: number // cents
-      }> = await res.json()
-
-      const map: LivePrices = {}
-      for (const item of data) {
-        const key = `${item.tier}_${item.interval}` as LivePriceKey
-        map[key] = item.unitAmount / 100
-      }
-      setLivePrices(map)
-    } catch (err) {
-      console.warn('⚠️ Could not fetch live prices, using fallback values:', err)
-      // livePrices stays empty → component falls back to hardcoded TIERS prices
-    } finally {
-      setPricesLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchLivePrices()
-  }, [fetchLivePrices])
-
-  /** Resolve the displayed price: live Stripe price, or hardcoded fallback */
-  const resolvePrice = useCallback(
-    (tier: PricingTier, interval: BillingInterval): number => {
-      const key = `${tier.id}_${interval}` as LivePriceKey
-      const live = livePrices[key]
-      if (live !== undefined) return live
-      return interval === 'annual' ? tier.annualPrice : tier.monthlyPrice
-    },
-    [livePrices]
-  )
-
-  /**
-   * Annual savings as a whole-number percentage vs paying monthly × 12.
-   * e.g. Basic: (299.88 - 240) / 299.88 ≈ 20%
-   */
-  const savingsPercent = useCallback(
-    (tier: PricingTier): number => {
-      const monthly = resolvePrice(tier, 'monthly')
-      const annual  = resolvePrice(tier, 'annual')
-      if (!monthly || !annual) return 0
-      return Math.round((1 - annual / (monthly * 12)) * 100)
-    },
-    [resolvePrice]
-  )
-
-  /** Annual price divided by 12 — shown as the effective monthly cost */
-  const monthlyEquivalent = useCallback(
-    (tier: PricingTier): string => {
-      const annual = resolvePrice(tier, 'annual')
-      return (annual / 12).toFixed(2)
-    },
-    [resolvePrice]
-  )
-
-  const currentTier = useMemo(() => {
-    if (!subscription?.tier || subscription.tier === 'NONE') return null
-    return TIERS.find((t) => t.id === subscription.tier) || null
-  }, [subscription?.tier])
-
-  const selectedInterval = useMemo(() => (billingInterval === 'annual' ? 'year' : 'month'), [billingInterval])
-
-  const formatPrice = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(2))
-
-  // Load user's current plan
-  const loadPlan = useCallback(async () => {
-    // Never call the API for unauthenticated users — it will 401
-    if (status !== 'authenticated') return null
-
-    try {
-      setError(null)
-
-      const res = await fetch('/api/account/plan', { cache: 'no-store' })
-      if (!res.ok) {
-        console.error('❌ API returned error:', res.status)
-        return null
-      }
-
-      const data = await res.json()
-      console.log('📊 RAW API Response:', JSON.stringify(data, null, 2))
-
-      let tier: PlanTier = 'NONE'
-      let subscriptionId: string | null = null
-      let subscriptionStatus: string | null = null
-      let interval: 'month' | 'year' | null = null
-
-      if (data.tier) {
-        tier = data.tier
-      } else if (data.plan_tier) {
-        tier = data.plan_tier
-      } else if (data.plan && data.plan !== 'trial' && data.plan !== 'none') {
-        tier = String(data.plan).toUpperCase() as PlanTier
-      } else if (data.plan === 'trial' && data.plan_tier) {
-        tier = data.plan_tier
-      }
-
-      // Accept either snake_case or camelCase API keys
-      subscriptionId =
-        data.subscription_id ||
-        data.stripe_subscription_id ||
-        data.subscriptionId ||
-        data.stripeSubscriptionId ||
-        null
-
-      subscriptionStatus = data.status || data.subscription_status || data.plan_status || null
-
-      if (data.interval) {
-        interval = data.interval
-      } else if (data.billing_interval) {
-        interval = data.billing_interval === 'MONTHLY' ? 'month' : 'year'
-      } else if (data.billingInterval) {
-        interval = data.billingInterval === 'MONTHLY' ? 'month' : 'year'
-      }
-
-      const stripeCustomerId: string | null =
-        data.stripe_customer_id ||
-        data.stripeCustomerId ||
-        data.customerId ||
-        data.customer_id ||
-        null
-
-      const stripeSubscriptionId: string | null =
-        data.stripe_subscription_id ||
-        data.stripeSubscriptionId ||
-        subscriptionId ||
-        null
-
-      console.log('🔍 EXTRACTED VALUES:', {
-        tier,
-        subscriptionId,
-        subscriptionStatus,
-        interval,
-      })
-
-      const statusLower = String(subscriptionStatus || '').toLowerCase()
-
-      const hasActiveSubscription =
-        tier !== 'NONE' && (statusLower === 'active' || statusLower === 'trialing' || statusLower === 'trial')
-
-      console.log('✅ HAS SUBSCRIPTION:', hasActiveSubscription, {
-        hasId: Boolean(subscriptionId),
-        status: subscriptionStatus,
-        tier,
-        stripeCustomerId,
-        stripeSubscriptionId,
-      })
-
-      setSubscription({
-        tier,
-        interval,
-        status: subscriptionStatus,
-        subscriptionId,
-        cancelAtPeriodEnd: data.cancel_at_period_end || data.cancelAtPeriodEnd || false,
-        currentPeriodEnd: data.current_period_end || data.currentPeriodEnd || null,
-        hasSubscription: hasActiveSubscription,
-        stripeCustomerId,
-        stripeSubscriptionId,
-      })
-
-      return {
-        tier,
-        subscriptionId,
-        subscriptionStatus,
-        interval,
-        hasActiveSubscription,
-        stripeCustomerId,
-        stripeSubscriptionId,
-      }
-    } catch (err) {
-      console.error('❌ Failed to load plan:', err)
-      return null
-    }
-  }, [status])
-
-  // --- Stripe sync helper ---
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const syncAttemptsRef = useRef(0)
-
-  const startPlanSyncPolling = useCallback(
-    async (source: string) => {
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current)
-        syncTimerRef.current = null
-      }
-      syncAttemptsRef.current = 0
-
-      const tick = async () => {
-        syncAttemptsRef.current += 1
-
-        const result = await loadPlan()
-        const statusLower = String(result?.subscriptionStatus || '').toLowerCase()
-
-        const done =
-          Boolean(result?.subscriptionId) &&
-          (statusLower === 'active' || statusLower === 'trialing' || statusLower === 'trial')
-
-        if (done) {
-          setSuccess('✅ Subscription synced successfully.')
-          if (syncTimerRef.current) {
-            clearTimeout(syncTimerRef.current)
-            syncTimerRef.current = null
-          }
-          return
-        }
-
-        if (syncAttemptsRef.current >= 12) {
-          setError('⚠️ We could not confirm your subscription yet. Please refresh in a minute.')
-          if (syncTimerRef.current) {
-            clearTimeout(syncTimerRef.current)
-            syncTimerRef.current = null
-          }
-          return
-        }
-
-        syncTimerRef.current = setTimeout(tick, 2500)
-      }
-
-      console.log('🔁 Starting plan sync polling:', { source })
-      syncTimerRef.current = setTimeout(tick, 750)
-    },
-    [loadPlan]
-  )
-
-  useEffect(() => {
-    // Don't fire while NextAuth is still resolving the session
-    if (status === 'loading') return
-    loadPlan()
-  }, [loadPlan, status])
-
-  useEffect(() => {
-    return () => {
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current)
-        syncTimerRef.current = null
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    const success = searchParams.get('success')
-    const canceled = searchParams.get('canceled')
-    const sessionId = searchParams.get('session_id')
-
-    if (success === 'true' && sessionId) {
-      setSuccess('✅ Payment successful! Syncing your subscription…')
-      startPlanSyncPolling('success-callback')
-    } else if (canceled === 'true') {
-      setError('Payment was canceled. You can try again anytime.')
-    }
-  }, [searchParams, startPlanSyncPolling])
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      const stored = sessionStorage.getItem('pendingPlanSelection')
-      if (stored) {
-        try {
-          const { tierId, interval } = JSON.parse(stored)
-          const tier = TIERS.find((t) => t.id === tierId)
-          if (tier) {
-            console.log('🎯 Resuming pending plan selection:', { tierId, interval })
-            sessionStorage.removeItem('pendingPlanSelection')
-            setBillingInterval(interval === 'annual' ? 'annual' : 'monthly')
-            setTimeout(() => {
-              executePlanChange(tier, 'new')
-            }, 1000)
-          }
-        } catch (err) {
-          console.error('Failed to parse pending plan:', err)
-          sessionStorage.removeItem('pendingPlanSelection')
-        }
-      }
-    }
-  }, [status])
-
-  function getChangeType(tier: PricingTier): 'current' | 'upgrade' | 'downgrade' | 'new' | 'interval-change' {
-    if (!currentTier) return 'new'
-
-    if (tier.id === currentTier.id) {
-      const currentInterval = subscription.interval || 'month'
-      const newInterval = billingInterval === 'annual' ? 'year' : 'month'
-      if (currentInterval !== newInterval) return 'interval-change'
-      return 'current'
-    }
-
-    return tier.tierLevel > currentTier.tierLevel ? 'upgrade' : 'downgrade'
-  }
-
-  function getButtonText(tier: PricingTier): string {
-    const changeType = getChangeType(tier)
-
-    if (changeType === 'current') {
-      return subscription.cancelAtPeriodEnd ? 'Cancellation Scheduled' : 'Current Plan'
-    }
-
-    if (changeType === 'interval-change') {
-      const currentInterval = subscription.interval || 'month'
-      const newInterval = billingInterval === 'annual' ? 'year' : 'month'
-      return currentInterval === 'month' && newInterval === 'year' ? 'Switch to Annual' : 'Switch to Monthly'
-    }
-
-    if (status === 'unauthenticated') return 'Start 7-Day Free Trial'
-    if (!subscription.hasSubscription) return 'Start 7-Day Free Trial'
-
-    switch (changeType) {
-      case 'upgrade':
-        return 'Upgrade'
-      case 'downgrade':
-        return 'Downgrade'
-      case 'new':
-        return 'Start 7-Day Free Trial'
-      default:
-        return 'Select'
-    }
-  }
-
-  function getButtonStyle(tier: PricingTier): string {
-    const changeType = getChangeType(tier)
-
-    if (changeType === 'current') {
-      return 'bg-slate-900 text-white border border-slate-700/50 cursor-default'
-    }
-
-    if (tier.highlight) {
-      return 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-95'
-    }
-
-    return 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50'
-  }
-
-  // ✨ UPDATED executePlanChange with trial activation logic
-  async function executePlanChange(tier: PricingTier, type: 'upgrade' | 'downgrade' | 'new' | 'interval-change') {
-    try {
-      setLoading(tier.id)
-      setSaving(true)
-      setError(null)
-      setSuccess(null)
-
-      // 🔹 CASE 1: Not authenticated → Open AccessControlModal with plan pre-selected
-      if (status !== 'authenticated') {
-        setModalPlan(tier.id.toLowerCase() as 'basic' | 'professional' | 'enterprise')
-        setModalBilling(billingInterval)
-        setModalOpen(true)
-        return
-      }
-
-      // 🔹 CASE 2: New user starting trial (no existing subscription)
-      if (type === 'new' && !subscription.hasSubscription) {
-        const res = await fetch('/api/trial/activate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tier: tier.id,
-            billingInterval,
-          }),
-        })
-
-        const data = await res.json().catch(() => ({}))
-
-        if (!res.ok) {
-          const msg = data?.error || data?.message || 'Failed to start trial.'
-          setError(String(msg))
-          return
-        }
-
-        setSuccess('✅ 7-day free trial activated! No payment required.')
-        
-        // Reload plan data
-        await loadPlan()
-        
-        // Redirect to search after a brief delay
-        setTimeout(() => {
-          router.push('/search')
-          router.refresh()
-        }, 1500)
-        return
-      }
-
-      // 🔹 CASE 3: Existing subscriber changing plan/interval → Use Stripe
-      const payload = {
-        tier: tier.id,
-        billingInterval,
-      }
-
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
-        const msg = data?.error || data?.message || 'Failed to update plan.'
-        setError(String(msg))
-        return
-      }
-
-      if (data?.url) {
-        // Redirect to Stripe Checkout for plan changes
-        window.location.href = data.url
-        return
-      }
-
-      // Fallback: if backend does inline update, poll
-      setSuccess('✅ Plan updated successfully.')
-      startPlanSyncPolling('plan-change')
-      
-    } catch (err: any) {
-      console.error(err)
-      setError(err?.message || 'Something went wrong.')
-    } finally {
-      setLoading(null)
-      setSaving(false)
-    }
-  }
-
-  function handleSelect(tier: PricingTier) {
-    const type = getChangeType(tier)
-
-    if (type === 'current') return
-
-    // For downgrades and interval changes, show a warning confirmation modal
-    if (type === 'downgrade' || type === 'interval-change') {
-      setShowChangeWarning({ tier, type })
-      setPendingAction({ tier, type })
-      return
-    }
-
-    // For upgrades/new, go directly
-    executePlanChange(tier, type)
-  }
-
-  function closeWarning() {
-    setShowChangeWarning(null)
-    setPendingAction(null)
-  }
-
-  function confirmWarning() {
-    if (!pendingAction) return
-    executePlanChange(pendingAction.tier, pendingAction.type)
-    closeWarning()
-  }
+  const [annual, setAnnual] = useState(false)
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-48 -top-48 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="absolute -right-48 top-1/3 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-slate-950 text-white">
 
-      <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Simple, Transparent Pricing
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300/90">
-            Choose the perfect plan for your contracting business. All plans include a 7-day free trial.
-          </p>
+      {/* ── Hero Section ── */}
+      <div className="relative overflow-hidden">
+        {/* Background image with overlay */}
+        <div className="absolute inset-0">
+          <Image
+            src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&h=600&fit=crop&q=80"
+            alt="Federal buildings"
+            fill
+            className="object-cover opacity-10"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/80 to-slate-950" />
         </div>
 
-        <div className="mt-8 flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur-xl">
+        {/* Decorative glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-6">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">
+              7-Day Free Trial · No Credit Card Required
+            </span>
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
+            Simple,{' '}
+            <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+              Transparent
+            </span>{' '}
+            Pricing
+          </h1>
+          <p className="text-slate-400 text-lg max-w-xl mx-auto mb-8">
+            Win more federal contracts without overpaying for tools. Cancel anytime.
+          </p>
+
+          {/* Toggle */}
+          <div className="inline-flex items-center gap-3 bg-slate-900 border border-slate-700 rounded-xl p-1">
             <button
-              type="button"
-              onClick={() => setBillingInterval('monthly')}
-              className={[
-                'rounded-xl px-6 py-2 text-sm font-semibold transition',
-                billingInterval === 'monthly'
-                  ? 'bg-white text-slate-900 shadow-lg'
-                  : 'text-slate-200 hover:text-white',
-              ].join(' ')}
+              onClick={() => setAnnual(false)}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                !annual ? 'bg-white text-slate-900 shadow' : 'text-slate-400 hover:text-white'
+              }`}
             >
               Monthly
             </button>
             <button
-              type="button"
-              onClick={() => setBillingInterval('annual')}
-              className={[
-                'rounded-xl px-6 py-2 text-sm font-semibold transition',
-                billingInterval === 'annual'
-                  ? 'bg-white text-slate-900 shadow-lg'
-                  : 'text-slate-200 hover:text-white',
-              ].join(' ')}
+              onClick={() => setAnnual(true)}
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                annual ? 'bg-white text-slate-900 shadow' : 'text-slate-400 hover:text-white'
+              }`}
             >
               Annual
-              <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">
-                Save up to 20%
+              <span className="px-1.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded-md">
+                SAVE 20%
               </span>
             </button>
           </div>
         </div>
-
-        {(error || success) && (
-          <div className="mx-auto mt-8 max-w-2xl">
-            {error && (
-              <div className="flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-200">
-                <AlertCircle className="mt-0.5 h-5 w-5" />
-                <div className="text-sm leading-relaxed">{error}</div>
-              </div>
-            )}
-            {success && (
-              <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
-                <Check className="mt-0.5 h-5 w-5" />
-                <div className="text-sm leading-relaxed">{success}</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-10 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {TIERS.map((tier) => {
-            const Icon = tier.icon
-            const changeType = getChangeType(tier)
-            const isLoading = loading === tier.id
-
-            const price = resolvePrice(tier, billingInterval)
-
-            const suffix = billingInterval === 'annual' ? '/yr' : '/mo'
-
-            return (
-              <div
-                key={tier.id}
-                className={[
-                  'relative overflow-hidden rounded-3xl border bg-white/5 p-6 ring-1 ring-white/10',
-                  tier.border,
-                  tier.glow,
-                  tier.highlight ? 'sm:scale-[1.01] md:scale-[1.02]' : '',
-                ].join(' ')}
-              >
-                <div
-                  className={[
-                    'absolute inset-0 opacity-30',
-                    'bg-gradient-to-br',
-                    tier.gradient,
-                  ].join(' ')}
-                />
-                <div className="relative">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100 ring-1 ring-white/10">
-                        <Icon className="h-4 w-4" />
-                        {tier.name}
-                      </div>
-                      <div className="mt-3 text-lg font-semibold text-white">
-                        {tier.tagline}
-                      </div>
-                      <p className="mt-2 text-sm text-slate-200/80">
-                        {tier.description}
-                      </p>
-                    </div>
-
-                    {tier.highlight && (
-                      <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/10">
-                        Most Popular
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-6">
-                    {pricesLoading ? (
-                      <div className="flex items-end gap-2">
-                        <div className="h-10 w-24 animate-pulse rounded-lg bg-white/10" />
-                        <div className="mb-1 h-4 w-6 animate-pulse rounded bg-white/10" />
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-end gap-2">
-                          <div className="text-3xl sm:text-4xl font-bold text-white">
-                            ${formatPrice(price)}
-                          </div>
-                          <div className="pb-1 text-sm text-slate-200/80">{suffix}</div>
-                          {billingInterval === 'annual' && savingsPercent(tier) > 0 && (
-                            <div className="mb-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-300 ring-1 ring-emerald-500/25">
-                              Save {savingsPercent(tier)}%
-                            </div>
-                          )}
-                        </div>
-                        {billingInterval === 'annual' && (
-                          <div className="mt-1 text-xs text-slate-300/70">
-                            ≈ ${monthlyEquivalent(tier)}/mo · billed annually
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  <div className="mt-2 text-sm text-slate-200/80">
-                    Best for: <span className="text-white">{tier.bestFor}</span>
-                  </div>
-
-                  <ul className="mt-6 space-y-3 text-sm text-slate-100/90">
-                    {tier.features.map((f) => (
-                      <li key={f} className="flex items-start gap-3">
-                        <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/10">
-                          <Check className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="leading-relaxed">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <button
-                    type="button"
-                    disabled={changeType === 'current' || saving}
-                    onClick={() => handleSelect(tier)}
-                    className={[
-                      'mt-8 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition',
-                      getButtonStyle(tier),
-                      saving ? 'opacity-80' : '',
-                    ].join(' ')}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing…
-                      </>
-                    ) : (
-                      <>
-                        {getButtonText(tier)}
-                        {changeType !== 'current' && <ArrowRight className="h-4 w-4" />}
-                      </>
-                    )}
-                  </button>
-
-                  {changeType === 'downgrade' && (
-                    <div className="mt-3 text-xs text-slate-200/70">
-                      Downgrades take effect at the end of your current billing period.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="mt-12 rounded-3xl border border-white/10 bg-white/5 p-6 ring-1 ring-white/10">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-lg font-semibold text-white">Need help choosing?</div>
-              <div className="mt-1 text-sm text-slate-300">
-                Contact support and we'll help you pick the right tier.
-              </div>
-            </div>
-            <Link
-              href="/contact"
-              className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-            >
-              Contact Support
-            </Link>
-          </div>
-        </div>
       </div>
 
-      {/* Auth Modal — opens when unauthenticated user clicks a pricing card */}
-      <AccessControlModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        featureName="Precise GovCon"
-        initialMode="signup"
-        redirectTo="/search"
-        highlightPlan={modalPlan}
-        highlightBilling={modalBilling}
-      />
-
-      {/* Warning Modal */}
-      {showChangeWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl ring-1 ring-white/10">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 rounded-2xl bg-amber-500/10 p-2 ring-1 ring-amber-500/20">
-                  <AlertCircle className="h-5 w-5 text-amber-300" />
+      {/* ── Pricing Cards ── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          {plans.map((plan) => (
+            <div
+              key={plan.id}
+              className={`relative rounded-2xl p-6 flex flex-col transition-all duration-300 ${
+                plan.highlight
+                  ? 'bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-orange-500 shadow-2xl shadow-orange-500/10 scale-[1.02]'
+                  : 'bg-slate-900 border border-slate-700/60 hover:border-slate-600'
+              }`}
+            >
+              {plan.highlight && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold uppercase tracking-widest rounded-full shadow-lg">
+                    Most Popular
+                  </span>
                 </div>
-                <div>
-                  <div className="text-lg font-semibold text-white">Confirm change</div>
-                  <div className="mt-1 text-sm text-slate-300">
-                    {showChangeWarning.type === 'downgrade' ? (
-                      <>
-                        Downgrades usually take effect at the end of your current billing period.
-                      </>
-                    ) : (
-                      <>
-                        Switching billing intervals may change your next renewal date.
-                      </>
-                    )}
+              )}
+
+              {/* Plan header */}
+              <div className="flex items-center gap-2 mb-1">
+                {plan.icon}
+                <h2 className="text-lg font-bold text-white">{plan.name}</h2>
+              </div>
+              <p className="text-sm text-slate-400 mb-4">{plan.tagline}</p>
+
+              {/* Price */}
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-4xl font-extrabold text-white">
+                  ${annual ? plan.annualPrice : plan.monthlyPrice}
+                </span>
+                <span className="text-slate-400 text-sm">/mo</span>
+              </div>
+              {annual && (
+                <p className="text-xs text-emerald-400 font-semibold mb-2">
+                  Billed annually · Save ${((plan.monthlyPrice - plan.annualPrice) * 12).toFixed(0)}/yr
+                </p>
+              )}
+
+              {/* Best for */}
+              <p className="text-xs text-slate-400 mb-5">
+                <span className="font-semibold text-slate-300">Best for:</span> {plan.bestFor}
+              </p>
+
+              {/* Divider */}
+              <div className="border-t border-slate-700/60 mb-5" />
+
+              {/* Features */}
+              <ul className="space-y-2.5 flex-1 mb-6">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-slate-300">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA */}
+              <Link
+                href="/register"
+                className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all ${plan.ctaStyle}`}
+              >
+                {plan.cta}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Trust Bar ── */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">
+          {['SAM.gov Data', 'No Credit Card', 'Cancel Anytime', 'SOC 2 Compliant'].map((item) => (
+            <div key={item} className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Value Banner ── */}
+        <div className="mt-8 rounded-xl border border-amber-500/30 bg-amber-500/5 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Zap className="w-5 h-5 text-amber-400 flex-shrink-0" />
+            <p className="text-sm text-amber-200 font-medium">
+              <span className="font-bold">Elevate your business for less!</span>{' '}
+              Same capabilities and functionality at up to 75% less than competitors.
+            </p>
+          </div>
+          <Link
+            href="/features"
+            className="text-xs font-bold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors"
+          >
+            Compare Features →
+          </Link>
+        </div>
+
+        {/* ── Testimonials ── */}
+        <div className="mt-20">
+          <div className="text-center mb-10">
+            <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">Trusted by contractors nationwide</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">What our customers say</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((t) => (
+              <div key={t.name} className="bg-slate-900 border border-slate-700/60 rounded-2xl p-6 hover:border-slate-600 transition-all">
+                <div className="flex gap-1 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed mb-5">"{t.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <Image
+                    src={t.avatar}
+                    alt={t.name}
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover w-10 h-10 ring-2 ring-slate-700"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-white">{t.name}</p>
+                    <p className="text-xs text-slate-500">{t.role}</p>
                   </div>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={closeWarning}
-                className="rounded-2xl p-2 text-slate-300 hover:bg-white/5"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={closeWarning}
-                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmWarning}
-                className="flex-1 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              >
-                Confirm
-              </button>
-            </div>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* ── FAQ teaser ── */}
+        <div className="mt-16 text-center">
+          <p className="text-slate-400 text-sm">
+            Have questions?{' '}
+            <Link href="/support" className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+              Visit our support center
+            </Link>{' '}
+            or{' '}
+            <button className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+              chat with us
+            </button>
+            .
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

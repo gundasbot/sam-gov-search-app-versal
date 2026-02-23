@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Line,
@@ -56,6 +56,10 @@ function stagePillStyle(stage: Stage) {
 }
 
 export default function ActiveTrackingPage() {
+  // Avoid Recharts measuring during SSG/SSR
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   // Replace this with real pipeline data later (Neon/Prisma, etc.)
   const pipeline: PipelineItem[] = [
     {
@@ -246,30 +250,34 @@ export default function ActiveTrackingPage() {
               </div>
             </div>
 
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                  <XAxis dataKey="stage" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" allowDecimals={false} />
-                  <Tooltip
-                    cursor={{ stroke: '#22c55e', strokeWidth: 1 }}
-                    contentStyle={{
-                      background: 'rgba(2,6,23,0.95)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: '12px',
-                      color: '#e2e8f0',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#22c55e"
-                    strokeWidth={2}
-                    dot={{ r: 4, stroke: '#22c55e', fill: '#0f172a' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="w-full h-72 min-h-[260px]">
+              {mounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                    <XAxis dataKey="stage" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" allowDecimals={false} />
+                    <Tooltip
+                      cursor={{ stroke: '#22c55e', strokeWidth: 1 }}
+                      contentStyle={{
+                        background: 'rgba(2,6,23,0.95)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '12px',
+                        color: '#e2e8f0',
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#22c55e"
+                      strokeWidth={2}
+                      dot={{ r: 4, stroke: '#22c55e', fill: '#0f172a' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full rounded-xl border border-white/10 bg-slate-950/30 animate-pulse" />
+              )}
             </div>
           </section>
 

@@ -57,7 +57,8 @@ function SignInContent() {
   }
 
   return (
-    // Full width, no constraints
+    // CRITICAL: Use w-full to match header/footer width exactly
+    // The parent layout should NOT constrain this with max-width
     <div className="w-full flex-1 flex min-h-0">
 
       {/* ── LEFT PANEL ── */}

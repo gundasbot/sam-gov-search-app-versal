@@ -374,14 +374,13 @@ export default function Header() {
                   )}
                 </div>
               ) : (
-                /* Open AccessControlModal for sign in */
-                <button
-                  onClick={() => setShowSignInModal(true)}
+                <Link
+                  href="/login"
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg text-sm sm:text-base"
                 >
                   <LogIn className="w-4 h-4 flex-shrink-0" />
                   <span>Sign In</span>
-                </button>
+                </Link>
               )}
 
               {/* Hamburger — visible below lg */}

@@ -2,155 +2,117 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * Browsing gate
- * - Tracks how long the visitor has been browsing before showing/sign-in forcing actions
- * - Allows up to MAX_DELAYS "delay" clicks (stored in cookies)
- *
- * Cookies:
- * - browsing_start: unix ms timestamp when we started counting
- * - delay_count: number of delays used
+ * Browsing gate — cookie names MUST match middleware (proxy.ts):
+ *   browsing_start_time  (unix ms)
+ *   delay_count          (integer)
  */
 
-const BROWSING_TIME_LIMIT_SECONDS = 15 * 60 // 15 minutes
+const BROWSING_TIME_LIMIT_MS = 15 * 60 * 1000   // 15 min in ms  (matches middleware)
 const MAX_DELAYS = 2
 
-const COOKIE_BROWSING_START = 'browsing_start'
-const COOKIE_DELAY_COUNT = 'delay_count'
+const COOKIE_START    = 'browsing_start_time'    // ← synced with proxy.ts
+const COOKIE_DELAYS   = 'delay_count'
 
 function parseIntSafe(v: string | undefined | null, fallback = 0) {
   const n = parseInt(v || '', 10)
   return Number.isFinite(n) ? n : fallback
 }
 
-function parseMsSafe(v: string | undefined | null) {
-  const n = parseInt(v || '', 10)
-  return Number.isFinite(n) ? n : 0
-}
-
-function nowMs() {
-  return Date.now()
-}
-
-function getElapsedSeconds(startMs: number) {
-  if (!startMs) return 0
-  return Math.max(0, Math.floor((nowMs() - startMs) / 1000))
-}
-
-function canContinueBrowsing(elapsedSeconds: number, delayCount: number) {
-  // If they already delayed the max number of times, stop delaying.
-  if (delayCount >= MAX_DELAYS) return false
-  // If time limit exceeded, stop delaying.
-  if (elapsedSeconds >= BROWSING_TIME_LIMIT_SECONDS) return false
-  // Otherwise, they can still browse/delay sign-in.
-  return true
-}
-
-function cookieOptions() {
+function cookieOptions(maxAgeSec = 60 * 60 * 24) {
   return {
-    httpOnly: false, // client may read if you want UI behavior (safe since no secrets)
+    httpOnly: true,
     sameSite: 'lax' as const,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: maxAgeSec,
   }
 }
 
 /**
- * GET: returns current browsing status
- * Response:
- * {
- *   elapsedSeconds,
- *   remainingSeconds,
- *   delayCount,
- *   maxDelays,
- *   canBrowse,        // true if still within time and delays available
- *   shouldPromptSignIn // true if browsing time exceeded OR delays maxed out
- * }
+ * GET — returns current browsing status
  */
 export async function GET(request: NextRequest) {
-  const browsingStartCookie = request.cookies.get(COOKIE_BROWSING_START)?.value
-  const delayCountCookie = request.cookies.get(COOKIE_DELAY_COUNT)?.value
+  const startCookie   = request.cookies.get(COOKIE_START)?.value
+  const delayCookie   = request.cookies.get(COOKIE_DELAYS)?.value
 
-  const browsingStartMs = parseMsSafe(browsingStartCookie) || nowMs()
-  const delayCount = parseIntSafe(delayCountCookie, 0)
+  const now           = Date.now()
+  const startMs       = parseIntSafe(startCookie) || now
+  const delayCount    = parseIntSafe(delayCookie, 0)
 
-  const elapsedSeconds = getElapsedSeconds(browsingStartMs)
-  const remainingSeconds = Math.max(0, BROWSING_TIME_LIMIT_SECONDS - elapsedSeconds)
+  const elapsedMs         = Math.max(0, now - startMs)
+  const elapsedSeconds    = Math.floor(elapsedMs / 1000)
+  const remainingMs       = Math.max(0, BROWSING_TIME_LIMIT_MS - elapsedMs)
+  const remainingSeconds  = Math.floor(remainingMs / 1000)
 
-  const canBrowse = canContinueBrowsing(elapsedSeconds, delayCount)
-  const shouldPromptSignIn = !canBrowse
+  const timeExpired         = elapsedMs >= BROWSING_TIME_LIMIT_MS
+  const outOfDelays         = delayCount >= MAX_DELAYS
+  const shouldPromptSignIn  = timeExpired || outOfDelays
+  const canBrowse           = !shouldPromptSignIn
 
   const res = NextResponse.json({
     elapsedSeconds,
-    remainingSeconds,
+    remainingSeconds,        // ← what BrowsingTimerBanner reads
     delayCount,
     maxDelays: MAX_DELAYS,
     canBrowse,
-    shouldPromptSignIn,
+    shouldPromptSignIn,      // ← what BrowsingTimerBanner reads
   })
 
-  // Ensure browsing_start cookie is set once
-  if (!browsingStartCookie) {
-    res.cookies.set(COOKIE_BROWSING_START, String(browsingStartMs), cookieOptions())
+  // Set cookies if missing (mirrors middleware behaviour)
+  if (!startCookie) {
+    res.cookies.set(COOKIE_START, String(now), cookieOptions())
   }
-  // Ensure delay_count exists
-  if (!delayCountCookie) {
-    res.cookies.set(COOKIE_DELAY_COUNT, '0', cookieOptions())
+  if (!delayCookie) {
+    res.cookies.set(COOKIE_DELAYS, '0', cookieOptions())
   }
 
   return res
 }
 
 /**
- * POST: user chose to "delay" sign-in / continue browsing.
- * Increments delay_count (up to MAX_DELAYS).
+ * POST — user clicks "Browse X More Minutes"
+ * Increments delay_count (capped at MAX_DELAYS).
+ * Does NOT reset the start time — elapsed time keeps accumulating.
  */
 export async function POST(request: NextRequest) {
-  const browsingStartCookie = request.cookies.get(COOKIE_BROWSING_START)?.value
-  const delayCountCookie = request.cookies.get(COOKIE_DELAY_COUNT)?.value
+  const startCookie    = request.cookies.get(COOKIE_START)?.value
+  const delayCookie    = request.cookies.get(COOKIE_DELAYS)?.value
 
-  const browsingStartMs = parseMsSafe(browsingStartCookie) || nowMs()
-  const currentDelayCount = parseIntSafe(delayCountCookie, 0)
+  const now            = Date.now()
+  const startMs        = parseIntSafe(startCookie) || now
+  const currentDelays  = parseIntSafe(delayCookie, 0)
 
-  const elapsedSeconds = getElapsedSeconds(browsingStartMs)
+  const elapsedMs         = Math.max(0, now - startMs)
+  const remainingMs       = Math.max(0, BROWSING_TIME_LIMIT_MS - elapsedMs)
+  const remainingSeconds  = Math.floor(remainingMs / 1000)
 
-  // If already time exceeded or max delays hit, do not increment further.
-  if (!canContinueBrowsing(elapsedSeconds, currentDelayCount)) {
-    const res = NextResponse.json(
-      {
-        ok: false,
-        message: 'Browsing time limit reached or maximum delays used.',
-        delayCount: currentDelayCount,
-        maxDelays: MAX_DELAYS,
-        elapsedSeconds,
-        remainingSeconds: Math.max(0, BROWSING_TIME_LIMIT_SECONDS - elapsedSeconds),
-        canBrowse: false,
-        shouldPromptSignIn: true,
-      },
-      { status: 200 }
-    )
-
-    // Keep cookies consistent
-    if (!browsingStartCookie) res.cookies.set(COOKIE_BROWSING_START, String(browsingStartMs), cookieOptions())
-    if (!delayCountCookie) res.cookies.set(COOKIE_DELAY_COUNT, String(currentDelayCount), cookieOptions())
-
-    return res
+  // Already maxed out
+  if (currentDelays >= MAX_DELAYS) {
+    return NextResponse.json({
+      ok: false,
+      message: 'Maximum browsing extensions used.',
+      delayCount: currentDelays,
+      maxDelays: MAX_DELAYS,
+      remainingSeconds,
+      canBrowse: false,
+      shouldPromptSignIn: true,
+    })
   }
 
-  const nextDelayCount = Math.min(MAX_DELAYS, currentDelayCount + 1)
+  const nextDelayCount = currentDelays + 1
+  const canBrowse      = nextDelayCount < MAX_DELAYS || remainingMs > 0
 
   const res = NextResponse.json({
     ok: true,
     delayCount: nextDelayCount,
     maxDelays: MAX_DELAYS,
-    elapsedSeconds,
-    remainingSeconds: Math.max(0, BROWSING_TIME_LIMIT_SECONDS - elapsedSeconds),
-    canBrowse: canContinueBrowsing(elapsedSeconds, nextDelayCount),
-    shouldPromptSignIn: !canContinueBrowsing(elapsedSeconds, nextDelayCount),
+    remainingSeconds,
+    canBrowse,
+    shouldPromptSignIn: !canBrowse,
   })
 
-  res.cookies.set(COOKIE_BROWSING_START, String(browsingStartMs), cookieOptions())
-  res.cookies.set(COOKIE_DELAY_COUNT, String(nextDelayCount), cookieOptions())
+  res.cookies.set(COOKIE_START,  String(startMs),          cookieOptions())
+  res.cookies.set(COOKIE_DELAYS, String(nextDelayCount),   cookieOptions())
 
   return res
 }
