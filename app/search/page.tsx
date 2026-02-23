@@ -112,6 +112,8 @@ import {
   Phone,
   StopCircle,
   Settings,
+  Home,
+  ArrowRight,
 } from 'lucide-react'
 import AccessControlModal from '@/components/AccessControlModal'
 
@@ -4442,52 +4444,144 @@ ${filteredResults.map(opp => `  <opportunity>
           />
         )}
 
-        {/* Lockout Modal */}
+        {/* Lockout Modal - Enhanced with navigation links */}
         {showLockoutModal && status === 'unauthenticated' && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <div className="max-w-md w-full mx-4">
-              <div className="rounded-2xl bg-white p-8 shadow-2xl">
-                <div className="flex flex-col items-center text-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                    <Lock className="h-8 w-8 text-red-600" />
+          <>
+            {/* Backdrop - clicking outside dismisses */}
+            <div 
+              className="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setShowLockoutModal(false)}
+            />
+            
+            {/* Modal */}
+            <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+              <div 
+                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden pointer-events-auto animate-in fade-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header with brand color */}
+                <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 pt-8 pb-6">
+                  {/* Close button */}
+                  <button
+                    onClick={() => setShowLockoutModal(false)}
+                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                    aria-label="Close and continue browsing"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center shadow-lg">
+                      <Lock className="w-8 h-8 text-white" />
+                    </div>
                   </div>
                   
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                      Session Expired
-                    </h2>
-                    <p className="text-slate-600 leading-relaxed">
-                      Your 15-minute free browsing session has ended. Sign up or sign in to continue accessing federal contracting opportunities.
-                    </p>
+                  <h2 className="text-2xl font-bold text-white text-center mb-2">
+                    Search Session Expired
+                  </h2>
+                  
+                  <p className="text-slate-300 text-center text-sm leading-relaxed">
+                    Your 15-minute free browsing session has ended. Sign up for unlimited access to federal contracting opportunities.
+                  </p>
+                </div>
+
+                {/* Body */}
+                <div className="px-8 py-6">
+                  {/* Primary actions */}
+                  <div className="space-y-3 mb-6">
+                    <button
+                      onClick={() => {
+                        setShowLockoutModal(false)
+                        setShowAccessModal(true)
+                      }}
+                      className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-semibold transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 group"
+                    >
+                      <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                      Sign Up or Sign In
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+
+                    <button
+                      onClick={() => setShowLockoutModal(false)}
+                      className="w-full py-3.5 px-6 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition-all"
+                    >
+                      Continue Browsing Other Pages
+                    </button>
                   </div>
 
-                  <div className="w-full space-y-3 mt-4">
-                    <button
-                      onClick={() => {
-                        setShowLockoutModal(false)
-                        setShowAccessModal(true)
-                      }}
-                      className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
-                      aria-label="Sign up now"
-                    >
-                      Sign Up Now
-                    </button>
+                  {/* Browse other pages section */}
+                  <div className="border-t border-slate-200 pt-6">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 text-center">
+                      Explore unrestricted pages
+                    </p>
                     
-                    <button
-                      onClick={() => {
-                        setShowLockoutModal(false)
-                        setShowAccessModal(true)
-                      }}
-                      className="w-full px-6 py-3 rounded-xl border-2 border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-all"
-                      aria-label="Sign in"
-                    >
-                      Sign In
-                    </button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Link
+                        href="/"
+                        onClick={() => setShowLockoutModal(false)}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
+                          <Home className="w-5 h-5 text-slate-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold text-slate-900">Home</p>
+                          <p className="text-xs text-slate-500">Learn more</p>
+                        </div>
+                      </Link>
+
+                      <Link
+                        href="/pricing"
+                        onClick={() => setShowLockoutModal(false)}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
+                          <DollarSign className="w-5 h-5 text-slate-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold text-slate-900">Pricing</p>
+                          <p className="text-xs text-slate-500">View plans</p>
+                        </div>
+                      </Link>
+
+                      <Link
+                        href="/services"
+                        onClick={() => setShowLockoutModal(false)}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
+                          <FileText className="w-5 h-5 text-slate-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold text-slate-900">Services</p>
+                          <p className="text-xs text-slate-500">What we offer</p>
+                        </div>
+                      </Link>
+
+                      <Link
+                        href="/support"
+                        onClick={() => setShowLockoutModal(false)}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:shadow-sm transition-shadow">
+                          <HelpCircle className="w-5 h-5 text-slate-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-semibold text-slate-900">Support</p>
+                          <p className="text-xs text-slate-500">Get help</p>
+                        </div>
+                      </Link>
+                    </div>
                   </div>
+
+                  {/* Footer note */}
+                  <p className="text-xs text-slate-400 text-center mt-6">
+                    Free 7-day trial • No credit card required • Cancel anytime
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </main>
     </SearchErrorBoundary>
