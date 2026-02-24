@@ -1,7 +1,6 @@
 'use client';
 
-// app/activate/page.tsx  
-//
+// app/activate/page.tsx 
 // This page handles admin-created user activation:
 //   1. Reads ?token=&email=&code= from the URL
 //   2. Shows a "Set your password" form
