@@ -53,28 +53,18 @@ function ActivateContent() {
   const params   = useSearchParams();
   const router   = useRouter();
 
-  const token = params.get('token') ?? '';
-  const email = params.get('email') ?? '';
-  const code  = params.get('code')  ?? '';
+  const token     = params.get('token')     ?? '';
+  const email     = params.get('email')     ?? '';
+  const code      = params.get('code')      ?? '';
+  const firstName = params.get('firstName') ?? '';
+  const trialDays = parseInt(params.get('trialDays') ?? '7', 10);
 
-  const [password,        setPassword]        = useState('');
-  const [confirm,         setConfirm]         = useState('');
-  const [showPw,          setShowPw]          = useState(false);
-  const [showConfirm,     setShowConfirm]     = useState(false);
-  const [stage,           setStage]           = useState<Stage>('form');
-  const [errorMsg,        setErrorMsg]        = useState('');
-  const [countdown,       setCountdown]       = useState(5);
-
-  // Redirect countdown after success
-  useEffect(() => {
-    if (stage !== 'success') return;
-    const t = setInterval(() => setCountdown(n => n - 1), 1000);
-    return () => clearInterval(t);
-  }, [stage]);
-
-  useEffect(() => {
-    if (countdown <= 0 && stage === 'success') router.push('/search');
-  }, [countdown, stage, router]);
+  const [password,    setPassword]    = useState('');
+  const [confirm,     setConfirm]     = useState('');
+  const [showPw,      setShowPw]      = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [stage,       setStage]       = useState<Stage>('form');
+  const [errorMsg,    setErrorMsg]    = useState('');
 
   // Guard: no token in URL
   if (!token || !email) {
@@ -133,30 +123,44 @@ function ActivateContent() {
   if (stage === 'success') {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-emerald-50 p-4">
-        <div className="max-w-md w-full">
-          <div className="flex justify-center mb-8">
-            <img src="/precise-govcon-logo.jpg" alt="PreciseGovCon" className="h-10 object-contain" />
+        <div className="max-w-lg w-full">
+          <div className="flex justify-center mb-6">
+            <img src="/precise-govcon-logo.jpg" alt="PreciseGovCon" className="h-12 object-contain" />
           </div>
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 text-center">
-            <div className="flex justify-center mb-5">
-              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
-                <Check className="w-8 h-8 text-emerald-600" strokeWidth={2.5} />
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden">
+            {/* Green header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-green-600 px-8 py-10 text-center">
+              <div className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-5">
+                <Check className="w-10 h-10 text-white" strokeWidth={2.5} />
               </div>
+              <h1 className="text-3xl font-black text-white mb-2">
+                You're all set{firstName ? `, ${firstName}` : ''}!
+              </h1>
+              <p className="text-emerald-100 text-lg font-semibold">Account activated — your trial has started</p>
             </div>
-            <h1 className="text-2xl font-black text-slate-800 mb-2">Account Activated!</h1>
-            <p className="text-slate-500 mb-6">Your password is set and your free trial has started. You're being signed in now.</p>
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold px-3 py-1 rounded-full">
-                <Shield className="w-3.5 h-3.5" /> 7-Day Free Trial Started
-              </span>
+            {/* Body */}
+            <div className="px-8 py-8 space-y-4">
+              {[
+                { icon: '✅', title: 'Password set & email verified',            sub: 'Your account is fully secured' },
+                { icon: '🎯', title: `${trialDays}-day free trial activated`,    sub: 'Full platform access unlocked immediately' },
+                { icon: '🔍', title: '1,300+ live federal opportunities waiting', sub: 'Start finding contracts that match your profile' },
+              ].map(({ icon, title, sub }) => (
+                <div key={title} className="flex items-start gap-4 bg-slate-50 rounded-2xl px-5 py-4">
+                  <span className="text-2xl flex-shrink-0 mt-0.5">{icon}</span>
+                  <div>
+                    <p className="text-base font-black text-slate-900">{title}</p>
+                    <p className="text-sm font-medium text-slate-500 mt-0.5">{sub}</p>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => router.push('/search')}
+                className="w-full py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-lg font-black flex items-center justify-center gap-3 transition-colors shadow-lg shadow-orange-500/25 mt-2"
+              >
+                Start Searching Contracts <ArrowRight className="w-5 h-5" />
+              </button>
+              <p className="text-center text-sm text-slate-400 font-medium">You're signed in and ready to go</p>
             </div>
-            <button
-              onClick={() => router.push('/search')}
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base flex items-center justify-center gap-2 transition-colors"
-            >
-              Start Searching Contracts <ArrowRight className="w-4 h-4" />
-            </button>
-            <p className="text-xs text-slate-400 mt-3">Redirecting in {countdown}s…</p>
           </div>
         </div>
       </main>
@@ -186,21 +190,23 @@ function ActivateContent() {
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-6">
-            <h1 className="text-2xl font-black text-white">Activate your account</h1>
-            <p className="text-orange-100 text-sm mt-1">Set a password to complete your account setup</p>
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-8 text-center">
+            <h1 className="text-3xl font-black text-white">
+              {firstName ? `Welcome, ${firstName}!` : 'Activate your account'}
+            </h1>
+            <p className="text-orange-100 text-base font-semibold mt-2">Set a password to complete your account setup</p>
           </div>
 
           <div className="px-8 py-7">
 
             {/* Email display */}
-            <div className="mb-6 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-orange-600 font-black text-sm">{email[0]?.toUpperCase()}</span>
+            <div className="mb-6 flex items-center gap-4 bg-slate-50 border-2 border-slate-200 rounded-2xl px-5 py-4">
+              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-orange-600 font-black text-xl">{email[0]?.toUpperCase()}</span>
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Activating account for</p>
-                <p className="text-sm font-bold text-slate-700 truncate">{email}</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Activating account for</p>
+                <p className="text-base font-black text-slate-800 truncate">{email}</p>
               </div>
             </div>
 
@@ -227,7 +233,7 @@ function ActivateContent() {
 
               {/* Password */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+                <label className="block text-sm font-black text-slate-700 mb-2 uppercase tracking-wider">
                   Choose a Password *
                 </label>
                 <div className="relative">
@@ -253,7 +259,7 @@ function ActivateContent() {
 
               {/* Confirm */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+                <label className="block text-sm font-black text-slate-700 mb-2 uppercase tracking-wider">
                   Confirm Password *
                 </label>
                 <div className="relative">
