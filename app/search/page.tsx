@@ -1935,35 +1935,48 @@ function useToast() {
 // ── STEP 8: Add sticky prompt component + render ──
 // Add this component definition above SearchPageContent:
 function StickyResultsPrompt({
-  count, keywords, onSave, onAlert, onDismiss,
-}: { count: number; keywords: string; onSave: () => void; onAlert: () => void; onDismiss: () => void }) {
+  count, keywords, postedAfter, responseDeadlineBefore, selectedSetAsides, selectedStates, onSave, onAlert, onDismiss,
+}: { 
+  count: number; keywords: string; 
+  postedAfter?: string; responseDeadlineBefore?: string;
+  selectedSetAsides?: string[]; selectedStates?: string[];
+  onSave: () => void; onAlert: () => void; onDismiss: () => void 
+}) {
+  // Build a compact description
+  const parts: string[] = []
+  if (keywords) parts.push(`"${keywords}"`)
+  if (postedAfter) parts.push(`posted ≥ ${new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
+  if (responseDeadlineBefore) parts.push(`due on or after ${new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
+  if (selectedSetAsides && selectedSetAsides.length > 0) parts.push(`${selectedSetAsides.length} set-aside${selectedSetAsides.length > 1 ? 's' : ''}`)
+  if (selectedStates && selectedStates.length > 0) parts.push(`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`)
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-700 to-teal-700 text-white px-4 py-3 shadow-2xl border-t-2 border-emerald-500">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-emerald-500">
       <div className="max-w-[1760px] mx-auto flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-emerald-300 flex-shrink-0" />
+          <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />
           <span className="font-bold text-sm">
-            Found <span className="text-emerald-200 text-base">{count.toLocaleString()}</span> results
-            {keywords ? <> for <span className="text-emerald-200">"{keywords}"</span></> : ''}
-            — save this search or get alerts so you never miss an update
+            Found <span className="text-emerald-300 text-base">{count.toLocaleString()}</span> results
+            {parts.length > 0 && <> for <span className="text-emerald-300">{parts.join(' · ')}</span></>}
+            {' '}— save this search or get alerts so you never miss an update
           </span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={onSave}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white text-emerald-800 font-bold text-sm rounded-lg hover:bg-emerald-50 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-emerald-50 transition-colors shadow-sm"
           >
             <Save className="h-4 w-4" />Save Search
           </button>
           <button
             onClick={onAlert}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-white font-bold text-sm rounded-lg hover:bg-emerald-600 transition-colors border border-emerald-400"
+            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm rounded-lg hover:from-violet-600 hover:to-purple-700 transition-colors border border-violet-400"
           >
             <Bell className="h-4 w-4" />Get Alerts
           </button>
           <button
             onClick={onDismiss}
-            className="p-1.5 hover:bg-emerald-600 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" />
@@ -3796,7 +3809,7 @@ ${filteredResults.map(opp => `  <opportunity>
 
   return (
     <SearchErrorBoundary>
-      <main style={{ fontFamily: 'Aptos, sans-serif', fontSize: '12px' }} className="h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col overflow-hidden">
+      <main style={{ fontFamily: 'Aptos, sans-serif' }} className="h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col overflow-hidden">
         {/* ── STEP 6: Add ToastUI render at the top of the JSX return ── */}
         {ToastUI}
         <BrowsingTimerBanner />
@@ -3869,31 +3882,65 @@ ${filteredResults.map(opp => `  <opportunity>
               <div className="p-6">
                 {/* Main search form */}
                 <div className="w-full">
-                  {/* Search input row */}
-                  <div className="flex flex-col md:flex-row gap-3 mb-6">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={keywords}
-                        onChange={(e) => setKeywords(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                        placeholder="Search by keyword, solicitation #, NAICS, or agency..."
-                        className="w-full pl-4 pr-4 py-3.5 text-base rounded-lg border-2 border-gray-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition-all outline-none text-gray-900 placeholder-gray-400 font-medium"
-                      />
+                  {/* ── SEARCH HERO SECTION ── */}
+                  <div className="mb-6">
+                    {/* Hero label */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-700 uppercase tracking-widest">Search Federal Opportunities</span>
+                      <span className="text-xs font-semibold text-gray-400 ml-1">— SAM.gov Live Data</span>
                     </div>
-                    <button onClick={() => runSearch()} disabled={loading}
-                      className="px-6 py-3.5 bg-emerald-700 text-white font-bold text-base rounded-lg hover:bg-emerald-800 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap">
-                      {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Searching...</> : <><Search className="h-4 w-4" />Search</>}
-                    </button>
-                    <button onClick={resetAll} className="px-5 py-3.5 bg-white text-gray-700 font-semibold text-base rounded-lg border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center gap-2 whitespace-nowrap" aria-label="Reset all fields">
-                      <RefreshCw className="h-4 w-4" />Reset All
-                    </button>
-                    <button onClick={() => handleOpenSaveModal('save')} className="px-5 py-3.5 bg-emerald-700 text-white font-semibold text-base rounded-lg hover:bg-emerald-800 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
-                      <Save className="h-4 w-4" />Save Search
-                    </button>
-                    <button onClick={() => router.push('/alerts')} className="px-5 py-3.5 bg-orange-600 text-white font-semibold text-base rounded-lg hover:bg-orange-700 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
-                      <Bell className="h-4 w-4" />My Alerts
-                    </button>
+
+                    {/* Search input row */}
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="flex-1 relative group">
+                        {/* Animated glow ring */}
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 rounded-xl opacity-0 group-focus-within:opacity-100 blur-sm transition-all duration-300 animate-pulse"></div>
+                        <div className="relative">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500 pointer-events-none z-10" />
+                          <input
+                            type="text"
+                            value={keywords}
+                            onChange={(e) => setKeywords(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+                            placeholder='Enter keyword, NAICS code, agency name, or solicitation # — then press Enter or click Search'
+                            autoFocus
+                            className="relative w-full pl-11 pr-4 py-4 text-base rounded-lg border-2 border-emerald-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all outline-none text-gray-900 placeholder-gray-400 font-medium bg-white shadow-md hover:shadow-lg hover:border-emerald-400"
+                          />
+                        </div>
+                      </div>
+                      <button onClick={() => runSearch()} disabled={loading}
+                        className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-bold text-base rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-md hover:shadow-lg hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap border-b-4 border-emerald-800 active:border-b-2 active:translate-y-0.5">
+                        {loading ? <><Loader2 className="h-5 w-5 animate-spin" />Searching...</> : <><Search className="h-5 w-5" />Search</>}
+                      </button>
+                      <button onClick={resetAll} className="px-5 py-4 bg-white text-gray-700 font-semibold text-base rounded-lg border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm" aria-label="Reset all fields">
+                        <RefreshCw className="h-4 w-4" />Reset All
+                      </button>
+                      <button onClick={() => handleOpenSaveModal('save')} className="px-5 py-4 bg-slate-700 text-white font-semibold text-base rounded-lg hover:bg-slate-800 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                        <Save className="h-4 w-4" />Save Search
+                      </button>
+                      <button onClick={() => handleOpenSaveModal('alert')} className="px-5 py-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold text-base rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                        <Bell className="h-4 w-4" />Get Alerts
+                      </button>
+                    </div>
+
+                    {/* Hint row */}
+                    <div className="flex items-center gap-4 mt-3 flex-wrap">
+                      <p className="text-base text-gray-600 font-bold">
+                        💡 Try: <button onClick={() => { setKeywords('data analytics'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">data analytics</button>,{' '}
+                        <button onClick={() => { setKeywords('cybersecurity'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">cybersecurity</button>,{' '}
+                        <button onClick={() => { setKeywords('IT services'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">IT services</button>,{' '}
+                        <button onClick={() => { setKeywords('541511'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">541511</button>
+                      </p>
+                      {results.length > 0 && keywords && (
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200">
+                          ✓ Showing results for "{keywords}"
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Loading message with user input */}
@@ -4054,16 +4101,68 @@ ${filteredResults.map(opp => `  <opportunity>
           {results.length > 0 && (
             <div ref={resultsRef} className="transition-all duration-500 mt-6">
               {/* Results header with filter toggle */}
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-4xl font-bold text-gray-900">
                     {filteredResults.length.toLocaleString()} opportunities found
                   </h2>
-                  {data?.totalRecords && data.totalRecords > filteredResults.length && (
-                    <p className="text-lg text-gray-700 font-semibold mt-2">
-                      Filtered from {data.totalRecords.toLocaleString()} total results
-                    </p>
-                  )}
+                  {/* ── SMART CONTEXTUAL DESCRIPTION ── */}
+                  <p className="text-lg font-bold mt-2 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-1">
+                    <span className="text-orange-600">Search for</span>
+
+                    {keywords && (
+                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">"{keywords}"</span>
+                    )}
+
+                    {postedAfter && (
+                      <>
+                        <span className="text-orange-400 mx-0.5">·</span>
+                        <span className="text-orange-600">posted on or after</span>
+                        <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                          {new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </>
+                    )}
+
+                    {responseDeadlineBefore && (
+                      <>
+                        <span className="text-orange-400 mx-0.5">·</span>
+                        <span className="text-orange-600">due on or after</span>
+                        <span className="text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                          {new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (Today)
+                        </span>
+                      </>
+                    )}
+
+                    {selectedSetAsides.length > 0 && (
+                      <>
+                        <span className="text-orange-400 mx-0.5">·</span>
+                        <span className="text-orange-600">set-aside:</span>
+                        <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          {selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} set-aside types`}
+                        </span>
+                      </>
+                    )}
+
+                    {selectedStates.length > 0 && (
+                      <>
+                        <span className="text-orange-400 mx-0.5">·</span>
+                        <span className="text-orange-600">state:</span>
+                        <span className="text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                          {selectedStates.length === 1 ? (getLocationLabel(selectedStates[0]) || selectedStates[0]) : `${selectedStates.length} states`}
+                        </span>
+                      </>
+                    )}
+
+                    <span className="text-orange-600">successfully returned</span>
+                    <span className="text-white bg-emerald-600 px-2.5 py-0.5 rounded-md font-extrabold text-xl">
+                      {filteredResults.length.toLocaleString()}
+                    </span>
+
+                    {data?.totalRecords && data.totalRecords > filteredResults.length && (
+                      <span className="text-gray-500 font-semibold text-base">(filtered from {data.totalRecords.toLocaleString()} total)</span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -4321,13 +4420,25 @@ ${filteredResults.map(opp => `  <opportunity>
 
               {/* Results count and action bar */}
               {(results.length > 0) && (
-                <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl border border-emerald-100 shadow-sm">
+                <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl border border-emerald-200 shadow-sm">
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3 flex-wrap">
+                      <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                       <span className="text-base font-bold text-gray-900">
                         {showSavedOnly
                           ? <><span className="text-amber-600">Showing {filteredResults.length} saved</span> of {results.length} results</>
-                          : <>{filteredResults.length >= 100 ? 'Excellent! ' : filteredResults.length >= 10 ? 'Great! ' : ''}We found <span className="font-bold text-emerald-700">{filteredResults.length.toLocaleString()}</span> {filteredResults.length === 1 ? 'opportunity' : 'opportunities'}</>
+                          : <>
+                              {filteredResults.length >= 100 ? '🎯 Excellent! ' : filteredResults.length >= 10 ? '✅ Great! ' : ''}
+                              Found{' '}
+                              <span className="font-bold text-emerald-700">{filteredResults.length.toLocaleString()}</span>
+                              {' '}{filteredResults.length === 1 ? 'opportunity' : 'opportunities'}
+                              {keywords && <> for <span className="text-emerald-800">"{keywords}"</span></>}
+                              {' '}—{' '}
+                              <button onClick={() => handleOpenSaveModal('save')} className="text-slate-700 underline underline-offset-2 hover:text-emerald-700 font-bold transition-colors">save this search</button>
+                              {' '}or{' '}
+                              <button onClick={() => handleOpenSaveModal('alert')} className="text-violet-700 underline underline-offset-2 hover:text-violet-900 font-bold transition-colors">get email alerts</button>
+                              {' '}so you never miss an update
+                            </>
                         }
                       </span>
                       {Object.values(saved).filter(Boolean).length > 0 && (
@@ -4357,7 +4468,7 @@ ${filteredResults.map(opp => `  <opportunity>
                       <button onClick={() => router.push('/alerts')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
                         <ExternalLink className="h-3.5 w-3.5" />Saved &amp; Alerts
                       </button>
-                      <button onClick={() => handleOpenSaveModal('alert')} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                      <button onClick={() => handleOpenSaveModal('alert')} className="px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-700 hover:to-purple-700 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
                         <Bell className="h-3.5 w-3.5" />Get Alerts
                       </button>
                     </div>
@@ -4451,6 +4562,10 @@ ${filteredResults.map(opp => `  <opportunity>
           <StickyResultsPrompt
             count={filteredResults.length}
             keywords={keywords}
+            postedAfter={postedAfter}
+            responseDeadlineBefore={responseDeadlineBefore}
+            selectedSetAsides={selectedSetAsides}
+            selectedStates={selectedStates}
             onSave={() => { handleOpenSaveModal('save'); setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
             onAlert={() => { handleOpenSaveModal('alert'); setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
             onDismiss={() => { setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
