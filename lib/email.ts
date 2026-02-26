@@ -756,3 +756,138 @@ export async function sendAccessRequestConfirmation({
     return { success: false, error }
   }
 }
+/**
+ * Send activation email to admin-created users.
+ * Called from the admin portal's users API route.
+ * The link goes to /activate where the user sets their password —
+ * email is verified and trial starts in that same step.
+ */
+export async function sendAdminCreatedUserActivationEmail({
+  to,
+  firstName,
+  company,
+  activationUrl,
+  planTier,
+  activationCode,
+  trialDays = 7,
+  expiresIn = '72 hours',
+}: {
+  to:              string
+  firstName:       string
+  company?:        string
+  activationUrl:   string
+  planTier:        string
+  activationCode?: string
+  trialDays?:      number
+  expiresIn?:      string
+}): Promise<boolean> {
+  const tierLabel = planTier.toUpperCase()
+
+  const codeBlock = activationCode
+    ? `<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;margin:20px 0;">
+        <p style="margin:0 0 4px 0;font-size:11px;font-weight:800;color:#92400e;letter-spacing:0.08em;text-transform:uppercase;">Your Activation / Trial Code</p>
+        <p style="margin:0 0 4px 0;font-size:24px;font-family:monospace;font-weight:900;color:#78350f;letter-spacing:0.12em;">${activationCode}</p>
+        <p style="margin:0;font-size:12px;color:#a16207;">This code is pre-applied — no need to type it manually.</p>
+      </div>`
+    : ''
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activate Your ${BRAND_NAME} Account</title>
+</head>
+<body style="margin:0;padding:0;background:${BRAND_COLORS.lightGray};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  <div style="max-width:640px;margin:0 auto;padding:24px 12px;">
+    <div style="background:white;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
+
+      <!-- LOGO HEADER -->
+      <div style="background:linear-gradient(135deg,${BRAND_COLORS.navy} 0%,#2d5266 100%);padding:32px 28px;text-align:center;">
+        <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:260px;height:auto;display:inline-block;border:0;" />
+      </div>
+
+      <!-- ORANGE HERO BAND -->
+      <div style="background:linear-gradient(135deg,#ea580c 0%,#f97316 100%);padding:28px 36px;text-align:center;">
+        <h1 style="margin:0 0 8px 0;font-size:28px;font-weight:900;color:#ffffff;line-height:1.2;">You're one step away!</h1>
+        <p style="margin:0;font-size:16px;color:rgba(255,255,255,0.9);font-weight:600;">Activate your account to start finding federal contracts</p>
+      </div>
+
+      <!-- BODY -->
+      <div style="padding:36px;">
+
+        <!-- Greeting -->
+        <p style="margin:0 0 4px 0;font-size:22px;font-weight:900;color:${BRAND_COLORS.textDark};">Hello, ${escapeHtml(firstName)}!</p>
+        ${company ? `<p style="margin:0 0 20px 0;font-size:15px;font-weight:600;color:#94a3b8;">From <span style="color:#ea580c;font-weight:800;">${escapeHtml(company)}</span></p>` : '<p style="margin:0 0 20px 0;"></p>'}
+
+        <p style="margin:0 0 24px 0;font-size:15px;color:#475569;line-height:1.7;">
+          An account has been created for you on ${BRAND_NAME}. Click the button below to
+          <strong style="color:${BRAND_COLORS.textDark};">set your password and verify your email</strong> — it takes less than 60 seconds.
+        </p>
+
+        <!-- Plan badge -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin:0 0 20px 0;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:13px;color:#64748b;font-weight:600;">Your Plan:</span>
+          <span style="background:${BRAND_COLORS.navy};color:#f97316;font-size:12px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;">${tierLabel}</span>
+          <span style="font-size:13px;color:#10b981;font-weight:700;margin-left:4px;">✓ ${trialDays}-Day Free Trial</span>
+        </div>
+
+        ${codeBlock}
+
+        <!-- PRIMARY CTA -->
+        <div style="text-align:center;margin:28px 0;">
+          <a href="${activationUrl}"
+             style="display:inline-block;background:linear-gradient(135deg,#ea580c,#f97316);color:#ffffff;text-decoration:none;font-size:17px;font-weight:900;padding:18px 44px;border-radius:12px;letter-spacing:0.02em;box-shadow:0 8px 20px rgba(234,88,12,0.35);">
+            Set Password &amp; Activate Account →
+          </a>
+        </div>
+
+        <!-- WHAT HAPPENS -->
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:20px;margin:0 0 24px 0;">
+          <p style="margin:0 0 12px 0;font-size:12px;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:0.08em;">What happens when you click:</p>
+          <ol style="margin:0;padding-left:20px;color:#15803d;font-size:14px;line-height:2.2;font-weight:600;">
+            <li>Choose a secure password for your account</li>
+            <li>Your email is verified automatically</li>
+            <li>Your ${trialDays}-day free trial activates immediately</li>
+            <li>You're signed in and ready to search contracts</li>
+          </ol>
+        </div>
+
+        <!-- EXPIRY -->
+        <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin:0 0 24px 0;">
+          <p style="margin:0;font-size:13px;color:#92400e;font-weight:600;">
+            ⏰ <strong>This link expires in ${expiresIn}.</strong>
+            If it expires, contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color:#b45309;font-weight:700;">${SUPPORT_EMAIL}</a> for a new link.
+          </p>
+        </div>
+
+        <!-- FALLBACK -->
+        <p style="font-size:12px;color:#94a3b8;margin:0 0 6px 0;">Button not working? Copy and paste this link into your browser:</p>
+        <p style="font-size:11px;word-break:break-all;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px 14px;color:#64748b;margin:0;">${activationUrl}</p>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="background:${BRAND_COLORS.navy};padding:28px;text-align:center;">
+        <img src="${BRAND_LOGO_URL}" alt="${BRAND_NAME}" style="max-width:180px;height:auto;margin-bottom:14px;opacity:0.9;display:inline-block;border:0;" />
+        <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.5);">© ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
+        <p style="margin:4px 0 0 0;font-size:11px;color:rgba(255,255,255,0.35);">VETERAN-OWNED Small Business · Richmond, Virginia</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>`
+
+  try {
+    const result = await resend.emails.send({
+      from: `Precise GovCon <noreply@precisegovcon.com>`,
+      to,
+      subject: `🚀 Activate Your ${BRAND_NAME} Account`,
+      html,
+    })
+    return !result.error
+  } catch (err) {
+    console.error('sendAdminCreatedUserActivationEmail failed:', err)
+    return false
+  }
+}

@@ -1,155 +1,56 @@
-// app/dashboard/page.tsx - Dashboard with Real Data + AI Match Scoring
-'use client';
+// app/dashboard/page.tsx
+'use client'
 
-import { useSession } from 'next-auth/react';
+import { useEffect, useState, Suspense } from 'react'
+import Link from 'next/link'
 import {
-  Search,
-  Bell,
-  TrendingUp,
-  Bookmark,
-  Clock,
-  ArrowRight,
-  Filter,
-  Download,
-  Target,
-  FileText,
-  MapPin,
-  Building2,
-  Activity,
-  BarChart3,
-  Eye,
-  Heart,
-  Share2,
-  Settings,
-  X,
-  ChevronRight,
-  Sparkles,
-  Loader2,
-  CheckCircle,
-  AlertTriangle,
-  Plus,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+  Search, Bell, TrendingUp, Zap, BarChart3, Users, Brain, Calendar,
+  FileText, DollarSign, Filter, Plus, ArrowRight, Loader2, CheckCircle,
+  AlertCircle, X, Eye, Download, Share2, Settings, ChevronRight,
+  Activity, Clock, Target, Award, Rocket, ArrowUpRight, ArrowDownRight,
+  MapPin, Building2, AlertTriangle, Lightbulb, RefreshCw, Grid3X3, List
+} from 'lucide-react'
 
-// Helper to get user's first name or email-based name
-function getWelcomeName(session: any) {
-  const name = String(session?.user?.name ?? '').trim();
-  if (name) {
-    const firstName = name.split(/\s+/)[0];
-    return firstName || name;
-  }
-
-  // Fallback to email-based name
-  const email = String(session?.user?.email ?? '').trim();
-  if (!email) return 'there';
-
-  const local = email.split('@')[0] ?? '';
-  const cleaned = local.replace(/[._-]+/g, ' ').trim();
-  if (!cleaned) return 'there';
-
-  return cleaned
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+// ─── Types ───────────────────────────────────────────────────────────────────
+type OpportunityCard = {
+  id: string
+  title: string
+  agency: string
+  type: 'RFP' | 'RFQ' | 'Solicitation' | 'Notice'
+  value?: number
+  dueDate: string
+  matchScore: number
+  description: string
+  naics?: string
+  setAside?: string
+  location?: string
+  aiSummary?: string
 }
 
-type DrawerKey = 'activeSearches' | 'savedOpps' | 'matchInfo' | 'notifications' | 'settings' | 'goalSetup' | null;
-
-type ActiveSearch = {
-  id: string;
-  name: string;
-  query: string;
-  filters?: Record<string, string>;
-  resultsCount?: number;
-  newCount?: number;
-};
-
-type SavedOpportunity = {
-  id?: string;
-  noticeId: string;
-  title: string;
-  agency: string;
-  value?: string;
-  posted?: string;
-  deadline?: string;
-  match?: number;
-  naics?: string;
-  location?: string;
-  saved?: boolean;
-};
+type Alert = {
+  id: string
+  name: string
+  frequency: 'REAL_TIME' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  active: boolean
+  matchesCount: number
+  lastRun?: string
+}
 
 type DashboardStats = {
-  activeSearchesCount: number;
-  savedOppCount: number;
-  avgMatchScore: number | null;    // null = not yet computed
-  thisWeekCount: number;
-  activeSearches: ActiveSearch[];
-  savedOpportunities: SavedOpportunity[];
-  recentOpportunities: SavedOpportunity[];
-  notifications: Array<{ type: string; title: string; time: string; iconType: string }>;
-  upcomingDeadlines: Array<{ title: string; agency: string; deadline: string; value: string }>;
-  userGoals: string[];
-  loading: boolean;
-  error: string | null;
-};
-
-/** Score 0-100: how well an opportunity matches the user's saved search profile */
-function computeOpportunityMatchScore(
-  opp: SavedOpportunity,
-  savedSearches: ActiveSearch[],
-  userGoals: string[]
-): number {
-  if (!savedSearches.length && !userGoals.length) return 0;
-
-  const oppText = `${opp.title} ${opp.agency} ${opp.naics ?? ''}`.toLowerCase();
-  let score = 0;
-  let signals = 0;
-
-  // Signal 1: NAICS overlap with saved searches
-  const savedNaics = savedSearches
-    .map(s => s.filters?.naics)
-    .filter(Boolean) as string[];
-  if (savedNaics.length && opp.naics) {
-    const naicsMatch = savedNaics.some(n => opp.naics?.startsWith(n.slice(0, 4)));
-    score += naicsMatch ? 40 : 0;
-    signals++;
-  }
-
-  // Signal 2: Keyword overlap with saved search queries
-  const savedKeywords = savedSearches.flatMap(s =>
-    s.query.toLowerCase().split(/\s+/).filter(w => w.length > 3)
-  );
-  if (savedKeywords.length) {
-    const hits = savedKeywords.filter(kw => oppText.includes(kw)).length;
-    score += Math.min(30, (hits / savedKeywords.length) * 60);
-    signals++;
-  }
-
-  // Signal 3: User goal keyword overlap
-  if (userGoals.length) {
-    const goalWords = userGoals
-      .join(' ').toLowerCase()
-      .split(/\s+/).filter(w => w.length > 3);
-    const goalHits = goalWords.filter(w => oppText.includes(w)).length;
-    score += Math.min(30, (goalHits / Math.max(goalWords.length, 1)) * 60);
-    signals++;
-  }
-
-  if (!signals) return 0;
-  return Math.min(99, Math.max(50, Math.round(score)));
+  totalAlerts: number
+  activeAlerts: number
+  newMatches: number
+  savedSearches: number
+  teamMembers: number
+  totalWatchlist: number
 }
 
-function buildQueryString(params: Record<string, string | number | undefined | null>) {
-  const sp = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === '') return;
-    sp.set(k, String(v));
-  });
-  const qs = sp.toString();
-  return qs ? `?${qs}` : '';
+type ActivityLog = {
+  id: string
+  type: 'search' | 'alert' | 'save' | 'share' | 'ai'
+  title: string
+  timestamp: string
+  icon: string
 }
 
 // -- Utility: format a date as relative string ---------------------------------
@@ -163,10 +64,9 @@ function formatRelativeDate(dateStr: string): string {
   return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
-function formatDaysUntil(dateStr: string): string {
-  const days = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
-  if (days < 0) return 'Expired';
-  return `${days} day${days !== 1 ? 's' : ''}`;
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function clsx(...c: Array<string | boolean | null | undefined>) {
+  return c.filter(Boolean).join(' ')
 }
 
 export default function DashboardPage() {
@@ -426,33 +326,45 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
   // -- Navigation helpers -------------------------------------------------------
   const closeDrawer = () => setDrawer(null);
 
-  const goToSearch = (s: ActiveSearch) => {
-    router.push(`/search${buildQueryString({ q: s.query, naics: s.filters?.naics, state: s.filters?.state, setaside: s.filters?.setaside, type: s.filters?.type, agency: s.filters?.agency, saved_search_id: s.id })}`);
-    closeDrawer();
-  };
+function formatCurrency(v?: number) {
+  if (!v) return 'TBD'
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 0 }).format(v)
+}
 
-  const goToSavedOpp = (o: SavedOpportunity) => {
-    router.push(`/opportunities${buildQueryString({ saved: '1', noticeId: o.noticeId, naics: o.naics })}`);
-    closeDrawer();
-  };
+function getMatchScoreColor(score: number) {
+  if (score >= 85) return 'from-emerald-500 to-teal-500'
+  if (score >= 70) return 'from-blue-500 to-cyan-500'
+  if (score >= 50) return 'from-amber-500 to-orange-500'
+  return 'from-slate-400 to-slate-500'
+}
 
   // -- Stat cards ---------------------------------------------------------------
   const stats = useMemo(() => [
     {
-      label: 'Active Searches',
-      value: dashData.loading ? '—' : String(dashData.activeSearchesCount || 0),
-      change: dashData.activeSearchesCount > 0 ? `${dashData.activeSearchesCount} saved` : 'None yet',
-      icon: Search, gradient: 'from-cyan-500 to-blue-600',
-      onClick: () => setDrawer('activeSearches'),
-      hint: 'See your saved searches', loading: dashData.loading,
+      id: '1',
+      title: 'IT Infrastructure Modernization - Department of Defense',
+      agency: 'DoD',
+      type: 'RFP',
+      value: 5000000,
+      dueDate: new Date(Date.now() + 21 * 86400000).toISOString(),
+      matchScore: 92,
+      description: 'Comprehensive IT infrastructure overhaul including cloud migration, security hardening, and modern DevOps practices.',
+      naics: '541512',
+      setAside: 'Small Business',
+      location: 'Washington, DC',
+      aiSummary: 'High priority match. Strong alignment with your cybersecurity expertise. Estimated prep time: 2-3 weeks.'
     },
     {
-      label: 'Saved Opportunities',
-      value: dashData.loading ? '—' : String(dashData.savedOppCount || 0),
-      change: dashData.savedOppCount > 0 ? `${dashData.savedOppCount} tracked` : 'None yet',
-      icon: Bookmark, gradient: 'from-purple-500 to-pink-600',
-      onClick: () => setDrawer('savedOpps'),
-      hint: 'Open your saved list', loading: dashData.loading,
+      id: '2',
+      title: 'Cybersecurity Services - Veterans Affairs',
+      agency: 'VA',
+      type: 'Solicitation',
+      value: 2500000,
+      dueDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+      matchScore: 88,
+      description: 'Multi-year IDIQ contract for cybersecurity consulting, threat assessment, and incident response planning.',
+      setAside: 'Service-Disabled Veteran-Owned',
+      location: 'Multiple Locations',
     },
     {
       label: 'Avg Match Score',
@@ -463,27 +375,50 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
       hint: dashData.avgMatchScore === null ? 'Click to set goals' : 'What does Match mean?',
       loading: dashData.loading,
     },
-    {
-      label: 'This Week',
-      value: dashData.loading ? '—' : String(dashData.thisWeekCount || 0),
-      change: dashData.thisWeekCount > 0 ? 'New postings' : 'None yet',
-      icon: TrendingUp, gradient: 'from-orange-500 to-red-600',
-      onClick: () => router.push(`/opportunities${buildQueryString({ postedRange: '7d' })}`),
-      hint: "View this week's postings", loading: dashData.loading,
-    },
-  ], [dashData, router]);
+  ])
 
-  const notifIconMap: Record<string, any> = { match: Target, deadline: Clock, update: Activity };
-  const notifColorMap: Record<string, string> = { match: 'text-cyan-400', deadline: 'text-orange-400', update: 'text-purple-400' };
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([
+    { id: '1', type: 'search', title: 'Searched: "Cloud Services"', timestamp: new Date(Date.now() - 3600000).toISOString(), icon: 'Search' },
+    { id: '2', type: 'alert', title: 'Alert triggered: 3 new matches', timestamp: new Date(Date.now() - 7200000).toISOString(), icon: 'Bell' },
+    { id: '3', type: 'ai', title: 'AI summary generated for 2 opportunities', timestamp: new Date(Date.now() - 14400000).toISOString(), icon: 'Brain' },
+    { id: '4', type: 'share', title: 'Shared search with team', timestamp: new Date(Date.now() - 86400000).toISOString(), icon: 'Share2' },
+  ])
 
-  // kept for savedSearches tile section
-  const savedSearchTiles = dashData.activeSearches.slice(0, 3).map((s, i) => ({
-    name: s.name,
-    count: s.resultsCount ?? 0,
-    new: s.newCount ?? 0,
-    color: ['from-cyan-500 to-blue-600', 'from-purple-500 to-pink-600', 'from-orange-500 to-red-600'][i % 3],
-  }));
+  const [trendData] = useState<TrendData[]>([
+    { month: 'Jan', opportunities: 240, matches: 45 },
+    { month: 'Feb', opportunities: 310, matches: 68 },
+    { month: 'Mar', opportunities: 280, matches: 52 },
+    { month: 'Apr', opportunities: 390, matches: 87 },
+    { month: 'May', opportunities: 450, matches: 123 },
+    { month: 'Jun', opportunities: 520, matches: 156 },
+  ])
 
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const [selectedOpp, setSelectedOpp] = useState<OpportunityCard | null>(null)
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  useEffect(() => {
+    void fetchDashboardData()
+  }, [])
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  async function fetchDashboardData() {
+    try {
+      setLoading(true)
+      // Mock API calls
+      await new Promise(r => setTimeout(r, 800))
+      setLoading(false)
+    } catch (err) {
+      setToast({ type: 'error', message: 'Failed to load dashboard' })
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="pg-theme-cleanup min-h-screen">
@@ -496,20 +431,19 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
               <p className="text-sm text-slate-600">Here's what's happening with your contracts today</p>
             </div>
 
-            <div className="flex items-center gap-2 animate-fadeInRight flex-shrink-0">
-              <button 
-                onClick={() => setDrawer('notifications')}
-                className="relative p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl border border-white/10 transition-all duration-300 hover:scale-105"
-              >
-                <Bell className="w-5 h-5 text-slate-300" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              </button>
-              <button 
-                onClick={() => setDrawer('settings')}
-                className="p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl border border-white/10 transition-all duration-300 hover:scale-105"
-              >
-                <Settings className="w-5 h-5 text-slate-300" />
-              </button>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ fontFamily: "'Outfit', 'Segoe UI', system-ui, sans-serif" }}>
+      {/* Toast */}
+      {toast && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 pointer-events-none">
+          <div className={clsx('relative w-full max-w-xl mx-4 rounded-2xl shadow-2xl border-2 p-5',
+            toast.type === 'success' && 'border-emerald-400 bg-emerald-50',
+            toast.type === 'error' && 'border-rose-400 bg-rose-50')}>
+            <div className="flex items-center gap-3 pointer-events-auto">
+              {toast.type === 'success' && <CheckCircle className="h-6 w-6 text-emerald-600 flex-shrink-0" />}
+              {toast.type === 'error' && <AlertCircle className="h-6 w-6 text-rose-600 flex-shrink-0" />}
+              <p className={clsx('flex-1 text-sm font-medium', toast.type === 'success' && 'text-emerald-800', toast.type === 'error' && 'text-rose-800')}>{toast.message}</p>
+              <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
             </div>
           </div>
         </div>
@@ -806,70 +740,48 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                       </div>
                     </div>
 
-                    {/* Notifications Settings */}
-                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
-                      <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-purple-400" />
-                        Notifications
-                      </h3>
-                      <div className="space-y-3">
-                        <label className="flex items-center justify-between cursor-pointer">
-                          <span className="text-slate-300 text-sm">Email notifications</span>
-                          <input type="checkbox" defaultChecked className="w-4 h-4 rounded bg-slate-700 border-slate-600" />
-                        </label>
-                        <label className="flex items-center justify-between cursor-pointer">
-                          <span className="text-slate-300 text-sm">New opportunity alerts</span>
-                          <input type="checkbox" defaultChecked className="w-4 h-4 rounded bg-slate-700 border-slate-600" />
-                        </label>
-                        <label className="flex items-center justify-between cursor-pointer">
-                          <span className="text-slate-300 text-sm">Deadline reminders</span>
-                          <input type="checkbox" defaultChecked className="w-4 h-4 rounded bg-slate-700 border-slate-600" />
-                        </label>
-                      </div>
-                    </div>
+      {/* Main Content */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-8 py-8">
 
-                    {/* Opportunity Preferences */}
-                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
-                      <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                        <Target className="w-4 h-4 text-green-400" />
-                        Opportunity Preferences
-                      </h3>
-                      <button
-                        onClick={() => {
-                          closeDrawer();
-                          router.push('/opportunities');
-                        }}
-                        className="w-full text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
-                      >
-                        Update Preferences ?
-                      </button>
-                    </div>
-
-                    {/* Account Actions */}
-                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
-                      <h3 className="text-white font-semibold mb-3">Account</h3>
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => router.push('/pricing')}
-                          className="w-full text-left text-sm text-slate-300 hover:text-white transition-colors py-2"
-                        >
-                          View Plan & Billing
-                        </button>
-                        <button
-                          onClick={() => router.push('/api/auth/signout')}
-                          className="w-full text-left text-sm text-red-400 hover:text-red-300 transition-colors py-2"
-                        >
-                          Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+        {/* Header Section */}
+        <div className="mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-in fade-in duration-500">
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2">Intelligence Hub</h1>
+            <p className="text-slate-400 text-lg">Your gateway to federal contracting opportunities</p>
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            <Link href="/search" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:opacity-90 transition-all shadow-lg hover:shadow-xl">
+              <Search className="h-5 w-5" /> New Search
+            </Link>
+            <Link href="/alerts" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors">
+              <Bell className="h-5 w-5" /> Manage Alerts
+            </Link>
           </div>
         </div>
-      )}
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12 animate-in fade-in duration-500 stagger">
+          {[
+            { label: 'Active Alerts', value: stats.activeAlerts, icon: Bell, color: 'from-orange-500 to-red-500', subtext: `of ${stats.totalAlerts} total` },
+            { label: 'New Matches', value: stats.newMatches, icon: Zap, color: 'from-emerald-500 to-teal-500', subtext: 'This week' },
+            { label: 'Saved Searches', value: stats.savedSearches, icon: Search, color: 'from-cyan-500 to-blue-500', subtext: 'Quick access' },
+            { label: 'Watchlist Items', value: stats.totalWatchlist, icon: Target, color: 'from-purple-500 to-pink-500', subtext: 'Opportunities' },
+            { label: 'Team Members', value: stats.teamMembers, icon: Users, color: 'from-indigo-500 to-purple-500', subtext: 'Collaborating' },
+            { label: 'This Month', value: '127', icon: Calendar, color: 'from-amber-500 to-orange-500', subtext: 'Opportunities' },
+          ].map(({ label, value, icon: Icon, color, subtext }) => (
+            <div key={label} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6 hover:border-slate-600 transition-all group cursor-pointer hover:bg-slate-800/70">
+              <div className="flex items-start justify-between mb-4">
+                <div className={clsx('rounded-xl p-3 bg-gradient-to-br', color)}>
+                  <Icon className="h-6 w-6 text-white" />
+                </div>
+                <ArrowUpRight className="h-5 w-5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-slate-400 text-sm font-medium mb-1">{label}</p>
+              <p className="text-3xl font-black text-white mb-2">{value}</p>
+              <p className="text-xs text-slate-500">{subtext}</p>
+            </div>
+          ))}
+        </div>
 
       <div className="pg-container py-8">
         {/* Quick Stats */}
@@ -886,10 +798,26 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl blur-xl`}></div>
 
-                  <div className="relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 group-hover:border-white/20 transition-all">
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className={`p-2 sm:p-3 bg-gradient-to-br ${stat.gradient} rounded-xl`}>
-                      <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            {/* Quick Actions */}
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-8">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <Rocket className="h-6 w-6 text-cyan-400" /> Quick Actions
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { icon: Search, label: 'Search SAM.gov', desc: 'Find new opportunities', href: '/search', color: 'from-cyan-500 to-blue-600' },
+                  { icon: Brain, label: 'AI Assistant', desc: 'Get smart recommendations', action: () => setShowAiPanel(true), color: 'from-purple-500 to-pink-500' },
+                  { icon: BarChart3, label: 'View Analytics', desc: 'Track your metrics', href: '/analytics', color: 'from-emerald-500 to-teal-500' },
+                  { icon: Users, label: 'Team Workspace', desc: 'Collaborate with team', href: '/team', color: 'from-indigo-500 to-purple-500' },
+                ].map(({ icon: Icon, label, desc, href, action, color }) => (
+                  <button key={label}
+                    onClick={action}
+                    as={href ? 'a' : 'button'}
+                    href={href}
+                    className="text-left p-4 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-700/30 hover:bg-slate-700/50 transition-all group"
+                  >
+                    <div className={clsx('rounded-lg p-2 bg-gradient-to-br', color, 'w-fit mb-3')}>
+                      <Icon className="h-5 w-5 text-white" />
                     </div>
                     <span className="text-slate-400 text-xs sm:text-sm font-semibold">
                       {stat.change}
@@ -930,8 +858,6 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                 </Link>
               </div>
             </div>
-          </div>
-        )}
 
         {/* -- Claude AI Analysis Panel -- */}
         {(dashData.savedOppCount > 0 || dashData.recentOpportunities.length > 0) && (
@@ -994,390 +920,293 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {dashData.userGoals.length === 0 && (
-                    <button onClick={() => setDrawer('goalSetup')} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-semibold text-sm transition">
-                      <Target className="w-4 h-4" /> Set Goals First
-                    </button>
-                  )}
-                  <button onClick={analyzeWithClaude} disabled={analysisLoading} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 disabled:opacity-50 text-white font-semibold text-sm transition">
-                    {analysisLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Analyzing...</> : <><Sparkles className="w-4 h-4" />Analyze with AI</>}
+                  <button onClick={() => setViewMode('grid')} className={clsx('p-2 rounded-lg transition-colors', viewMode === 'grid' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white')}>
+                    <Grid3X3 className="h-5 w-5" />
+                  </button>
+                  <button onClick={() => setViewMode('list')} className={clsx('p-2 rounded-lg transition-colors', viewMode === 'list' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white')}>
+                    <List className="h-5 w-5" />
                   </button>
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-8">
-          {/* Main Content */}
-          <div className="xl:col-span-8 space-y-6 sm:space-y-8">
-            {/* Recent Opportunities */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg">
-                    <FileText className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-white">Recent Opportunities</h2>
-                    <p className="text-xs sm:text-sm text-slate-400">Your top matches from the last 24 hours</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button className="p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg border border-white/10 transition-all duration-300 hover:scale-105">
-                    <Filter className="w-4 h-4 text-slate-300" />
-                  </button>
-
-                  <Link
-                    href="/search"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-lg font-semibold text-sm transition-all duration-300 hover:scale-105"
-                  >
-                    View All
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {dashData.recentOpportunities.map((opp, index) => (
-                  <div
-                    key={opp.noticeId}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => router.push(`/opportunities${buildQueryString({ noticeId: String(opp.noticeId) })}`)}
-
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        router.push(`/opportunities${buildQueryString({ noticeId: String(opp.noticeId) })}`);
-                      }
-                    }}
-                    className="group bg-slate-900/50 rounded-xl p-5 border border-white/5 hover:border-cyan-500/30 hover:translate-x-1 transition-all duration-300 cursor-pointer animate-slideInLeft outline-none focus:ring-2 focus:ring-cyan-400/40"
-                    style={{ animationDelay: `${0.4 + index * 0.1}s` }}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <h3 className="text-base sm:text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">
-                            {opp.title}
-                          </h3>
-                          <div className="px-2 py-1 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 flex-shrink-0">
-                            <span className="text-green-400 font-bold text-xs">{opp.match}% Match</span>
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {opportunities.map((opp) => (
+                    <div key={opp.id} onClick={() => setSelectedOpp(opp)} className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 border border-slate-600 rounded-xl p-6 hover:border-cyan-500/50 transition-all cursor-pointer group hover:shadow-xl hover:shadow-cyan-500/10">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={clsx('text-xs font-bold px-2 py-1 rounded-lg', opp.type === 'RFP' && 'bg-orange-500/20 text-orange-300', opp.type === 'RFQ' && 'bg-blue-500/20 text-blue-300', opp.type === 'Solicitation' && 'bg-emerald-500/20 text-emerald-300', opp.type === 'Notice' && 'bg-slate-500/20 text-slate-300')}>{opp.type}</span>
+                            {opp.setAside && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-lg">{opp.setAside.split(' ')[0]}</span>}
                           </div>
+                          <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 group-hover:text-cyan-300 transition-colors">{opp.title}</h3>
                         </div>
-
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-slate-400 mb-3">
-                          <div className="flex items-center gap-1">
-                            <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="truncate">{opp.agency}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span>{opp.location}</span>
-                          </div>
-                          <span className="font-mono text-cyan-400 text-xs">{opp.naics}</span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
-                          <div className="flex items-center gap-1 text-slate-400">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>Posted {opp.posted}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-orange-400">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>Closes in {opp.deadline}</span>
-                          </div>
+                        <div className={clsx('rounded-full p-2 bg-gradient-to-br', getMatchScoreColor(opp.matchScore), 'flex-shrink-0 text-white font-bold text-xs w-12 h-12 flex items-center justify-center')}>
+                          {opp.matchScore}%
                         </div>
                       </div>
-
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:ml-4 flex-shrink-0">
-                        <div className="text-lg sm:text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                          {opp.value}
+                      <p className="text-slate-400 text-xs mb-4 line-clamp-2">{opp.description}</p>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500">Agency</span>
+                          <span className="text-slate-300 font-semibold">{opp.agency}</span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); }}
-                            className={`p-1.5 sm:p-2 rounded-lg transition-all duration-300 hover:scale-110 ${
-                              opp.saved ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
-                            }`}
-                            aria-label="Save"
-                          >
-                            <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${opp.saved ? 'fill-current' : ''}`} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); }}
-                            className="p-1.5 sm:p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all duration-300 hover:scale-110"
-                            aria-label="Share"
-                          >
-                            <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); router.push(`/opportunities${buildQueryString({ noticeId: String(opp.id) })}`); }}
-                            className="p-1.5 sm:p-2 bg-slate-800/50 hover:bg-slate-700 rounded-lg text-slate-400 transition-all duration-300 hover:scale-110"
-                            aria-label="View"
-                          >
-                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          </button>
+                        {opp.value && <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500">Contract Value</span>
+                          <span className="text-emerald-400 font-semibold">{formatCurrency(opp.value)}</span>
+                        </div>}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500">Due Date</span>
+                          <span className={clsx('font-semibold', new Date(opp.dueDate).getTime() - Date.now() < 7 * 86400000 ? 'text-orange-400' : 'text-slate-300')}>{formatRelative(opp.dueDate)}</span>
                         </div>
+                      </div>
+                      <button className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity">
+                        View Details
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {opportunities.map((opp) => (
+                    <div key={opp.id} onClick={() => setSelectedOpp(opp)} className="bg-slate-700/40 border border-slate-600 rounded-xl p-4 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-slate-700/60 group">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-bold px-2 py-1 rounded-lg bg-orange-500/20 text-orange-300">{opp.type}</span>
+                            {opp.setAside && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-lg truncate">{opp.setAside}</span>}
+                            <span className="text-xs text-slate-400 ml-auto">{opp.agency}</span>
+                          </div>
+                          <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 group-hover:text-cyan-300 transition-colors">{opp.title}</h3>
+                          <p className="text-slate-400 text-xs line-clamp-1">{opp.description}</p>
+                        </div>
+                        <div className={clsx('rounded-full p-2 bg-gradient-to-br', getMatchScoreColor(opp.matchScore), 'flex-shrink-0 text-white font-bold text-xs w-12 h-12 flex items-center justify-center')}>
+                          {opp.matchScore}%
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-400 mt-3 pt-3 border-t border-slate-600">
+                        <span>{opp.value ? formatCurrency(opp.value) : 'Value TBD'}</span>
+                        <span className={new Date(opp.dueDate).getTime() - Date.now() < 7 * 86400000 ? 'text-orange-400 font-semibold' : ''}>{formatRelative(opp.dueDate)}</span>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Saved Searches */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                    <Search className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Saved Searches</h2>
-                    <p className="text-sm text-slate-400">Quick access to your favorite searches</p>
-                  </div>
+                  ))}
                 </div>
+              )}
 
-                <button onClick={() => setDrawer('activeSearches')} className="text-cyan-400 hover:text-cyan-300 text-sm font-semibold transition-colors">
-                  Manage
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {savedSearchTiles.map((search, index) => (
-                  <div
-                    key={index}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setDrawer('activeSearches')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setDrawer('activeSearches');
-                      }
-                    }}
-                    className="group relative cursor-pointer animate-scaleIn hover:scale-105 transition-all duration-300 text-left outline-none focus:ring-2 focus:ring-cyan-400/40 rounded-xl"
-                    style={{ animationDelay: `${0.6 + index * 0.1}s` }}
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${search.color} opacity-0 group-hover:opacity-100 transition-opacity rounded-xl blur-lg`}></div>
-
-                    <div className="relative bg-slate-900/50 rounded-xl p-4 border border-white/5 group-hover:border-white/10 transition-all">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-white group-hover:text-cyan-400 transition-colors">
-                          {search.name}
-                        </h3>
-                        {search.new > 0 && (
-                          <span className="px-2 py-1 rounded-full bg-red-500 text-white text-xs font-bold animate-pulse">
-                            {search.new}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-2xl font-bold text-white mb-1">{search.count}</div>
-                      <div className="text-sm text-slate-400">opportunities</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <Link href="/opportunities" className="mt-6 flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white font-semibold transition-all">
+                View All Opportunities <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
 
           {/* Sidebar */}
-          <div className="xl:col-span-4 space-y-6">
-            {/* Notifications */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.3s' }}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-cyan-400" />
-                  <h2 className="text-lg font-bold text-white">Notifications</h2>
-                </div>
-                <span className="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-xs font-bold">{dashData.notifications.length || 0}</span>
-              </div>
+          <div className="space-y-8 animate-in fade-in duration-500 delay-100">
 
+            {/* Recent Alerts */}
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6">
+              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                <Bell className="h-5 w-5 text-orange-400" /> Your Alerts
+              </h3>
               <div className="space-y-3">
-                {dashData.notifications.map((notif, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 p-3 bg-slate-900/50 rounded-lg hover:bg-slate-900 transition-all duration-300 cursor-pointer animate-slideInRight"
-                    style={{ animationDelay: `${0.4 + index * 0.1}s` }}
-                  >
-                    <div className={`p-2 bg-slate-800 rounded-lg`}>
-                      {(() => { const IC = notifIconMap[notif.iconType] || Activity; return <IC className={`w-4 h-4 ${notifColorMap[notif.iconType] || 'text-slate-400'}`} />; })()}
+                {recentAlerts.map((alert) => (
+                  <Link key={alert.id} href={`/alerts/${alert.id}`} className="block p-3 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 border border-slate-600 hover:border-slate-500 transition-all group">
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="font-semibold text-sm text-white group-hover:text-cyan-300 transition-colors line-clamp-2">{alert.name}</p>
+                      <span className={clsx('text-xs font-bold px-2 py-0.5 rounded-full', alert.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-500/20 text-slate-400')}>{alert.active ? '● Active' : '⏸ Paused'}</span>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-white mb-1">{notif.title}</p>
-                      <p className="text-xs text-slate-400">{notif.time}</p>
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>{alert.frequency.replace('_', ' ')}</span>
+                      <span className="text-emerald-400 font-semibold">{alert.matchesCount} matches</span>
                     </div>
-                  </div>
+                    <p className="text-xs text-slate-500 mt-1">{alert.lastRun ? `Last run ${formatRelative(alert.lastRun)}` : 'Never run'}</p>
+                  </Link>
                 ))}
               </div>
+              <Link href="/alerts" className="mt-4 flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold transition-colors">
+                <Plus className="h-4 w-4" /> New Alert
+              </Link>
+            </div>
 
-              <button onClick={() => setDrawer('notifications')} className="w-full mt-4 py-2 text-center text-cyan-400 hover:text-cyan-300 text-sm font-semibold transition-colors">
-                View All Notifications
+            {/* AI Insights */}
+            <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 backdrop-blur-sm rounded-2xl border border-purple-700/50 p-6 hover:border-purple-600 transition-all">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <Lightbulb className="h-5 w-5 text-amber-400" /> AI Insights
+              </h3>
+              <p className="text-sm text-slate-300 mb-4">Based on your activity and profile, here are top recommendations:</p>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-300">Your cybersecurity expertise matches 3 high-value DoD contracts</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-300">SDVOSB set-aside opportunities trending up (+45% this month)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ChevronRight className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-300">Cloud services demand peaks in Q3. Start prep now.</span>
+                </li>
+              </ul>
+              <button onClick={() => setShowAiPanel(true)} className="mt-5 w-full py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity">
+                <Brain className="h-4 w-4 inline mr-2" /> Get AI Recommendations
               </button>
             </div>
 
-            {/* Upcoming Deadlines */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.5s' }}>
-              <div className="flex items-center gap-2 mb-6">
-                <Clock className="w-5 h-5 text-orange-400" />
-                <h2 className="text-lg font-bold text-white">Upcoming Deadlines</h2>
-              </div>
-
-              <div className="space-y-4">
-                {dashData.upcomingDeadlines.map((deadline, index) => (
-                  <div
-                    key={index}
-                    className="pb-4 border-b border-white/5 last:border-0 last:pb-0 animate-fadeInUp"
-                    style={{ animationDelay: `${0.6 + index * 0.1}s` }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-white flex-1">{deadline.title}</h3>
-                      <span className="text-orange-400 text-sm font-bold whitespace-nowrap ml-2">
-                        {deadline.deadline}
-                      </span>
+            {/* Activity Feed */}
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6">
+              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                <Activity className="h-5 w-5 text-cyan-400" /> Recent Activity
+              </h3>
+              <div className="space-y-4 text-sm">
+                {activityLog.map((log) => (
+                  <div key={log.id} className="flex items-start gap-3 pb-3 border-b border-slate-700 last:border-0">
+                    <div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
+                      {log.type === 'search' && <Search className="h-4 w-4 text-cyan-400" />}
+                      {log.type === 'alert' && <Bell className="h-4 w-4 text-orange-400" />}
+                      {log.type === 'ai' && <Brain className="h-4 w-4 text-purple-400" />}
+                      {log.type === 'share' && <Share2 className="h-4 w-4 text-blue-400" />}
                     </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">{deadline.agency}</span>
-                      <span className="text-cyan-400 font-semibold">{deadline.value}</span>
+                    <div className="flex-1">
+                      <p className="text-slate-300 font-medium">{log.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{formatRelative(log.timestamp)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-white/10 animate-fadeInRight" style={{ animationDelay: '0.7s' }}>
-              <h2 className="text-lg font-bold text-white mb-4">Quick Actions</h2>
-
-              <div className="space-y-2">
-                <Link
-                  href="/search"
-                  className="w-full flex items-center gap-3 p-3 bg-slate-900/50 hover:bg-slate-900 rounded-lg text-left transition-all duration-300 group hover:translate-x-1"
-                >
-                  <Search className="w-5 h-5 text-cyan-400" />
-                  <span className="text-white group-hover:text-cyan-400 transition-colors">New Search</span>
-                </Link>
-
-                <Link
-                  href="/insights"
-                  className="w-full flex items-center gap-3 p-3 bg-slate-900/50 hover:bg-slate-900 rounded-lg text-left transition-all duration-300 group hover:translate-x-1"
-                >
-                  <BarChart3 className="w-5 h-5 text-purple-400" />
-                  <span className="text-white group-hover:text-purple-400 transition-colors">View Insights</span>
-                </Link>
-
-                <button onClick={() => router.push('/dashboard/saved-opportunities')} className="w-full flex items-center gap-3 p-3 bg-slate-900/50 hover:bg-slate-900 rounded-lg text-left transition-all duration-300 group hover:translate-x-1">
-                  <Download className="w-5 h-5 text-green-400" />
-                  <span className="text-white group-hover:text-green-400 transition-colors">Export Data</span>
-                </button>
+        {/* Trends Chart */}
+        <div className="mt-12 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-8 animate-in fade-in duration-500">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <TrendingUp className="h-6 w-6 text-emerald-400" /> Market Trends
+          </h2>
+          <div className="grid grid-cols-6 gap-3">
+            {trendData.map((point) => (
+              <div key={point.month} className="flex flex-col items-center">
+                <div className="relative w-full h-32 mb-2 flex items-end justify-center gap-1">
+                  <div className="flex-1 bg-gradient-to-t from-cyan-500 to-cyan-400 rounded-t-lg opacity-70" style={{ height: `${(point.opportunities / 520) * 100}%` }} title={`${point.opportunities} opportunities`}></div>
+                  <div className="flex-1 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg" style={{ height: `${(point.matches / 156) * 100}%` }} title={`${point.matches} matches`}></div>
+                </div>
+                <p className="text-xs font-bold text-slate-300">{point.month}</p>
               </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-center gap-6 mt-8 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+              <span className="text-slate-400">Total Opportunities</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              <span className="text-slate-400">Your Matches</span>
             </div>
           </div>
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+      {/* AI Panel Overlay */}
+      {showAiPanel && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-slate-700 px-8 py-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Brain className="h-6 w-6 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">AI Assistant</h2>
+              </div>
+              <button onClick={() => setShowAiPanel(false)} className="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="bg-slate-700/40 rounded-xl p-6 border border-slate-600">
+                <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-400" /> Smart Recommendations
+                </h3>
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <Award className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Pursue DoD IT Contracts</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Your team's DoD 8(a) certification and security clearances align perfectly with 12 active RFPs valued at $45M+ total</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <TrendingUp className="h-5 w-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">Timing: Cloud Services Boom</p>
+                      <p className="text-xs text-slate-400 mt-0.5">36% increase in cloud modernization RFPs in Q2. Your cloud expertise is in high demand—prepare proposals now</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <button onClick={() => setShowAiPanel(false)} className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:opacity-90 transition-opacity">
+                Generate Full Analysis
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-        @keyframes fadeInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+      {/* Opportunity Detail Modal */}
+      {selectedOpp && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-slate-700/50 border-b border-slate-600 px-8 py-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Opportunity Details</h2>
+              <button onClick={() => setSelectedOpp(null)} className="p-2 hover:bg-slate-600 rounded-lg text-slate-300 hover:text-white transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-8 space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-bold px-3 py-1 rounded-lg bg-orange-500/20 text-orange-300">{selectedOpp.type}</span>
+                  {selectedOpp.setAside && <span className="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-lg">{selectedOpp.setAside}</span>}
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">{selectedOpp.title}</h3>
+                <p className="text-slate-400 mb-4">{selectedOpp.description}</p>
+              </div>
 
-        @keyframes fadeInRight {
-          from {
-            opacity: 0;
-            transform: translateX(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-700/40 rounded-lg p-4">
+                  <p className="text-xs text-slate-400 mb-1">Agency</p>
+                  <p className="font-bold text-white">{selectedOpp.agency}</p>
+                </div>
+                <div className="bg-slate-700/40 rounded-lg p-4">
+                  <p className="text-xs text-slate-400 mb-1">Contract Value</p>
+                  <p className="font-bold text-emerald-400">{formatCurrency(selectedOpp.value)}</p>
+                </div>
+                {selectedOpp.location && <div className="bg-slate-700/40 rounded-lg p-4">
+                  <p className="text-xs text-slate-400 mb-1">Location</p>
+                  <p className="font-bold text-white flex items-center gap-1"><MapPin className="h-4 w-4" /> {selectedOpp.location}</p>
+                </div>}
+                <div className="bg-slate-700/40 rounded-lg p-4">
+                  <p className="text-xs text-slate-400 mb-1">Due Date</p>
+                  <p className="font-bold text-white">{new Date(selectedOpp.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                </div>
+              </div>
 
-        @keyframes slideInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
+              {selectedOpp.aiSummary && <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-xl p-4 border border-purple-700/50">
+                <p className="text-xs text-purple-300 font-semibold mb-2 flex items-center gap-1"><Brain className="h-4 w-4" /> AI ASSESSMENT</p>
+                <p className="text-sm text-slate-300">{selectedOpp.aiSummary}</p>
+              </div>}
 
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        .animate-fadeInUp {
-          animation: fadeInUp 0.8s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-fadeInLeft {
-          animation: fadeInLeft 0.8s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-fadeInRight {
-          animation: fadeInRight 0.8s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-slideInLeft {
-          animation: slideInLeft 0.6s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-slideInRight {
-          animation: slideInRight 0.6s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-scaleIn {
-          animation: scaleIn 0.6s ease-out forwards;
-          opacity: 0;
-        }
-      `}</style>
+              <div className="flex gap-3 pt-4 border-t border-slate-700">
+                <button className="flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                  <Download className="h-4 w-4" /> View Solicitation
+                </button>
+                <button className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors flex items-center justify-center gap-2">
+                  <Share2 className="h-4 w-4" /> Share
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
