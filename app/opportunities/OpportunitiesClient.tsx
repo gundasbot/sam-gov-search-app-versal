@@ -1301,8 +1301,7 @@ Provide analysis in JSON format with:
               </div>
               <a
                 href="/login"
-                className="block w-full py-4 rounded-xl text-white font-black text-lg shadow-xl transition-all hover:scale-[1.02]"
-                style={{background: 'linear-gradient(135deg,#059669,#06b6d4)'}}
+                className="pg-btn pg-btn-primary block w-full py-4 rounded-xl text-white font-black text-lg shadow-xl transition-all hover:scale-[1.02]"
               >
                 Sign In to View Opportunities
               </a>

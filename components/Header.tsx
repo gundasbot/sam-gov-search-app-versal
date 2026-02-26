@@ -267,30 +267,25 @@ export default function Header() {
 
               {/* Services dropdown */}
               <div className="relative" ref={servicesRef}>
-                <div className={`flex items-center overflow-hidden rounded-lg transition-all ${
-                  servicesOpen || pathname.startsWith('/services')
-                    ? 'bg-[var(--color-primary)] shadow-md' : 'bg-transparent'
-                }`}>
-                  <Link href="/services" prefetch={false}
-                    className={`flex flex-1 items-center gap-1 whitespace-nowrap px-1.5 py-2 text-[0.82rem] font-bold transition-all 2xl:px-2 2xl:text-[0.88rem] ${
-                      servicesOpen || pathname.startsWith('/services') ? 'text-white' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]'
-                    }`}
-                    onClick={() => setServicesOpen(false)}
-                  >
-                    <Building className="w-4 h-4" />Services
-                  </Link>
-                  <button type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setServicesOpen(v => !v); setAccountOpen(false) }}
-                    className={`border-l px-1 py-2 font-bold transition-all ${
-                      servicesOpen || pathname.startsWith('/services')
-                        ? 'text-white border-white/20 hover:bg-white/10'
-                        : 'border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)]'
-                    }`}
-                    aria-label="Toggle services menu"
-                  >
-                    <ChevronDown className={`w-4 h-4 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setServicesOpen(v => !v)
+                    setAccountOpen(false)
+                  }}
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-1.5 py-2 text-[0.82rem] font-bold transition-all 2xl:px-2 2xl:text-[0.88rem] ${
+                    servicesOpen || pathname.startsWith('/services')
+                      ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]'
+                  }`}
+                  aria-label="Toggle services menu"
+                >
+                  <Building className="w-4 h-4" />
+                  <span>Services</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
+                </button>
 
                 {servicesOpen && (
                   <div className="absolute right-0 top-full mt-2 w-80 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
