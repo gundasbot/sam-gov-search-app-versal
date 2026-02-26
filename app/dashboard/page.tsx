@@ -152,7 +152,7 @@ function buildQueryString(params: Record<string, string | number | undefined | n
   return qs ? `?${qs}` : '';
 }
 
-// ── Utility: format a date as relative string ─────────────────────────────────
+// -- Utility: format a date as relative string ---------------------------------
 function formatRelativeDate(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -176,7 +176,7 @@ export default function DashboardPage() {
 
   const [drawer, setDrawer] = useState<DrawerKey>(null);
 
-  // ── Real data state ──────────────────────────────────────────────────────────
+  // -- Real data state ----------------------------------------------------------
   const [dashData, setDashData] = useState<DashboardStats>({
     activeSearchesCount: 0,
     savedOppCount: 0,
@@ -192,7 +192,7 @@ export default function DashboardPage() {
     error: null,
   });
 
-  // ── AI analysis state ────────────────────────────────────────────────────────
+  // -- AI analysis state --------------------------------------------------------
   const [claudeAnalysis, setClaudeAnalysis] = useState<{
     summary: string;
     topOpportunities: Array<{ title: string; reason: string; urgency: 'high' | 'medium' | 'low' }>;
@@ -200,11 +200,11 @@ export default function DashboardPage() {
   } | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
-  // ── Goal setup state ─────────────────────────────────────────────────────────
+  // -- Goal setup state ---------------------------------------------------------
   const [goalInput, setGoalInput] = useState('');
   const [goalSaving, setGoalSaving] = useState(false);
 
-  // ── Fetch all real data on mount ─────────────────────────────────────────────
+  // -- Fetch all real data on mount ---------------------------------------------
   useEffect(() => {
     if (!session?.user?.email) return;
 
@@ -260,7 +260,7 @@ export default function DashboardPage() {
 
         const goals: string[] = profile?.goals ?? [];
 
-        // ── Compute match scores against real saved-search profile ──
+        // -- Compute match scores against real saved-search profile --
         const scoredSavedOpps = savedOpps.map(o => ({
           ...o,
           match: computeOpportunityMatchScore(o, searches, goals),
@@ -297,14 +297,14 @@ export default function DashboardPage() {
           })),
         ].slice(0, 5);
 
-        // ── Avg match across all scored items ──
+        // -- Avg match across all scored items --
         const allScored = [...scoredSavedOpps, ...recentOpps].filter(o => o.match);
         const avgMatch =
           allScored.length > 0
             ? Math.round(allScored.reduce((sum, o) => sum + (o.match ?? 0), 0) / allScored.length)
             : null;
 
-        // ── Upcoming deadlines sorted by urgency ──
+        // -- Upcoming deadlines sorted by urgency --
         const deadlines = scoredSavedOpps
           .filter(o => o.deadline && !o.deadline.includes('Expired'))
           .sort((a, b) => parseInt(a.deadline ?? '999') - parseInt(b.deadline ?? '999'))
@@ -336,7 +336,7 @@ export default function DashboardPage() {
     loadDashboard();
   }, [session?.user?.email]);
 
-  // ── Save user goals ──────────────────────────────────────────────────────────
+  // -- Save user goals ----------------------------------------------------------
   const saveGoals = useCallback(async () => {
     const goals = goalInput.split('\n').map((g: string) => g.trim()).filter(Boolean);
     setGoalSaving(true);
@@ -373,7 +373,7 @@ export default function DashboardPage() {
     }
   }, [goalInput]);
 
-  // ── Claude AI analysis ───────────────────────────────────────────────────────
+  // -- Claude AI analysis -------------------------------------------------------
   const analyzeWithClaude = useCallback(async () => {
     if (analysisLoading) return;
     setAnalysisLoading(true);
@@ -423,7 +423,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
     }
   }, [dashData, analysisLoading]);
 
-  // ── Navigation helpers ───────────────────────────────────────────────────────
+  // -- Navigation helpers -------------------------------------------------------
   const closeDrawer = () => setDrawer(null);
 
   const goToSearch = (s: ActiveSearch) => {
@@ -436,7 +436,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
     closeDrawer();
   };
 
-  // ── Stat cards ───────────────────────────────────────────────────────────────
+  // -- Stat cards ---------------------------------------------------------------
   const stats = useMemo(() => [
     {
       label: 'Active Searches',
@@ -456,7 +456,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
     },
     {
       label: 'Avg Match Score',
-      value: dashData.loading ? '—' : dashData.avgMatchScore !== null ? `${dashData.avgMatchScore}%` : 'Set goals →',
+      value: dashData.loading ? '—' : dashData.avgMatchScore !== null ? `${dashData.avgMatchScore}%` : 'Set goals ?',
       change: dashData.avgMatchScore !== null ? 'Based on your profile' : 'Not computed yet',
       icon: Target, gradient: 'from-green-500 to-emerald-600',
       onClick: () => setDrawer(dashData.avgMatchScore === null ? 'goalSetup' : 'matchInfo'),
@@ -486,14 +486,14 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+    <div className="pg-theme-cleanup min-h-screen">
       {/* Header - DYNAMIC NAME */}
-      <section className="border-b border-white/5 bg-slate-900/30 backdrop-blur-xl sticky top-0 z-10">
-        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
+      <section className="sticky top-0 z-10 border-b border-[#d9e2ef] bg-white/90 backdrop-blur-xl">
+        <div className="pg-container py-6">
           <div className="flex items-start sm:items-center justify-between gap-4">
             <div className="animate-fadeInLeft min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 truncate">Welcome back, {welcomeName}</h1>
-              <p className="text-sm text-slate-400">Here's what's happening with your contracts today</p>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 mb-1 truncate">Welcome back, {welcomeName}</h1>
+              <p className="text-sm text-slate-600">Here's what's happening with your contracts today</p>
             </div>
 
             <div className="flex items-center gap-2 animate-fadeInRight flex-shrink-0">
@@ -654,17 +654,17 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
               {drawer === 'matchInfo' && (
                 <div className="space-y-4">
                   <p className="text-slate-300 text-sm">
-                    <span className="text-white font-semibold">Match</span> is a score (0�100) that estimates how well an opportunity fits your business and saved search intent.
+                    <span className="text-white font-semibold">Match</span> is a score (0?100) that estimates how well an opportunity fits your business and saved search intent.
                   </p>
 
                   <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
                     <div className="text-white font-semibold mb-2">What it represents</div>
                     <ul className="text-sm text-slate-300 space-y-2">
-                      <li>� NAICS alignment (your selected NAICS vs solicitation NAICS)</li>
-                      <li>� Keyword relevance (title + description vs your search terms)</li>
-                      <li>� Agency preference (e.g., DoD, DHS, etc.)</li>
-                      <li>� Set-aside fit (if you filter small business, SDVOSB, etc.)</li>
-                      <li>� Recency and deadline urgency (optional weighting)</li>
+                      <li>? NAICS alignment (your selected NAICS vs solicitation NAICS)</li>
+                      <li>? Keyword relevance (title + description vs your search terms)</li>
+                      <li>? Agency preference (e.g., DoD, DHS, etc.)</li>
+                      <li>? Set-aside fit (if you filter small business, SDVOSB, etc.)</li>
+                      <li>? Recency and deadline urgency (optional weighting)</li>
                     </ul>
                   </div>
 
@@ -801,7 +801,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
                         <p className="text-slate-300">Name: <span className="text-white font-semibold">{welcomeName}</span></p>
                         <p className="text-slate-300">Email: <span className="text-white font-semibold">{session?.user?.email}</span></p>
                         <button onClick={() => { closeDrawer(); router.push('/account'); }} className="mt-2 text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
-                          Edit Profile →
+                          Edit Profile ?
                         </button>
                       </div>
                     </div>
@@ -871,7 +871,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
         </div>
       )}
 
-      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
+      <div className="pg-container py-8">
         {/* Quick Stats */}
         <section className="mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -910,7 +910,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
           </div>
         </section>
 
-        {/* ── New user empty state: no data yet ── */}
+        {/* -- New user empty state: no data yet -- */}
         {!dashData.loading && dashData.activeSearchesCount === 0 && dashData.savedOppCount === 0 && (
           <div className="mb-8 rounded-2xl border border-dashed border-white/20 bg-slate-900/40 p-8 text-center animate-fadeInUp">
             <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
@@ -933,7 +933,7 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
           </div>
         )}
 
-        {/* ── Claude AI Analysis Panel ── */}
+        {/* -- Claude AI Analysis Panel -- */}
         {(dashData.savedOppCount > 0 || dashData.recentOpportunities.length > 0) && (
           <div className="mb-8 animate-fadeInUp" style={{ animationDelay: '0.25s' }}>
             {claudeAnalysis ? (
@@ -1381,3 +1381,4 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
     </div>
   );
 }
+

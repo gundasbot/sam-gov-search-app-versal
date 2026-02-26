@@ -1,6 +1,5 @@
 'use client'
 
-// app/pricing/PricingClient.tsx
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -11,7 +10,7 @@ const plans = [
     id: 'basic',
     name: 'Basic',
     tagline: 'For getting started',
-    icon: <Shield className="w-5 h-5 text-slate-400" />,
+    icon: <Shield className="w-5 h-5 text-slate-500" />,
     monthlyPrice: 24.99,
     annualPrice: 19.99,
     bestFor: 'New contractors exploring opportunities',
@@ -23,13 +22,12 @@ const plans = [
     ],
     cta: 'Start 7-Day Free Trial',
     highlight: false,
-    ctaStyle: 'bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white',
   },
   {
     id: 'professional',
     name: 'Professional',
     tagline: 'For serious bidding teams',
-    icon: <Zap className="w-5 h-5 text-orange-400" />,
+    icon: <Zap className="w-5 h-5 text-[var(--color-primary)]" />,
     monthlyPrice: 49,
     annualPrice: 39,
     bestFor: 'Teams actively bidding every week',
@@ -42,13 +40,12 @@ const plans = [
     ],
     cta: 'Start 7-Day Free Trial',
     highlight: true,
-    ctaStyle: 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25',
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
     tagline: 'For organizations at scale',
-    icon: <Users className="w-5 h-5 text-cyan-400" />,
+    icon: <Users className="w-5 h-5 text-slate-600" />,
     monthlyPrice: 199,
     annualPrice: 159,
     bestFor: 'Organizations managing multiple bids',
@@ -61,7 +58,6 @@ const plans = [
     ],
     cta: 'Start 7-Day Free Trial',
     highlight: false,
-    ctaStyle: 'bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white',
   },
 ]
 
@@ -90,193 +86,130 @@ export default function PricingClient() {
   const [annual, setAnnual] = useState(false)
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-
-      {/* ── Hero Section ── */}
-      <div className="relative overflow-hidden">
-        {/* Background image with overlay */}
-        <div className="absolute inset-0">
-          <Image
-            src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&h=600&fit=crop&q=80"
-            alt="Federal buildings"
-            fill
-            className="object-cover opacity-10"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/80 to-slate-950" />
-        </div>
-
-        {/* Decorative glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full mb-6">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">
-              7-Day Free Trial · No Credit Card Required
-            </span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
-            Simple,{' '}
-            <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              Transparent
-            </span>{' '}
-            Pricing
-          </h1>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto mb-8">
-            Win more federal contracts without overpaying for tools. Cancel anytime.
-          </p>
-
-          {/* Toggle */}
-          <div className="inline-flex items-center gap-3 bg-slate-900 border border-slate-700 rounded-xl p-1">
-            <button
-              onClick={() => setAnnual(false)}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                !annual ? 'bg-white text-slate-900 shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setAnnual(true)}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                annual ? 'bg-white text-slate-900 shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Annual
-              <span className="px-1.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded-md">
-                SAVE 20%
+    <div className="pb-16">
+      <section className="pg-container pt-12 md:pt-16">
+        <div className="pg-card relative overflow-hidden p-8 md:p-12 text-center">
+          <div className="pointer-events-none absolute -top-28 right-[-120px] h-64 w-64 rounded-full bg-[var(--color-accent-soft)] blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 left-[-120px] h-64 w-64 rounded-full bg-[var(--color-accent-soft)] blur-3xl" />
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-3 py-1.5">
+              <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+                7-Day Free Trial - No Credit Card Required
               </span>
-            </button>
+            </div>
+
+            <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-6xl" style={{ fontFamily: 'var(--font-display), system-ui, sans-serif' }}>
+              Simple, transparent pricing
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-base md:text-lg">
+              Win more federal contracts without overpaying for tools. Cancel anytime.
+            </p>
+
+            <div className="mt-8 inline-flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+              <button
+                onClick={() => setAnnual(false)}
+                className={`rounded-lg px-5 py-2 text-sm font-semibold transition-all ${!annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setAnnual(true)}
+                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition-all ${annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+              >
+                Annual
+                <span className="rounded-md bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">SAVE 20%</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Pricing Cards ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+      <section className="pg-container mt-10">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`relative rounded-2xl p-6 flex flex-col transition-all duration-300 ${
-                plan.highlight
-                  ? 'bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-orange-500 shadow-2xl shadow-orange-500/10 scale-[1.02]'
-                  : 'bg-slate-900 border border-slate-700/60 hover:border-slate-600'
-              }`}
+              className={`rounded-2xl border p-6 transition-all ${plan.highlight ? 'border-[var(--color-primary)] bg-[var(--color-accent-soft)] shadow-[var(--shadow-lg)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]'}`}
             >
               {plan.highlight && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-bold uppercase tracking-widest rounded-full shadow-lg">
-                    Most Popular
-                  </span>
-                </div>
+                <span className="mb-4 inline-flex rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
+                  Most Popular
+                </span>
               )}
 
-              {/* Plan header */}
-              <div className="flex items-center gap-2 mb-1">
+              <div className="mb-1 flex items-center gap-2">
                 {plan.icon}
-                <h2 className="text-lg font-bold text-white">{plan.name}</h2>
+                <h2 className="text-lg font-bold text-[var(--color-text-primary)]">{plan.name}</h2>
               </div>
-              <p className="text-sm text-slate-400 mb-4">{plan.tagline}</p>
+              <p className="mb-4 text-sm text-[var(--color-text-secondary)]">{plan.tagline}</p>
 
-              {/* Price */}
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-extrabold text-white">
-                  ${annual ? plan.annualPrice : plan.monthlyPrice}
-                </span>
-                <span className="text-slate-400 text-sm">/mo</span>
+              <div className="mb-1 flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-[var(--color-text-primary)]">${annual ? plan.annualPrice : plan.monthlyPrice}</span>
+                <span className="text-sm text-[var(--color-text-secondary)]">/mo</span>
               </div>
               {annual && (
-                <p className="text-xs text-emerald-400 font-semibold mb-2">
-                  Billed annually · Save ${((plan.monthlyPrice - plan.annualPrice) * 12).toFixed(0)}/yr
+                <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
+                  Billed annually - Save ${((plan.monthlyPrice - plan.annualPrice) * 12).toFixed(0)}/yr
                 </p>
               )}
 
-              {/* Best for */}
-              <p className="text-xs text-slate-400 mb-5">
-                <span className="font-semibold text-slate-300">Best for:</span> {plan.bestFor}
-              </p>
+              <p className="mb-5 text-xs text-[var(--color-text-secondary)]"><span className="font-semibold text-[var(--color-text-primary)]">Best for:</span> {plan.bestFor}</p>
+              <div className="mb-5 border-t border-[var(--color-border)]" />
 
-              {/* Divider */}
-              <div className="border-t border-slate-700/60 mb-5" />
-
-              {/* Features */}
-              <ul className="space-y-2.5 flex-1 mb-6">
+              <ul className="mb-6 flex-1 space-y-2.5">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-slate-300">{f}</span>
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
+                    <span className="text-sm text-[var(--color-text-primary)]">{f}</span>
                   </li>
                 ))}
               </ul>
 
-              {/* CTA */}
               <Link
                 href="/register"
-                className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all ${plan.ctaStyle}`}
+                className={`pg-btn w-full rounded-xl py-3 text-sm font-bold ${plan.highlight ? 'pg-btn-primary' : 'pg-btn-secondary text-[var(--color-text-primary)]'}`}
               >
                 {plan.cta}
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           ))}
         </div>
 
-        {/* ── Trust Bar ── */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">
-          {['SAM.gov Data', 'No Credit Card', 'Cancel Anytime', 'SOC 2 Compliant'].map((item) => (
-            <div key={item} className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-400" />
-              <span>{item}</span>
-            </div>
-          ))}
+        <div className="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-6 py-4">
+          <p className="text-sm font-medium text-[var(--color-text-primary)]">
+            <span className="font-bold">Elevate your business for less.</span> Same capabilities and functionality at up to 75% less than competitors.
+          </p>
         </div>
 
-        {/* ── Value Banner ── */}
-        <div className="mt-8 rounded-xl border border-amber-500/30 bg-amber-500/5 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Zap className="w-5 h-5 text-amber-400 flex-shrink-0" />
-            <p className="text-sm text-amber-200 font-medium">
-              <span className="font-bold">Elevate your business for less!</span>{' '}
-              Same capabilities and functionality at up to 75% less than competitors.
-            </p>
+        <div className="mt-16">
+          <div className="mb-10 text-center">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">Trusted by contractors nationwide</p>
+            <h2 className="text-2xl font-extrabold text-[var(--color-text-primary)] md:text-3xl" style={{ fontFamily: 'var(--font-display), system-ui, sans-serif' }}>
+              What our customers say
+            </h2>
           </div>
-          <Link
-            href="/features"
-            className="text-xs font-bold text-amber-400 hover:text-amber-300 whitespace-nowrap transition-colors"
-          >
-            Compare Features →
-          </Link>
-        </div>
-
-        {/* ── Testimonials ── */}
-        <div className="mt-20">
-          <div className="text-center mb-10">
-            <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">Trusted by contractors nationwide</p>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">What our customers say</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {testimonials.map((t) => (
-              <div key={t.name} className="bg-slate-900 border border-slate-700/60 rounded-2xl p-6 hover:border-slate-600 transition-all">
-                <div className="flex gap-1 mb-3">
+              <div key={t.name} className="pg-surface p-6">
+                <div className="mb-3 flex gap-1">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-4 w-4 fill-[var(--color-primary)] text-[var(--color-primary)]" />
                   ))}
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed mb-5">"{t.quote}"</p>
+                <p className="mb-5 text-sm leading-relaxed text-[var(--color-text-primary)]">&quot;{t.quote}&quot;</p>
                 <div className="flex items-center gap-3">
                   <Image
                     src={t.avatar}
                     alt={t.name}
                     width={40}
                     height={40}
-                    className="rounded-full object-cover w-10 h-10 ring-2 ring-slate-700"
+                    className="h-10 w-10 rounded-full object-cover ring-2 ring-[var(--color-border)]"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-white">{t.name}</p>
-                    <p className="text-xs text-slate-500">{t.role}</p>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">{t.name}</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">{t.role}</p>
                   </div>
                 </div>
               </div>
@@ -284,21 +217,15 @@ export default function PricingClient() {
           </div>
         </div>
 
-        {/* ── FAQ teaser ── */}
-        <div className="mt-16 text-center">
-          <p className="text-slate-400 text-sm">
-            Have questions?{' '}
-            <Link href="/support" className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
-              Visit our support center
-            </Link>{' '}
-            or{' '}
-            <button className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
-              chat with us
-            </button>
-            .
-          </p>
+        <div className="mt-12 text-center text-sm text-[var(--color-text-secondary)]">
+          Have questions?{' '}
+          <Link href="/support" className="font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">
+            Visit our support center
+          </Link>{' '}
+          or contact our team.
         </div>
-      </div>
+      </section>
     </div>
   )
 }
+

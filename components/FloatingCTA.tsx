@@ -9,7 +9,14 @@ import { Search, X, Sparkles } from "lucide-react"
 function FloatingCTA() {
   const { status } = useSession()
   const [isVisible, setIsVisible] = useState(false)
-  const [isDismissed, setIsDismissed] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(() => {
+    try {
+      if (typeof window === "undefined") return false
+      return sessionStorage.getItem("cta-dismissed") === "true"
+    } catch {
+      return false
+    }
+  })
   const [isInputFocused, setIsInputFocused] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -42,16 +49,7 @@ function FloatingCTA() {
   }, [router])
 
   useEffect(() => {
-    // Check if user has dismissed it in this session
-    try {
-      const dismissed = sessionStorage.getItem("cta-dismissed")
-      if (dismissed) {
-        setIsDismissed(true)
-        return
-      }
-    } catch {
-      // ignore
-    }
+    if (isDismissed) return
 
     // Show the CTA after user scrolls down 300px
     const handleScroll = () => {
@@ -89,7 +87,7 @@ function FloatingCTA() {
       document.removeEventListener("focusin", handleFocusIn)
       document.removeEventListener("focusout", handleFocusOut)
     }
-  }, [])
+  }, [isDismissed])
 
   // ✅ FIX: Don't render when authenticated, on hidden pages, dismissed, or when input is focused
   if (status === 'authenticated' || isDismissed || isHiddenPage || isInputFocused) return null
@@ -122,16 +120,19 @@ function FloatingCTA() {
           {/* Main CTA Card */}
           <button
             onClick={goToSearch}
-            className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300"
+            className="flex max-w-[22rem] items-center gap-3 rounded-2xl px-4 py-3.5 shadow-2xl hover:scale-[1.02] transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, #4f8d67 0%, #3e7656 100%)',
+            }}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-              <Search className="h-6 w-6 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+              <Search className="h-5 w-5 text-white" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-bold text-white">Start Free Trial</p>
-              <p className="text-xs text-emerald-50">Search government contracts</p>
+              <p className="text-sm font-bold leading-tight text-white">Start Free Trial</p>
+              <p className="text-xs leading-tight text-white/90">Search government contracts</p>
             </div>
-            <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse" />
+            <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
           </button>
         </div>
       </div>
@@ -149,7 +150,12 @@ function FloatingCTA() {
           }
         `}
       >
-        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-2xl">
+        <div
+          className="shadow-2xl"
+          style={{
+            background: 'linear-gradient(135deg, #4f8d67 0%, #3e7656 100%)',
+          }}
+        >
           {/* Dismiss button */}
           <button
             onClick={handleDismiss}
@@ -162,16 +168,16 @@ function FloatingCTA() {
           {/* CTA Content */}
           <button
             onClick={goToSearch}
-            className="w-full px-6 py-4 flex items-center gap-4"
+            className="w-full px-5 py-3.5 flex items-center gap-3"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 flex-shrink-0">
-              <Search className="h-6 w-6 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 flex-shrink-0">
+              <Search className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-base font-bold text-white">Start Your Free Trial</p>
-              <p className="text-sm text-emerald-50">Search 1,000+ government contracts</p>
+              <p className="text-sm font-bold text-white">Start Your Free Trial</p>
+              <p className="text-xs text-white/90">Search 1,000+ government contracts</p>
             </div>
-            <Sparkles className="h-6 w-6 text-yellow-300 animate-pulse flex-shrink-0" />
+            <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse flex-shrink-0" />
           </button>
         </div>
       </div>

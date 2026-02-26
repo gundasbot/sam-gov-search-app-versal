@@ -14,7 +14,6 @@ import AIAnalytics from '@/components/AIAnalytics'
 import InlineDatePicker from '@/components/InlineDatePicker'
 import SaveSearchSuccessModal from '@/components/SaveSearchSuccessModal'
 import ExportSharePanel from '@/components/ExportSharePanel'
-import BrowsingTimerBanner from '@/components/BrowsingTimerBanner'
 // Import verified SAM.gov constants
 import {
   SET_ASIDE_OPTIONS,
@@ -508,29 +507,29 @@ const StatCard = ({
 }) => (
   <div
     onClick={onClick}
-    className={`group relative p-4 rounded-lg border-2 border-gray-300 bg-white hover:border-gray-400 hover:shadow-md transition-all duration-300 cursor-pointer ${
+    className={`group relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] transition-all duration-300 hover:shadow-[var(--shadow-md)] cursor-pointer ${
       onClick ? 'hover:scale-[1.02] active:scale-[0.98]' : ''
     }`}
   >
     {trend && (
       <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-bold ${
         trend > 0 
-          ? 'bg-green-100 text-green-900 border-2 border-green-700' 
+          ? 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border border-[var(--color-border)]' 
           : 'bg-red-100 text-red-900 border-2 border-red-600'
       }`}>
         {trend > 0 ? '+' : ''}{trend}%
       </div>
     )}
     <div className="flex items-center gap-3">
-      <div className="p-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 shadow-md">
+      <div className="rounded-xl bg-[var(--color-accent-soft)] p-3 text-[var(--color-primary)] shadow-sm">
         {icon}
       </div>
       <div className="flex-1">
-        <div className="text-xs text-gray-600 font-bold">{label}</div>
+        <div className="text-xs font-bold text-[var(--color-text-secondary)]">{label}</div>
         {loading ? (
-          <div className="h-8 w-20 bg-gray-100 rounded-lg animate-pulse mt-1" />
+          <div className="mt-1 h-8 w-20 animate-pulse rounded-lg bg-[var(--color-surface-muted)]" />
         ) : (
-          <div className="text-2xl font-bold text-gray-900 mt-1">{value}</div>
+          <div className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">{value}</div>
         )}
       </div>
     </div>
@@ -547,10 +546,10 @@ const Badge = ({
   size?: 'sm' | 'md'
 }) => {
   const variants = {
-    default: 'bg-white text-gray-900 border border-gray-300 hover:bg-gray-50',
-    primary: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    success: 'bg-emerald-500/20 text-white border-emerald-500/30',
-    warning: 'bg-amber-500/20 text-white border-amber-500/30',
+    default: 'bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)]',
+    primary: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border-[var(--color-border)]',
+    success: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border-[var(--color-border)]',
+    warning: 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] border-[var(--color-border)]',
     danger: 'bg-rose-500/20 text-white border-rose-500/30',
   }
   
@@ -587,21 +586,21 @@ const Button = ({
   icon?: React.ReactNode,
   className?: string
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-bold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm'
+  const baseClasses = 'pg-btn inline-flex items-center justify-center font-bold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95'
   
   const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-700',
-    secondary: 'bg-white text-gray-900 border-2 border-gray-400 hover:bg-gray-50 hover:border-gray-500',
-    tertiary: 'bg-orange-500 text-white hover:bg-orange-600 border-2 border-orange-600',
-    ghost: 'text-gray-700 hover:text-gray-900 hover:bg-gray-100',
-    danger: 'bg-red-600 text-white border-2 border-red-700 hover:bg-red-700',
-    success: 'bg-green-700 text-white border-2 border-green-800 hover:bg-green-800',
+    primary: 'pg-btn-primary text-white',
+    secondary: 'pg-btn-secondary',
+    tertiary: 'pg-btn-tertiary',
+    ghost: 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]',
+    danger: 'bg-red-600 text-white border border-red-700 hover:bg-red-700',
+    success: 'pg-btn-primary text-white',
   }
   
   const sizes = {
-    sm: 'px-4 py-2.5 text-base gap-2',
-    md: 'px-6 py-3.5 text-lg gap-2.5',
-    lg: 'px-8 py-4 text-xl gap-3',
+    sm: 'px-3.5 py-2 text-sm gap-1.5',
+    md: 'px-4.5 py-2.5 text-sm gap-2',
+    lg: 'px-6 py-3 text-base gap-2.5',
   }
   
   return (
@@ -636,7 +635,7 @@ const Input = ({
 }) => (
   <div className="relative">
     {icon && (
-      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-secondary)]">
         {icon}
       </div>
     )}
@@ -645,9 +644,9 @@ const Input = ({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full px-4 py-3 text-lg font-semibold rounded-lg bg-white border-2 ${
-        error ? 'border-red-600' : 'border-gray-400'
-      } text-gray-900 placeholder-gray-500 hover:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-600 transition-colors ${
+      className={`pg-input w-full px-3.5 py-2.5 text-sm sm:text-base ${
+        error ? 'border-red-600' : ''
+      } transition-colors ${
         icon ? 'pl-10' : ''
       }`}
     />
@@ -670,12 +669,12 @@ const Field = ({
 }) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
-      <label className="text-base font-medium text-orange-400 flex items-center gap-1">
+      <label className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-1">
         {label}
-        {required && <span className="text-white">*</span>}
+        {required && <span className="text-[var(--color-primary)]">*</span>}
       </label>
       {tooltip && (
-        <button type="button" className="text-gray-600 hover:text-gray-700">
+        <button type="button" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
           <HelpCircle className="h-4 w-4" />
         </button>
       )}
@@ -694,15 +693,15 @@ const Pill = ({
   onRemove?: () => void
 }) => {
   const tones = {
-    neutral: 'bg-white text-gray-900 border-2 border-gray-400 hover:bg-gray-50',
-    info: 'bg-blue-100 text-blue-900 border-2 border-blue-500',
-    success: 'bg-emerald-100 text-emerald-900 border-2 border-emerald-600',
-    warning: 'bg-amber-100 text-amber-900 border-2 border-amber-600',
-    danger: 'bg-rose-100 text-rose-900 border-2 border-rose-600',
+    neutral: 'bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)]',
+    info: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border border-[var(--color-border)]',
+    success: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border border-[var(--color-border)]',
+    warning: 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] border border-[var(--color-border)]',
+    danger: 'bg-rose-50 text-rose-700 border border-rose-300',
   }
   
   return (
-    <div className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-lg font-bold ${tones[tone]}`}>
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${tones[tone]}`}>
       {children}
       {onRemove && (
         <button
@@ -710,7 +709,7 @@ const Pill = ({
           className="hover:opacity-70 transition-opacity ml-1 p-1 hover:bg-black/10 rounded-full"
           aria-label="Remove filter"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       )}
     </div>
@@ -753,12 +752,12 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
     : null
   
   return (
-    <div className="group relative bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
       {/* Header with Badge and Bookmark */}
-      <div className="p-5 border-b border-gray-100 flex-shrink-0">
+      <div className="flex-shrink-0 border-b border-[var(--color-border)] p-5">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-sm font-semibold mb-3">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-3 py-1.5 text-sm font-semibold text-[var(--color-primary)]">
               <FileText className="h-4 w-4" />
               {type}
             </div>
@@ -767,34 +766,34 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
                 href={opportunity.uiLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors cursor-pointer block mb-2 line-clamp-2 group/title"
+                className="group/title mb-2 block line-clamp-2 cursor-pointer text-lg font-bold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
               >
                 {title}
                 <ExternalLink className="h-4 w-4 inline ml-1 opacity-0 group-hover/title:opacity-100 transition-opacity" />
               </a>
             ) : (
-              <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+              <h3 className="mb-2 line-clamp-2 text-lg font-bold text-[var(--color-text-primary)]">
                 {title}
               </h3>
             )}
           </div>
           <button
             onClick={() => toggleSaved(id, opportunity)}
-            className={`flex-shrink-0 p-2 rounded-lg transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-100'}`}
+            className={`flex-shrink-0 rounded-lg p-2 transition-all ${isSaved ? 'bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft)]' : 'hover:bg-[var(--color-surface-muted)]'}`}
             aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
             title={isSaved ? 'Saved — click to unsave' : 'Save this opportunity'}
           >
             {isSaved ? (
               <div className="relative w-5 h-5">
-                <Shield className="h-5 w-5 text-amber-500 fill-amber-400" />
+                <Shield className="h-5 w-5 text-[var(--color-text-secondary)] fill-amber-400" />
                 <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" strokeWidth={3} />
               </div>
-            ) : (<Bookmark className="h-5 w-5 text-gray-400" />)}
+            ) : (<Bookmark className="h-5 w-5 text-[var(--color-text-subtle)]" />)}
           </button>
         </div>
         
-        <div className="flex items-center gap-2 text-base text-gray-700 mb-2">
-          <Building2 className="h-4 w-4 flex-shrink-0 text-gray-400" />
+        <div className="mb-2 flex items-center gap-2 text-base text-[var(--color-text-secondary)]">
+          <Building2 className="h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
           <span className="truncate font-bold">{department}</span>
         </div>
         
@@ -807,10 +806,10 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
                 : daysUntilDeadline <= 7
                   ? 'bg-red-100 text-red-700'
                   : daysUntilDeadline <= 14
-                    ? 'bg-orange-100 text-orange-700'
+                    ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
                     : daysUntilDeadline <= 30
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-green-100 text-green-700'
+                      ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
+                      : 'bg-[var(--color-surface-muted)] text-[var(--color-primary)]'
           }`}>
             <Clock className="h-3.5 w-3.5" />
             {daysUntilDeadline < 0
@@ -822,25 +821,25 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
       </div>
 
       {/* Details */}
-      <div className="p-5 space-y-3 flex-1 overflow-y-auto">
+      <div className="flex-1 space-y-3 overflow-y-auto p-5">
         <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">Posted:</span>
-          <span className="text-base font-extrabold text-gray-900">{postedDate}</span>
+          <Calendar className="h-5 w-5 flex-shrink-0 text-[var(--color-primary)]" />
+          <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">Posted:</span>
+          <span className="text-base font-extrabold text-[var(--color-text-primary)]">{postedDate}</span>
         </div>
         
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-red-600 flex-shrink-0" />
-          <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">Deadline:</span>
+          <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">Deadline:</span>
           <span className="text-base font-extrabold text-red-700">{responseDeadline}</span>
         </div>
 
         {/* Place of Performance */}
         {(opportunity.placeOfPerformance?.city?.name || opportunity.placeOfPerformance?.state?.code) && (
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-indigo-500 flex-shrink-0" />
-            <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">Location:</span>
-            <span className="text-base font-extrabold text-indigo-700">
+            <MapPin className="h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
+            <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">Location:</span>
+            <span className="text-base font-extrabold text-[var(--color-primary)]">
               {[opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(', ')}
             </span>
           </div>
@@ -848,15 +847,15 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
         
         {setAsideLabel !== 'Not specified' && (
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-            <span className="text-base font-extrabold text-emerald-700 line-clamp-1">{setAsideLabel}</span>
+            <Shield className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0" />
+            <span className="text-base font-extrabold text-[var(--color-primary)] line-clamp-1">{setAsideLabel}</span>
           </div>
         )}
         
         <div className="flex items-center gap-2">
-          <Hash className="h-4 w-4 text-blue-500 flex-shrink-0" />
-          <span className="text-sm font-extrabold text-gray-600 uppercase tracking-wide">NAICS:</span>
-          <span className="text-base font-extrabold text-blue-700">{naics}</span>
+          <Hash className="h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
+          <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">NAICS:</span>
+          <span className="text-base font-extrabold text-[var(--color-primary)]">{naics}</span>
         </div>
       </div>
 
@@ -867,7 +866,7 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
             href={opportunity.uiLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors text-base"
+            className="pg-btn pg-btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-semibold"
           >
             View on SAM.gov
             <ExternalLink className="h-4 w-4" />
@@ -922,36 +921,36 @@ const ResultCard = ({
   const department = opportunity.department || opportunity.fullParentPathName || 'Not specified'
   
   return (
-    <div 
+    <div
       key={id}
-      className="group relative rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-gray-400 hover: hover:bg-white"
+      className="group relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)] transition-all duration-300 hover:shadow-[var(--shadow-md)]"
     >
       {/* Quick Actions */}
-      <div className="absolute right-4 top-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute right-4 top-4 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={() => copyText(id)}
-          className="p-1.5 rounded-lg bg-white/6 hover:bg-white/7 transition-colors"
+          className="rounded-lg bg-[var(--color-surface-muted)] p-1.5 transition-colors hover:bg-[var(--color-accent-soft)]"
           title="Copy Notice ID"
           aria-label="Copy Notice ID"
         >
           {copiedId === id ? (
-            <Check className="h-4 w-4 text-white" />
+            <Check className="h-4 w-4 text-[var(--color-primary)]" />
           ) : (
-            <Copy className="h-4 w-4 text-gray-600" />
+            <Copy className="h-4 w-4 text-[var(--color-text-secondary)]" />
           )}
         </button>
         <button
           onClick={() => toggleSaved(id, opportunity)}
-          className={`p-1.5 rounded-lg transition-all ${isSaved ? 'bg-amber-100 hover:bg-amber-200' : 'hover:bg-gray-100'}`}
+          className={`rounded-lg p-1.5 transition-all ${isSaved ? 'bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft)]' : 'hover:bg-[var(--color-surface-muted)]'}`}
           title={isSaved ? 'Saved — click to unsave' : 'Save this opportunity'}
           aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
         >
           {isSaved ? (
             <div className="relative w-4 h-4">
-              <Shield className="h-4 w-4 text-amber-500 fill-amber-400" />
+              <Shield className="h-4 w-4 text-[var(--color-text-secondary)] fill-amber-400" />
               <Check className="h-2.5 w-2.5 text-white absolute top-0.5 left-0.5" strokeWidth={3} />
             </div>
-          ) : (<Bookmark className="h-4 w-4 text-gray-600" />)}
+          ) : (<Bookmark className="h-4 w-4 text-[var(--color-text-secondary)]" />)}
         </button>
       </div>
       
@@ -964,13 +963,13 @@ const ResultCard = ({
                 href={opportunity.uiLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-lg font-bold text-gray-900 hover:text-emerald-300 transition-colors cursor-pointer flex items-center gap-2 group/title"
+                className="group/title flex cursor-pointer items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
               >
                 {opportunity.title || 'Untitled Opportunity'}
                 <ExternalLink className="h-4 w-4 opacity-0 group-hover/title:opacity-100 transition-opacity" />
               </a>
             ) : (
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
                 {opportunity.title || 'Untitled Opportunity'}
               </h3>
             )}
@@ -983,10 +982,10 @@ const ResultCard = ({
                     : daysUntilDeadline <= 7
                       ? 'bg-red-100 text-red-700'
                       : daysUntilDeadline <= 14
-                        ? 'bg-orange-100 text-orange-700'
+                        ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
                         : daysUntilDeadline <= 30
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-green-100 text-green-700'
+                          ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
+                          : 'bg-[var(--color-surface-muted)] text-[var(--color-primary)]'
               }`}>
                 <Clock className="h-3 w-3" />
                 {daysUntilDeadline < 0
@@ -998,24 +997,24 @@ const ResultCard = ({
           </div>
           
           {/* Key Information Grid - UPDATED with important criteria */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {/* Solicitation Number */}
             {opportunity.solicitationNumber && (
               <div className="flex items-start gap-2">
-                <FileText className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
                 <div>
-                  <div className="text-sm font-bold text-orange-500">Solicitation #</div>
-                  <div className="text-sm text-gray-700 font-medium">{opportunity.solicitationNumber}</div>
+                  <div className="text-sm font-bold text-[var(--color-text-secondary)]">Solicitation #</div>
+                  <div className="text-sm font-medium text-[var(--color-text-primary)]">{opportunity.solicitationNumber}</div>
                 </div>
               </div>
             )}
             
             {/* Department/Agency */}
             <div className="flex items-start gap-2">
-              <Building2 className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+              <Building2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
               <div>
-                <div className="text-sm font-bold text-orange-500">Department/Agency</div>
-                <div className="text-sm text-gray-700 font-medium break-words line-clamp-2" title={department}>
+                <div className="text-sm font-bold text-[var(--color-text-secondary)]">Department/Agency</div>
+                <div className="line-clamp-2 break-words text-sm font-medium text-[var(--color-text-primary)]" title={department}>
                   {department}
                 </div>
               </div>
@@ -1023,10 +1022,10 @@ const ResultCard = ({
             
             {/* Set-Aside */}
             <div className="flex items-start gap-2">
-              <Target className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+              <Target className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
               <div>
-                <div className="text-sm font-bold text-orange-500">Set-Aside</div>
-                <div className="text-sm text-gray-700 font-medium break-words line-clamp-2" title={setAsideLabel}>
+                <div className="text-sm font-bold text-[var(--color-text-secondary)]">Set-Aside</div>
+                <div className="line-clamp-2 break-words text-sm font-medium text-[var(--color-text-primary)]" title={setAsideLabel}>
                   {setAsideLabel}
                 </div>
               </div>
@@ -1034,19 +1033,19 @@ const ResultCard = ({
             
             {/* Place of Performance (City/State) */}
             <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+              <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
               <div>
-                <div className="text-sm font-extrabold text-orange-500">Place of Performance</div>
-                <div className="text-sm font-extrabold text-indigo-700 break-words">{placeOfPerformance || 'N/A'}</div>
+                <div className="text-sm font-extrabold text-[var(--color-text-secondary)]">Place of Performance</div>
+                <div className="break-words text-sm font-extrabold text-[var(--color-primary)]">{placeOfPerformance || 'N/A'}</div>
               </div>
             </div>
             
             {/* Published Date */}
             <div className="flex items-start gap-2">
-              <Calendar className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <Calendar className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--color-primary)]" />
               <div>
-                <div className="text-xs font-extrabold text-blue-700 uppercase tracking-wide">Published</div>
-                <div className="text-base font-extrabold text-gray-900">{postedDate}</div>
+                <div className="text-xs font-extrabold uppercase tracking-wide text-[var(--color-primary)]">Published</div>
+                <div className="text-base font-extrabold text-[var(--color-text-primary)]">{postedDate}</div>
               </div>
             </div>
             
@@ -1064,10 +1063,10 @@ const ResultCard = ({
             {/* NAICS Code */}
             {opportunity.naicsCode && (
               <div className="flex items-start gap-2">
-                <Tag className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <Tag className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
                 <div>
-                  <div className="text-sm font-extrabold text-orange-500">NAICS Code</div>
-                  <div className="text-base font-extrabold text-blue-700">{opportunity.naicsCode}</div>
+                  <div className="text-sm font-extrabold text-[var(--color-text-secondary)]">NAICS Code</div>
+                  <div className="text-base font-extrabold text-[var(--color-primary)]">{opportunity.naicsCode}</div>
                 </div>
               </div>
             )}
@@ -1075,10 +1074,10 @@ const ResultCard = ({
             {/* Type */}
             {opportunity.type && (
               <div className="flex items-start gap-2">
-                <Layers className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <Layers className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
                 <div>
-                  <div className="text-sm font-bold text-orange-500">Type</div>
-                  <div className="text-sm text-gray-700 font-medium">{opportunity.type}</div>
+                  <div className="text-sm font-bold text-[var(--color-text-secondary)]">Type</div>
+                  <div className="text-sm font-medium text-[var(--color-text-primary)]">{opportunity.type}</div>
                 </div>
               </div>
             )}
@@ -1090,12 +1089,12 @@ const ResultCard = ({
       
       {/* Collapsible Details */}
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+        <div className="mt-4 space-y-4 border-t border-[var(--color-border)] pt-4">
           {/* Description */}
           {opportunity.description && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
-              <p className="text-base text-gray-900 font-medium line-clamp-6">
+              <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Description</h4>
+              <p className="line-clamp-6 text-base font-medium text-[var(--color-text-primary)]">
                 {opportunity.description}
               </p>
             </div>
@@ -1106,21 +1105,21 @@ const ResultCard = ({
             {/* Point of Contact */}
             {opportunity.pointOfContact && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Point of Contact</h4>
-                <div className="text-base text-gray-900 font-medium space-y-2">
+                <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Point of Contact</h4>
+                <div className="space-y-2 text-base font-medium text-[var(--color-text-primary)]">
                   {opportunity.pointOfContact.fullname && (
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-gray-600" />
+                      <Users className="h-4 w-4 text-[var(--color-text-subtle)]" />
                       <span className="font-medium">{opportunity.pointOfContact.fullname}</span>
                     </div>
                   )}
                   {opportunity.pointOfContact.title && (
-                    <div className="text-gray-600">{opportunity.pointOfContact.title}</div>
+                    <div className="text-[var(--color-text-secondary)]">{opportunity.pointOfContact.title}</div>
                   )}
                   {opportunity.pointOfContact.email && (
                     <a 
                       href={`mailto:${opportunity.pointOfContact.email}`}
-                      className="flex items-center gap-2 text-white hover:text-emerald-300 transition-colors"
+                      className="flex items-center gap-2 text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
                     >
                       <MessageSquare className="h-4 w-4" />
                       {opportunity.pointOfContact.email}
@@ -1129,9 +1128,9 @@ const ResultCard = ({
                   {opportunity.pointOfContact.phone && (
                     <a 
                       href={`tel:${opportunity.pointOfContact.phone.replace(/\D/g, '')}`}
-                      className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
+                      className="flex items-center gap-2 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
                     >
-                      <Phone className="h-4 w-4 text-gray-600" />
+                      <Phone className="h-4 w-4 text-[var(--color-text-subtle)]" />
                       {opportunity.pointOfContact.phone}
                     </a>
                   )}
@@ -1141,7 +1140,7 @@ const ResultCard = ({
             
             {/* Links */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Links & Resources</h4>
+              <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Links & Resources</h4>
               <div className="space-y-2">
                 {/* SAM.gov UI Link */}
                 {opportunity.uiLink && (
@@ -1149,12 +1148,12 @@ const ResultCard = ({
                     href={opportunity.uiLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/6 hover:bg-white/7 border border-gray-300 hover:border-gray-400 text-sm text-white hover:text-emerald-300 transition-colors w-full"
+                    className="inline-flex w-full items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-primary)]"
                   >
                     <ExternalLink className="h-4 w-4" />
                     <div className="flex-1">
                       <div className="font-medium">View on SAM.gov</div>
-                      <div className="text-xs text-gray-600 truncate">{opportunity.uiLink}</div>
+                      <div className="truncate text-xs text-[var(--color-text-secondary)]">{opportunity.uiLink}</div>
                     </div>
                   </a>
                 )}
@@ -1166,7 +1165,7 @@ const ResultCard = ({
                     href={link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/6 hover:bg-white/7 border border-gray-300 hover:border-gray-400 text-base text-gray-900 font-medium hover:text-gray-700 transition-colors"
+                    className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-base font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-primary)]"
                   >
                     <ArrowUpRight className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">
@@ -1180,25 +1179,25 @@ const ResultCard = ({
           
           {/* Additional Information */}
           {(opportunity.award || opportunity.archiveType || opportunity.baseType) && (
-            <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Additional Information</h4>
+            <div className="border-t border-[var(--color-border)] pt-4">
+              <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Additional Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {opportunity.baseType && (
                   <div>
-                    <div className="text-xs text-gray-600">Original Type</div>
-                    <div className="text-sm text-gray-700">{opportunity.baseType}</div>
+                    <div className="text-xs text-[var(--color-text-secondary)]">Original Type</div>
+                    <div className="text-sm text-[var(--color-text-primary)]">{opportunity.baseType}</div>
                   </div>
                 )}
                 {opportunity.archiveType && (
                   <div>
-                    <div className="text-xs text-gray-600">Archive Type</div>
-                    <div className="text-sm text-gray-700">{opportunity.archiveType}</div>
+                    <div className="text-xs text-[var(--color-text-secondary)]">Archive Type</div>
+                    <div className="text-sm text-[var(--color-text-primary)]">{opportunity.archiveType}</div>
                   </div>
                 )}
                 {opportunity.award?.date && (
                   <div>
-                    <div className="text-xs text-gray-600">Award Date</div>
-                    <div className="text-sm text-gray-700">{formatDate(opportunity.award.date)}</div>
+                    <div className="text-xs text-[var(--color-text-secondary)]">Award Date</div>
+                    <div className="text-sm text-[var(--color-text-primary)]">{formatDate(opportunity.award.date)}</div>
                   </div>
                 )}
               </div>
@@ -1208,11 +1207,11 @@ const ResultCard = ({
       )}
       
       {/* Footer - UPDATED */}
-      <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
+      <div className="mt-4 flex items-center justify-between border-t border-[var(--color-border)] pt-4">
         <div className="flex items-center gap-4">
           <button
             onClick={() => toggleExpanded(id)}
-            className="text-base text-gray-900 font-medium hover:text-gray-900 transition-colors flex items-center gap-1"
+            className="flex items-center gap-1 text-base font-medium text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
             aria-label={isExpanded ? 'Show less details' : 'Show more details'}
           >
             {isExpanded ? (
@@ -1229,7 +1228,7 @@ const ResultCard = ({
           </button>
           
           {opportunity.noticeId && (
-            <div className="text-base text-gray-900 font-medium flex items-center gap-1">
+            <div className="flex items-center gap-1 text-base font-medium text-[var(--color-text-primary)]">
               <Hash className="h-3 w-3" />
               <span className="font-mono">{opportunity.noticeId}</span>
             </div>
@@ -1652,7 +1651,7 @@ class SearchErrorBoundary extends React.Component<{ children: React.ReactNode },
             <p className="text-gray-600 mb-4">Please refresh the page and try again.</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 bg-[var(--color-surface-muted)] text-white rounded-lg hover:bg-[var(--color-surface-muted)] transition-colors"
             >
               Refresh Page
             </button>
@@ -1719,7 +1718,7 @@ function QuickDateLookup({
   onCreateAlert,
 }: QuickDateLookupProps) {
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-500 shadow-lg mb-4">
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-[var(--color-border)] shadow-lg mb-4">
       {/* Header row: title on left, Save/Alert buttons on right */}
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div>
@@ -1732,7 +1731,7 @@ function QuickDateLookup({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={onSaveSearch}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
             aria-label="Save current search"
           >
             <Save className="h-4 w-4 flex-shrink-0" />
@@ -1740,7 +1739,7 @@ function QuickDateLookup({
           </button>
           <button
             onClick={onCreateAlert}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
             aria-label="Create email alert"
           >
             <Bell className="h-4 w-4 flex-shrink-0" />
@@ -1748,7 +1747,7 @@ function QuickDateLookup({
           </button>
           <Link href="/alerts">
             <button
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-surface-muted)] text-white font-bold text-sm hover:bg-[var(--color-surface-muted)] hover:shadow-lg transition-all"
               aria-label="Manage alerts"
             >
               <Settings className="h-4 w-4 flex-shrink-0" />
@@ -1771,7 +1770,7 @@ function QuickDateLookup({
             onChange={(e) => setKeywords(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') onRunSearch() }}
             placeholder="e.g., Data Analytics"
-            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-500 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 transition-colors"
+            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-500 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] transition-colors"
           />
         </div>
 
@@ -1784,12 +1783,12 @@ function QuickDateLookup({
             type="date"
             value={postedAfter}
             onChange={(e) => setPostedAfter(e.target.value)}
-            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
+            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
           />
           <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">POSTED WITHIN:</div>
           <div className="flex flex-wrap gap-1">
             {[['1 Mo', -1], ['3 Mo', -3], ['6 Mo', -6], ['9 Mo', -9], ['12 Mo', -12]].map(([label, months]) => {
-              const colors = ['from-blue-500 to-cyan-500', 'from-indigo-500 to-purple-500', 'from-violet-500 to-purple-500', 'from-purple-500 to-pink-500', 'from-slate-600 to-slate-800']
+              const colors = ['from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-slate-600 to-slate-800']
               const idx = ['-1', '-3', '-6', '-9', '-12'].indexOf(String(months))
               return (
                 <button
@@ -1818,11 +1817,11 @@ function QuickDateLookup({
             type="date"
             value={responseDeadlineBefore}
             onChange={(e) => setResponseDeadlineBefore(e.target.value)}
-            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 mb-2"
+            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
           />
           <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">DEADLINE WITHIN:</div>
           <div className="flex flex-wrap gap-1">
-            {[['1 Mo', 1, 'from-rose-500 to-pink-500'], ['3 Mo', 3, 'from-orange-500 to-amber-500'], ['6 Mo', 6, 'from-amber-500 to-yellow-500'], ['9 Mo', 9, 'from-emerald-500 to-teal-500'], ['12 Mo', 12, 'from-cyan-500 to-blue-500']].map(([label, months, color]) => (
+            {[['1 Mo', 1, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['3 Mo', 3, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['6 Mo', 6, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['9 Mo', 9, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['12 Mo', 12, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]']].map(([label, months, color]) => (
               <button
                 key={label as string}
                 type="button"
@@ -1845,7 +1844,7 @@ function QuickDateLookup({
         <button
           onClick={onRunSearch}
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white transition-all shadow-md disabled:opacity-50 whitespace-nowrap"
+          className="pg-btn pg-btn-primary inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-bold rounded-lg text-white transition-all shadow-md disabled:opacity-50 whitespace-nowrap"
         >
           {loading ? (
             <><Loader2 className="h-5 w-5 animate-spin" />Searching...</>
@@ -1862,10 +1861,10 @@ function QuickDateLookup({
           STOP
           {loading && searchDuration > 0 && <span className="text-sm opacity-90">({searchDuration}s)</span>}
         </button>
-        <div className="w-px h-8 bg-blue-300 mx-1 hidden sm:block" />
+        <div className="w-px h-8 bg-[var(--color-surface-muted)] mx-1 hidden sm:block" />
         <button
           onClick={onSaveSearch}
-          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all whitespace-nowrap"
+          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all whitespace-nowrap"
           aria-label="Save current search"
         >
           <Save className="h-4 w-4 flex-shrink-0" />
@@ -1873,7 +1872,7 @@ function QuickDateLookup({
         </button>
         <button
           onClick={onCreateAlert}
-          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all whitespace-nowrap"
+          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all whitespace-nowrap"
           aria-label="Create email alert"
         >
           <Bell className="h-4 w-4 flex-shrink-0" />
@@ -1925,7 +1924,7 @@ function useToast() {
   }, [])
   const ToastUI = toast ? (
     <div className="fixed bottom-6 right-6 z-[200] flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold">
-      <Check className="h-4 w-4 text-emerald-400" />
+      <Check className="h-4 w-4 text-[var(--color-primary)]" />
       {toast}
     </div>
   ) : null
@@ -1951,26 +1950,26 @@ function StickyResultsPrompt({
   if (selectedStates && selectedStates.length > 0) parts.push(`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`)
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-emerald-500">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-[var(--color-border)]">
       <div className="max-w-[1760px] mx-auto flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+          <CheckCircle className="h-5 w-5 text-[var(--color-primary)] flex-shrink-0" />
           <span className="font-bold text-sm">
-            Found <span className="text-emerald-300 text-base">{count.toLocaleString()}</span> results
-            {parts.length > 0 && <> for <span className="text-emerald-300">{parts.join(' · ')}</span></>}
+            Found <span className="text-[var(--color-primary)] text-base">{count.toLocaleString()}</span> results
+            {parts.length > 0 && <> for <span className="text-[var(--color-primary)]">{parts.join(' · ')}</span></>}
             {' '}— save this search or get alerts so you never miss an update
           </span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={onSave}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-emerald-50 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-[var(--color-surface-muted)] transition-colors shadow-sm"
           >
             <Save className="h-4 w-4" />Save Search
           </button>
           <button
             onClick={onAlert}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm rounded-lg hover:from-violet-600 hover:to-purple-700 transition-colors border border-violet-400"
+            className="pg-btn pg-btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors border border-[var(--color-border)]"
           >
             <Bell className="h-4 w-4" />Get Alerts
           </button>
@@ -1999,33 +1998,33 @@ function AnimatedTipsCarousel() {
   const tips = [
     {
       icon: <FileText className="h-5 w-5" />,
-      text: "Pro tip: Try specific keywords like 'cybersecurity services' instead of just 'IT' for better matches",
-      color: "from-gray-700 to-gray-800"
+      text: "Pro tip: Use specific keywords like 'cybersecurity services' instead of broad terms like 'IT'.",
+      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
     },
     {
       icon: <Calendar className="h-5 w-5" />,
-      text: "Quick trick: Use the date buttons below to instantly search popular timeframes - we've done the math for you",
-      color: "from-emerald-600 to-emerald-700"
+      text: "Quick trick: Use the date buttons below to instantly apply common time ranges.",
+      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
     },
     {
       icon: <Bell className="h-5 w-5" />,
-      text: "Never miss out: Set up email alerts and we'll notify you the moment new opportunities match your criteria",
-      color: "from-orange-600 to-orange-700"
+      text: "Set up alerts to get notified when new opportunities match your saved filters.",
+      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
     },
     {
       icon: <Shield className="h-5 w-5" />,
-      text: "As a VOSB, you have exclusive access to set-aside contracts - use the filter to find opportunities reserved just for you",
-      color: "from-gray-700 to-gray-800"
+      text: "VOSB advantage: apply set-aside filters to surface contracts reserved for eligible firms.",
+      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
     },
     {
       icon: <MapPin className="h-5 w-5" />,
-      text: "Local advantage: Filter by your state (Virginia) to find nearby opportunities with less competition",
-      color: "from-emerald-600 to-emerald-700"
+      text: "Local advantage: filter by state to find nearby opportunities with lower competition.",
+      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
     },
     {
       icon: <Clock className="h-5 w-5" />,
-      text: "Heads up: Red badges mean deadlines within 7 days - these need your attention first",
-      color: "from-orange-600 to-orange-700"
+      text: "Heads up: prioritize items with near deadlines first so you don't miss submission windows.",
+      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
     }
   ]
 
@@ -2037,7 +2036,7 @@ function AnimatedTipsCarousel() {
   }, [tips.length])
 
   return (
-    <div className="mt-3 relative h-16 overflow-hidden">
+    <div className="relative mt-3 h-[84px] overflow-hidden sm:h-[66px]">
       {tips.map((tip, index) => (
         <div
           key={index}
@@ -2049,12 +2048,12 @@ function AnimatedTipsCarousel() {
                 : 'opacity-0 translate-y-full'
           }`}
         >
-          <div className={`bg-gradient-to-r ${tip.color} rounded-lg p-3 shadow-lg border border-gray-600`}>
-            <div className="flex items-center gap-4 text-white">
-              <div className="flex-shrink-0 bg-white/10 rounded-lg p-3">
-                <FileText className="h-7 w-7" />
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2.5 shadow-sm sm:p-3">
+            <div className="flex items-center gap-2.5 text-[var(--color-text-primary)] sm:gap-3">
+              <div className="flex-shrink-0 rounded-lg bg-[var(--color-accent-soft)] p-2">
+                {tip.icon}
               </div>
-              <p className="text-xl font-bold leading-snug">
+              <p className="text-xs font-semibold leading-snug text-[var(--color-text-primary)] sm:text-sm">
                 {tip.text}
               </p>
             </div>
@@ -2069,7 +2068,7 @@ function AnimatedTipsCarousel() {
             onClick={() => setCurrentTip(index)}
             className={`w-1.5 h-1.5 rounded-full transition-all ${
               index === currentTip 
-                ? 'bg-emerald-400 w-4' 
+                ? 'bg-[var(--color-surface-muted)] w-4' 
                 : 'bg-gray-500 hover:bg-gray-400'
             }`}
             aria-label={`Go to tip ${index + 1}`}
@@ -2085,16 +2084,16 @@ function QuickStartGuide() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="mt-4">
+    <div className="mt-3">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-white rounded-xl border-2 border-gray-300 hover:border-emerald-600 transition-all shadow-sm"
+        className="w-full flex items-center justify-between p-3.5 bg-white rounded-xl border border-gray-300 hover:border-[var(--color-border)] transition-all shadow-sm"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <HelpCircle className="h-6 w-6 text-white" />
+          <div className="w-9 h-9 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center">
+            <HelpCircle className="h-5 w-5 text-white" />
           </div>
-          <span className="text-base font-bold text-gray-900">
+          <span className="text-sm sm:text-base font-semibold text-gray-900">
             {isOpen ? 'Hide Quick Start Guide' : 'New here? Click for Quick Start Guide'}
           </span>
         </div>
@@ -2102,82 +2101,82 @@ function QuickStartGuide() {
       </button>
 
       {isOpen && (
-        <div className="mt-3 bg-gray-50 rounded-xl p-6 border-2 border-gray-300 shadow-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex gap-4">
+        <div className="mt-2.5 bg-gray-50 rounded-xl p-4 sm:p-5 border border-gray-300 shadow">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
                   1
                 </div>
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">Enter Your Search</h3>
-                <p className="text-base text-gray-700 leading-relaxed">
+                <h3 className="text-sm font-bold text-gray-900 mb-1">Enter Your Search</h3>
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Type keywords, company names, products, or services. Leave blank to see all opportunities.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
                   2
                 </div>
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">Select Date Ranges</h3>
-                <p className="text-base text-gray-700 leading-relaxed">
+                <h3 className="text-sm font-bold text-gray-900 mb-1">Select Date Ranges</h3>
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Use quick-fill buttons or pick custom dates to narrow your search.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
                   3
                 </div>
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">Click Search</h3>
-                <p className="text-base text-gray-700 leading-relaxed">
+                <h3 className="text-sm font-bold text-gray-900 mb-1">Click Search</h3>
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Hit the green Search button to find matching opportunities from SAM.gov.
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center text-white font-black text-lg">
+                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
                   4
                 </div>
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">Refine & Save</h3>
-                <p className="text-base text-gray-700 leading-relaxed">
+                <h3 className="text-sm font-bold text-gray-900 mb-1">Refine & Save</h3>
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Use filters to narrow results, then save your search or create an email alert.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t-2 border-gray-300">
+          <div className="mt-3 pt-3 border-t border-gray-300">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Pro Tips</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div className="flex items-start gap-2 text-base text-gray-700">
-                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
                 <span><strong>Be Specific:</strong> "Cloud services" beats "IT"</span>
               </div>
-              <div className="flex items-start gap-2 text-base text-gray-700">
-                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
                 <span><strong>Check Daily:</strong> New opportunities posted constantly</span>
               </div>
-              <div className="flex items-start gap-2 text-base text-gray-700">
-                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
                 <span><strong>Save Searches:</strong> Rerun successful searches quickly</span>
               </div>
-              <div className="flex items-start gap-2 text-base text-gray-700">
-                <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
                 <span><strong>Set Alerts:</strong> Get emailed automatically</span>
               </div>
             </div>
@@ -2210,7 +2209,7 @@ function SearchingFacts({ duration }: { duration: number }) {
   }, [duration, facts.length])
 
   return (
-    <div className="mt-4 pt-4 border-t-2 border-blue-300">
+    <div className="mt-4 pt-4 border-t-2 border-[var(--color-border)]">
       <div className="flex items-center gap-3">
         <Sparkles className="h-5 w-5 text-blue-600 animate-pulse" />
         <p className="text-base font-semibold text-blue-800">
@@ -3809,58 +3808,57 @@ ${filteredResults.map(opp => `  <opportunity>
 
   return (
     <SearchErrorBoundary>
-      <main style={{ fontFamily: 'Aptos, sans-serif' }} className="h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col overflow-hidden">
+      <main className="pg-theme-cleanup pg-search-modern min-h-screen bg-transparent flex flex-col text-[14px] sm:text-[15px]">
         {/* ── STEP 6: Add ToastUI render at the top of the JSX return ── */}
         {ToastUI}
-        <BrowsingTimerBanner />
         {/* Main content - full height utilization */}
-        <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex-1 flex flex-col overflow-y-auto">
+        <div className="max-w-[1600px] mx-auto px-3.5 sm:px-5 lg:px-6 py-3 flex-1 flex flex-col">
 
           {/* Professional Welcome Banner */}
           <div className="mb-2">
             {/* Main Welcome Card - Professional Gray */}
-            <div className="bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900 rounded-2xl p-4 shadow-lg border-2 border-gray-600">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="rounded-2xl border border-[#d9e2ef] bg-white p-3.5 sm:p-4 shadow-sm">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                 {/* Icon - Simple Target */}
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Target className="h-10 w-10 text-white" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-surface-muted)] shadow-sm">
+                    <Target className="h-6 w-6 text-[var(--color-primary)]" />
                   </div>
                 </div>
                 
                 {/* Content */}
                 <div className="flex-1">
                   {session?.user?.name && (
-                    <p className="text-emerald-400 font-semibold mb-1 text-lg">
+                    <p className="mb-1 text-sm font-medium text-[var(--color-text-secondary)]">
                       Welcome back, {session.user.name.split(' ')[0]}!
                     </p>
                   )}
-                  <p className="text-lg md:text-xl text-gray-300 leading-relaxed">
-                    We'll help you search millions of opportunities from SAM.gov and find contracts that match your business perfectly.
+                  <p className="max-w-3xl text-xs sm:text-sm leading-6 text-[var(--color-text-secondary)] md:text-base">
+                    Search SAM.gov opportunities quickly with focused filters and real-time federal data.
                   </p>
                 </div>
 
                 {/* Quick Stats Badge */}
-                <div className="flex-shrink-0 bg-emerald-600 rounded-xl p-4 text-center shadow-lg">
-                  <div className="text-2xl font-bold text-white mb-1">
+                <div className="flex-shrink-0 rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-center shadow-sm">
+                  <div className="text-base font-bold leading-tight text-slate-700">
                     {data?.totalRecords ? data.totalRecords.toLocaleString() : '2M+'}
                   </div>
-                  <div className="text-xs font-semibold text-emerald-100 uppercase tracking-wide">
+                  <div className="mt-1 inline-flex items-center rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
                     Active Opportunities
                   </div>
                 </div>
                 {/* ── STEP 9: Add navigation links inside the welcome banner ── */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Link href="/dashboard"
-                    className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-lg transition-colors border border-white/20">
+                    className="flex items-center gap-1.5 rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">
                     <BarChart3 className="h-4 w-4" />Dashboard
                   </Link>
                   <Link href="/insights"
-                    className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-lg transition-colors border border-white/20">
+                    className="flex items-center gap-1.5 rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">
                     <TrendingUp className="h-4 w-4" />Insights
                   </Link>
                   <Link href="/alerts"
-                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                    className="flex items-center gap-1.5 rounded-lg bg-[var(--color-surface-muted)] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-surface-muted)]">
                     <Bell className="h-4 w-4" />My Alerts
                   </Link>
                 </div>
@@ -3878,29 +3876,29 @@ ${filteredResults.map(opp => `  <opportunity>
 
           {/* Search Card - compact with full width */}
           <div className="flex-1 flex flex-col">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
               <div className="p-6">
                 {/* Main search form */}
                 <div className="w-full">
                   {/* ── SEARCH HERO SECTION ── */}
-                  <div className="mb-6">
+                  <div className="mb-5">
                     {/* Hero label */}
                     <div className="flex items-center gap-2 mb-3">
                       <div className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-surface-muted)] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--color-surface-muted)]"></span>
                       </div>
-                      <span className="text-sm font-bold text-emerald-700 uppercase tracking-widest">Search Federal Opportunities</span>
-                      <span className="text-xs font-semibold text-gray-400 ml-1">— SAM.gov Live Data</span>
+                      <span className="text-sm font-bold uppercase tracking-widest text-[var(--color-primary)]">Search Federal Opportunities</span>
+                      <span className="ml-1 text-xs font-semibold text-slate-500">— SAM.gov Live Data</span>
                     </div>
 
                     {/* Search input row */}
-                    <div className="flex flex-col md:flex-row gap-3">
+                    <div className="flex flex-col md:flex-row gap-2.5">
                       <div className="flex-1 relative group">
                         {/* Animated glow ring */}
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 rounded-xl opacity-0 group-focus-within:opacity-100 blur-sm transition-all duration-300 animate-pulse"></div>
+                        <div className="absolute -inset-0.5 bg-[var(--color-accent-soft)] rounded-xl opacity-0 group-focus-within:opacity-100 blur-sm transition-all duration-200"></div>
                         <div className="relative">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500 pointer-events-none z-10" />
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--color-primary)] pointer-events-none z-10" />
                           <input
                             type="text"
                             value={keywords}
@@ -3908,35 +3906,35 @@ ${filteredResults.map(opp => `  <opportunity>
                             onKeyDown={(e) => e.key === 'Enter' && runSearch()}
                             placeholder='Enter keyword, NAICS code, agency name, or solicitation # — then press Enter or click Search'
                             autoFocus
-                            className="relative w-full pl-11 pr-4 py-4 text-base rounded-lg border-2 border-emerald-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all outline-none text-gray-900 placeholder-gray-400 font-medium bg-white shadow-md hover:shadow-lg hover:border-emerald-400"
+                            className="relative w-full rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] py-3 pl-11 pr-4 text-base font-medium text-[var(--color-text-primary)] placeholder-[var(--color-text-subtle)] shadow-sm transition-all outline-none hover:shadow-md focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                           />
                         </div>
                       </div>
                       <button onClick={() => runSearch()} disabled={loading}
-                        className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-bold text-base rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-md hover:shadow-lg hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap border-b-4 border-emerald-800 active:border-b-2 active:translate-y-0.5">
+                        className="pg-btn pg-btn-primary px-6 py-3 text-white font-bold text-sm rounded-lg transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap">
                         {loading ? <><Loader2 className="h-5 w-5 animate-spin" />Searching...</> : <><Search className="h-5 w-5" />Search</>}
                       </button>
-                      <button onClick={resetAll} className="px-5 py-4 bg-white text-gray-700 font-semibold text-base rounded-lg border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm" aria-label="Reset all fields">
+                      <button onClick={resetAll} className="pg-btn pg-btn-tertiary px-4 py-3 font-semibold text-sm rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm" aria-label="Reset all fields">
                         <RefreshCw className="h-4 w-4" />Reset All
                       </button>
-                      <button onClick={() => handleOpenSaveModal('save')} className="px-5 py-4 bg-slate-700 text-white font-semibold text-base rounded-lg hover:bg-slate-800 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                      <button onClick={() => handleOpenSaveModal('save')} className="pg-btn pg-btn-secondary px-4 py-3 font-semibold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
                         <Save className="h-4 w-4" />Save Search
                       </button>
-                      <button onClick={() => handleOpenSaveModal('alert')} className="px-5 py-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold text-base rounded-lg hover:from-violet-700 hover:to-purple-700 transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                      <button onClick={() => handleOpenSaveModal('alert')} className="pg-btn pg-btn-tertiary px-4 py-3 font-semibold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
                         <Bell className="h-4 w-4" />Get Alerts
                       </button>
                     </div>
 
                     {/* Hint row */}
-                    <div className="flex items-center gap-4 mt-3 flex-wrap">
-                      <p className="text-base text-gray-600 font-bold">
-                        💡 Try: <button onClick={() => { setKeywords('data analytics'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">data analytics</button>,{' '}
-                        <button onClick={() => { setKeywords('cybersecurity'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">cybersecurity</button>,{' '}
-                        <button onClick={() => { setKeywords('IT services'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">IT services</button>,{' '}
-                        <button onClick={() => { setKeywords('541511'); runSearch() }} className="text-emerald-600 font-extrabold hover:underline text-base">541511</button>
+                    <div className="flex items-center gap-3 mt-2.5 flex-wrap">
+                      <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                        💡 Try: <button onClick={() => { setKeywords('data analytics'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">data analytics</button>,{' '}
+                        <button onClick={() => { setKeywords('cybersecurity'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">cybersecurity</button>,{' '}
+                        <button onClick={() => { setKeywords('IT services'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">IT services</button>,{' '}
+                        <button onClick={() => { setKeywords('541511'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">541511</button>
                       </p>
                       {results.length > 0 && keywords && (
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-200">
+                        <span className="text-xs font-bold text-[var(--color-primary)] bg-[var(--color-surface-muted)] px-2 py-1 rounded-full border border-[var(--color-border)]">
                           ✓ Showing results for "{keywords}"
                         </span>
                       )}
@@ -3945,10 +3943,10 @@ ${filteredResults.map(opp => `  <opportunity>
 
                   {/* Loading message with user input */}
                   {loading && (
-                    <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-xl">
-                      <div className="flex items-center gap-3 text-blue-800">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                        <span className="text-lg font-semibold">
+                    <div className="mb-4 p-3.5 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-xl">
+                      <div className="flex items-center gap-3 text-[var(--color-primary)]">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span className="text-base font-semibold">
                           Searching {keywords ? `"${keywords}"` : ''} opportunities, please wait... ({searchDuration}s)
                         </span>
                       </div>
@@ -3956,15 +3954,15 @@ ${filteredResults.map(opp => `  <opportunity>
                   )}
 
                   {/* Two-column date layout - each column has date field + quick-fill buttons */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     
                     {/* LEFT COLUMN: Solicitation Posted Date */}
                     <div className="space-y-4">
                       {/* Posted Date Input Field */}
-                      <div className="bg-emerald-50 p-5 rounded-xl border-2 border-emerald-200">
+                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
                         <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-8 w-8 text-emerald-700" />
-                          <label className="text-2xl font-bold text-emerald-800">
+                          <Calendar className="h-5 w-5 text-[var(--color-primary)]" />
+                          <label className="text-lg font-bold text-[var(--color-primary)]">
                             Solicitation Posted Date
                           </label>
                         </div>
@@ -3972,18 +3970,18 @@ ${filteredResults.map(opp => `  <opportunity>
                           type="date"
                           value={postedAfter}
                           onChange={(e) => setPostedAfter(e.target.value)}
-                          className="w-full px-4 py-4 text-2xl font-semibold rounded-lg border-2 border-emerald-300 bg-white text-gray-900 focus:border-emerald-700 focus:ring-4 focus:ring-emerald-200 transition-all"
+                          className="w-full rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                         />
-                        <p className="text-lg text-emerald-700 mt-2 font-bold">
+                        <p className="text-sm text-[var(--color-primary)] mt-2 font-semibold">
                           Find solicitations posted on or after this date
                         </p>
                       </div>
 
                       {/* Posted Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
-                      <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 p-4 rounded-xl border-2 border-emerald-300">
+                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
                         <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-6 w-6 text-emerald-700" />
-                          <span className="text-xl font-bold text-emerald-900">
+                          <Calendar className="h-5 w-5 text-[var(--color-primary)]" />
+                          <span className="text-base font-bold text-[var(--color-primary)]">
                             Posted within the last:
                           </span>
                         </div>
@@ -4003,7 +4001,7 @@ ${filteredResults.map(opp => `  <opportunity>
                                 d.setDate(d.getDate() + days)
                                 setPostedAfter(d.toISOString().split('T')[0])
                               }}
-                              className="px-4 py-2.5 bg-emerald-600 text-white font-bold text-base rounded-lg hover:bg-emerald-700 transition-colors shadow-md"
+                              className="pg-btn pg-btn-tertiary rounded-lg px-3 py-2 text-sm font-semibold transition-colors shadow-sm"
                             >
                               {label}
                             </button>
@@ -4015,10 +4013,10 @@ ${filteredResults.map(opp => `  <opportunity>
                     {/* RIGHT COLUMN: Solicitation Due Date */}
                     <div className="space-y-4">
                       {/* Due Date Input Field */}
-                      <div className="bg-amber-50 p-5 rounded-xl border-2 border-amber-200">
+                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
                         <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-8 w-8 text-amber-700" />
-                          <label className="text-2xl font-bold text-amber-800">
+                          <Clock className="h-5 w-5 text-[var(--color-text-secondary)]" />
+                          <label className="text-lg font-bold text-[var(--color-text-secondary)]">
                             Solicitation Due Date
                           </label>
                         </div>
@@ -4026,18 +4024,18 @@ ${filteredResults.map(opp => `  <opportunity>
                           type="date"
                           value={responseDeadlineBefore}
                           onChange={(e) => setResponseDeadlineBefore(e.target.value)}
-                          className="w-full px-4 py-4 text-2xl font-semibold rounded-lg border-2 border-amber-300 bg-white text-gray-900 focus:border-amber-700 focus:ring-4 focus:ring-amber-200 transition-all"
+                          className="w-full rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                         />
-                        <p className="text-lg text-amber-700 mt-2 font-bold">
+                        <p className="text-sm text-[var(--color-text-secondary)] mt-2 font-semibold">
                           Find solicitations with response due date between today and any of these quick fill dates
                         </p>
                       </div>
 
                       {/* Due Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
-                      <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-xl border-2 border-amber-300">
+                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
                         <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-6 w-6 text-amber-700" />
-                          <span className="text-xl font-bold text-amber-900">
+                          <Clock className="h-5 w-5 text-[var(--color-text-secondary)]" />
+                          <span className="text-base font-bold text-[var(--color-text-secondary)]">
                             Due within the next:
                           </span>
                         </div>
@@ -4056,7 +4054,7 @@ ${filteredResults.map(opp => `  <opportunity>
                                 d.setDate(d.getDate() + days)
                                 setResponseDeadlineBefore(d.toISOString().split('T')[0])
                               }}
-                              className="px-4 py-2.5 bg-amber-600 text-white font-bold text-base rounded-lg hover:bg-amber-700 transition-colors shadow-md"
+                              className="pg-btn pg-btn-tertiary rounded-lg px-3 py-2 text-sm font-semibold transition-colors shadow-sm"
                             >
                               {label}
                             </button>
@@ -4103,22 +4101,22 @@ ${filteredResults.map(opp => `  <opportunity>
               {/* Results header with filter toggle */}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-4xl font-bold text-gray-900">
+                  <h2 className="text-4xl font-bold text-[var(--color-text-primary)]">
                     {filteredResults.length.toLocaleString()} opportunities found
                   </h2>
                   {/* ── SMART CONTEXTUAL DESCRIPTION ── */}
                   <p className="text-lg font-bold mt-2 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-1">
-                    <span className="text-orange-600">Search for</span>
+                    <span className="text-[var(--color-text-secondary)]">Search for</span>
 
                     {keywords && (
-                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">"{keywords}"</span>
+                      <span className="text-[var(--color-primary)] bg-[var(--color-surface-muted)] px-2 py-0.5 rounded-md border border-[var(--color-border)]">"{keywords}"</span>
                     )}
 
                     {postedAfter && (
                       <>
-                        <span className="text-orange-400 mx-0.5">·</span>
-                        <span className="text-orange-600">posted on or after</span>
-                        <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
+                        <span className="text-[var(--color-text-secondary)]">posted on or after</span>
+                        <span className="rounded-md border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-2 py-0.5 text-[var(--color-primary)]">
                           {new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </>
@@ -4126,9 +4124,9 @@ ${filteredResults.map(opp => `  <opportunity>
 
                     {responseDeadlineBefore && (
                       <>
-                        <span className="text-orange-400 mx-0.5">·</span>
-                        <span className="text-orange-600">due on or after</span>
-                        <span className="text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
+                        <span className="text-[var(--color-text-secondary)]">due on or after</span>
+                        <span className="text-[var(--color-primary)] bg-[var(--color-surface-muted)] px-2 py-0.5 rounded-md border border-[var(--color-border)]">
                           {new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (Today)
                         </span>
                       </>
@@ -4136,9 +4134,9 @@ ${filteredResults.map(opp => `  <opportunity>
 
                     {selectedSetAsides.length > 0 && (
                       <>
-                        <span className="text-orange-400 mx-0.5">·</span>
-                        <span className="text-orange-600">set-aside:</span>
-                        <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
+                        <span className="text-[var(--color-text-secondary)]">set-aside:</span>
+                        <span className="text-[var(--color-text-secondary)] bg-[var(--color-surface-muted)] px-2 py-0.5 rounded-md border border-[var(--color-border)]">
                           {selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} set-aside types`}
                         </span>
                       </>
@@ -4146,21 +4144,21 @@ ${filteredResults.map(opp => `  <opportunity>
 
                     {selectedStates.length > 0 && (
                       <>
-                        <span className="text-orange-400 mx-0.5">·</span>
-                        <span className="text-orange-600">state:</span>
-                        <span className="text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
+                        <span className="text-[var(--color-text-secondary)]">state:</span>
+                        <span className="rounded-md border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-2 py-0.5 text-[var(--color-primary)]">
                           {selectedStates.length === 1 ? (getLocationLabel(selectedStates[0]) || selectedStates[0]) : `${selectedStates.length} states`}
                         </span>
                       </>
                     )}
 
-                    <span className="text-orange-600">successfully returned</span>
-                    <span className="text-white bg-emerald-600 px-2.5 py-0.5 rounded-md font-extrabold text-xl">
+                    <span className="text-[var(--color-text-secondary)]">successfully returned</span>
+                    <span className="text-[var(--color-text-primary)] bg-[var(--color-accent-soft)] px-2.5 py-0.5 rounded-md font-extrabold text-xl border border-[var(--color-border)]">
                       {filteredResults.length.toLocaleString()}
                     </span>
 
                     {data?.totalRecords && data.totalRecords > filteredResults.length && (
-                      <span className="text-gray-500 font-semibold text-base">(filtered from {data.totalRecords.toLocaleString()} total)</span>
+                      <span className="text-base font-semibold text-[var(--color-text-secondary)]">(filtered from {data.totalRecords.toLocaleString()} total)</span>
                     )}
                   </p>
                 </div>
@@ -4169,8 +4167,8 @@ ${filteredResults.map(opp => `  <opportunity>
                     onClick={() => setShowFilters(!showFilters)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
                       showFilters 
-                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700' 
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        ? 'border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-primary)]' 
+                        : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/40 text-[var(--color-text-secondary)]'
                     }`}
                   >
                     <SlidersHorizontal className="h-4 w-4" />
@@ -4181,7 +4179,7 @@ ${filteredResults.map(opp => `  <opportunity>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
-                    className="px-4 py-2 rounded-lg border-2 border-gray-200 focus:border-emerald-600 outline-none text-gray-900 font-semibold"
+                    className="px-4 py-2 rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] focus:border-[var(--color-primary)]/40 outline-none text-[var(--color-text-primary)] font-semibold"
                   >
                     <option value="deadline-asc">Deadline (Soonest)</option>
                     <option value="deadline-desc">Deadline (Latest)</option>
@@ -4189,11 +4187,11 @@ ${filteredResults.map(opp => `  <opportunity>
                     <option value="posted-asc">Oldest first</option>
                   </select>
 
-                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-100">
+                  <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-1">
                     <button
                       onClick={() => setViewMode('list')}
                       className={`p-2 rounded transition-all ${
-                        viewMode === 'list' ? 'bg-white shadow-sm' : 'text-gray-500'
+                        viewMode === 'list' ? 'bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-subtle)]'
                       }`}
                     >
                       <List className="h-4 w-4" />
@@ -4201,7 +4199,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     <button
                       onClick={() => setViewMode('grid')}
                       className={`p-2 rounded transition-all ${
-                        viewMode === 'grid' ? 'bg-white shadow-sm' : 'text-gray-500'
+                        viewMode === 'grid' ? 'bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-subtle)]'
                       }`}
                     >
                       <Grid className="h-4 w-4" />
@@ -4212,15 +4210,15 @@ ${filteredResults.map(opp => `  <opportunity>
 
               {/* Filter panel - collapsible */}
               {showFilters && (
-                <div className="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <h3 className="font-bold text-xl text-gray-900 mb-4 flex items-center gap-2">
-                    <Filter className="h-5 w-5 text-emerald-600" />
+                <div className="mb-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
+                  <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-[var(--color-text-primary)]">
+                    <Filter className="h-5 w-5 text-[var(--color-primary)]" />
                     Refine Results
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {/* KEYWORD - FIRST */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Keyword</label>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Keyword</label>
                       <input
                         type="text"
                         value={advKeywords}
@@ -4229,9 +4227,9 @@ ${filteredResults.map(opp => `  <opportunity>
                           setAdvancedApplied(true)
                         }}
                         placeholder="e.g., Data Analytics"
-                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                       />
-                      <p className="text-xs text-gray-400 mt-1">Filters shown results instantly</p>
+                      <p className="mt-1 text-xs text-[var(--color-text-subtle)]">Filters shown results instantly</p>
                     </div>
                     {/* SET-ASIDE - SECOND */}
                     <div>
@@ -4255,33 +4253,33 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* AGENCY */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Agency</label>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Agency</label>
                       <input
                         type="text"
                         value={agency}
                         onChange={(e) => setAgency(e.target.value)}
                         placeholder="e.g., Department of Defense"
-                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                       />
                     </div>
                     {/* NAICS CODE */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">NAICS Code</label>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">NAICS Code</label>
                       <input
                         type="text"
                         value={naics}
                         onChange={(e) => setNaics(e.target.value)}
                         placeholder="e.g., 541511"
-                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                       />
                     </div>
                     {/* PROCUREMENT TYPE */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Procurement Type</label>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Procurement Type</label>
                       <select
                         value={procurementType}
                         onChange={(e) => setProcurementType(e.target.value)}
-                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                       >
                         <option value="">All Opportunity Types</option>
                         <option value="o">Solicitation — Formal request for bids/proposals</option>
@@ -4295,33 +4293,33 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* PSC CODE */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">PSC Code</label>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">PSC Code</label>
                       <input
                         type="text"
                         value={classificationCode}
                         onChange={(e) => setClassificationCode(e.target.value)}
                         placeholder="e.g., R425"
-                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                       />
                     </div>
                     {/* SOLICITATION # */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Solicitation #</label>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Solicitation #</label>
                       <input
                         type="text"
                         value={solicitationNumber}
                         onChange={(e) => setSolicitationNumber(e.target.value)}
                         placeholder="e.g., W912DY24R0001"
-                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                       />
                     </div>
                     {/* STATUS */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-orange-600 mb-2">Status</label>
+                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Status</label>
                       <select
                         value={opportunityStatus}
                         onChange={(e) => setOpportunityStatus(e.target.value)}
-                        className="w-full px-4 py-3 text-base rounded-lg border-2 border-gray-200 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 transition-all text-gray-900 font-semibold"
+                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
                       >
                         <option value="">All Statuses</option>
                         <option value="active">Active</option>
@@ -4332,16 +4330,16 @@ ${filteredResults.map(opp => `  <opportunity>
                   </div>
                   
                   {/* Active Filters bar — always visible with Reset button */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="mt-4 border-t border-[var(--color-border)] pt-4">
                     <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-base font-bold text-gray-900">Active Refine Filters</span>
+                        <span className="text-base font-bold text-[var(--color-text-primary)]">Active Refine Filters</span>
                         {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) ? (
-                          <span className="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                          <span className="text-xs font-bold px-2 py-0.5 bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] rounded-full">
                             {[agency, ...selectedSetAsides, naics, ...selectedStates, procurementType, classificationCode, solicitationNumber, opportunityStatus].filter(Boolean).length} active
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-400 font-medium">None — showing all results</span>
+                          <span className="text-sm font-medium text-[var(--color-text-subtle)]">None — showing all results</span>
                         )}
                       </div>
                       <button
@@ -4420,23 +4418,23 @@ ${filteredResults.map(opp => `  <opportunity>
 
               {/* Results count and action bar */}
               {(results.length > 0) && (
-                <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 rounded-xl border border-emerald-200 shadow-sm">
+                <div className="mb-6 p-4 bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] shadow-sm">
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                      <span className="text-base font-bold text-gray-900">
+                      <CheckCircle className="h-5 w-5 text-[var(--color-primary)] flex-shrink-0" />
+                      <span className="text-base font-bold text-[var(--color-text-primary)]">
                         {showSavedOnly
-                          ? <><span className="text-amber-600">Showing {filteredResults.length} saved</span> of {results.length} results</>
+                          ? <><span className="text-[var(--color-text-secondary)]">Showing {filteredResults.length} saved</span> of {results.length} results</>
                           : <>
                               {filteredResults.length >= 100 ? '🎯 Excellent! ' : filteredResults.length >= 10 ? '✅ Great! ' : ''}
                               Found{' '}
-                              <span className="font-bold text-emerald-700">{filteredResults.length.toLocaleString()}</span>
+                              <span className="font-bold text-[var(--color-primary)]">{filteredResults.length.toLocaleString()}</span>
                               {' '}{filteredResults.length === 1 ? 'opportunity' : 'opportunities'}
-                              {keywords && <> for <span className="text-emerald-800">"{keywords}"</span></>}
+                              {keywords && <> for <span className="text-[var(--color-primary)]">"{keywords}"</span></>}
                               {' '}—{' '}
-                              <button onClick={() => handleOpenSaveModal('save')} className="text-slate-700 underline underline-offset-2 hover:text-emerald-700 font-bold transition-colors">save this search</button>
+                              <button onClick={() => handleOpenSaveModal('save')} className="text-slate-700 underline underline-offset-2 hover:text-[var(--color-primary)] font-bold transition-colors">save this search</button>
                               {' '}or{' '}
-                              <button onClick={() => handleOpenSaveModal('alert')} className="text-violet-700 underline underline-offset-2 hover:text-violet-900 font-bold transition-colors">get email alerts</button>
+                              <button onClick={() => handleOpenSaveModal('alert')} className="text-[var(--color-text-secondary)] underline underline-offset-2 hover:text-[var(--color-text-secondary)] font-bold transition-colors">get email alerts</button>
                               {' '}so you never miss an update
                             </>
                         }
@@ -4444,7 +4442,7 @@ ${filteredResults.map(opp => `  <opportunity>
                       {Object.values(saved).filter(Boolean).length > 0 && (
                         <button
                           onClick={() => setShowSavedOnly(prev => !prev)}
-                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all ${showSavedOnly ? 'bg-gray-700 text-white hover:bg-gray-800' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold shadow-sm transition-all ${showSavedOnly ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]' : 'pg-btn-tertiary text-[var(--color-text-primary)]'}`}
                         >
                           <Shield className="h-3.5 w-3.5 fill-current" />
                           {showSavedOnly ? '← Back To All Results' : `View Saved (${Object.values(saved).filter(Boolean).length})`}
@@ -4462,13 +4460,13 @@ ${filteredResults.map(opp => `  <opportunity>
                         ].filter(Boolean).join(' · ')}
                       />
 
-                      <button onClick={() => handleOpenSaveModal('save')} className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                      <button onClick={() => handleOpenSaveModal('save')} className="pg-btn pg-btn-secondary px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
                         <Save className="h-3.5 w-3.5" />Save Search
                       </button>
-                      <button onClick={() => router.push('/alerts')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                      <button onClick={() => router.push('/alerts')} className="pg-btn pg-btn-tertiary px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
                         <ExternalLink className="h-3.5 w-3.5" />Saved &amp; Alerts
                       </button>
-                      <button onClick={() => handleOpenSaveModal('alert')} className="px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-700 hover:to-purple-700 transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                      <button onClick={() => handleOpenSaveModal('alert')} className="pg-btn pg-btn-primary px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
                         <Bell className="h-3.5 w-3.5" />Get Alerts
                       </button>
                     </div>
@@ -4517,7 +4515,7 @@ ${filteredResults.map(opp => `  <opportunity>
                       <button
                         onClick={loadMoreResults}
                         disabled={loadingMore}
-                        className="px-6 py-3 bg-white border-2 border-gray-200 rounded-xl hover:border-emerald-600 hover:text-emerald-600 transition-all font-medium inline-flex items-center gap-2"
+                        className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3 font-medium transition-all hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)]"
                       >
                         {loadingMore ? (
                           <>
@@ -4535,20 +4533,20 @@ ${filteredResults.map(opp => `  <opportunity>
                   )}
                 </>
               ) : (
-                <div className="text-center py-16 bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+                <div className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center shadow-sm">
                   <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
                     <AlertCircle className="h-9 w-9 text-red-500" />
                   </div>
-                  <h3 className="text-2xl font-black text-gray-900 mb-2">No Results Found</h3>
-                  <p className="text-base font-bold text-gray-500 mb-6 max-w-sm mx-auto">Your filters returned 0 opportunities. Try adjusting your search.</p>
-                  <div className="text-left max-w-sm mx-auto mb-8 space-y-2 bg-amber-50 rounded-xl p-5 border border-amber-200">
-                    <p className="text-sm font-bold text-amber-900 uppercase tracking-wide mb-2">Suggestions</p>
-                    <p className="text-sm font-semibold text-gray-700">✓ Remove or relax active filters</p>
-                    <p className="text-sm font-semibold text-gray-700">✓ Use broader keywords (e.g., "IT services")</p>
-                    <p className="text-sm font-semibold text-gray-700">✓ Expand your date range</p>
-                    <p className="text-sm font-semibold text-gray-700">✓ Try a different state or remove state filter</p>
+                  <h3 className="mb-2 text-2xl font-black text-[var(--color-text-primary)]">No Results Found</h3>
+                  <p className="mx-auto mb-6 max-w-sm text-base font-bold text-[var(--color-text-secondary)]">Your filters returned 0 opportunities. Try adjusting your search.</p>
+                  <div className="text-left max-w-sm mx-auto mb-8 space-y-2 bg-[var(--color-surface-muted)] rounded-xl p-5 border border-[var(--color-border)]">
+                    <p className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Suggestions</p>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Remove or relax active filters</p>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Use broader keywords (e.g., &quot;IT services&quot;)</p>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Expand your date range</p>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Try a different state or remove state filter</p>
                   </div>
-                  <button onClick={resetAll} className="px-8 py-3.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-black text-base shadow-md">
+                  <button onClick={resetAll} className="pg-btn pg-btn-primary px-8 py-3.5 rounded-lg transition-colors font-black text-base shadow-md">
                     Clear All Filters &amp; Start Fresh
                   </button>
                 </div>
@@ -4615,10 +4613,11 @@ export default function SearchPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-emerald-600 border-t-transparent rounded-full"></div>
+        <div className="animate-spin h-12 w-12 border-4 border-[var(--color-border)] border-t-transparent rounded-full"></div>
       </div>
     }>
       <SearchPageContent />
     </Suspense>
   )
 }
+

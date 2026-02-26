@@ -959,18 +959,18 @@ export default function InsightsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div className="pg-theme-cleanup pg-insights-modern min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 text-[14px] sm:text-[15px]">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 py-5 sm:py-6">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-5">
           <div className="flex flex-col lg:flex-row lg:items-center items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-emerald-500 flex items-center justify-center shadow-md flex-shrink-0">
-                  <LineChart className="h-5 w-5 text-white" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-emerald-500 flex items-center justify-center shadow-md flex-shrink-0">
+                  <LineChart className="h-4 w-4 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-2xl font-extrabold text-gray-900">
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
                     Insights Dashboard
                   </h1>
                   <p className="text-sm text-gray-600 truncate">
@@ -1044,7 +1044,7 @@ export default function InsightsPage() {
           </div>
 
           {/* Action strip */}
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {dashboard.actions.map((a, index) => (
               <button
                 key={`${a.label}-${index}`}
@@ -1069,7 +1069,7 @@ export default function InsightsPage() {
       </div>
 
       {/* Main */}
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
         {!!error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 mt-0.5" />
@@ -1085,17 +1085,17 @@ export default function InsightsPage() {
         )}
 
         {/* KPI row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <button
             onClick={() => handlePillClick('active')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-5"
+            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
           >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Active opportunities
                 </div>
-                <div className="mt-1 text-3xl font-extrabold text-gray-900">
+                <div className="mt-1 text-2xl font-extrabold text-gray-900">
                   {formatCompact(stats.totalActive)}
                 </div>
               </div>
@@ -1111,14 +1111,14 @@ export default function InsightsPage() {
 
           <button
             onClick={() => handlePillClick('today')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-5"
+            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
           >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   New today
                 </div>
-                <div className="mt-1 text-3xl font-extrabold text-gray-900">
+                <div className="mt-1 text-2xl font-extrabold text-gray-900">
                   {formatCompact(stats.newToday)}
                 </div>
               </div>
@@ -1134,14 +1134,14 @@ export default function InsightsPage() {
 
           <button
             onClick={() => handlePillClick('expiring')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-5"
+            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
           >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Expiring &le;7d
                 </div>
-                <div className="mt-1 text-3xl font-extrabold text-gray-900">
+                <div className="mt-1 text-2xl font-extrabold text-gray-900">
                   {formatCompact(stats.expiringSoon)}
                 </div>
               </div>
@@ -1156,14 +1156,14 @@ export default function InsightsPage() {
 
           <button
             onClick={() => handlePillClick('agencies')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-5"
+            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
           >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Active agencies
                 </div>
-                <div className="mt-1 text-3xl font-extrabold text-gray-900">
+                <div className="mt-1 text-2xl font-extrabold text-gray-900">
                   {formatCompact(stats.activeAgencies)}
                 </div>
               </div>

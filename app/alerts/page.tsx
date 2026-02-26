@@ -1220,19 +1220,6 @@ async function deleteSubscription(id: string) {
           --font-aptos: 'Aptos', 'Outfit', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
         
-        /* Shimmer animation for active tabs */
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%) skewX(-12deg);
-          }
-          100% {
-            transform: translateX(200%) skewX(-12deg);
-          }
-        }
-        
-        .animate-shimmer {
-          animation: shimmer 3s infinite;
-        }
       `}</style>
       
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ fontFamily: "var(--font-aptos)" }}>
@@ -1241,7 +1228,7 @@ async function deleteSubscription(id: string) {
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 pointer-events-none">
           <div
             className={clsx(
-              'relative w-full max-w-2xl mx-4 rounded-2xl shadow-2xl backdrop-blur-xl border-2',
+              'relative w-full  mx-4 rounded-2xl shadow-2xl backdrop-blur-xl border-2',
               'animate-in fade-in slide-in-from-top-5 duration-500',
               toast.type === 'success' &&
                 'border-emerald-500/50 bg-gradient-to-br from-emerald-950/95 to-emerald-900/95',
@@ -1307,7 +1294,7 @@ async function deleteSubscription(id: string) {
       )}
 
       {/* Main content */}
-      <div className="mx-auto max-w-[1800px] px-3 sm:px-6 lg:px-10 xl:px-12 py-4 sm:py-6">
+      <div className="mx-auto px-3 sm:px-4 lg:px-6  py-4 sm:py-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1319,7 +1306,7 @@ async function deleteSubscription(id: string) {
               {/* New Search */}
               <Link
                 href="/search"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white transition-all border border-slate-600 font-semibold"
+                className="pg-btn pg-btn-secondary inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold"
               >
                 <Search className="w-5 h-5" />
                 New Search
@@ -1328,11 +1315,7 @@ async function deleteSubscription(id: string) {
               {/* Create Saved Search - Opens Modal */}
               <button
                 onClick={() => setShowCreateSavedSearchModal(true)}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r text-white hover:opacity-90 transition-all font-semibold shadow-lg"
-                style={{ 
-                  background: 'linear-gradient(to right, #ff6b35, #ff8c42)',
-                  boxShadow: '0 10px 40px rgba(255, 107, 53, 0.3)' 
-                }}
+                className="pg-btn pg-btn-secondary inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold shadow-sm"
               >
                 <Save className="w-5 h-5" />
                 Create Saved Search
@@ -1341,11 +1324,7 @@ async function deleteSubscription(id: string) {
               {/* Create Subscription Alert - Opens Modal */}
               <button
                 onClick={() => setShowCreateSubscriptionModal(true)}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r text-gray-900 hover:opacity-90 transition-all font-semibold shadow-lg"
-                style={{ 
-                  background: 'linear-gradient(to right, #00ff87, #60efff)',
-                  boxShadow: '0 10px 40px rgba(0, 255, 135, 0.3)' 
-                }}
+                className="pg-btn pg-btn-primary inline-flex items-center gap-2 px-5 py-3 rounded-xl text-white font-semibold shadow-md"
               >
                 <Bell className="w-5 h-5" />
                 Create Subscription Alert
@@ -1408,22 +1387,17 @@ async function deleteSubscription(id: string) {
         <div className="mb-8">
           <div className="relative">
             {/* Tab Buttons */}
-            <div className="flex gap-3 relative z-10">
+            <div className="flex flex-col sm:flex-row gap-3 relative z-10">
               <button
                 onClick={() => setActiveTab('alerts')}
                 className={clsx(
-                  'relative flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
+                  'relative min-w-0 flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
                   'font-[\'Aptos\',_system-ui,_-apple-system,_sans-serif]',
                   activeTab === 'alerts'
-                    ? 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-cyan-600 text-white shadow-2xl shadow-emerald-500/40 scale-105'
+                    ? 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-cyan-600 text-white shadow-xl shadow-emerald-500/30 ring-1 ring-white/20'
                     : 'bg-gradient-to-br from-slate-800/80 to-slate-700/80 text-slate-300 hover:text-white hover:from-slate-700/90 hover:to-slate-600/90 border border-slate-600/50'
                 )}
               >
-                {/* Shine effect on active tab */}
-                {activeTab === 'alerts' && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer" />
-                )}
-                
                 <div className="relative flex items-center justify-center gap-3">
                   <div className={clsx(
                     "p-2 rounded-xl transition-all",
@@ -1437,8 +1411,10 @@ async function deleteSubscription(id: string) {
                     <div className="text-base font-bold tracking-tight">Alert Subscriptions</div>
                     <div className={clsx(
                       "text-xs font-medium",
-                      activeTab === 'alerts' ? 'text-emerald-100' : 'text-slate-400'
-                    )}>
+                      activeTab === 'alerts' ? '' : 'text-slate-400'
+                    )}
+                    style={activeTab === 'alerts' ? { color: 'rgba(255,255,255,0.96)' } : undefined}
+                    >
                       {activeCount} active • {pausedCount} paused
                     </div>
                   </div>
@@ -1456,18 +1432,13 @@ async function deleteSubscription(id: string) {
               <button
                 onClick={() => setActiveTab('searches')}
                 className={clsx(
-                  'relative flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
+                  'relative min-w-0 flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-2xl font-semibold transition-all duration-300 overflow-hidden group',
                   'font-[\'Aptos\',_system-ui,_-apple-system,_sans-serif]',
                   activeTab === 'searches'
-                    ? 'bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 text-white shadow-2xl shadow-cyan-500/40 scale-105'
+                    ? 'bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 text-white shadow-xl shadow-cyan-500/30 ring-1 ring-white/20'
                     : 'bg-gradient-to-br from-slate-800/80 to-slate-700/80 text-slate-300 hover:text-white hover:from-slate-700/90 hover:to-slate-600/90 border border-slate-600/50'
                 )}
               >
-                {/* Shine effect on active tab */}
-                {activeTab === 'searches' && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer" />
-                )}
-                
                 <div className="relative flex items-center justify-center gap-3">
                   <div className={clsx(
                     "p-2 rounded-xl transition-all",
@@ -1481,8 +1452,10 @@ async function deleteSubscription(id: string) {
                     <div className="text-base font-bold tracking-tight">Saved Searches</div>
                     <div className={clsx(
                       "text-xs font-medium",
-                      activeTab === 'searches' ? 'text-cyan-100' : 'text-slate-400'
-                    )}>
+                      activeTab === 'searches' ? '' : 'text-slate-400'
+                    )}
+                    style={activeTab === 'searches' ? { color: 'rgba(255,255,255,0.96)' } : undefined}
+                    >
                       Run instantly from alerts
                     </div>
                   </div>
@@ -1522,7 +1495,7 @@ async function deleteSubscription(id: string) {
                 </p>
                 <button
                   onClick={() => setShowCreateSubscriptionModal(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:opacity-90 transition-all font-semibold"
+                  className="pg-btn pg-btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white transition-all font-semibold"
                 >
                   <Plus className="w-5 h-5" />
                   Create Alert
@@ -2211,7 +2184,7 @@ async function deleteSubscription(id: string) {
                 </p>
                 <button
                   onClick={() => setShowCreateSavedSearchModal(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:opacity-90 transition-all font-semibold"
+                  className="pg-btn pg-btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white transition-all font-semibold"
                 >
                   <Plus className="w-5 h-5" />
                   Create Saved Search
