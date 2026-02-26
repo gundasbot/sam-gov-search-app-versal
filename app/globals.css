@@ -406,6 +406,9 @@ select:focus-visible {
 .pg-uniform [class*="text-emerald-"],
 .pg-uniform [class*="text-orange-"],
 .pg-uniform [class*="text-amber-"],
+.pg-uniform [class*="text-teal-"],
+.pg-uniform [class*="text-sky-"],
+.pg-uniform [class*="text-indigo-"],
 .pg-uniform [class*="text-violet-"],
 .pg-uniform [class*="text-purple-"],
 .pg-uniform [class*="text-cyan-"],
@@ -416,6 +419,9 @@ select:focus-visible {
 .pg-uniform [class*="bg-emerald-"],
 .pg-uniform [class*="bg-orange-"],
 .pg-uniform [class*="bg-amber-"],
+.pg-uniform [class*="bg-teal-"],
+.pg-uniform [class*="bg-sky-"],
+.pg-uniform [class*="bg-indigo-"],
 .pg-uniform [class*="bg-violet-"],
 .pg-uniform [class*="bg-purple-"],
 .pg-uniform [class*="bg-cyan-"],
@@ -428,6 +434,9 @@ select:focus-visible {
 .pg-uniform [class*="border-emerald-"],
 .pg-uniform [class*="border-orange-"],
 .pg-uniform [class*="border-amber-"],
+.pg-uniform [class*="border-teal-"],
+.pg-uniform [class*="border-sky-"],
+.pg-uniform [class*="border-indigo-"],
 .pg-uniform [class*="border-violet-"],
 .pg-uniform [class*="border-purple-"],
 .pg-uniform [class*="border-cyan-"],
@@ -440,12 +449,18 @@ select:focus-visible {
 .pg-uniform [class*="bg-gradient-to-r"][class*="from-emerald-"],
 .pg-uniform [class*="bg-gradient-to-r"][class*="from-orange-"],
 .pg-uniform [class*="bg-gradient-to-r"][class*="from-amber-"],
+.pg-uniform [class*="bg-gradient-to-r"][class*="from-teal-"],
+.pg-uniform [class*="bg-gradient-to-r"][class*="from-sky-"],
+.pg-uniform [class*="bg-gradient-to-r"][class*="from-indigo-"],
 .pg-uniform [class*="bg-gradient-to-r"][class*="from-violet-"],
 .pg-uniform [class*="bg-gradient-to-r"][class*="from-purple-"],
 .pg-uniform [class*="bg-gradient-to-r"][class*="from-cyan-"],
 .pg-uniform [class*="bg-gradient-to-r"][class*="from-blue-"],
 .pg-uniform [class*="bg-gradient-to-br"][class*="from-emerald-"],
 .pg-uniform [class*="bg-gradient-to-br"][class*="from-orange-"],
+.pg-uniform [class*="bg-gradient-to-br"][class*="from-teal-"],
+.pg-uniform [class*="bg-gradient-to-br"][class*="from-sky-"],
+.pg-uniform [class*="bg-gradient-to-br"][class*="from-indigo-"],
 .pg-uniform [class*="bg-gradient-to-br"][class*="from-violet-"],
 .pg-uniform [class*="bg-gradient-to-br"][class*="from-cyan-"],
 .pg-uniform [class*="bg-gradient-to-br"][class*="from-blue-"] {
@@ -459,6 +474,9 @@ select:focus-visible {
 .pg-uniform [class*="from-purple-"],
 .pg-uniform [class*="from-orange-"],
 .pg-uniform [class*="from-amber-"],
+.pg-uniform [class*="from-teal-"],
+.pg-uniform [class*="from-sky-"],
+.pg-uniform [class*="from-indigo-"],
 .pg-uniform [class*="to-blue-"],
 .pg-uniform [class*="to-cyan-"],
 .pg-uniform [class*="to-emerald-"],
@@ -466,6 +484,9 @@ select:focus-visible {
 .pg-uniform [class*="to-purple-"],
 .pg-uniform [class*="to-orange-"],
 .pg-uniform [class*="to-amber-"],
+.pg-uniform [class*="to-teal-"],
+.pg-uniform [class*="to-sky-"],
+.pg-uniform [class*="to-indigo-"],
 .pg-uniform [class*="via-blue-"],
 .pg-uniform [class*="via-cyan-"],
 .pg-uniform [class*="via-emerald-"],
@@ -476,6 +497,45 @@ select:focus-visible {
   --tw-gradient-from: color-mix(in srgb, var(--color-primary) 22%, transparent) !important;
   --tw-gradient-to: color-mix(in srgb, var(--color-primary-hover) 20%, transparent) !important;
   --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--color-primary) 16%, transparent), var(--tw-gradient-to) !important;
+}
+
+.pg-uniform [class*="ring-emerald-"],
+.pg-uniform [class*="ring-orange-"],
+.pg-uniform [class*="ring-amber-"],
+.pg-uniform [class*="ring-teal-"],
+.pg-uniform [class*="ring-sky-"],
+.pg-uniform [class*="ring-indigo-"],
+.pg-uniform [class*="ring-cyan-"],
+.pg-uniform [class*="ring-blue-"],
+.pg-uniform [class*="ring-violet-"],
+.pg-uniform [class*="ring-purple-"] {
+  --tw-ring-color: color-mix(in srgb, var(--color-primary) 40%, transparent) !important;
+}
+
+.pg-uniform [class*="focus:ring-emerald-"],
+.pg-uniform [class*="focus:ring-orange-"],
+.pg-uniform [class*="focus:ring-amber-"],
+.pg-uniform [class*="focus:ring-teal-"],
+.pg-uniform [class*="focus:ring-sky-"],
+.pg-uniform [class*="focus:ring-indigo-"],
+.pg-uniform [class*="focus:ring-cyan-"],
+.pg-uniform [class*="focus:ring-blue-"],
+.pg-uniform [class*="focus:ring-violet-"],
+.pg-uniform [class*="focus:ring-purple-"] {
+  --tw-ring-color: color-mix(in srgb, var(--color-primary) 36%, transparent) !important;
+}
+
+.pg-uniform [class*="shadow-emerald-"],
+.pg-uniform [class*="shadow-orange-"],
+.pg-uniform [class*="shadow-amber-"],
+.pg-uniform [class*="shadow-teal-"],
+.pg-uniform [class*="shadow-sky-"],
+.pg-uniform [class*="shadow-indigo-"],
+.pg-uniform [class*="shadow-cyan-"],
+.pg-uniform [class*="shadow-blue-"],
+.pg-uniform [class*="shadow-violet-"],
+.pg-uniform [class*="shadow-purple-"] {
+  --tw-shadow-color: color-mix(in srgb, var(--color-primary) 36%, transparent) !important;
 }
 
 .pg-uniform .pg-btn-primary,

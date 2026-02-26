@@ -32,6 +32,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 const CALENDLY_URL = 'https://calendly.com/precisegovcon/30min'
+const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_gdpr_banner=1&hide_landing_page_details=1&hide_event_type_details=0&primary_color=3f7f61`
 const SUPPORT_EMAIL = 'support@precisegovcon.com'
 const SUPPORT_TEL = '804-404-4005'
 
@@ -928,16 +929,14 @@ export default function SupportPage() {
           </div>
 
           <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40 backdrop-blur-sm">
-            <div className="relative w-full" style={{ paddingBottom: '100%', minHeight: '660px' }}>
-              <iframe
-                src={CALENDLY_URL}
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                className="absolute inset-0"
-                title="Schedule a meeting"
-              />
-            </div>
+            <iframe
+              src={CALENDLY_EMBED_URL}
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              className="block w-full bg-white h-[72vh] min-h-[560px] max-h-[760px] sm:h-[76vh] sm:min-h-[640px] sm:max-h-[840px] lg:h-[80vh] lg:max-h-[920px]"
+              title="Schedule a meeting"
+            />
           </div>
         </section>
       </div>

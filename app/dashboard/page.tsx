@@ -1,14 +1,16 @@
 // app/dashboard/page.tsx
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import {
   Search, Bell, TrendingUp, Zap, BarChart3, Users, Brain, Calendar,
   FileText, DollarSign, Filter, Plus, ArrowRight, Loader2, CheckCircle,
   AlertCircle, X, Eye, Download, Share2, Settings, ChevronRight,
   Activity, Clock, Target, Award, Rocket, ArrowUpRight, ArrowDownRight,
-  MapPin, Building2, AlertTriangle, Lightbulb, RefreshCw, Grid3X3, List
+  MapPin, Building2, AlertTriangle, Lightbulb, RefreshCw, Grid3X3, List, Sparkles
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -64,9 +66,28 @@ function formatRelativeDate(dateStr: string): string {
   return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
+function formatRelative(dateStr: string): string {
+  if (!dateStr) return 'just now'
+  const parsed = new Date(dateStr)
+  if (Number.isNaN(parsed.getTime())) return dateStr
+  return formatRelativeDate(dateStr)
+}
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 function clsx(...c: Array<string | boolean | null | undefined>) {
   return c.filter(Boolean).join(' ')
+}
+
+function getWelcomeName(session: any): string {
+  const fullName = session?.user?.name?.trim?.() || ''
+  if (fullName) return fullName.split(' ')[0]
+
+  const email = session?.user?.email || ''
+  if (typeof email === 'string' && email.includes('@')) {
+    return email.split('@')[0]
+  }
+
+  return 'there'
 }
 
 export default function DashboardPage() {
@@ -398,6 +419,15 @@ function getMatchScoreColor(score: number) {
   const [selectedOpp, setSelectedOpp] = useState<OpportunityCard | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  const recentAlerts: Alert[] = dashData.activeSearches.slice(0, 4).map((search) => ({
+    id: search.id,
+    name: search.name,
+    frequency: 'REAL_TIME',
+    active: true,
+    matchesCount: search.newCount ?? 0,
+    lastRun: undefined,
+  }))
+
   useEffect(() => {
     void fetchDashboardData()
   }, [])
@@ -421,17 +451,6 @@ function getMatchScoreColor(score: number) {
   }
 
   return (
-    <div className="pg-theme-cleanup min-h-screen">
-      {/* Header - DYNAMIC NAME */}
-      <section className="sticky top-0 z-10 border-b border-[#d9e2ef] bg-white/90 backdrop-blur-xl">
-        <div className="pg-container py-6">
-          <div className="flex items-start sm:items-center justify-between gap-4">
-            <div className="animate-fadeInLeft min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 mb-1 truncate">Welcome back, {welcomeName}</h1>
-              <p className="text-sm text-slate-600">Here's what's happening with your contracts today</p>
-            </div>
-
-  return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ fontFamily: "'Outfit', 'Segoe UI', system-ui, sans-serif" }}>
       {/* Toast */}
       {toast && (
@@ -447,8 +466,7 @@ function getMatchScoreColor(score: number) {
             </div>
           </div>
         </div>
-      </section>
-
+      )}
       {/* Action Drawer */}
       {drawer && (
         <div className="fixed inset-0 z-50">
@@ -739,6 +757,13 @@ function getMatchScoreColor(score: number) {
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="mx-auto max-w-7xl px-4 sm:px-8 py-8">
@@ -784,60 +809,6 @@ function getMatchScoreColor(score: number) {
         </div>
 
       <div className="pg-container py-8">
-        {/* Quick Stats */}
-        <section className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
-              <button
-                type="button"
-                key={index}
-                onClick={stat.onClick}
-                className="group text-left relative animate-fadeInUp hover:-translate-y-1 transition-all duration-300 focus:outline-none"
-                style={{ animationDelay: `${index * 0.1}s` }}
-                aria-label={`${stat.label} - ${stat.hint ?? 'Open'}`}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl blur-xl`}></div>
-
-            {/* Quick Actions */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-8">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <Rocket className="h-6 w-6 text-cyan-400" /> Quick Actions
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { icon: Search, label: 'Search SAM.gov', desc: 'Find new opportunities', href: '/search', color: 'from-cyan-500 to-blue-600' },
-                  { icon: Brain, label: 'AI Assistant', desc: 'Get smart recommendations', action: () => setShowAiPanel(true), color: 'from-purple-500 to-pink-500' },
-                  { icon: BarChart3, label: 'View Analytics', desc: 'Track your metrics', href: '/analytics', color: 'from-emerald-500 to-teal-500' },
-                  { icon: Users, label: 'Team Workspace', desc: 'Collaborate with team', href: '/team', color: 'from-indigo-500 to-purple-500' },
-                ].map(({ icon: Icon, label, desc, href, action, color }) => (
-                  <button key={label}
-                    onClick={action}
-                    as={href ? 'a' : 'button'}
-                    href={href}
-                    className="text-left p-4 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-700/30 hover:bg-slate-700/50 transition-all group"
-                  >
-                    <div className={clsx('rounded-lg p-2 bg-gradient-to-br', color, 'w-fit mb-3')}>
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <span className="text-slate-400 text-xs sm:text-sm font-semibold">
-                      {stat.change}
-                    </span>
-                  </div>
-                  {stat.loading ? (
-                    <div className="h-8 w-20 bg-slate-700/60 rounded-lg animate-pulse mb-1" />
-                  ) : (
-                    <div className="text-2xl sm:text-3xl font-bold text-white mb-1">{stat.value}</div>
-                  )}
-                  <div className="text-xs sm:text-sm text-slate-400 flex items-center justify-between gap-2">
-                    <span>{stat.label}</span>
-                    <span className="text-xs text-slate-500 group-hover:text-slate-300 transition hidden sm:inline">{stat.hint}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
         {/* -- New user empty state: no data yet -- */}
         {!dashData.loading && dashData.activeSearchesCount === 0 && dashData.savedOppCount === 0 && (
           <div className="mb-8 rounded-2xl border border-dashed border-white/20 bg-slate-900/40 p-8 text-center animate-fadeInUp">
@@ -858,146 +829,40 @@ function getMatchScoreColor(score: number) {
                 </Link>
               </div>
             </div>
+          </div>
+        )}
 
         {/* -- Claude AI Analysis Panel -- */}
         {(dashData.savedOppCount > 0 || dashData.recentOpportunities.length > 0) && (
           <div className="mb-8 animate-fadeInUp" style={{ animationDelay: '0.25s' }}>
-            {claudeAnalysis ? (
-              <div className="rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-900/20 to-blue-900/20 p-5">
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg">
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-white font-bold">AI Analysis by Claude</div>
-                      <div className="text-xs text-slate-400">Based on your saved searches, opportunities, and goals</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={analyzeWithClaude} disabled={analysisLoading} className="text-xs text-purple-400 hover:text-purple-300 font-semibold transition">Refresh</button>
-                    <button onClick={() => setClaudeAnalysis(null)} className="p-1 rounded hover:bg-white/10 transition"><X className="w-4 h-4 text-slate-400" /></button>
-                  </div>
-                </div>
-                <p className="text-slate-200 text-sm mb-4">{claudeAnalysis.summary}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-xs font-bold text-purple-400 uppercase mb-2">Top Priorities</div>
-                    <div className="space-y-2">
-                      {claudeAnalysis.topOpportunities.map((op, i) => (
-                        <div key={i} className={`p-3 rounded-xl border text-sm ${op.urgency === 'high' ? 'bg-red-900/20 border-red-500/20' : op.urgency === 'medium' ? 'bg-amber-900/20 border-amber-500/20' : 'bg-slate-800/40 border-white/10'}`}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <AlertTriangle className={`w-3.5 h-3.5 flex-shrink-0 ${op.urgency === 'high' ? 'text-red-400' : op.urgency === 'medium' ? 'text-amber-400' : 'text-slate-400'}`} />
-                            <span className="text-white font-semibold text-xs truncate">{op.title}</span>
-                          </div>
-                          <p className="text-slate-400 text-xs ml-5">{op.reason}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-purple-400 uppercase mb-2">Recommendations</div>
-                    <div className="space-y-2">
-                      {claudeAnalysis.recommendations.map((rec, i) => (
-                        <div key={i} className="flex items-start gap-2 p-3 rounded-xl border border-white/10 bg-slate-800/40">
-                          <CheckCircle className="w-3.5 h-3.5 text-green-400 mt-0.5 flex-shrink-0" />
-                          <span className="text-slate-200 text-xs">{rec}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-white/10 bg-slate-900/40">
+            <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-purple-500/20 to-blue-600/20 border border-purple-500/20 rounded-lg">
                     <Sparkles className="w-4 h-4 text-purple-400" />
                   </div>
                   <div>
-                    <div className="text-white font-semibold text-sm">Get AI Analysis</div>
-                    <div className="text-slate-400 text-xs">Claude will analyze your pipeline and surface priorities</div>
+                    <div className="text-white font-semibold text-sm">
+                      {claudeAnalysis ? 'AI Analysis by Claude' : 'Get AI Analysis'}
+                    </div>
+                    <div className="text-slate-400 text-xs">
+                      Claude will analyze your pipeline and surface priorities
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setViewMode('grid')} className={clsx('p-2 rounded-lg transition-colors', viewMode === 'grid' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white')}>
-                    <Grid3X3 className="h-5 w-5" />
-                  </button>
-                  <button onClick={() => setViewMode('list')} className={clsx('p-2 rounded-lg transition-colors', viewMode === 'list' ? 'bg-slate-600 text-white' : 'text-slate-400 hover:text-white')}>
-                    <List className="h-5 w-5" />
+                  <button
+                    onClick={analyzeWithClaude}
+                    disabled={analysisLoading}
+                    className="text-xs text-purple-400 hover:text-purple-300 font-semibold transition"
+                  >
+                    {analysisLoading ? 'Analyzing…' : 'Refresh'}
                   </button>
                 </div>
               </div>
-
-              {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {opportunities.map((opp) => (
-                    <div key={opp.id} onClick={() => setSelectedOpp(opp)} className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 border border-slate-600 rounded-xl p-6 hover:border-cyan-500/50 transition-all cursor-pointer group hover:shadow-xl hover:shadow-cyan-500/10">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={clsx('text-xs font-bold px-2 py-1 rounded-lg', opp.type === 'RFP' && 'bg-orange-500/20 text-orange-300', opp.type === 'RFQ' && 'bg-blue-500/20 text-blue-300', opp.type === 'Solicitation' && 'bg-emerald-500/20 text-emerald-300', opp.type === 'Notice' && 'bg-slate-500/20 text-slate-300')}>{opp.type}</span>
-                            {opp.setAside && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-lg">{opp.setAside.split(' ')[0]}</span>}
-                          </div>
-                          <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 group-hover:text-cyan-300 transition-colors">{opp.title}</h3>
-                        </div>
-                        <div className={clsx('rounded-full p-2 bg-gradient-to-br', getMatchScoreColor(opp.matchScore), 'flex-shrink-0 text-white font-bold text-xs w-12 h-12 flex items-center justify-center')}>
-                          {opp.matchScore}%
-                        </div>
-                      </div>
-                      <p className="text-slate-400 text-xs mb-4 line-clamp-2">{opp.description}</p>
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500">Agency</span>
-                          <span className="text-slate-300 font-semibold">{opp.agency}</span>
-                        </div>
-                        {opp.value && <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500">Contract Value</span>
-                          <span className="text-emerald-400 font-semibold">{formatCurrency(opp.value)}</span>
-                        </div>}
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500">Due Date</span>
-                          <span className={clsx('font-semibold', new Date(opp.dueDate).getTime() - Date.now() < 7 * 86400000 ? 'text-orange-400' : 'text-slate-300')}>{formatRelative(opp.dueDate)}</span>
-                        </div>
-                      </div>
-                      <button className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity">
-                        View Details
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {opportunities.map((opp) => (
-                    <div key={opp.id} onClick={() => setSelectedOpp(opp)} className="bg-slate-700/40 border border-slate-600 rounded-xl p-4 hover:border-cyan-500/50 transition-all cursor-pointer hover:bg-slate-700/60 group">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-bold px-2 py-1 rounded-lg bg-orange-500/20 text-orange-300">{opp.type}</span>
-                            {opp.setAside && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-lg truncate">{opp.setAside}</span>}
-                            <span className="text-xs text-slate-400 ml-auto">{opp.agency}</span>
-                          </div>
-                          <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 group-hover:text-cyan-300 transition-colors">{opp.title}</h3>
-                          <p className="text-slate-400 text-xs line-clamp-1">{opp.description}</p>
-                        </div>
-                        <div className={clsx('rounded-full p-2 bg-gradient-to-br', getMatchScoreColor(opp.matchScore), 'flex-shrink-0 text-white font-bold text-xs w-12 h-12 flex items-center justify-center')}>
-                          {opp.matchScore}%
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-slate-400 mt-3 pt-3 border-t border-slate-600">
-                        <span>{opp.value ? formatCurrency(opp.value) : 'Value TBD'}</span>
-                        <span className={new Date(opp.dueDate).getTime() - Date.now() < 7 * 86400000 ? 'text-orange-400 font-semibold' : ''}>{formatRelative(opp.dueDate)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Link href="/opportunities" className="mt-6 flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white font-semibold transition-all">
-                View All Opportunities <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
           </div>
+        )}
 
           {/* Sidebar */}
           <div className="space-y-8 animate-in fade-in duration-500 delay-100">
