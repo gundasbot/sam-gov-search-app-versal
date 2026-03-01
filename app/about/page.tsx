@@ -57,7 +57,7 @@ export default function AboutPage() {
   const values = [
     {
       icon: Target,
-      title: 'Your Success is Our Mission',
+      title: 'About Us | Federal Contracting Tools | PreciseGovCon',
       description:
         'We empower businesses of all sizes to compete and win in the federal, state, and local marketplace — with clarity, speed, and confidence.',
       gradient: 'from-emerald-500 to-teal-600',
@@ -65,7 +65,7 @@ export default function AboutPage() {
     },
     {
       icon: Shield,
-      title: 'Trust & Transparency',
+      title: 'About Us | Federal Contracting Tools | PreciseGovCon',
       description:
         'We treat your search activity, saved opportunities, and business intel as sensitive data — built with privacy-first design and secure practices.',
       gradient: 'from-cyan-500 to-blue-600',
@@ -73,7 +73,7 @@ export default function AboutPage() {
     },
     {
       icon: Zap,
-      title: 'Innovation First',
+      title: 'About Us | Federal Contracting Tools | PreciseGovCon',
       description:
         'We use modern analytics and AI to help you spot the right opportunities faster, prioritize your pipeline, and act before deadlines.',
       gradient: 'from-teal-500 to-cyan-600',
@@ -81,7 +81,7 @@ export default function AboutPage() {
     },
     {
       icon: Heart,
-      title: 'Community Driven',
+      title: 'About Us | Federal Contracting Tools | PreciseGovCon',
       description:
         'Contractors at every stage deserve access to tools and guidance — from first bid to long-term growth.',
       gradient: 'from-emerald-500 to-cyan-600',
@@ -91,19 +91,19 @@ export default function AboutPage() {
 
   const whoWeServe = [
     {
-      title: 'Small Businesses',
+      title: 'About Us | Federal Contracting Tools | PreciseGovCon',
       desc: 'Startups and small contractors looking for their first government contracts',
       icon: Sparkles,
       gradient: 'from-cyan-500 to-blue-600',
     },
     {
-      title: 'Established Contractors',
+      title: 'About Us | Federal Contracting Tools | PreciseGovCon',
       desc: 'Companies with existing contracts seeking new opportunities',
       icon: Building2,
       gradient: 'from-emerald-500 to-teal-600',
     },
     {
-      title: 'Set-Aside Businesses',
+      title: 'About Us | Federal Contracting Tools | PreciseGovCon',
       desc: 'VOSB, SDVOSB, 8(a), HUBZone, WOSB, and minority-owned firms',
       icon: Award,
       gradient: 'from-teal-500 to-cyan-600',

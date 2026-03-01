@@ -65,7 +65,7 @@ export default function HelpStatusPage() {
   const helpTopics = [
     {
       icon: Search,
-      title: 'Getting Started',
+      title: 'Help & Documentation | PreciseGovCon',
       description: 'Learn how to search for opportunities and use filters effectively',
       topics: [
         'Creating your account',
@@ -76,7 +76,7 @@ export default function HelpStatusPage() {
     },
     {
       icon: FileText,
-      title: 'Understanding RFPs & Solicitations',
+      title: 'Help & Documentation | PreciseGovCon',
       description: 'Guide to reading and responding to government solicitations',
       topics: [
         'Reading solicitation documents',
@@ -87,7 +87,7 @@ export default function HelpStatusPage() {
     },
     {
       icon: Book,
-      title: 'Set-Aside Programs',
+      title: 'Help & Documentation | PreciseGovCon',
       description: 'Learn about VOSB, 8(a), HUBZone, WOSB and more',
       topics: [
         'Overview of set-aside types',
@@ -98,7 +98,7 @@ export default function HelpStatusPage() {
     },
     {
       icon: MessageCircle,
-      title: 'Account & Billing',
+      title: 'Help & Documentation | PreciseGovCon',
       description: 'Manage your account, subscription, and billing',
       topics: [
         'Updating account information',
