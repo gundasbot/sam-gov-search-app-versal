@@ -8,5 +8,10 @@ export const metadata: Metadata = {
 }
 
 export default function ServicesPage() {
-  return <ServicesClient />
+  return (
+    <>
+      <h1 className="sr-only">Federal Contracting Services</h1>
+      <ServicesClient />
+    </>
+  )
 }

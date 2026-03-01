@@ -3920,6 +3920,7 @@ ${filteredResults.map(opp => `  <opportunity>
   return (
     <SearchErrorBoundary>
       <main style={{ fontFamily: 'Aptos, sans-serif' }} className="h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col overflow-hidden">
+      <h1 className="sr-only">Search Federal Contracts</h1>
         {/* Confirmation Banner for Loaded Saved Search */}
         {showSavedSearchBanner && (
           <div className="fixed top-0 left-0 w-full z-50 flex justify-center">
