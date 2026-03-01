@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+/* ── Aptos font loading from Microsoft Fabric CDN ── */
+@font-face {
+  font-family: 'Aptos';
+  src: url('https://static2.sharepointonline.com/files/fabric/assets/fonts/aptos/aptos-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aptos';
+  src: url('https://static2.sharepointonline.com/files/fabric/assets/fonts/aptos/aptos-semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aptos';
+  src: url('https://static2.sharepointonline.com/files/fabric/assets/fonts/aptos/aptos-bold.woff2') format('woff2');
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── CSS Variables ── */
+:root {
+  --container-max-width: 1800px;
+  --container-padding: 1.5rem;
+  --container-padding-lg: 2.5rem;
+  --container-padding-xl: 3rem;
+}
+
+/* ── Base styles ── */
+html,
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: linear-gradient(135deg, #020617 0%, #172554 50%, #020617 100%);
+  color: #e5e7eb; /* slate-200 */
+  font-family: 'Aptos', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ── Consistent wide container ── */
+.container-wide {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+
+@media (min-width: 1024px) {
+  .container-wide {
+    padding-left: var(--container-padding-lg);
+    padding-right: var(--container-padding-lg);
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-wide {
+    padding-left: var(--container-padding-xl);
+    padding-right: var(--container-padding-xl);
+  }
+}
+
+/* ── Full-bleed sections ── */
+.full-width-section {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+/* ── Standard page content container ── */
+.page-container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    padding-left: var(--container-padding-lg);
+    padding-right: var(--container-padding-lg);
+    padding-top: 3rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-container {
+    padding-left: var(--container-padding-xl);
+    padding-right: var(--container-padding-xl);
+  }
+}
+
+/* ── Selection highlight ── */
+::selection {
+  background: rgba(34, 211, 238, 0.25);
+}
+
+a {
+  transition: color 0.2s ease;
+}
+
+/* ── Mobile safe-area insets ── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Animations ── */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.animate-fade-in  { animation: fade-in  0.25s ease-out; }
+
+/* ── Hide scrollbar ── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Mobile-specific fixes ── */
+@media (max-width: 640px) {
+  body, html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  footer {
+    flex-shrink: 0;
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  main {
+    width: 100%;
+    overflow-x: hidden;
+    flex: 1 0 auto;
+  }
+
+  .sticky {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .fixed.bottom-0 {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Prevent layout collapse ── */
+#__next,
+main {
+  min-height: 0;
+}
