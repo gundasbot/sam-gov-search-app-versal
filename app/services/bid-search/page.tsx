@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Shield, CheckCircle, FileCheck, AlertTriangle, Clock, Users, ArrowRight, Calendar, Star, Award, Target } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://precisegovcon.com/services/bid-search' },
+  alternates: { canonical: 'https://www.precisegovcon.com/services/bid-search' },
   title: 'Find Federal Contracts | PreciseGovCon',
   description: 'Stay compliant with federal contracting regulations. Annual renewals, FAR/DFARS compliance, and audit readiness.',
 }

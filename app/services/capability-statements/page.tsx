@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://precisegovcon.com/services/capability-statements' },
+  alternates: { canonical: 'https://www.precisegovcon.com/services/capability-statements' },
   title: 'Capability Statements',
   description: 'Modern, buyer-friendly one-page capability statements that win meetings and open doors. Tailored to your target agencies and NAICS codes.',
 }

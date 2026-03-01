@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://precisegovcon.com/services/sam-registration' },
+  alternates: { canonical: 'https://www.precisegovcon.com/services/sam-registration' },
   title: 'SAM.gov Registration Services | PreciseGovCon',
   description: 'Expert SAM.gov registration and renewal services. Get registered quickly and stay compliant with our complete support.',
 }

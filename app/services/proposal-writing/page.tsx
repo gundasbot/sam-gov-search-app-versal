@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://precisegovcon.com/services/proposal-writing' },
+  alternates: { canonical: 'https://www.precisegovcon.com/services/proposal-writing' },
   title: 'AI Proposal Writing Services | PreciseGovCon',
   description: 'Win more federal contracts with professional proposal writing. AI-powered drafting combined with expert review.',
 }

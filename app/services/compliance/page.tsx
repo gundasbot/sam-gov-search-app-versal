@@ -2,7 +2,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  alternates: { canonical: 'https://precisegovcon.com/services/compliance' },
+  alternates: { canonical: 'https://www.precisegovcon.com/services/compliance' },
   title: 'Federal Compliance Services | PreciseGovCon',
   description: 'Comprehensive compliance monitoring and reporting services for government contractors',
 }
