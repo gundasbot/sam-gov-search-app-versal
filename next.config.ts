@@ -24,17 +24,50 @@ const nextConfig: NextConfig = {
         hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
       },
+      // Allow service card images from external sources
+      {
+        protocol: 'https',
+        hostname: 'cdn.britannica.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.crowdspring.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dashthis.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'formspal.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'legiit-service.s3.amazonaws.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'contentfuel.co',
+        pathname: '/**',
+      },
     ],
   },
 
-  // Add rewrites for icon redirects to Precise GovCon logo
+  // Canonical auth route: keep /login
   async redirects() {
     return [
-      { source: '/signin',   destination: '/login',  permanent: true },
-      { source: '/sign-in',  destination: '/login',  permanent: true },
-      { source: '/register', destination: '/signup', permanent: true },
+      { source: '/signin',      destination: '/login',  permanent: true },
+      { source: '/sign-in',     destination: '/login',  permanent: true },
+      { source: '/auth/signin', destination: '/login',  permanent: true },
+      { source: '/register',    destination: '/signup', permanent: true },
     ]
   },
+
   async rewrites() {
     return [
       {
@@ -52,9 +85,44 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  // Skip static generation for specific paths
   async headers() {
     return [
+      // ── Security headers on all routes ───────────────────────────────────
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://js.stripe.com https://cdn.jsdelivr.net",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: https: blob:",
+              "connect-src 'self' https://api.sam.gov https://api.stripe.com https://accounts.google.com https://*.anthropic.com wss:",
+              "frame-src https://js.stripe.com https://hooks.stripe.com https://accounts.google.com",
+              "worker-src 'self' blob:",
+            ].join('; '),
+          },
+        ],
+      },
+      // ── Page-specific cache rules ─────────────────────────────────────────
       {
         source: '/changelog',
         headers: [

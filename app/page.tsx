@@ -1,15 +1,11 @@
 // app/page.tsx
 // PreciseGovCon — Landing Page
-// Routes: /signup  /signin  /pricing  /search  /services  /dashboard
-//         /services/sam-registration  /services/proposal-writing
-//         /services/bid-no-bid-review /services/set-aside-certifications
-//         /services/capability-statements  /insights  /support
-//         /privacy  /terms  /security  /accessibility
 
 'use client'
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 // ─── SVG Icon Components ───────────────────────────────────────────────────────
 const IconSearch = ({ size = 20 }: { size?: number }) => (
@@ -364,11 +360,13 @@ export default function LandingPage() {
       <section className="relative flex items-center overflow-hidden bg-white">
         {/* Background image — right half bleeds through */}
         <div className="absolute inset-0 z-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1920&h=1080&fit=crop"
             alt="Modern government building"
-            className="w-full h-full object-cover object-center"
+            fill
+            className="object-cover object-center"
+            priority
+            sizes="100vw"
           />
           <div
             className="absolute inset-0"
@@ -455,8 +453,7 @@ export default function LandingPage() {
 
               {/* Image */}
               <div className="relative h-[200px] overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://images.stockcake.com/public/d/a/6/da69b06f-80f5-4aa8-aa36-bc27b8de817c_large/professional-contract-signing-stockcake.jpg" alt="Federal contracting professionals reviewing a bid" className="w-full h-full object-cover" />
+                <Image src="/images/hero.jpg" alt="Federal contracting professionals reviewing a bid" fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
               </div>
 
               {/* Metrics row */}
@@ -540,8 +537,7 @@ export default function LandingPage() {
               >
                 {/* Image */}
                 <div className="relative h-[155px] overflow-hidden flex-shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={svc.image} alt={svc.title} className="svc-img w-full h-full object-cover transition-transform duration-500" />
+                  <Image src={svc.image} alt={svc.title} fill className="svc-img object-cover transition-transform duration-500" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(12,27,42,0.55) 0%, transparent 55%)' }} />
                   {svc.badge && (
                     <span
@@ -629,13 +625,14 @@ export default function LandingPage() {
       <section className="py-12 bg-white">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           {/* Image */}
-          <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div className="relative h-[360px]">
+            <Image
               src="https://contentfuel.co/wp-content/uploads/2020/01/taking-notes-and-working-on-laptop.jpg"
               alt="PreciseGovCon platform in use"
-              className="rounded-[16px] w-full object-cover"
-              style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.11)', height: '360px' }}
+              fill
+              className="rounded-[16px] object-cover"
+              style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.11)' }}
+              sizes="(max-width: 1024px) 100vw, 50vw"
             />
             <div
               className="absolute -bottom-5 -right-5 bg-white border border-[#E2E8F0] rounded-[10px] px-5 py-4 hidden sm:block"

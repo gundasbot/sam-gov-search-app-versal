@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { Shield, CheckCircle, FileCheck, AlertTriangle, Clock, Users, ArrowRight, Calendar, Star, Award, Target } from 'lucide-react'
 
 export const metadata = {
-  title: 'Federal Compliance Services | Precise GovCon',
+  alternates: { canonical: 'https://precisegovcon.com/services/bid-search' },
+  title: 'Find Federal Contracts | PreciseGovCon| Precise GovCon',
   description: 'Stay compliant with federal contracting regulations. Annual renewals, FAR/DFARS compliance, and audit readiness.',
 }
 
@@ -199,3 +200,4 @@ export default function CompliancePage() {
     </div>
   )
 }
+

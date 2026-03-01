@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'Bid/No-Bid Analysis Services | Precise GovCon',
+  alternates: { canonical: 'https://precisegovcon.com/services/bid-no-bid-review' },
+  title: 'Bid/No-Bid Analysis',
   description: 'Make smarter bid decisions with AI-powered analysis. Stop wasting resources on opportunities you can\'t win.',
 }
 
@@ -334,3 +335,5 @@ export default function BidNoBidPage() {
     </div>
   )
 }
+
+

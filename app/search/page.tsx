@@ -4466,33 +4466,46 @@ ${filteredResults.map(opp => `  <opportunity>
                   {/* Active Filters bar — always visible with Reset button */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-bold text-gray-900">Active Refine Filters</span>
-                        {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) ? (
-                          <span className="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
-                            {[agency, ...selectedSetAsides, naics, ...selectedStates, procurementType, classificationCode, solicitationNumber, opportunityStatus].filter(Boolean).length} active
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400 font-medium">None — showing all results</span>
-                        )}
+                      <div className="flex items-start flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-bold text-gray-900">Active Refine Filters</span>
+                          {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) ? (
+                            <span className="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                              {[agency, ...selectedSetAsides, naics, ...selectedStates, procurementType, classificationCode, solicitationNumber, opportunityStatus].filter(Boolean).length} active
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400 font-medium">None — showing all results</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 font-semibold">Adjust filters, then press Update Search to refresh the results.</p>
                       </div>
-                      <button
-                        onClick={() => {
-                          setAgency('')
-                          setSelectedSetAsides([])
-                          setNaics('')
-                          setSelectedStates([])
-                          setProcurementType('')
-                          setClassificationCode('')
-                          setSolicitationNumber('')
-                          setOpportunityStatus('')
-                          setAdvancedApplied(false)
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        Reset Refine Filters
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => void runSearch(false)}
+                          disabled={loading}
+                          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
+                        >
+                          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                          {loading ? 'Updating...' : 'Update Search'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAgency('')
+                            setSelectedSetAsides([])
+                            setNaics('')
+                            setSelectedStates([])
+                            setProcurementType('')
+                            setClassificationCode('')
+                            setSolicitationNumber('')
+                            setOpportunityStatus('')
+                            setAdvancedApplied(false)
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          Reset Refine Filters
+                        </button>
+                      </div>
                     </div>
                     {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
                       <div className="flex flex-wrap gap-2">

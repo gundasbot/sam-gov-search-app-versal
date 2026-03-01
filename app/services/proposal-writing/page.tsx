@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'AI-Powered Proposal Writing | Precise GovCon',
+  alternates: { canonical: 'https://precisegovcon.com/services/proposal-writing' },
+  title: 'AI Proposal Writing Services | PreciseGovCon| Precise GovCon',
   description: 'Win more federal contracts with professional proposal writing. AI-powered drafting combined with expert review.',
 }
 
@@ -145,7 +146,7 @@ export default function ProposalWritingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">
-              AI-Powered Proposal Writing Service
+              AI Proposal Writing Services | PreciseGovConService
             </h2>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
               Technology meets expertise for proposals that win
@@ -334,3 +335,4 @@ export default function ProposalWritingPage() {
     </div>
   )
 }
+

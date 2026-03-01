@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'SAM Registration Services | Precise GovCon',
+  alternates: { canonical: 'https://precisegovcon.com/services/sam-registration' },
+  title: 'SAM.gov Registration Services | PreciseGovCon| Precise GovCon',
   description: 'Expert SAM.gov registration and renewal services. Get registered quickly and stay compliant with our complete support.',
 }
 
@@ -249,7 +250,7 @@ export default function SAMRegistrationPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                quote: "Tried to do it myself for 3 weeks. Hired Precise GovCon and they had it done in 10 days. Worth every penny.",
+                quote: "Tried to do it myself for 3 weeks. HiredSAM.gov Registration Services | PreciseGovConand they had it done in 10 days. Worth every penny.",
                 author: "Sarah Chen",
                 title: "Owner, Chen Construction",
                 result: "Registered in 10 days",
@@ -334,3 +335,4 @@ export default function SAMRegistrationPage() {
     </div>
   )
 }
+

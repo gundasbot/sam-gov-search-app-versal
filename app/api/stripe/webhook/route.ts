@@ -307,7 +307,7 @@ async function sendSubscriptionEmail(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||
     process.env.APP_URL ||
-    'http://localhost:3000'
+    'https://www.precisegovcon.com'
 
   let subject = '', headline = '', intro = '', ctaLabel = '', ctaUrl = ''
   const niceNew = newPlan ? planTierToDisplay(newPlan) : undefined

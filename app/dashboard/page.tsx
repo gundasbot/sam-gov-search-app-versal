@@ -286,8 +286,8 @@ function DashboardContent() {
                 {[
                   { icon: Search, label: 'Search SAM.gov', desc: 'Find new opportunities', href: '/search', color: 'from-teal-500 to-cyan-600' },
                   { icon: Brain, label: 'AI Assistant', desc: 'Get smart recommendations', action: () => setShowAiPanel(true), color: 'from-purple-500 to-pink-500' },
-                  { icon: BarChart3, label: 'View Analytics', desc: 'Track your metrics', href: '/analytics', color: 'from-emerald-500 to-teal-500' },
-                  { icon: Users, label: 'Team Workspace', desc: 'Collaborate with team', href: '/team', color: 'from-blue-500 to-cyan-500' },
+                  { icon: BarChart3, label: 'View Analytics', desc: 'Track your metrics', href: '/dashboard', color: 'from-emerald-500 to-teal-500' },
+                  { icon: Users, label: 'Team Workspace', desc: 'Collaborate with team', href: '/account', color: 'from-blue-500 to-cyan-500' },
                 ].map(({ icon: Icon, label, desc, href, action, color }) => {
                   const content = (
                     <>
@@ -542,7 +542,7 @@ function DashboardContent() {
               </h3>
               <div className="space-y-3">
                 {recentAlerts.map((alert) => (
-                  <Link key={alert.id} href={`/alerts/${alert.id}`} className="block p-3 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 border border-slate-600 hover:border-slate-500 transition-all group">
+                  <Link key={alert.id} href="/alerts/manage-alerts" className="block p-3 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 border border-slate-600 hover:border-slate-500 transition-all group">
                     <div className="flex items-start justify-between mb-2">
                       <p className="font-semibold text-sm text-white group-hover:text-cyan-300 transition-colors line-clamp-2">{alert.name}</p>
                       <span className={clsx('text-xs font-bold px-2 py-0.5 rounded-full', alert.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-500/20 text-slate-400')}>{alert.active ? '● Active' : '⏸ Paused'}</span>
@@ -726,3 +726,4 @@ export default function DashboardPage() {
     </Suspense>
   )
 }
+

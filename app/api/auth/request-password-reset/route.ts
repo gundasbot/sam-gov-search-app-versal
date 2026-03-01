@@ -13,7 +13,7 @@ function sha256(s: string) {
 }
 
 function getAppUrl() {
-  return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "")
+  return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://www.precisegovcon.com").replace(/\/$/, "")
 }
 
 export async function POST(req: Request) {

@@ -1,7 +1,7 @@
 // lib/email/verification-template.ts
 
 export function getVerificationEmailTemplate(name: string, verificationUrl: string, planName: string): string {
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://www.precisegovcon.com';
   const logoUrl = process.env.NEXT_PUBLIC_LOGO_URL || `${baseUrl}/logo.png`;
   
   return `

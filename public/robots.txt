@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Allow Googlebot to crawl all Next.js JS/CSS assets
+User-agent: Googlebot
+Allow: /_next/static/
+Allow: /_next/chunks/
+Allow: /_next/
+
+Sitemap: https://precisegovcon.com/sitemap.xml
