@@ -47,8 +47,8 @@ function formatMMDDYYYY(d: Date) {
  * SAM.gov API REQUIRES both postedFrom and postedTo - they're mandatory fields.
  * SAM.gov also rejects ranges >= 365 days apart (must be <= 364 days).
  * 
- * Strategy: If no posted dates provided, default to the maximum allowed range (364 days)
- * to capture as many opportunities as possible (approximately 1 year back).
+ * Strategy: If no posted dates provided, default to a 6-month rolling window (182 days).
+ * Maximum allowed range remains 364 days per SAM.gov requirement.
  */
 function ensurePostedDateRange(params: URLSearchParams) {
   const rawFrom = params.get('postedFrom') || params.get('PostedFrom') || ''
@@ -81,18 +81,17 @@ function ensurePostedDateRange(params: URLSearchParams) {
     if (!isNaN(parsed.getTime())) {
       resolvedFrom = midnight(parsed)
     } else {
-      // unparseable — fall back to 364-day window
+      // unparseable — fall back to 182-day window (6 months)
       const fallback = midnight(new Date(resolvedTo))
-      fallback.setDate(fallback.getDate() - 364)
+      fallback.setDate(fallback.getDate() - 182)
       resolvedFrom = fallback
     }
   } else {
-    // 🆕 No postedFrom supplied — default to 364 DAYS back (SAM.gov maximum, ~1 year)
-    // This captures most relevant opportunities while respecting API limits
+    // No postedFrom supplied — default to 182 days back (~6 months rolling window)
     const fallback = midnight(new Date(resolvedTo))
-    fallback.setDate(fallback.getDate() - 364)
+    fallback.setDate(fallback.getDate() - 182)
     resolvedFrom = fallback
-    console.log('📅 No posted date filter - using max 364-day range (SAM.gov limit)')
+    console.log('📅 No posted date filter - using 6-month rolling window (182 days)')
   }
 
   // ✅ Validate date range is <= 364 days (SAM.gov requirement)

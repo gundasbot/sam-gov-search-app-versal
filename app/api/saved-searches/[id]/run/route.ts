@@ -5,10 +5,12 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { generateAlertEmailHTML, generateAlertEmailText } from '@/lib/email-templates'
+import { generateExcel, generateTXT } from '@/lib/export'
 
 import { randomBytes } from 'crypto'
 const resend = new Resend(process.env.RESEND_API_KEY)
-const MAX_DATE_RANGE_DAYS = 364
+const MAX_DATE_RANGE_DAYS = 364      // SAM.gov hard limit
+const DEFAULT_DATE_RANGE_DAYS = 182  // 6-month rolling default when no dates saved
 
 /**
  * Extract first name from various user name formats
@@ -91,13 +93,13 @@ function validateAndAdjustDateRange(params: URLSearchParams): URLSearchParams {
     postedTo = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
 
     const pastDate = new Date(today)
-    pastDate.setDate(pastDate.getDate() - MAX_DATE_RANGE_DAYS)
+    pastDate.setDate(pastDate.getDate() - DEFAULT_DATE_RANGE_DAYS)
     postedFrom = pastDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
 
     adjustedParams.set('postedFrom', postedFrom)
     adjustedParams.set('postedTo', postedTo)
 
-    console.log('📅 Added mandatory date range:', { postedFrom, postedTo })
+    console.log('📅 Added mandatory date range (6-month default):', { postedFrom, postedTo })
     return adjustedParams
   }
 
@@ -120,7 +122,7 @@ function validateAndAdjustDateRange(params: URLSearchParams): URLSearchParams {
     postedTo = today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
 
     const pastDate = new Date(today)
-    pastDate.setDate(pastDate.getDate() - MAX_DATE_RANGE_DAYS)
+    pastDate.setDate(pastDate.getDate() - DEFAULT_DATE_RANGE_DAYS)
     postedFrom = pastDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
 
     adjustedParams.set('postedFrom', postedFrom)
@@ -195,6 +197,18 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
   try {
     const { id } = await ctx.params
     savedSearchId = id
+
+    let overrideRecipients: string[] | undefined
+    let overrideFormat: string | undefined
+    try {
+      const body = await _request.json()
+      if (Array.isArray(body?.overrideRecipients)) {
+        overrideRecipients = body.overrideRecipients.filter((e: any) => typeof e === 'string' && e.includes('@'))
+      }
+      if (typeof body?.overrideFormat === 'string') {
+        overrideFormat = body.overrideFormat.toUpperCase()
+      }
+    } catch { /* body is optional */ }
 
     console.log('🔍 Running search with ID:', id)
 
@@ -286,19 +300,22 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
 
     console.log('✅ SAM.gov responded with', opportunities.length, 'opportunities')
 
-    const shouldSendEmail = savedSearch.subscription_enabled || savedSearch.email_notification
-    const hasRecipients = savedSearch.recipients && savedSearch.recipients.trim().length > 0
+    const isOverrideShare = overrideRecipients && overrideRecipients.length > 0
+    const shouldSendEmail = isOverrideShare || savedSearch.subscription_enabled || savedSearch.email_notification
+    const hasRecipients = isOverrideShare || (savedSearch.recipients && savedSearch.recipients.trim().length > 0)
     const shouldSend = shouldSendEmail && (hasRecipients || savedSearch.users?.email)
 
     let emailsSentCount = 0
     let resultsSnapshot: string[] = []
-    
+
     if (shouldSend) {
       const firstName = extractFirstName(savedSearch.users)
       console.log('👤 Extracted first name:', firstName || 'none')
 
       let recipients: string[] = []
-      if (hasRecipients) {
+      if (isOverrideShare) {
+        recipients = overrideRecipients!
+      } else if (hasRecipients) {
         recipients = savedSearch.recipients!.split(',').map((e: string) => e.trim()).filter((e: string) => e.length > 0)
       } else if (savedSearch.users?.email) {
         recipients = [savedSearch.users.email]
@@ -338,20 +355,32 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
           })
 
           const attachments: any[] = []
-          const fmt = savedSearch.export_format?.toUpperCase()
+          const fmt = (overrideFormat ?? savedSearch.export_format)?.toUpperCase()
+          const safeName = savedSearch.name.replace(/[^a-z0-9]/gi, '_')
 
-          if ((fmt === 'CSV') && opportunities.length > 0) {
-            const csvContent = generateCSV(opportunities)
-            attachments.push({
-              filename: `${savedSearch.name.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.csv`,
-              content: Buffer.from(csvContent).toString('base64'),
-            })
-          } else if ((fmt === 'JSON') && opportunities.length > 0) {
-            const jsonContent = JSON.stringify(opportunities, null, 2)
-            attachments.push({
-              filename: `${savedSearch.name.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`,
-              content: Buffer.from(jsonContent).toString('base64'),
-            })
+          if (fmt && fmt !== 'NONE' && opportunities.length > 0) {
+            if (fmt === 'CSV') {
+              attachments.push({
+                filename: `${safeName}_${Date.now()}.csv`,
+                content: Buffer.from(generateCSV(opportunities)).toString('base64'),
+              })
+            } else if (fmt === 'EXCEL' || fmt === 'EXCEL_COMPACT') {
+              const xlsBuf = await generateExcel(opportunities)
+              attachments.push({
+                filename: `${safeName}_${Date.now()}.xlsx`,
+                content: xlsBuf,
+              })
+            } else if (fmt === 'TXT') {
+              attachments.push({
+                filename: `${safeName}_${Date.now()}.txt`,
+                content: Buffer.from(generateTXT(opportunities)).toString('base64'),
+              })
+            } else if (fmt === 'JSON') {
+              attachments.push({
+                filename: `${safeName}_${Date.now()}.json`,
+                content: Buffer.from(JSON.stringify(opportunities, null, 2)).toString('base64'),
+              })
+            }
           }
 
           for (const recipient of recipients) {

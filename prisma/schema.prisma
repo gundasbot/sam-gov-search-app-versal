@@ -178,6 +178,9 @@ model recipient_contacts {
   user_id      String
   email        String
   name         String?
+  first_name   String?
+  last_name    String?
+  phone        String?
   organization String?
   notes        String?
   use_count    Int       @default(0)

@@ -7,6 +7,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendAlertEmail } from '@/lib/email'
+import { generateEnhancedCSV } from '@/lib/csv-export-enhanced'
+import { generateExcel, generateExcelBinary, generateTXT, generateXLSB } from '@/lib/export'
 import { randomBytes } from 'crypto'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,8 +46,53 @@ function parseRecipients(raw: string | null): string[] {
 
 // ─── POST ─────────────────────────────────────────────────────────────────────
 
+async function buildAttachment(
+  alertName: string,
+  format: string | undefined,
+  opportunities: any[],
+  params: { keyword: string; naics: string; agency: string; setAside: string },
+): Promise<{ file_name: string; content: string | Buffer } | undefined> {
+  const fmt = (format || 'CSV').toUpperCase().replace(/\s+/g, '_')
+  if (fmt === 'NONE') return undefined
+
+  const dateStr = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }).replace(/\//g, '-')
+  const safeName = alertName.replace(/[^a-zA-Z0-9 _-]/g, '').trim()
+
+  switch (fmt) {
+    case 'EXCEL':
+      return { file_name: `${safeName} ${dateStr}.xlsx`, content: await generateExcel(opportunities) }
+
+    case 'EXCEL_COMPACT':
+    case 'EXCEL_(COMPACT)':
+      return { file_name: `${safeName} ${dateStr}.xlsx`, content: await generateExcelBinary(opportunities) }
+
+    case 'XLSB':
+      return { file_name: `${safeName} ${dateStr}.xlsb`, content: generateXLSB(opportunities) }
+
+    case 'TXT':
+      return { file_name: `${safeName} ${dateStr}.txt`, content: generateTXT(opportunities) }
+
+    default: // CSV
+      return {
+        file_name: `${safeName} ${dateStr}.csv`,
+        content: generateEnhancedCSV({
+          searchName: alertName,
+          result_count: opportunities.length,
+          search_params: {
+            keywords: params.keyword || undefined,
+            naics: params.naics || undefined,
+            agency: params.agency || undefined,
+            setAside: params.setAside || undefined,
+          },
+          opportunities,
+          runDate: new Date(),
+        }),
+      }
+  }
+}
+
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -67,6 +114,80 @@ export async function POST(
 
     if (!alert) {
       return NextResponse.json({ error: 'Alert not found' }, { status: 404 })
+    }
+
+    // Parse optional body — sendEmailNow, runId, formats[], overrideRecipients[]
+    let sendEmailNow = true
+    let runId: string | undefined
+    let requestFormats: string[] | null = null
+    let overrideRecipients: string[] = []
+    try {
+      const body = await req.json()
+      if (body?.sendEmailNow === false) sendEmailNow = false
+      if (typeof body?.runId === 'string' && body.runId) runId = body.runId
+      if (Array.isArray(body?.formats) && body.formats.length > 0) {
+        requestFormats = body.formats.map((f: any) => String(f))
+      }
+      if (Array.isArray(body?.overrideRecipients)) {
+        overrideRecipients = body.overrideRecipients.map((e: any) => String(e)).filter((e: string) => e.includes('@'))
+      }
+    } catch { /* body is optional */ }
+
+    // ── runId fast-path: use stored results to send email only ───────────────
+    if (runId && sendEmailNow) {
+      const storedRun = await prisma.subscription_runs.findFirst({
+        where: { id: runId, subscription_id: id },
+        select: { results_snapshot: true, result_count: true },
+      })
+      const storedOpps: any[] = Array.isArray(storedRun?.results_snapshot) ? storedRun!.results_snapshot as any[] : []
+      const storedCount = storedRun?.result_count ?? storedOpps.length
+
+      let emailSent = false
+      if (storedOpps.length > 0 || alert.send_empty_results) {
+        const storedEmails = parseRecipients(alert.recipients_list || alert.recipients)
+        const recipientEmails = Array.from(new Set([...storedEmails, ...overrideRecipients]))
+        if (recipientEmails.length > 0) {
+          const p2 = parseJson(alert.params)
+          const kw2 = p2.keyword || p2.keywords || p2.title || ''
+          const nc2 = p2.ncode || p2.naics || ''
+          const ag2 = p2.deptname || p2.agency || p2.organizationName || ''
+          const sa2 = Array.isArray(p2.setAsides) ? p2.setAsides.join(',') : (p2.typeOfSetAside || p2.setAside || '')
+          const searchCriteria: Array<{ label: string; value: string }> = []
+          if (kw2) searchCriteria.push({ label: 'Keywords', value: kw2 })
+          if (nc2) searchCriteria.push({ label: 'NAICS', value: nc2 })
+          if (ag2) searchCriteria.push({ label: 'Agency', value: ag2 })
+          if (sa2) searchCriteria.push({ label: 'Set-Aside', value: sa2 })
+          const topResults = storedOpps.slice(0, 10).map((opp: any) => ({
+            title: opp.title || 'Untitled Opportunity',
+            agency: opp.department || opp.organizationName || opp.agency || 'Unknown',
+            solicitationNumber: opp.solicitationNumber || opp.noticeId || '',
+            naics: opp.naicsCode || (opp.naics?.[0]) || '',
+            responseDeadline: opp.responseDeadLine || opp.archiveDate || '',
+            url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || ''}`,
+          }))
+          const formatsToUse: string[] = requestFormats ?? (p2.format ? [p2.format] : ['CSV'])
+          const builtAttachments = (
+            await Promise.all(
+              formatsToUse.map(fmt => buildAttachment(alert.name, fmt, storedOpps, { keyword: kw2, naics: nc2, agency: ag2, setAside: sa2 }))
+            )
+          ).filter((a): a is NonNullable<typeof a> => a != null)
+          try {
+            await sendAlertEmail({
+              to: recipientEmails,
+              searchName: alert.name,
+              totalResults: storedCount,
+              searchCriteria,
+              topResults,
+              attachments: builtAttachments.length > 0 ? builtAttachments : undefined,
+            })
+            emailSent = true
+            console.log('✅ Email sent from stored results')
+          } catch (emailErr) {
+            console.error('❌ Email failed (non-fatal):', emailErr)
+          }
+        }
+      }
+      return NextResponse.json({ ok: true, alertId: alert.id, alertName: alert.name, runId, status: 'SUCCESS', resultCount: storedCount, emailSent })
     }
 
     console.log('🔔 Running alert:', alert.name)
@@ -117,10 +238,21 @@ export async function POST(
     }
 
     // Date filters
-    const postedFrom = p.postedFrom || p.posted_after || ''
-    const postedTo = p.postedTo || p.rdlto || p.posted_before || ''
-    if (postedFrom) samUrl.searchParams.set('postedFrom', toSamGovDate(postedFrom))
-    if (postedTo) samUrl.searchParams.set('postedTo', toSamGovDate(postedTo))
+    const requestedPostedFrom = p.postedFrom || p.posted_after || ''
+    const requestedPostedTo = p.postedTo || p.rdlto || p.posted_before || ''
+    const fallbackWindowDays = Number(process.env.SAM_ALERT_DEFAULT_WINDOW_DAYS || 182) || 182
+    const fallbackToDate = new Date()
+    const fallbackFromDate = new Date(fallbackToDate)
+    fallbackFromDate.setDate(fallbackFromDate.getDate() - fallbackWindowDays)
+    const normalizedPostedFrom = requestedPostedFrom
+      ? toSamGovDate(requestedPostedFrom)
+      : toSamGovDate(fallbackFromDate)
+    const normalizedPostedTo = requestedPostedTo
+      ? toSamGovDate(requestedPostedTo)
+      : toSamGovDate(fallbackToDate)
+
+    samUrl.searchParams.set('postedFrom', normalizedPostedFrom)
+    samUrl.searchParams.set('postedTo', normalizedPostedTo)
 
     // Limit & API key
     samUrl.searchParams.set('limit', String(alert.max_results || 100))
@@ -165,9 +297,10 @@ export async function POST(
         new_results_count: resultCount,
         search_params: {
           keyword, naics, ccode, agency, setAside, state, ptype,
-          postedFrom, postedTo,
+          postedFrom: normalizedPostedFrom,
+          postedTo: normalizedPostedTo,
         },
-        results_snapshot: opportunities.slice(0, 50),
+        results_snapshot: opportunities,
         error_message: errorMessage,
       },
     })
@@ -183,13 +316,15 @@ export async function POST(
       },
     })
 
-    // ── Send email notification ──────────────────────────────────────────────
+    // ── Send email notification (only when sendEmailNow = true) ──────────────
     let emailSent = false
-    const shouldSendEmail = resultCount > 0 || alert.send_empty_results
+    const shouldSendEmail = sendEmailNow && (resultCount > 0 || alert.send_empty_results)
 
     if (alert.email_notification && shouldSendEmail) {
       // Resolve recipient emails from recipients_list (structured) or recipients (plain string)
-      const recipientEmails = parseRecipients(alert.recipients_list || alert.recipients)
+      const storedEmails = parseRecipients(alert.recipients_list || alert.recipients)
+      // Merge stored + any one-time override emails (deduplicated)
+      const recipientEmails = Array.from(new Set([...storedEmails, ...overrideRecipients]))
 
       if (recipientEmails.length > 0) {
         try {
@@ -214,12 +349,27 @@ export async function POST(
             url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || ''}`,
           }))
 
+          // Determine which formats to generate attachments for
+          // Use requestFormats from body if provided, else fall back to stored format
+          const formatsToUse: string[] = requestFormats ?? (p.format ? [p.format] : ['CSV'])
+          const attachmentParams = { keyword, naics, agency, setAside }
+
+          // Build all requested attachments (skip NONE entries)
+          const builtAttachments = (
+            await Promise.all(
+              formatsToUse.map(fmt => buildAttachment(alert.name, fmt, opportunities, attachmentParams))
+            )
+          ).filter((a): a is NonNullable<typeof a> => a != null)
+
+          console.log(`📎 Attachments: ${builtAttachments.map(a => a.file_name).join(', ') || 'none'}`)
+
           await sendAlertEmail({
             to: recipientEmails,
             searchName: alert.name,
             totalResults: resultCount,
             searchCriteria,
             topResults,
+            attachments: builtAttachments.length > 0 ? builtAttachments : undefined,
           })
 
           emailSent = true
@@ -237,6 +387,7 @@ export async function POST(
     return NextResponse.json({
       ok: true,
       alertId: alert.id,
+      alertName: alert.name,
       runId: runRecord.id,
       status: errorMessage ? 'ERROR' : 'SUCCESS',
       resultCount,

@@ -183,7 +183,7 @@ export default function Header() {
                 onMouseEnter={() => setTickerPaused(true)}
                 onMouseLeave={() => setTickerPaused(false)}
               >
-                <div className={`flex gap-6 sm:gap-8 ${tickerPaused ? '' : 'animate-scroll'}`}>
+                <div className="flex gap-6 sm:gap-8 animate-scroll" style={{ animationPlayState: tickerPaused ? 'paused' : 'running' }}>
                   {[...tickerData.opportunities, ...tickerData.opportunities].map((item, idx) => {
                     const url = normalizeExternalUrl(item.samUrl) || getSamGovUrl(item.solicitationNumber)
                     return (
