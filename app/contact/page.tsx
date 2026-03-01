@@ -204,6 +204,7 @@ function ContactPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4">
+      <h1 className="sr-only">Contact PreciseGovCon</h1>
       <div className="max-w-7xl mx-auto">
         {/* Dynamic Header based on service */}
         <div className="mb-10">
