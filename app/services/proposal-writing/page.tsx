@@ -9,7 +9,7 @@ import {
 
 export const metadata = {
   alternates: { canonical: 'https://precisegovcon.com/services/proposal-writing' },
-  title: 'AI Proposal Writing Services | PreciseGovCon| Precise GovCon',
+  title: 'AI Proposal Writing Services | PreciseGovCon',
   description: 'Win more federal contracts with professional proposal writing. AI-powered drafting combined with expert review.',
 }
 
@@ -127,9 +127,9 @@ export default function ProposalWritingPage() {
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { emoji: '📝', title: 'Generic Content', desc: 'Cookie-cutter responses that don\'t address the specific RFP requirements.' },
-              { emoji: '🎯', title: 'Missing Requirements', desc: 'Evaluators quickly reject proposals that don\'t follow instructions or miss key sections.' },
-              { emoji: '💤', title: 'Boring Writing', desc: 'Technical jargon and dense paragraphs that evaluators skip over.' },
+              { emoji: '📝', title: 'AI Proposal Writing Services | PreciseGovCon', desc: 'Cookie-cutter responses that don\'t address the specific RFP requirements.' },
+              { emoji: '🎯', title: 'AI Proposal Writing Services | PreciseGovCon', desc: 'Evaluators quickly reject proposals that don\'t follow instructions or miss key sections.' },
+              { emoji: '💤', title: 'AI Proposal Writing Services | PreciseGovCon', desc: 'Technical jargon and dense paragraphs that evaluators skip over.' },
             ].map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl p-5 border-2 border-amber-200 shadow-md">
                 <div className="text-4xl font-black text-amber-600 mb-2">{item.emoji}</div>
@@ -157,32 +157,32 @@ export default function ProposalWritingPage() {
             {[
               {
                 icon: Sparkles,
-                title: 'AI-Powered Drafting',
+                title: 'AI Proposal Writing Services | PreciseGovCon',
                 description: 'Our AI analyzes the RFP and generates a compliant first draft in hours, not days.',
               },
               {
                 icon: Users,
-                title: 'Expert Review & Editing',
+                title: 'AI Proposal Writing Services | PreciseGovCon',
                 description: 'Federal contracting experts review and refine the AI draft for quality and compliance.',
               },
               {
                 icon: Target,
-                title: 'Tailored Responses',
+                title: 'AI Proposal Writing Services | PreciseGovCon',
                 description: 'Every response addresses the specific evaluation criteria and demonstrates your unique value.',
               },
               {
                 icon: FileText,
-                title: 'Compliance Check',
+                title: 'AI Proposal Writing Services | PreciseGovCon',
                 description: 'We ensure your proposal meets all RFP requirements, formatting, and page limits.',
               },
               {
                 icon: BarChart3,
-                title: 'Competitive Analysis',
+                title: 'AI Proposal Writing Services | PreciseGovCon',
                 description: 'We research the competition and position your proposal to stand out.',
               },
               {
                 icon: Clock,
-                title: 'Fast Turnaround',
+                title: 'AI Proposal Writing Services | PreciseGovCon',
                 description: 'AI speeds up the process so you can submit winning proposals on tight deadlines.',
               },
             ].map((item, idx) => (
@@ -210,10 +210,10 @@ export default function ProposalWritingPage() {
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: '1', title: 'RFP Analysis', desc: 'We review the solicitation and identify all requirements', icon: FileText },
-              { step: '2', title: 'AI Drafting', desc: 'Our AI generates a compliant first draft in hours', icon: Sparkles },
-              { step: '3', title: 'Expert Refinement', desc: 'Federal contracting experts review and enhance the draft', icon: Users },
-              { step: '4', title: 'Final Review', desc: 'We do a final compliance check and deliver your proposal', icon: CheckCircle },
+              { step: '1', title: 'AI Proposal Writing Services | PreciseGovCon', desc: 'We review the solicitation and identify all requirements', icon: FileText },
+              { step: '2', title: 'AI Proposal Writing Services | PreciseGovCon', desc: 'Our AI generates a compliant first draft in hours', icon: Sparkles },
+              { step: '3', title: 'AI Proposal Writing Services | PreciseGovCon', desc: 'Federal contracting experts review and enhance the draft', icon: Users },
+              { step: '4', title: 'AI Proposal Writing Services | PreciseGovCon', desc: 'We do a final compliance check and deliver your proposal', icon: CheckCircle },
             ].map((item, idx) => (
               <div key={idx} className="relative">
                 <div className="bg-white rounded-2xl p-6 border-2 border-orange-200 shadow-lg text-center">
@@ -252,19 +252,19 @@ export default function ProposalWritingPage() {
               {
                 quote: "The AI draft saved us 40 hours of work. The expert review made it winning quality. We got the contract.",
                 author: "Robert Martinez",
-                title: "CEO, Martinez Defense Systems",
+                title: "AI Proposal Writing Services | PreciseGovCon",
                 result: "$2.4M contract won",
               },
               {
                 quote: "Best proposal we've ever submitted. The team understood our differentiators and positioned us perfectly.",
                 author: "Lisa Thompson",
-                title: "BD Director, Thompson Consulting",
+                title: "AI Proposal Writing Services | PreciseGovCon",
                 result: "Beat 12 competitors",
               },
               {
                 quote: "Fast, professional, and they made us look like the obvious choice. Worth every dollar.",
                 author: "Kevin Park",
-                title: "Owner, Park Engineering",
+                title: "AI Proposal Writing Services | PreciseGovCon",
                 result: "First prime contract",
               },
             ].map((item, idx) => (
