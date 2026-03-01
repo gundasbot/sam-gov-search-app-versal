@@ -1,13 +1,27 @@
-// app/pricing/page.tsx
+// app/pricing/PricingClient.tsx
 'use client'
 
-import Link from 'next/link'
+import { useState } from 'react'
 import { Check, ArrowRight, Shield, Zap, Users, Star } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 
-const plans = [
+type PlanPricing = {
+  monthly: number
+  annual: number
+}
+
+type Plan = {
+  id: string
+  name: string
+  icon: typeof Shield
+  price: PlanPricing
+  bestFor: string
+  features: string[]
+  highlight: boolean
+}
+
+const plans: Plan[] = [
   {
     id: 'basic',
     name: 'Basic',
@@ -72,7 +86,7 @@ const testimonials = [
   },
 ]
 
-export default function PricingPage() {
+export default function PricingClient() {
   const [annual, setAnnual] = useState(false)
   const { status } = useSession()
   const router = useRouter()
@@ -83,24 +97,24 @@ export default function PricingPage() {
       router.push(`/signup?plan=${planId.toUpperCase()}`)
       return
     }
-    
+
     setLoading(planId)
     try {
-      const priceMap: any = {
+      const priceMap: Record<string, { monthly: string; annual: string }> = {
         basic: { monthly: 'price_1SrWKwL0qhATKGOJo4ginD8u', annual: 'price_1SrWE8L0qhATKGOJovDYe1T4' },
         professional: { monthly: 'price_1SpfzWL0qhATKGOJGIiLnkhU', annual: 'price_1Spg08L0qhATKGOJlgQeSrUW' },
         enterprise: { monthly: 'price_1Spg0aL0qhATKGOJZcXETI7D', annual: 'price_1Spg1CL0qhATKGOJG9iRaIhq' },
       }
-      
+
       const priceId = priceMap[planId]?.[annual ? 'annual' : 'monthly']
       if (!priceId) throw new Error('Invalid plan')
-      
+
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priceId, tier: planId, billing: annual ? 'annual' : 'monthly' }),
       })
-      
+
       if (!res.ok) throw new Error('Checkout failed')
       const { url } = await res.json()
       if (url) window.location.href = url
@@ -113,11 +127,16 @@ export default function PricingPage() {
   }
 
   return (
-    <div style={{ fontFamily: "'Aptos', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 25%, #1f2937 50%, #111827 75%, #0f172a 100%)' }} className="min-h-screen">
-      
+    <div
+      className="min-h-screen"
+      style={{
+        fontFamily: "'Aptos', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+        background:
+          'linear-gradient(135deg, #1e3a8a 0%, #0f172a 25%, #1f2937 50%, #111827 75%, #0f172a 100%)',
+      }}
+    >
       <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-8 py-6">
-        
-        {/* HEADER */}
+        {/* Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full border border-slate-700 bg-slate-800/50 mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -129,7 +148,7 @@ export default function PricingPage() {
             Win more federal contracts without overpaying. Cancel anytime.
           </p>
 
-          {/* TOGGLE */}
+          {/* Billing toggle */}
           <div className="inline-flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg p-1">
             <button
               onClick={() => setAnnual(false)}
@@ -146,12 +165,16 @@ export default function PricingPage() {
               }`}
             >
               Annual
-              {annual && <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-1.5 py-0.5 rounded">SAVE 20%</span>}
+              {annual && (
+                <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-1.5 py-0.5 rounded">
+                  SAVE 20%
+                </span>
+              )}
             </button>
           </div>
         </div>
 
-        {/* PRICING CARDS */}
+        {/* Pricing cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
           {plans.map((plan) => {
             const Icon = plan.icon
@@ -223,7 +246,7 @@ export default function PricingPage() {
           })}
         </div>
 
-        {/* TRUST SIGNALS */}
+        {/* Trust signals */}
         <div className="flex flex-wrap justify-center gap-6 text-center mb-5">
           {['SAM.gov Data', 'No Credit Card', 'Cancel Anytime', 'SOC 2 Compliant'].map((item) => (
             <div key={item} className="flex items-center gap-1.5">
@@ -233,7 +256,7 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* TESTIMONIALS */}
+        {/* Testimonials */}
         <div>
           <div className="text-center mb-4">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Trusted by contractors</p>
@@ -241,11 +264,11 @@ export default function PricingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {testimonials.map((t, i) => (
-              <div key={i} className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
+            {testimonials.map((t) => (
+              <div key={t.name} className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
                 <div className="flex gap-0.5 mb-2">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-orange-500 text-orange-500" />
+                  {[...Array(5)].map((_, index) => (
+                    <Star key={index} className="w-4 h-4 fill-orange-500 text-orange-500" />
                   ))}
                 </div>
                 <p className="text-slate-300 mb-2 text-sm">"{t.quote}"</p>
@@ -255,7 +278,6 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   )
