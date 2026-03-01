@@ -60,6 +60,7 @@ const nextConfig: NextConfig = {
   // Canonical auth route: keep /login
   async redirects() {
     return [
+
       { source: '/signin',      destination: '/login',  permanent: true },
       { source: '/sign-in',     destination: '/login',  permanent: true },
       { source: '/auth/signin', destination: '/login',  permanent: true },
@@ -69,6 +70,7 @@ const nextConfig: NextConfig = {
 
   async rewrites() {
     return [
+
       {
         source: '/icons/icon-192x192.png',
         destination: '/precise-govcon-logo.jpg',
@@ -86,6 +88,7 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+
       // ── Noindex for auth/account/admin pages ──────────────────────────────
       {
         source: '/login',
