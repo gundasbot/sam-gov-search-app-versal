@@ -114,8 +114,7 @@ export default function AboutPage() {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
     name: 'About Precise GovCon',
-    description:
-      'Precise GovCon helps contractors find and win federal, state, and local government opportunities with real-time data, AI-powered matching, alerts, and analytics.',
+    description: 'PreciseGovCon helps small businesses and SDVOSBs find, track, and win federal contracts with AI-powered tools.',
     url: 'https://precisegovcon.com/about',
     isPartOf: {
       '@type': 'WebSite',
