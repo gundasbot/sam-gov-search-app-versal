@@ -11,7 +11,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://precisegovcon.com'),
+  metadataBase: new URL('https://www.precisegovcon.com'),  // Fixed: www to match live domain
   title: {
     default: 'Government Contract Search | PreciseGovCon',
     template: '%s | PreciseGovCon'
@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'PreciseGovCon' }],
   creator: 'PreciseGovCon',
   publisher: 'PreciseGovCon',
+  alternates: {
+    canonical: 'https://www.precisegovcon.com',  // Fixes: Canonicals Missing warning
+  },
+  // Add your Google Search Console verification code here when ready:
+  // verification: { google: 'YOUR_CODE_HERE' },
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -40,7 +45,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'PreciseGovCon',
-    url: 'https://precisegovcon.com',
+    url: 'https://www.precisegovcon.com',  // Fixed: www
     images: [{ url: '/android-chrome-512x512.png', width: 512, height: 512, alt: 'PreciseGovCon' }],
   },
   twitter: {
