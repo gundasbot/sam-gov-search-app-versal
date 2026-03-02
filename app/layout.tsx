@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     default: 'Government Contract Search | PreciseGovCon',
     template: '%s | PreciseGovCon'
   },
-  description: 'Search thousands of federal, state, and local government contract opportunities in real-time. Advanced filtering, instant alerts, and powerful analytics to help you win more contracts.',
+  description: 'Find federal contracts fast. Search SAM.gov, track opportunities, get alerts. PreciseGovCon helps contractors win bids.',
   keywords: [
     'government contracts', 'federal contracts', 'state contracts', 'local contracts',
     'SAM.gov', 'government contracting', 'RFP', 'RFQ', 'solicitations',
