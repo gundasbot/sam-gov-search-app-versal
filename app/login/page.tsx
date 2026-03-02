@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Eye, EyeOff, ArrowRight, Loader2, AlertCircle, Zap, Bell, TrendingUp, Shield } from 'lucide-react'
 
 const STATS = [
@@ -132,8 +133,7 @@ function SignInContent() {
         {/* Mobile logo */}
         <div className="lg:hidden px-6 pt-6 pb-2 relative z-10">
           <Link href="/" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="PreciseGovCon" className="w-10 h-10 rounded-xl" />
+            <Image src="/logo.png" alt="PreciseGovCon" width={40} height={40} className="rounded-xl" />
             <span className="text-lg font-black text-[#0C1B2A]">
               PRECISE <span className="text-orange-500">GOVCON</span>
             </span>

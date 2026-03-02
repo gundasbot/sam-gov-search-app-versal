@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { CheckCircle, XCircle, X, Mail, MessageSquare, TrendingUp, Users, Clock, AlertTriangle } from 'lucide-react'
 
 interface Recipient {
@@ -67,7 +68,7 @@ export function AlertSuccessModal({
         <div className={`px-6 py-5 flex-shrink-0 ${isError ? 'bg-gradient-to-r from-red-700 to-red-600' : 'bg-gradient-to-r from-emerald-700 to-green-600'}`}>
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="Precise GovCon" className="h-10 w-auto object-contain opacity-95" />
+            <Image src="/logo.png" alt="Precise GovCon" width={40} height={40} className="h-10 w-auto object-contain opacity-95" />
           </div>
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
