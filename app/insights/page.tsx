@@ -1518,10 +1518,10 @@ export default function InsightsPage() {
                 <div>
                   <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-gray-900" />
-                    <span>Claude analytics</span>
+                    <span>YourANAlytics TidBits</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    A compact briefing based on live signals and AI
+                    A compact briefing based on live signals and PreciseGovcon AI
                     interpretation.
                   </div>
                 </div>

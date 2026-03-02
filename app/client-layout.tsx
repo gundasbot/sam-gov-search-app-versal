@@ -9,7 +9,6 @@ import AuthProvider from './providers'
 import AuthModalProvider from '@/components/auth/AuthModalProvider'
 import SmoothScrollProvider from '@/components/SmoothScrollProvider'
 import FloatingCTA from '@/components/FloatingCTA'
-import BrowsingTimerBanner from '@/components/BrowsingTimerBanner'
 import CookieConsent from '@/components/CookieConsent'
 import Script from 'next/script'
 import { useEffect } from 'react'
@@ -36,7 +35,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           <div className="relative">
             <div className="sticky top-0 z-[101] w-full">
               <Header />
-              <BrowsingTimerBanner />
             </div>
             <main className="w-full">
               {children}

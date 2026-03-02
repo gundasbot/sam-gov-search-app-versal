@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   creator: 'PreciseGovCon',
   publisher: 'PreciseGovCon',
   alternates: {
-    canonical: 'https://www.precisegovcon.com',  // Fixes: Canonicals Missing warning
+    canonical: '/',  // Fixes: Canonicals Missing warning
   },
   // Add your Google Search Console verification code here when ready:
   // verification: { google: 'YOUR_CODE_HERE' },
