@@ -1,14 +1,12 @@
 User-agent: *
 Allow: /
-Disallow: /dashboard/
-Disallow: /account/
-Disallow: /admin/
-Disallow: /api/
-
-# Allow Googlebot to crawl all Next.js JS/CSS assets
-User-agent: Googlebot
-Allow: /_next/static/
-Allow: /_next/chunks/
-Allow: /_next/
-
-Sitemap: https://www.precisegovcon.com/sitemap.xml
+Disallow: /login
+Disallow: /signup
+Disallow: /dashboard
+Disallow: /account
+Disallow: /admin
+Disallow: /checkout
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /verify-email
+Sitemap: https://precisegovcon.com/sitemap.xml

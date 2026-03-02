@@ -11,7 +11,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/contact',
     '/pricing',
     '/services',
-    '/search',
     '/features',
     '/about',
   ].map((path) => ({
@@ -37,20 +36,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.9,
   }))
 
-  // Auth & account pages - lower priority for SEO
-  const authPages = [
-    '/login',
-    '/signup',
-    '/pricing/trial',
-    '/pricing/checkout',
-    '/forgot-password',
-  ].map((path) => ({
-    url: `${baseUrl}${path}`,
-    lastModified: currentDate,
-    changeFrequency: 'monthly' as const,
-    priority: 0.5,
-  }))
-
   // Info / legal pages
   const infoPages = [
     '/privacy',
@@ -74,7 +59,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...highPriorityPages,
     ...servicePages,
-    ...authPages,
     ...infoPages,
   ]
 }

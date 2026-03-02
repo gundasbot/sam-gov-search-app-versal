@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp/
+
+# Next.js Build Output
+.next/
+out/
+build/
+dist/
+
+# Database
+prisma/migrations/
+*.db
+*.sqlite
+
+# Environment & Secrets
+.env
+.env.local
+.env.development
+.env.production
+next-env.d.ts
+
+# Public Assets (images, fonts — not needed for code tasks)
+public/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.webp
+*.avif
+*.woff
+*.woff2
+*.ttf
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Cache
+.cache/
+.eslintcache
+*.tsbuildinfo
+
+# Lock Files (large, rarely needed)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Test Snapshots
+coverage/
+__tests__/snapshots/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temp Files
+tmp/
+temp/
+*.tmp
+tmpclaude-*
