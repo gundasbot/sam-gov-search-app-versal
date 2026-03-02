@@ -20,16 +20,7 @@ const nextConfig: NextConfig = {
 
   async redirects() {
     return [
-
-      // Security headers (Fixing Screaming Frog warnings)
-      {
-        source: '/(.*)',
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-        ],
-      },      { source: '/signin',      destination: '/login',  permanent: true },
+      { source: '/signin',      destination: '/login',  permanent: true },
       { source: '/sign-in',     destination: '/login',  permanent: true },
       { source: '/auth/signin', destination: '/login',  permanent: true },
       { source: '/register',    destination: '/signup', permanent: true },
@@ -46,6 +37,29 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      // Security headers on all routes (Fixing Screaming Frog warnings)
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Content-Type-Options',  value: 'nosniff' },
+          { key: 'X-Frame-Options',          value: 'SAMEORIGIN' },
+          { key: 'Referrer-Policy',          value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy',       value: 'camera=(), microphone=(), geolocation=()' },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://js.stripe.com https://cdn.jsdelivr.net",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: https: blob:",
+              "connect-src 'self' https://api.sam.gov https://api.stripe.com https://accounts.google.com https://*.anthropic.com wss:",
+              "frame-src https://js.stripe.com https://hooks.stripe.com https://accounts.google.com",
+              "worker-src 'self' blob:",
+            ].join('; '),
+          },
+        ],
+      },
       // Auth/account/admin pages - noindex
       { source: '/login',              headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
       { source: '/signup',             headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
@@ -76,30 +90,6 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         has: [{ type: 'query', key: 'callbackUrl' }],
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
-      },
-
-      // Security headers on all routes
-      {
-        source: '/(.*)',
-        headers: [
-          { key: 'X-Content-Type-Options',  value: 'nosniff' },
-          { key: 'X-Frame-Options',          value: 'SAMEORIGIN' },
-          { key: 'Referrer-Policy',          value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy',       value: 'camera=(), microphone=(), geolocation=()' },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://js.stripe.com https://cdn.jsdelivr.net",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.sam.gov https://api.stripe.com https://accounts.google.com https://*.anthropic.com wss:",
-              "frame-src https://js.stripe.com https://hooks.stripe.com https://accounts.google.com",
-              "worker-src 'self' blob:",
-            ].join('; '),
-          },
-        ],
       },
 
       // Cache rules
