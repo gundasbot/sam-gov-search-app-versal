@@ -31,7 +31,6 @@ const nextConfig: NextConfig = {
     return [
       { source: '/icons/icon-192x192.png', destination: '/precise-govcon-logo.jpg' },
       { source: '/icon-192x192.png',       destination: '/precise-govcon-logo.jpg' },
-      { source: '/favicon.ico',            destination: '/precise-govcon-logo.jpg' },
     ]
   },
 
