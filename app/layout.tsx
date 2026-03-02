@@ -46,14 +46,14 @@ export const metadata: Metadata = {
     locale: 'en_US',
     siteName: 'PreciseGovCon',
     url: 'https://www.precisegovcon.com',  // Fixed: www
-    images: [{ url: '/android-chrome-512x512.png', width: 512, height: 512, alt: 'PreciseGovCon' }],
+    images: [{ url: '/logo.png', width: 1024, height: 1024, alt: 'PreciseGovCon' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'PreciseGovCon - Find Government Contracts Faster',
     description: 'Search thousands of federal, state, and local government contract opportunities in real-time.',
     creator: '@precisegovcon',
-    images: ['/android-chrome-512x512.png']
+    images: ['/logo.png']
   },
   robots: {
     index: true,
@@ -66,12 +66,29 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  manifest: '/manifest.json',
+  manifest: '/site.webmanifest',
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default'
   },
+}
+
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'PreciseGovCon',
+  url: 'https://www.precisegovcon.com',
+  logo: 'https://www.precisegovcon.com/logo.png',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'support@precisegovcon.com',
+    contactType: 'customer support',
+    availableLanguage: 'English',
+  },
+  sameAs: [
+    'https://twitter.com/precisegovcon',
+  ],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -86,6 +103,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#ffffff" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" href="/favicon.ico" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
       </head>
       <body
         className={`${inter.className} min-h-screen text-base
