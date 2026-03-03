@@ -2,12 +2,19 @@
 
 import type { Metadata } from 'next'
 import ClientLayout from './client-layout'
-import { Inter } from 'next/font/google'
+import './globals.css'
+import { Manrope, Sora } from 'next/font/google'
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ['latin'],
   display: 'swap',
-  fallback: ['system-ui', 'sans-serif']
+  variable: '--font-ui',
+})
+
+const sora = Sora({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-display',
 })
 
 export const metadata: Metadata = {
@@ -96,7 +103,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className="h-full antialiased scroll-smooth"
+      className={`${manrope.variable} ${sora.variable} h-full antialiased scroll-smooth`}
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -109,10 +116,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className={`${inter.className} min-h-screen text-base
+        className="pg-uniform min-h-screen text-[0.95rem] sm:text-base
           selection:bg-primary-500 selection:text-white
-          supports-[overflow-anchor:clip]:overflow-anchor-auto`}
+          supports-[overflow-anchor:clip]:overflow-anchor-auto"
         style={{
+          fontFamily: 'var(--font-ui), system-ui, sans-serif',
           WebkitTextSizeAdjust: '100%',
           textSizeAdjust: '100%',
           isolation: 'isolate'

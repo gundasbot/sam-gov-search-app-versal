@@ -451,7 +451,7 @@ function getMatchScoreColor(score: number) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ fontFamily: "'Outfit', 'Segoe UI', system-ui, sans-serif" }}>
+    <div className="pg-dashboard-modern min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }}>
       {/* Toast */}
       {toast && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 pointer-events-none">
@@ -471,7 +471,7 @@ function getMatchScoreColor(score: number) {
       {drawer && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeDrawer} />
-          <div className="absolute right-0 top-0 h-full w-full sm:w-[520px] max-w-full bg-gradient-to-br from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-2xl overflow-hidden flex flex-col">
+          <div className="pg-drawer-shell absolute right-0 top-0 h-full w-full sm:w-[520px] max-w-full bg-gradient-to-br from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-2xl overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
               <div className="text-white font-bold text-lg">
                 {drawer === 'activeSearches' && 'Active Searches'}
@@ -490,7 +490,7 @@ function getMatchScoreColor(score: number) {
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto h-[calc(100%-64px)]">
+            <div className="pg-drawer-body p-5 overflow-y-auto h-[calc(100%-64px)]">
               {drawer === 'activeSearches' && (
                 <div>
                   <p className="text-slate-300 text-sm mb-4">These are your saved searches. Click one to run it.</p>
@@ -500,7 +500,7 @@ function getMatchScoreColor(score: number) {
                       <button
                         key={s.id}
                         onClick={() => goToSearch(s)}
-                        className="w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
+                        className="pg-drawer-item w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -556,7 +556,7 @@ function getMatchScoreColor(score: number) {
                       <button
                         key={o.noticeId}
                         onClick={() => goToSavedOpp(o)}
-                        className="w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
+                        className="pg-drawer-item w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">

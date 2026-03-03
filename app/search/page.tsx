@@ -1722,7 +1722,7 @@ function QuickDateLookup({
       {/* Header row: title on left, Save/Alert buttons on right */}
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div>
-          <h3 style={{ fontFamily: 'Aptos, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
+          <h3 style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
             Quick Solicitations Lookup
           </h3>
           <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters</p>
@@ -1761,7 +1761,7 @@ function QuickDateLookup({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         {/* Keyword */}
         <div>
-          <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+          <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
             Keyword:
           </label>
           <input
@@ -1776,7 +1776,7 @@ function QuickDateLookup({
 
         {/* Solicitation Posted Date */}
         <div>
-          <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+          <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
             Solicitation Posted Date:
           </label>
           <input
@@ -1785,7 +1785,7 @@ function QuickDateLookup({
             onChange={(e) => setPostedAfter(e.target.value)}
             className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
           />
-          <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">POSTED WITHIN:</div>
+          <div style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">POSTED WITHIN:</div>
           <div className="flex flex-wrap gap-1">
             {[['1 Mo', -1], ['3 Mo', -3], ['6 Mo', -6], ['9 Mo', -9], ['12 Mo', -12]].map(([label, months]) => {
               const colors = ['from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-slate-600 to-slate-800']
@@ -1810,7 +1810,7 @@ function QuickDateLookup({
 
         {/* Submission Deadline Date */}
         <div>
-          <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+          <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
             Submission Deadline Date:
           </label>
           <input
@@ -1819,7 +1819,7 @@ function QuickDateLookup({
             onChange={(e) => setResponseDeadlineBefore(e.target.value)}
             className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
           />
-          <div style={{ fontFamily: 'Aptos, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">DEADLINE WITHIN:</div>
+          <div style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">DEADLINE WITHIN:</div>
           <div className="flex flex-wrap gap-1">
             {[['1 Mo', 1, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['3 Mo', 3, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['6 Mo', 6, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['9 Mo', 9, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['12 Mo', 12, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]']].map(([label, months, color]) => (
               <button
@@ -3808,7 +3808,7 @@ ${filteredResults.map(opp => `  <opportunity>
 
   return (
     <SearchErrorBoundary>
-      <main className="pg-theme-cleanup pg-search-modern min-h-screen bg-transparent flex flex-col text-[14px] sm:text-[15px]">
+      <main className="pg-theme-cleanup pg-search-modern pg-flow-modern min-h-screen bg-transparent flex flex-col text-[14px] sm:text-[15px]">
         {/* ── STEP 6: Add ToastUI render at the top of the JSX return ── */}
         {ToastUI}
         {/* Main content - full height utilization */}
@@ -3838,15 +3838,6 @@ ${filteredResults.map(opp => `  <opportunity>
                   </p>
                 </div>
 
-                {/* Quick Stats Badge */}
-                <div className="flex-shrink-0 rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-center shadow-sm">
-                  <div className="text-base font-bold leading-tight text-slate-700">
-                    {data?.totalRecords ? data.totalRecords.toLocaleString() : '2M+'}
-                  </div>
-                  <div className="mt-1 inline-flex items-center rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
-                    Active Opportunities
-                  </div>
-                </div>
                 {/* ── STEP 9: Add navigation links inside the welcome banner ── */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Link href="/dashboard"
@@ -3884,9 +3875,8 @@ ${filteredResults.map(opp => `  <opportunity>
                   <div className="mb-5">
                     {/* Hero label */}
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-surface-muted)] opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--color-surface-muted)]"></span>
+                      <div className="relative flex h-2.5 w-2.5">
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-border)]"></span>
                       </div>
                       <span className="text-sm font-bold uppercase tracking-widest text-[var(--color-primary)]">Search Federal Opportunities</span>
                       <span className="ml-1 text-xs font-semibold text-slate-500">— SAM.gov Live Data</span>
@@ -3894,9 +3884,7 @@ ${filteredResults.map(opp => `  <opportunity>
 
                     {/* Search input row */}
                     <div className="flex flex-col md:flex-row gap-2.5">
-                      <div className="flex-1 relative group">
-                        {/* Animated glow ring */}
-                        <div className="absolute -inset-0.5 bg-[var(--color-accent-soft)] rounded-xl opacity-0 group-focus-within:opacity-100 blur-sm transition-all duration-200"></div>
+                      <div className="flex-1 relative">
                         <div className="relative">
                           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--color-primary)] pointer-events-none z-10" />
                           <input
@@ -3906,7 +3894,7 @@ ${filteredResults.map(opp => `  <opportunity>
                             onKeyDown={(e) => e.key === 'Enter' && runSearch()}
                             placeholder='Enter keyword, NAICS code, agency name, or solicitation # — then press Enter or click Search'
                             autoFocus
-                            className="relative w-full rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] py-3 pl-11 pr-4 text-base font-medium text-[var(--color-text-primary)] placeholder-[var(--color-text-subtle)] shadow-sm transition-all outline-none hover:shadow-md focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
+                            className="relative w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] py-3 pl-11 pr-4 text-base font-medium text-[var(--color-text-primary)] placeholder-[var(--color-text-subtle)] transition-all outline-none focus:border-[var(--color-primary)]/35 focus:ring-2 focus:ring-[var(--color-accent-soft)]"
                           />
                         </div>
                       </div>
@@ -3923,6 +3911,12 @@ ${filteredResults.map(opp => `  <opportunity>
                       <button onClick={() => handleOpenSaveModal('alert')} className="pg-btn pg-btn-tertiary px-4 py-3 font-semibold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
                         <Bell className="h-4 w-4" />Get Alerts
                       </button>
+                    </div>
+
+                    <div className="mt-2">
+                      <p className="text-xs sm:text-sm font-medium text-[var(--color-text-subtle)]">
+                        {(data?.totalRecords ?? 2143921).toLocaleString()} active opportunities
+                      </p>
                     </div>
 
                     {/* Hint row */}
@@ -4218,7 +4212,7 @@ ${filteredResults.map(opp => `  <opportunity>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {/* KEYWORD - FIRST */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Keyword</label>
+                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Keyword</label>
                       <input
                         type="text"
                         value={advKeywords}
@@ -4253,7 +4247,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* AGENCY */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Agency</label>
+                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Agency</label>
                       <input
                         type="text"
                         value={agency}
@@ -4264,7 +4258,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* NAICS CODE */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">NAICS Code</label>
+                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">NAICS Code</label>
                       <input
                         type="text"
                         value={naics}
@@ -4275,7 +4269,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* PROCUREMENT TYPE */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Procurement Type</label>
+                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Procurement Type</label>
                       <select
                         value={procurementType}
                         onChange={(e) => setProcurementType(e.target.value)}
@@ -4293,7 +4287,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* PSC CODE */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">PSC Code</label>
+                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">PSC Code</label>
                       <input
                         type="text"
                         value={classificationCode}
@@ -4304,7 +4298,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* SOLICITATION # */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Solicitation #</label>
+                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Solicitation #</label>
                       <input
                         type="text"
                         value={solicitationNumber}
@@ -4315,7 +4309,7 @@ ${filteredResults.map(opp => `  <opportunity>
                     </div>
                     {/* STATUS */}
                     <div>
-                      <label style={{ fontFamily: 'Aptos, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Status</label>
+                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Status</label>
                       <select
                         value={opportunityStatus}
                         onChange={(e) => setOpportunityStatus(e.target.value)}
@@ -4330,7 +4324,7 @@ ${filteredResults.map(opp => `  <opportunity>
                   </div>
                   
                   {/* Active Filters bar — always visible with Reset button */}
-                  <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+                  <div className="pg-search-filter-meta mt-4 border-t border-[var(--color-border)] pt-4">
                     <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="text-base font-bold text-[var(--color-text-primary)]">Active Refine Filters</span>
@@ -4418,7 +4412,7 @@ ${filteredResults.map(opp => `  <opportunity>
 
               {/* Results count and action bar */}
               {(results.length > 0) && (
-                <div className="mb-6 p-4 bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] shadow-sm">
+                <div className="pg-search-results-toolbar mb-6 p-4 bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] shadow-sm">
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3 flex-wrap">
                       <CheckCircle className="h-5 w-5 text-[var(--color-primary)] flex-shrink-0" />
@@ -4478,7 +4472,7 @@ ${filteredResults.map(opp => `  <opportunity>
               {filteredResults.length > 0 ? (
                 <>
                   {viewMode === 'list' ? (
-                    <div className="space-y-4">
+                    <div className="pg-search-results-list space-y-4">
                       {filteredResults.map((opp, idx) => (
                         <ResultCard
                           key={`${opp.noticeId || idx}`}
@@ -4494,7 +4488,7 @@ ${filteredResults.map(opp => `  <opportunity>
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    <div className="pg-search-results-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {filteredResults.map((opp, idx) => (
                         <OpportunityCard
                           key={`${opp.noticeId || idx}`}
@@ -4533,7 +4527,7 @@ ${filteredResults.map(opp => `  <opportunity>
                   )}
                 </>
               ) : (
-                <div className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center shadow-sm">
+                <div className="pg-search-empty rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center shadow-sm">
                   <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
                     <AlertCircle className="h-9 w-9 text-red-500" />
                   </div>

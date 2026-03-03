@@ -86,7 +86,7 @@ function AlertsHub() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="pg-alerts-modern min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -201,7 +201,7 @@ export default function AlertsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="pg-alerts-modern min-h-screen bg-slate-950 flex items-center justify-center">
           <div className="h-7 w-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
         </div>
       }

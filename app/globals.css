@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #3f7f61;
-  --color-primary-hover: #33694f;
-  --color-highlight: #3f7f61;
+  --color-primary: #4a7862;
+  --color-primary-hover: #3f6754;
+  --color-highlight: #4a7862;
 
   --color-bg: #f7f8f7;
   --color-surface: #ffffff;
@@ -32,9 +32,9 @@
   --radius-md: 16px;
   --radius-lg: 22px;
 
-  --shadow-sm: 0 2px 6px rgba(16, 24, 20, 0.05);
-  --shadow-md: 0 6px 18px rgba(16, 24, 20, 0.07);
-  --shadow-lg: 0 16px 40px rgba(16, 24, 20, 0.1);
+  --shadow-sm: 0 1px 4px rgba(16, 24, 20, 0.04);
+  --shadow-md: 0 4px 12px rgba(16, 24, 20, 0.06);
+  --shadow-lg: 0 10px 26px rgba(16, 24, 20, 0.08);
   --shadow-modal: 0 20px 50px rgba(16, 24, 20, 0.18);
 
   --container: 1240px;
@@ -55,15 +55,15 @@
   --color-text-secondary: #a0afb8;
   --color-text-subtle: #758590;
 
-  --color-primary: #4e8a68;
-  --color-primary-hover: #3f7256;
-  --color-highlight: #4e8a68;
+  --color-primary: #5d886f;
+  --color-primary-hover: #4d745f;
+  --color-highlight: #5d886f;
 
   --color-accent-soft: #1e2a24;
 
-  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 6px 14px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.34);
   --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.55);
 
   --bg-grad-1: rgba(78, 138, 104, 0.1);
@@ -858,4 +858,172 @@ select:focus-visible {
   --tw-gradient-from: color-mix(in srgb, var(--color-surface-muted) 85%, transparent) !important;
   --tw-gradient-to: color-mix(in srgb, var(--color-surface) 94%, transparent) !important;
   --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--color-surface) 88%, transparent), var(--tw-gradient-to) !important;
+}
+
+/* Modern cohesion layer for high-traffic routes: reduce hard boxes, increase rhythm */
+.pg-flow-modern,
+.pg-dashboard-modern,
+.pg-account-modern,
+.pg-alerts-modern {
+  background:
+    radial-gradient(circle at 8% -12%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 33%),
+    radial-gradient(circle at 98% 0%, color-mix(in srgb, var(--color-primary) 5%, transparent), transparent 30%),
+    linear-gradient(180deg, var(--bg-grad-3) 0%, var(--bg-grad-4) 100%);
+}
+
+.pg-flow-modern [class*="rounded-xl"][class*="border"],
+.pg-flow-modern [class*="rounded-2xl"][class*="border"],
+.pg-dashboard-modern [class*="rounded-xl"][class*="border"],
+.pg-dashboard-modern [class*="rounded-2xl"][class*="border"],
+.pg-account-modern [class*="rounded-xl"][class*="border"],
+.pg-account-modern [class*="rounded-2xl"][class*="border"],
+.pg-alerts-modern [class*="rounded-xl"][class*="border"],
+.pg-alerts-modern [class*="rounded-2xl"][class*="border"] {
+  border-color: color-mix(in srgb, var(--color-border) 62%, transparent) !important;
+  border-radius: 1.05rem !important;
+  box-shadow: 0 5px 14px color-mix(in srgb, #0f1720 8%, transparent);
+}
+
+.pg-flow-modern [class*="bg-white"],
+.pg-dashboard-modern [class*="bg-slate-900"],
+.pg-dashboard-modern [class*="bg-slate-800"],
+.pg-account-modern [class*="bg-white/"],
+.pg-account-modern [class*="bg-slate-"],
+.pg-alerts-modern [class*="bg-slate-900"],
+.pg-alerts-modern [class*="bg-slate-800"] {
+  background-color: var(--color-surface) !important;
+}
+
+.pg-flow-modern [class*="p-4"],
+.pg-flow-modern [class*="p-5"],
+.pg-flow-modern [class*="p-6"],
+.pg-dashboard-modern [class*="p-4"],
+.pg-dashboard-modern [class*="p-5"],
+.pg-dashboard-modern [class*="p-6"],
+.pg-account-modern [class*="p-4"],
+.pg-account-modern [class*="p-5"],
+.pg-account-modern [class*="p-6"],
+.pg-alerts-modern [class*="p-4"],
+.pg-alerts-modern [class*="p-5"],
+.pg-alerts-modern [class*="p-6"] {
+  padding-block: clamp(0.9rem, 1.2vw, 1.15rem) !important;
+}
+
+.pg-flow-modern [class*="text-slate-400"],
+.pg-flow-modern [class*="text-slate-500"],
+.pg-dashboard-modern [class*="text-slate-400"],
+.pg-dashboard-modern [class*="text-slate-500"],
+.pg-account-modern [class*="text-slate-400"],
+.pg-account-modern [class*="text-slate-500"],
+.pg-alerts-modern [class*="text-slate-400"],
+.pg-alerts-modern [class*="text-slate-500"] {
+  color: var(--color-text-secondary) !important;
+}
+
+.pg-flow-modern .shadow-sm,
+.pg-flow-modern .shadow-md,
+.pg-flow-modern .shadow-lg,
+.pg-dashboard-modern .shadow-sm,
+.pg-dashboard-modern .shadow-md,
+.pg-dashboard-modern .shadow-lg,
+.pg-account-modern .shadow-sm,
+.pg-account-modern .shadow-md,
+.pg-account-modern .shadow-lg,
+.pg-alerts-modern .shadow-sm,
+.pg-alerts-modern .shadow-md,
+.pg-alerts-modern .shadow-lg {
+  box-shadow: 0 5px 14px color-mix(in srgb, #0f1720 8%, transparent) !important;
+}
+
+/* Account structural pass: clearer pane hierarchy, less nested-card pressure */
+.pg-account-content {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.pg-account-pane {
+  display: grid;
+  gap: 1rem;
+  animation: pg-reveal 0.35s ease both;
+}
+
+.pg-account-banner {
+  backdrop-filter: blur(8px);
+}
+
+.pg-account-tabs {
+  gap: 0.4rem !important;
+}
+
+.pg-account-tabs > button {
+  border-radius: 0.85rem 0.85rem 0 0;
+  padding-inline: 1rem;
+}
+
+/* Dashboard drawer pass: section rhythm and reduced card borders */
+.pg-drawer-shell {
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--color-primary) 13%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 90%, #0b1116) 0%, color-mix(in srgb, var(--color-surface-muted) 88%, #0a0f14) 100%) !important;
+}
+
+.pg-drawer-body {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+}
+
+.pg-drawer-item {
+  border-color: color-mix(in srgb, var(--color-border) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent) !important;
+}
+
+.pg-drawer-item:hover {
+  transform: translateY(-1px);
+}
+
+.pg-drawer-body .space-y-3 > * + * {
+  margin-top: 0.6rem !important;
+}
+
+/* Search structural pass: clearer filter/results hierarchy */
+.pg-search-filter-meta {
+  background: color-mix(in srgb, var(--color-surface-muted) 65%, transparent);
+  border-top-color: color-mix(in srgb, var(--color-border) 78%, transparent) !important;
+  border-radius: 0.85rem;
+  padding: 0.85rem;
+}
+
+.pg-search-results-toolbar {
+  backdrop-filter: blur(3px);
+}
+
+.pg-search-results-list > * + * {
+  margin-top: 0.85rem !important;
+}
+
+.pg-search-results-grid {
+  gap: 0.9rem !important;
+}
+
+.pg-search-empty {
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent) !important;
+}
+
+/* Search restraint pass: less glow, less border noise, clearer separation */
+.pg-search-modern {
+  --color-primary: #4e7663;
+  --color-primary-hover: #456755;
+  --color-accent-soft: #eef3f0;
+}
+
+.pg-search-modern .border-2 {
+  border-width: 1px !important;
+}
+
+.pg-search-modern .shadow-sm,
+.pg-search-modern .shadow-md,
+.pg-search-modern .shadow-lg,
+.pg-search-modern [class*="shadow-"] {
+  box-shadow: 0 4px 10px color-mix(in srgb, #0f1720 7%, transparent) !important;
 }
