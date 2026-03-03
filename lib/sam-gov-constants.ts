@@ -15,6 +15,9 @@ export const PROCUREMENT_TYPES = [
   { value: 'i', label: 'Intent to Bundle Requirements (DoD-Funded)' },
 ] as const
 
+// Alias for backward compatibility
+export const PROCUREMENT_TYPE_OPTIONS = PROCUREMENT_TYPES
+
 // Complete Set-Aside Values from SAM.gov API Documentation
 export const SET_ASIDE_CODES = [
   { value: '', label: 'All Set-Asides' },

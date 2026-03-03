@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Eye, EyeOff, Loader2, CheckCircle2, Shield, Zap, Crown, Mail, ArrowRight, CheckCircle } from 'lucide-react'
 
 interface CustomSignupModalProps {
@@ -335,7 +336,7 @@ export default function CustomSignupModal({ isOpen, onClose, onSuccess }: Custom
             {/* Header */}
             <div style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.625rem' }}>
-                <img src="/logo.png" alt="Precise GovCon" style={{ height: '52px', width: 'auto' }} />
+                <Image src="/logo.png" alt="Precise GovCon" width={52} height={52} style={{ height: '52px', width: 'auto' }} />
               </div>
               <h2 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#1e293b', margin: '0 0 0.25rem', fontFamily: font }}>Welcome to Precise GovCon</h2>
               <p style={{ fontSize: '1rem', color: '#475569', margin: '0 0 0.75rem', fontFamily: font }}>Create your account to get started today</p>

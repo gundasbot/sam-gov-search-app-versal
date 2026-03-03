@@ -68,9 +68,14 @@ interface AlertEmailData {
     responseDeadline?: string
     url: string
   }>
+  attachments?: Array<{
+    file_name: string
+    content: string | Buffer
+  }>
+  /** @deprecated use attachments[] instead */
   csvAttachment?: {
     file_name: string
-    content: string
+    content: string | Buffer
   }
   date?: string
 }
@@ -84,6 +89,7 @@ export async function sendAlertEmail({
   totalResults,
   searchCriteria,
   topResults,
+  attachments: attachmentsProp,
   csvAttachment,
   date,
 }: AlertEmailData) {
@@ -96,14 +102,15 @@ export async function sendAlertEmail({
       date,
     })
 
-    const attachments = csvAttachment
-      ? [
-          {
-            file_name: csvAttachment.file_name,
-            content: csvAttachment.content,
-          },
-        ]
-      : []
+    // Support both new attachments[] array and legacy csvAttachment
+    const rawAttachments = attachmentsProp
+      ? attachmentsProp
+      : csvAttachment
+        ? [{ file_name: csvAttachment.file_name, content: csvAttachment.content }]
+        : []
+
+    // Resend SDK expects `filename` (no underscore), not `file_name`
+    const attachments = rawAttachments.map(a => ({ filename: a.file_name, content: a.content }))
 
     // Use proper from address with display name to avoid default avatars
     const result = await resend.emails.send({

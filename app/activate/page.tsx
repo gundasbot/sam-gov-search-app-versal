@@ -12,6 +12,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Eye, EyeOff, Check, X, Loader2, AlertCircle, ArrowRight, Shield } from 'lucide-react';
 
 function PasswordStrength({ password }: { password: string }) {
@@ -125,7 +126,7 @@ function ActivateContent() {
       <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-emerald-50 p-4">
         <div className="max-w-lg w-full">
           <div className="flex justify-center mb-6">
-            <img src="/precise-govcon-logo.jpg" alt="PreciseGovCon" className="h-12 object-contain" />
+            <Image src="/precise-govcon-logo.jpg" alt="PreciseGovCon" width={150} height={50} className="h-12 w-auto" />
           </div>
           <div className="bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden">
             {/* Green header */}
@@ -184,7 +185,7 @@ function ActivateContent() {
 
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <img src="/precise-govcon-logo.jpg" alt="PreciseGovCon" className="h-10 object-contain" />
+          <Image src="/precise-govcon-logo.jpg" alt="PreciseGovCon" width={140} height={46} className="h-10 w-auto" />
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">
@@ -320,7 +321,7 @@ function ErrorState({ message, showContact }: { message: string; showContact?: b
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-red-50 p-4">
       <div className="max-w-md w-full text-center">
         <div className="flex justify-center mb-8">
-          <img src="/precise-govcon-logo.jpg" alt="PreciseGovCon" className="h-10 object-contain" />
+          <Image src="/precise-govcon-logo.jpg" alt="PreciseGovCon" width={140} height={46} className="h-10 w-auto" />
         </div>
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg p-8">
           <div className="h-14 w-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">

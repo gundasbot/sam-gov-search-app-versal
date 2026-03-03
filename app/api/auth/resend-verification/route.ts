@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       VALUES (${tokenId}, ${user.id}, ${tokenHash}, ${expiresAt.toISOString()}, NOW())
     `
 
-    const appUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.precisegovcon.com'
     const verifyUrl = `${appUrl}/api/auth/verify-email?token=${rawToken}`
     const from = process.env.RESEND_FROM_EMAIL || 'Precise GovCon <noreply@precisegovcon.com>'
     const name = String(user.first_name || 'there')

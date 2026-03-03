@@ -699,7 +699,7 @@ export default function SupportPage() {
   const [supportModalOpen, setSupportModalOpen] = useState(false)
   const topicCards = [
     {
-      title: 'Billing & Subscription',
+      title: 'Support Center | PreciseGovCon',
       desc: 'Invoices, renewals, upgrades/downgrades, and payment methods.',
       bullets: ['View invoices', 'Update payment method', 'Switch monthly/annual'],
       icon: <CheckCircle2 className="h-5 w-5 text-[var(--color-text-primary)]" />,
@@ -709,7 +709,7 @@ export default function SupportPage() {
       cta: 'Go to Billing →',
     },
     {
-      title: 'Account & Access',
+      title: 'Support Center | PreciseGovCon',
       desc: 'Profile settings, login issues, email verification, and permissions.',
       bullets: ['Update profile', 'Fix login issues', 'Verify your email'],
       icon: <ShieldCheck className="h-5 w-5 text-[var(--color-text-primary)]" />,
@@ -719,7 +719,7 @@ export default function SupportPage() {
       cta: 'Go to Account →',
     },
     {
-      title: 'Alerts & Saved Searches',
+      title: 'Support Center | PreciseGovCon',
       desc: 'Tune your alerts, saved searches, and delivery frequency.',
       bullets: ['Edit frequency', 'Confirm alert is enabled', 'Troubleshoot delivery'],
       icon: <HelpCircle className="h-5 w-5 text-[var(--color-text-primary)]" />,
@@ -729,7 +729,7 @@ export default function SupportPage() {
       cta: 'Go to Alerts →',
     },
     {
-      title: 'Report a Bug',
+      title: 'Support Center | PreciseGovCon',
       desc: 'Something not loading or acting weird? Send details and screenshots.',
       bullets: ['Include page URL', 'Steps to reproduce', 'Expected vs actual'],
       icon: <AlertTriangle className="h-5 w-5 text-[var(--color-text-primary)]" />,

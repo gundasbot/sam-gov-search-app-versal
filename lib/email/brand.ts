@@ -1,4 +1,4 @@
-﻿// lib/email/brand.ts
+// lib/email/brand.ts
 type Brand = {
   appUrl: string
   name: string
@@ -17,7 +17,7 @@ type Brand = {
 }
 
 export function getBrand() {
-  const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "")
+  const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://www.precisegovcon.com").replace(/\/$/, "")
 
   // Logo must always be an absolute URL for emails - relative paths don't work
   const rawLogoUrl = process.env.BRAND_LOGO_URL || ""

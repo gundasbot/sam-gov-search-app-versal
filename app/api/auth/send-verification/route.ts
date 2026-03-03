@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       VALUES (${tokenId}, ${user.id}, ${tokenHash}, ${expiresAt.toISOString()})
     `
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3000'
+    const appUrl = process.env.APP_URL || 'https://www.precisegovcon.com'
     const verifyUrl = `${appUrl}/api/auth/verify-email?token=${rawToken}`
     const from = process.env.EMAIL_FROM || 'Precise GovCon <no-reply@precisegovcon.com>'
     const name = String(user.first_name || 'there')

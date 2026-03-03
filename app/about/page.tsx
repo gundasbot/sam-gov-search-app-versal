@@ -2,7 +2,6 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import Script from 'next/script'
 import {
   Target,
   Users,
@@ -57,7 +56,7 @@ export default function AboutPage() {
   const values = [
     {
       icon: Target,
-      title: 'Your Success is Our Mission',
+      title: 'Empowerment',
       description:
         'We empower businesses of all sizes to compete and win in the federal, state, and local marketplace — with clarity, speed, and confidence.',
       gradient: 'from-emerald-500 to-teal-600',
@@ -65,7 +64,7 @@ export default function AboutPage() {
     },
     {
       icon: Shield,
-      title: 'Trust & Transparency',
+      title: 'Privacy First',
       description:
         'We treat your search activity, saved opportunities, and business intel as sensitive data — built with privacy-first design and secure practices.',
       gradient: 'from-cyan-500 to-blue-600',
@@ -73,7 +72,7 @@ export default function AboutPage() {
     },
     {
       icon: Zap,
-      title: 'Innovation First',
+      title: 'Smart Intelligence',
       description:
         'We use modern analytics and AI to help you spot the right opportunities faster, prioritize your pipeline, and act before deadlines.',
       gradient: 'from-teal-500 to-cyan-600',
@@ -81,7 +80,7 @@ export default function AboutPage() {
     },
     {
       icon: Heart,
-      title: 'Community Driven',
+      title: 'Inclusive Access',
       description:
         'Contractors at every stage deserve access to tools and guidance — from first bid to long-term growth.',
       gradient: 'from-emerald-500 to-cyan-600',
@@ -91,19 +90,19 @@ export default function AboutPage() {
 
   const whoWeServe = [
     {
-      title: 'Small Businesses',
+      title: 'New Entrants',
       desc: 'Startups and small contractors looking for their first government contracts',
       icon: Sparkles,
       gradient: 'from-cyan-500 to-blue-600',
     },
     {
-      title: 'Established Contractors',
+      title: 'Growing Businesses',
       desc: 'Companies with existing contracts seeking new opportunities',
       icon: Building2,
       gradient: 'from-emerald-500 to-teal-600',
     },
     {
-      title: 'Set-Aside Businesses',
+      title: 'Certified & Set-Aside Firms',
       desc: 'VOSB, SDVOSB, 8(a), HUBZone, WOSB, and minority-owned firms',
       icon: Award,
       gradient: 'from-teal-500 to-cyan-600',
@@ -113,27 +112,27 @@ export default function AboutPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
-    name: 'About Precise GovCon',
-    description:
-      'Precise GovCon helps contractors find and win federal, state, and local government opportunities with real-time data, AI-powered matching, alerts, and analytics.',
-    url: 'https://precisegovcon.com/about',
+    name: 'About PreciseGovCon',
+    description: 'PreciseGovCon helps small businesses and SDVOSBs find, track, and win federal contracts with AI-powered tools.',
+    url: 'https://www.precisegovcon.com/about',
     isPartOf: {
       '@type': 'WebSite',
-      name: 'Precise GovCon',
-      url: 'https://precisegovcon.com',
+      name: 'PreciseGovCon',
+      url: 'https://www.precisegovcon.com',
     },
     about: {
       '@type': 'Organization',
-      name: 'Precise GovCon',
-      url: 'https://precisegovcon.com',
+      name: 'PreciseGovCon',
+      url: 'https://www.precisegovcon.com',
     },
   }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
-      <Script id="precisegovcon-about-jsonld" type="application/ld+json" strategy="afterInteractive">
-        {JSON.stringify(jsonLd)}
-      </Script>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       {/* Animated background elements (matches /login) */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">

@@ -2,7 +2,8 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Compliance Services | SAM.gov Search',
+  alternates: { canonical: 'https://www.precisegovcon.com/services/compliance' },
+  title: 'Federal Compliance Services | PreciseGovCon',
   description: 'Comprehensive compliance monitoring and reporting services for government contractors',
 }
 
@@ -96,7 +97,7 @@ export default function CompliancePage() {
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-gray-600 mb-6">
-            Contact us to learn more about our compliance services and how we can help your organization stay compliant.
+            Contact us to learn more about our Federal Compliance Services | PreciseGovConand how we can help your organization stay compliant.
           </p>
           <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
             Contact Sales
@@ -106,3 +107,4 @@ export default function CompliancePage() {
     </div>
   )
 }
+

@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         state_of_performance: sanitize(body.stateOfPerformance),
         place_of_performance_zip: sanitize(body.zip),
         opportunity_status: sanitize(body.status),
-        procurement_type: sanitize(body.procurementType) || 'o',
+        procurement_type: sanitize(body.procurementType) || 'all',
         
         // Date fields - CORRECT SNAKE_CASE
         posted_after: body.posted_after ? new Date(body.posted_after) : null,

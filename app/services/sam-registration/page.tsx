@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'SAM Registration Services | Precise GovCon',
+  alternates: { canonical: 'https://www.precisegovcon.com/services/sam-registration' },
+  title: 'SAM.gov Registration Services | PreciseGovCon',
   description: 'Expert SAM.gov registration and renewal services. Get registered quickly and stay compliant with our complete support.',
 }
 
@@ -126,9 +127,9 @@ export default function SAMRegistrationPage() {
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { emoji: '📋', title: 'Complex Requirements', desc: '30+ data fields, CAGE codes, NAICS codes, banking information. One mistake means rejection.' },
-              { emoji: '⏰', title: 'Time Consuming', desc: 'Average DIY registration takes 8-12 hours spread over weeks. Most people give up.' },
-              { emoji: '🔄', title: 'Annual Renewals', desc: 'Must renew every year or lose eligibility. Missing the deadline means starting over.' },
+              { emoji: '📋', title: 'SAM.gov Registration Services | PreciseGovCon', desc: '30+ data fields, CAGE codes, NAICS codes, banking information. One mistake means rejection.' },
+              { emoji: '⏰', title: 'SAM.gov Registration Services | PreciseGovCon', desc: 'Average DIY registration takes 8-12 hours spread over weeks. Most people give up.' },
+              { emoji: '🔄', title: 'SAM.gov Registration Services | PreciseGovCon', desc: 'Must renew every year or lose eligibility. Missing the deadline means starting over.' },
             ].map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl p-5 border-2 border-amber-200 shadow-md">
                 <div className="text-4xl font-black text-amber-600 mb-2">{item.emoji}</div>
@@ -156,32 +157,32 @@ export default function SAMRegistrationPage() {
             {[
               {
                 icon: FileCheck,
-                title: 'Initial Registration',
+                title: 'SAM.gov Registration Services | PreciseGovCon',
                 description: 'We collect all required information, validate it, and submit your SAM.gov registration. No errors, no rejections.',
               },
               {
                 icon: RefreshCw,
-                title: 'Annual Renewals',
+                title: 'SAM.gov Registration Services | PreciseGovCon',
                 description: 'We monitor your expiration date and handle renewals automatically. You\'ll never lose your SAM eligibility.',
               },
               {
                 icon: ShieldCheck,
-                title: 'Compliance Monitoring',
+                title: 'SAM.gov Registration Services | PreciseGovCon',
                 description: 'We watch for any issues with your registration and alert you immediately if action is needed.',
               },
               {
                 icon: Target,
-                title: 'CAGE Code Assistance',
+                title: 'SAM.gov Registration Services | PreciseGovCon',
                 description: 'We help you obtain and maintain your CAGE code, which is required for SAM registration.',
               },
               {
                 icon: AlertCircle,
-                title: 'Entity Updates',
+                title: 'SAM.gov Registration Services | PreciseGovCon',
                 description: 'Changed your address, banking, or key personnel? We update your SAM profile to keep you compliant.',
               },
               {
                 icon: Users,
-                title: 'Dedicated Support',
+                title: 'SAM.gov Registration Services | PreciseGovCon',
                 description: 'Direct access to our SAM experts via phone, email, or chat. Get answers fast.',
               },
             ].map((item, idx) => (
@@ -209,10 +210,10 @@ export default function SAMRegistrationPage() {
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: '1', title: 'Information Gathering', desc: 'We collect all required data through a simple questionnaire', icon: FileCheck },
-              { step: '2', title: 'Validation & Review', desc: 'Our experts validate every field and catch any potential issues', icon: ShieldCheck },
-              { step: '3', title: 'Submission', desc: 'We submit your registration to SAM.gov with 100% accuracy', icon: Target },
-              { step: '4', title: 'Ongoing Monitoring', desc: 'We monitor your registration and handle renewals automatically', icon: RefreshCw },
+              { step: '1', title: 'SAM.gov Registration Services | PreciseGovCon', desc: 'We collect all required data through a simple questionnaire', icon: FileCheck },
+              { step: '2', title: 'SAM.gov Registration Services | PreciseGovCon', desc: 'Our experts validate every field and catch any potential issues', icon: ShieldCheck },
+              { step: '3', title: 'SAM.gov Registration Services | PreciseGovCon', desc: 'We submit your registration to SAM.gov with 100% accuracy', icon: Target },
+              { step: '4', title: 'SAM.gov Registration Services | PreciseGovCon', desc: 'We monitor your registration and handle renewals automatically', icon: RefreshCw },
             ].map((item, idx) => (
               <div key={idx} className="relative">
                 <div className="bg-white rounded-2xl p-6 border-2 border-blue-200 shadow-lg text-center">
@@ -249,21 +250,21 @@ export default function SAMRegistrationPage() {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                quote: "Tried to do it myself for 3 weeks. Hired Precise GovCon and they had it done in 10 days. Worth every penny.",
+                quote: "Tried to do it myself for 3 weeks. HiredSAM.gov Registration Services | PreciseGovConand they had it done in 10 days. Worth every penny.",
                 author: "Sarah Chen",
-                title: "Owner, Chen Construction",
+                title: "SAM.gov Registration Services | PreciseGovCon",
                 result: "Registered in 10 days",
               },
               {
                 quote: "They caught an error with my CAGE code that would have gotten my registration rejected. Saved me months of delays.",
                 author: "Michael Torres",
-                title: "CEO, Torres IT Solutions",
+                title: "SAM.gov Registration Services | PreciseGovCon",
                 result: "Avoided rejection",
               },
               {
                 quote: "I was about to miss my annual renewal deadline. They handled everything and kept my SAM eligibility intact.",
                 author: "Jennifer Williams",
-                title: "President, Williams Services LLC",
+                title: "SAM.gov Registration Services | PreciseGovCon",
                 result: "Stayed compliant",
               },
             ].map((item, idx) => (
@@ -334,3 +335,4 @@ export default function SAMRegistrationPage() {
     </div>
   )
 }
+

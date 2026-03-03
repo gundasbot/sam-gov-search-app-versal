@@ -2,6 +2,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import {
   X, Shield, CheckCircle, Mail, Eye, EyeOff, Phone, Building, Loader2,
   Lock, Search, Filter, Download, BarChart3, Database, Bell, Zap,
@@ -502,7 +503,7 @@ export default function AccessControlModal({
         <div className="p-6 lg:p-10">
           {/* Header */}
           <div className="text-center mb-10">
-            <img src="/logo.png" alt="Precise GovCon" className="h-12 w-auto mx-auto mb-5" />
+            <Image src="/logo.png" alt="Precise GovCon" width={48} height={48} className="h-12 w-auto mx-auto mb-5" />
             <div className="mb-3">
               <span className="text-xs font-black uppercase tracking-widest text-[var(--color-primary)]">
                 7-Day Free Trial Â· No Credit Card Required

@@ -1,5 +1,6 @@
 // lib/export.ts
 import ExcelJS from 'exceljs'
+import * as XLSX from 'xlsx'
 
 export interface ExportOpportunity {
   noticeId: string
@@ -243,4 +244,72 @@ export async function generateExcelBinary(opportunities: ExportOpportunity[]): P
 export function generatePDF(opportunities: ExportOpportunity[]): Buffer {
   // Placeholder - implement with pdfkit or puppeteer if needed
   return Buffer.from('PDF generation not yet implemented')
+}
+
+// Generate XLSB (Excel Binary Workbook) — smaller file size, opens in Excel/Sheets
+export function generateXLSB(opportunities: ExportOpportunity[]): Buffer {
+  const rows = opportunities.map(opp => ({
+    'Notice ID': opp.noticeId || '',
+    'Title': opp.title || '',
+    'Solicitation #': opp.solicitationNumber || '',
+    'Agency': opp.department || opp.fullParentPathName || '',
+    'Office': opp.office || '',
+    'Type': opp.type || '',
+    'Set-Aside': opp.setAside || '',
+    'NAICS': opp.naicsCode || '',
+    'Posted Date': opp.postedDate || '',
+    'Response Deadline': opp.responseDeadLine || '',
+    'City': opp.placeOfPerformance?.city?.name || '',
+    'State': opp.placeOfPerformance?.state?.code || '',
+    'Zip': opp.placeOfPerformance?.zip || '',
+    'Description': typeof opp.description === 'string' ? opp.description.substring(0, 500) : '',
+    'Link': opp.uiLink || '',
+    'POC Name': opp.pointOfContact?.fullName || '',
+    'POC Email': opp.pointOfContact?.email || '',
+    'POC Phone': opp.pointOfContact?.phone || '',
+  }))
+
+  const worksheet = XLSX.utils.json_to_sheet(rows)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Opportunities')
+  const buf = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsb' })
+  return Buffer.from(buf)
+}
+
+// Generate TXT (tab-delimited)
+export function generateTXT(opportunities: ExportOpportunity[]): string {
+  if (!opportunities.length) return ''
+
+  const headers = [
+    'Notice ID', 'Title', 'Solicitation Number', 'Agency', 'Office',
+    'Type', 'Set-Aside', 'NAICS', 'Posted Date', 'Response Deadline',
+    'City', 'State', 'Zip', 'Description', 'Link',
+    'POC Name', 'POC Email', 'POC Phone',
+  ]
+
+  const escape = (v: any): string =>
+    String(v ?? '').replace(/\t/g, ' ').replace(/\n/g, ' ')
+
+  const rows = opportunities.map(opp => [
+    escape(opp.noticeId),
+    escape(opp.title),
+    escape(opp.solicitationNumber),
+    escape(opp.department || opp.fullParentPathName),
+    escape(opp.office),
+    escape(opp.type),
+    escape(opp.setAside),
+    escape(opp.naicsCode),
+    escape(opp.postedDate),
+    escape(opp.responseDeadLine),
+    escape(opp.placeOfPerformance?.city?.name),
+    escape(opp.placeOfPerformance?.state?.code),
+    escape(opp.placeOfPerformance?.zip),
+    escape(typeof opp.description === 'string' ? opp.description.substring(0, 200) : ''),
+    escape(opp.uiLink),
+    escape(opp.pointOfContact?.fullName),
+    escape(opp.pointOfContact?.email),
+    escape(opp.pointOfContact?.phone),
+  ])
+
+  return [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n')
 }

@@ -95,7 +95,7 @@ const serviceConfigs: Record<string, {
     ],
   },
   'general': {
-    title: 'Let\'s Talk About Your Goals',
+    title: 'Contact PreciseGovCon',
     subtitle: 'Expert guidance tailored to your business',
     icon: <Building className="w-12 h-12" />,
     color: 'cyan',

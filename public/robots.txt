@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /signup
+Disallow: /dashboard
+Disallow: /account
+Disallow: /admin
+Disallow: /checkout
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /verify-email
+Sitemap: https://precisegovcon.com/sitemap.xml

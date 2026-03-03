@@ -100,7 +100,7 @@ async function runAlertSearch(alert: any): Promise<any[]> {
   qs.set('limit', String(alert.max_results || 100))
   qs.set('offset', '0')
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.precisegovcon.com'
   const apiUrl = `${baseUrl}/api/sam?${qs.toString()}`
 
   const response = await fetch(apiUrl, {

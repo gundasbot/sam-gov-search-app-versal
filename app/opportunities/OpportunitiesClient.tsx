@@ -17,6 +17,7 @@ import {
   List, Grid3x3, Layers, X, Settings, MapPin, Info,
   Share2, Link2, Mail, Printer, Copy, ChevronUp
 } from 'lucide-react';
+import { getPersonalizedGreeting, getTimeOfDayEmoji } from '@/lib/greeting';
 
 interface SamOpportunity {
   noticeId: string;
@@ -70,7 +71,7 @@ interface SamOpportunity {
 type ViewMode = 'list' | 'grid' | 'compact';
 type GroupMode = 'none' | 'department' | 'urgency' | 'setaside';
 
-// 🎯 IMPROVED: Static placeholder data for immediate display
+// ≡ƒÄ» IMPROVED: Static placeholder data for immediate display
 const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (_, i) => ({
   noticeId: `placeholder-${i}`,
   title: 'Loading opportunity data...',
@@ -88,7 +89,7 @@ const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (
   }
 }));
 
-// 🎯 NEW: User profile interface
+// ≡ƒÄ» NEW: User profile interface
 interface UserProfile {
   first_name: string;
   lastName?: string;
@@ -101,7 +102,7 @@ interface UserProfile {
   hasCompletedSurvey?: boolean;
 }
 
-// 🎯 NEW: Personalized achievement messages
+// ≡ƒÄ» NEW: Personalized achievement messages
 const ACHIEVEMENT_MESSAGES = [
   "You're on track to hit your monthly goal!",
   "Great job staying ahead of deadlines!",
@@ -117,22 +118,22 @@ const PERSONALIZED_TIPS = [
   "You qualify for 8(a) program opportunities"
 ];
 
-// ✅ NEW: Neutral styling for opportunities with no response deadline
+// Γ£à NEW: Neutral styling for opportunities with no response deadline
 const getNoDeadlineGradient = () => 'from-slate-800/60 to-slate-900/70 border-slate-700/70';
 const getNoDeadlineTextColor = () => 'text-slate-200';
 const getNoDeadlineBadgeColor = () => 'bg-slate-900/60 text-slate-200 border-slate-600/60';
 
-// 🎯 NEW: Utility function to get urgency gradient colors
-// ✅ FIXED: Proper red-to-green gradient based on business days
+// ≡ƒÄ» NEW: Utility function to get urgency gradient colors
+// Γ£à FIXED: Proper red-to-green gradient based on business days
 const getUrgencyGradient = (businessDays: number) => {
-  if (businessDays <= 3) return 'from-red-600/40 to-red-500/30 border-red-500/70';        // 🔴 CRITICAL
-  if (businessDays <= 5) return 'from-orange-600/40 to-orange-500/30 border-orange-500/70'; // 🟠 URGENT
-  if (businessDays <= 7) return 'from-amber-600/40 to-amber-500/30 border-amber-500/70';   // 🟡 HIGH
-  if (businessDays <= 10) return 'from-yellow-500/40 to-yellow-400/30 border-yellow-400/70'; // 🟡 ACT SOON
-  if (businessDays <= 14) return 'from-lime-500/40 to-lime-400/30 border-lime-500/70';     // 🟢 NORMAL
-  if (businessDays <= 21) return 'from-green-500/40 to-green-400/30 border-green-500/70';  // 🟢 COMFORTABLE
-  if (businessDays <= 30) return 'from-emerald-500/40 to-emerald-400/30 border-emerald-500/70'; // 🟢 AMPLE
-  return 'from-emerald-600/40 to-emerald-700/30 border-emerald-600/70'; // 🟢 PLENTY
+  if (businessDays <= 3) return 'from-red-600/40 to-red-500/30 border-red-500/70';        // ≡ƒö┤ CRITICAL
+  if (businessDays <= 5) return 'from-orange-600/40 to-orange-500/30 border-orange-500/70'; // ≡ƒƒá URGENT
+  if (businessDays <= 7) return 'from-amber-600/40 to-amber-500/30 border-amber-500/70';   // ≡ƒƒí HIGH
+  if (businessDays <= 10) return 'from-yellow-500/40 to-yellow-400/30 border-yellow-400/70'; // ≡ƒƒí ACT SOON
+  if (businessDays <= 14) return 'from-lime-500/40 to-lime-400/30 border-lime-500/70';     // ≡ƒƒó NORMAL
+  if (businessDays <= 21) return 'from-green-500/40 to-green-400/30 border-green-500/70';  // ≡ƒƒó COMFORTABLE
+  if (businessDays <= 30) return 'from-emerald-500/40 to-emerald-400/30 border-emerald-500/70'; // ≡ƒƒó AMPLE
+  return 'from-emerald-600/40 to-emerald-700/30 border-emerald-600/70'; // ≡ƒƒó PLENTY
 };
 
 const getUrgencyTextColor = (businessDays: number) => {
@@ -168,7 +169,7 @@ const getUrgencyLabel = (businessDays: number) => {
   return 'PLENTY OF TIME';
 };
 
-// ✅ NEW: Rank function so urgent cards sort LEFT in grid
+// Γ£à NEW: Rank function so urgent cards sort LEFT in grid
 const getUrgencyRank = (businessDays: number | null) => {
   if (businessDays === null || Number.isNaN(businessDays)) return 999;
   if (businessDays <= 3) return 0;
@@ -181,7 +182,7 @@ const getUrgencyRank = (businessDays: number | null) => {
   return 7;
 };
 
-// 🎯 NEW: Department color mapping
+// ≡ƒÄ» NEW: Department color mapping
 const getDepartmentGradient = (department: string) => {
   const dept = department?.toUpperCase() || '';
   if (dept.includes('DEFENSE') || dept.includes('ARMY') || dept.includes('NAVY') || dept.includes('AIR FORCE')) 
@@ -201,10 +202,10 @@ const getDepartmentGradient = (department: string) => {
   return 'from-blue-500/20 to-indigo-600/20 border-blue-500/40';
 };
 
-// ✅ SECTION 1: Agency abbreviation helper
+// Γ£à SECTION 1: Agency abbreviation helper
 const getAgencyAbbreviation = (department?: string) => {
   if (!department) return 'FED';
-  // fullParentPathName: "DEPT OF DEFENSE:DEPT OF THE ARMY:..." — use first segment
+  // fullParentPathName: "DEPT OF DEFENSE:DEPT OF THE ARMY:..." ΓÇö use first segment
   const dept = (department.split(':')[0]).toUpperCase();
   if (dept.includes('DEFENSE'))          return 'DOD';
   if (dept.includes('ARMY'))             return 'ARMY';
@@ -334,7 +335,7 @@ const getEffectivePostedDate = (opportunity: any): string => {
 };
 
 const formatDate = (dateString: string | Date | null | undefined) => {
-  if (!dateString) return '—';
+  if (!dateString) return 'ΓÇö';
   try {
     // Treat bare YYYY-MM-DD as local date to avoid UTC off-by-one shift
     let date: Date;
@@ -344,14 +345,14 @@ const formatDate = (dateString: string | Date | null | undefined) => {
     } else {
       date = typeof dateString === 'string' ? new Date(dateString) : dateString as Date;
     }
-    if (isNaN(date.getTime())) return '—';
+    if (isNaN(date.getTime())) return 'ΓÇö';
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
   } catch {
-    return '—';
+    return 'ΓÇö';
   }
 };
 
@@ -366,7 +367,7 @@ const hasSetAside = (o: SamOpportunity): boolean => {
   return false;
 };
 
-// Set-aside code → { label, color, bg, text } based on SAM.gov official codes
+// Set-aside code ΓåÆ { label, color, bg, text } based on SAM.gov official codes
 const SET_ASIDE_STYLES: Record<string, { label: string; color: string; bg: string; text: string }> = {
   SBA:       { label: 'Small Business',           color: '#eab308', bg: 'rgba(234,179,8,0.15)',   text: '#fde047' },
   SBP:       { label: 'Partial SB',               color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  text: '#fcd34d' },
@@ -427,7 +428,7 @@ export default function OpportunitiesClient() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [refreshIndicator, setRefreshIndicator] = useState(false);
 
-  // 🎯 NEW: View mode state
+  // ≡ƒÄ» NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [groupMode, setGroupMode] = useState<GroupMode>('urgency');
   const [surveyOpen, setSurveyOpen] = useState(false);
@@ -435,24 +436,24 @@ export default function OpportunitiesClient() {
   const [selectedOpp, setSelectedOpp] = useState<SamOpportunity | null>(null);
   const [showMoreBands, setShowMoreBands] = useState<Record<string, boolean>>({});
 
-  // ✅ NEW: Banner dismissal states
+  // Γ£à NEW: Banner dismissal states
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   
-  // ✅ NEW: Toggle for showing/hiding all opportunities including no-deadline
+  // Γ£à NEW: Toggle for showing/hiding all opportunities including no-deadline
   const [showAllOpportunities, setShowAllOpportunities] = useState(false);
 
   // Share tray state
   const [shareOpen, setShareOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // 🎯 FIXED: Get user name from session
+  // ≡ƒÄ» FIXED: Get user name from session
   const userName = session?.user?.name?.split(' ')[0] || '';
   const userDisplayName = userName 
     ? (userName.endsWith('s') ? `${userName}'` : `${userName}'s`)
     : '';
 
-  // 🎯 FIXED: Create user profile from session
+  // ≡ƒÄ» FIXED: Create user profile from session
   const [userProfile, setUserProfile] = useState<UserProfile>({
     first_name: userName,
     companyName: 'Your Business',
@@ -464,7 +465,7 @@ export default function OpportunitiesClient() {
   const [userAchievement, setUserAchievement] = useState('');
   const [userTip, setUserTip] = useState('');
 
-  // 🎯 IMPROVED: Accurate stats calculation based on actual data
+  // ≡ƒÄ» IMPROVED: Accurate stats calculation based on actual data
   const stats = useMemo(() => {
     if (!dataLoaded) {
       return {
@@ -505,7 +506,7 @@ export default function OpportunitiesClient() {
     };
   }, [dataLoaded, allOpportunities]);
 
-  // 🎯 OPTIMIZED: Memoized filter application - FIXED to not filter everything out
+  // ≡ƒÄ» OPTIMIZED: Memoized filter application - FIXED to not filter everything out
   const applyFilters = useCallback((opportunities: SamOpportunity[],
     filter: string | null,
     search: string,
@@ -585,7 +586,7 @@ export default function OpportunitiesClient() {
       );
     }
 
-    // Urgency filter from legend pills — for list/compact view
+    // Urgency filter from legend pills ΓÇö for list/compact view
     // Board view handles this via column dimming (not pre-filtering)
     if (selectedUrgencyFilters.size > 0) {
       filtered = filtered.filter(opp => {
@@ -628,7 +629,7 @@ export default function OpportunitiesClient() {
     }
 
     // Date-based filtering - only filter out expired opportunities
-    // Only filter out expired opportunities — no future cap, all opps show
+    // Only filter out expired opportunities ΓÇö no future cap, all opps show
     const now = new Date();
     filtered = filtered.filter(opp => {
       const deadline = getEffectiveDeadline(opp);
@@ -798,7 +799,7 @@ Provide analysis in JSON format with:
     }
   };
 
-  // 🎯 NEW: Listen for survey completion
+  // ≡ƒÄ» NEW: Listen for survey completion
   useEffect(() => {
     const handleSurveyCompleted = (event: CustomEvent) => {
       setUserProfile(prev => ({
@@ -814,7 +815,7 @@ Provide analysis in JSON format with:
     };
   }, []);
 
-  // 🎯 FIXED: Set achievement messages based on session
+  // ≡ƒÄ» FIXED: Set achievement messages based on session
   useEffect(() => {
     if (userName) {
       const randomAchievement = ACHIEVEMENT_MESSAGES[Math.floor(Math.random() * ACHIEVEMENT_MESSAGES.length)];
@@ -832,7 +833,7 @@ Provide analysis in JSON format with:
     }
   }, [userName]);
 
-  // 🎯 NEW: Listen for preference updates
+  // ≡ƒÄ» NEW: Listen for preference updates
   useEffect(() => {
     const handlePreferencesUpdate = (event: CustomEvent) => {
       setOpportunityPreferences(event.detail);
@@ -854,7 +855,7 @@ Provide analysis in JSON format with:
     };
   }, []);
 
-  // ✅ NEW: Check if banner was dismissed in localStorage
+  // Γ£à NEW: Check if banner was dismissed in localStorage
   useEffect(() => {
     const dismissed = localStorage.getItem('welcomeBannerDismissed') === 'true';
     setBannerDismissed(dismissed);
@@ -863,7 +864,7 @@ Provide analysis in JSON format with:
     }
   }, []);
 
-  // ✅ NEW: Listen for survey completion to hide banner
+  // Γ£à NEW: Listen for survey completion to hide banner
   useEffect(() => {
     const handleSurveyCompleted = () => {
       setShowWelcomeBanner(false);
@@ -874,7 +875,7 @@ Provide analysis in JSON format with:
     return () => window.removeEventListener('surveyCompleted', handleSurveyCompleted);
   }, []);
 
-  // ✅ NEW: Handle banner dismissal
+  // Γ£à NEW: Handle banner dismissal
   const handleDismissBanner = () => {
     setShowWelcomeBanner(false);
     setBannerDismissed(true);
@@ -910,13 +911,13 @@ Provide analysis in JSON format with:
 
         if (!response.ok) {
           if (response.status === 429) {
-            console.warn(`⚠️ Rate limited by SAM.gov.`);
+            console.warn(`ΓÜá∩╕Å Rate limited by SAM.gov.`);
             if (isMounted && !dataLoaded) {
               setError('SAM.gov rate limit reached. Using sample data.');
               setLastUpdated('Rate Limited');
             }
           } else {
-            console.warn(`⚠️ SAM API unavailable (${response.status}), using current data`);
+            console.warn(`ΓÜá∩╕Å SAM API unavailable (${response.status}), using current data`);
             if (isMounted && !dataLoaded) {
               setError('SAM.gov API is temporarily unavailable. Showing sample data.');
               setLastUpdated('API Unavailable');
@@ -931,15 +932,15 @@ Provide analysis in JSON format with:
           // Debug: dump full first opportunity to find real field names
           if (result.opportunities?.[0]) {
             const s = result.opportunities[0];
-            console.log('🔍 FULL opportunity keys:', Object.keys(s));
-            console.log('🔍 FULL opportunity:', JSON.stringify(s, null, 2));
+            console.log('≡ƒöì FULL opportunity keys:', Object.keys(s));
+            console.log('≡ƒöì FULL opportunity:', JSON.stringify(s, null, 2));
           }
           
-          // Normalize every opportunity — handle all possible API field name variants
+          // Normalize every opportunity ΓÇö handle all possible API field name variants
           const opportunities = (result.opportunities || []).map((raw: any): SamOpportunity => {
             const o: SamOpportunity = { ...raw };
 
-            // ── Department / Org ─────────────────────────────────────────
+            // ΓöÇΓöÇ Department / Org ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             // SAM v2 deprecated 'department'; real data is in fullParentPathName
             if (!o.department || o.department === 'Unknown') {
               o.department =
@@ -951,7 +952,7 @@ Provide analysis in JSON format with:
               o.fullParentPathName = raw.fullParentPathName || raw.organizationName || '';
             }
 
-            // ── Set-Aside ────────────────────────────────────────────────
+            // ΓöÇΓöÇ Set-Aside ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             // API field 'setAside' holds the CODE (SBA, WOSB, etc.)
             // 'typeOfSetAsideDescription' holds the human label
             const saCode = raw.setAside || raw.typeOfSetAside || raw.setAsideCode || '';
@@ -960,36 +961,36 @@ Provide analysis in JSON format with:
             o.typeOfSetAsideDescription = saDesc.trim();
             (o as any).setAside = saCode.trim(); // keep for hasSetAside()
 
-            // ── NAICS ────────────────────────────────────────────────────
+            // ΓöÇΓöÇ NAICS ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             if (!o.naicsCode) {
               o.naicsCode = raw.naicsCode || raw.naics || raw.naicsCodes?.[0] || '';
             }
 
-            // ── Classification (PSC) ─────────────────────────────────────
+            // ΓöÇΓöÇ Classification (PSC) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             if (!o.classificationCode) {
               o.classificationCode = raw.classificationCode || raw.pscCode || raw.productServiceCode || '';
             }
 
-            // ── Office Address ───────────────────────────────────────────
+            // ΓöÇΓöÇ Office Address ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             if (!o.officeAddress && (raw.officeAddress || raw.city || raw.state)) {
               o.officeAddress = raw.officeAddress || {
                 city: raw.city, state: raw.state, zip: raw.zip
               };
             }
 
-            // ── Place of Performance ─────────────────────────────────────
+            // ΓöÇΓöÇ Place of Performance ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             if (!o.placeOfPerformance && raw.placeOfPerformance) {
               o.placeOfPerformance = raw.placeOfPerformance;
             }
 
-            // ── Point of Contact ─────────────────────────────────────────
+            // ΓöÇΓöÇ Point of Contact ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             if (!o.pointOfContact && raw.pointOfContact) {
               o.pointOfContact = Array.isArray(raw.pointOfContact)
                 ? raw.pointOfContact
                 : [raw.pointOfContact];
             }
 
-            // ── Opportunity Type ─────────────────────────────────────────
+            // ΓöÇΓöÇ Opportunity Type ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             if (!o.type) {
               o.type = raw.type || raw.opportunityType || raw.baseType || '';
             }
@@ -997,7 +998,7 @@ Provide analysis in JSON format with:
             return o;
           });
           
-          // Only accept non-empty results — ignore the fast empty cache response
+          // Only accept non-empty results ΓÇö ignore the fast empty cache response
           if (opportunities.length > 0) {
             setAllOpportunities(opportunities);
             setTotalRecords(opportunities.length);
@@ -1005,7 +1006,7 @@ Provide analysis in JSON format with:
             setDataLoaded(true);
             setError(null);
           } else if (!dataLoaded) {
-            console.log('⏳ Empty response from API — waiting for real data...');
+            console.log('ΓÅ│ Empty response from API ΓÇö waiting for real data...');
           }
         }
       } catch (err: any) {
@@ -1024,7 +1025,7 @@ Provide analysis in JSON format with:
     };
 
     fetchAllOpportunities();
-    console.log("✅ Auto-fetch DISABLED. Use Refresh button to manually fetch from SAM.gov");
+    console.log("Γ£à Auto-fetch DISABLED. Use Refresh button to manually fetch from SAM.gov");
 
     return () => {
       isMounted = false;
@@ -1058,7 +1059,7 @@ Provide analysis in JSON format with:
     selectedUrgency, selectedUrgencyFilters, showAllOpportunities
   ]);
 
-  // 🎯 NEW: Personalized stats
+  // ≡ƒÄ» NEW: Personalized stats
   const personalizedStats = useMemo(() => {
     if (!dataLoaded || !userProfile) return null;
     
@@ -1078,7 +1079,7 @@ Provide analysis in JSON format with:
   // Normalize search term: expand common synonyms to match actual field values
   const normalizeSearch = (raw: string): string[] => {
     const t = raw.trim().toLowerCase();
-    // Map human phrases → actual field value fragments
+    // Map human phrases ΓåÆ actual field value fragments
     const SYNONYMS: Record<string, string[]> = {
       'set-aside': ['sba','sbp','wosb','sdvosb','sdvosbc','8a','hubzone','hzc','vosb','vsa','edwosb'],
       'setaside': ['sba','sbp','wosb','sdvosbc','8a','hubzone','hzc','vosb'],
@@ -1159,7 +1160,7 @@ Provide analysis in JSON format with:
   const visibleOpportunities = keywordFiltered.slice(0, displayCount);
   const hasMore = displayCount < displayedOpportunities.length;
 
-  // 🎯 NEW: Group opportunities by selected criteria
+  // ≡ƒÄ» NEW: Group opportunities by selected criteria
   const groupedOpportunities = useMemo(() => {
     if (groupMode === 'none') {
       return { 'All Opportunities': visibleOpportunities };
@@ -1243,7 +1244,7 @@ Provide analysis in JSON format with:
     );
   }
 
-  // ── UNAUTHENTICATED: show teaser/locked page ──
+  // ΓöÇΓöÇ UNAUTHENTICATED: show teaser/locked page ΓöÇΓöÇ
   if (!isLoggedIn && sessionStatus !== 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
@@ -1284,14 +1285,14 @@ Provide analysis in JSON format with:
                 Curated <span className="text-orange-400">GovCon</span> Opportunities
               </h2>
               <p className="text-slate-300 text-lg mb-2 leading-relaxed">
-                Sign in to access <span className="text-cyan-400 font-bold">live federal solicitations</span> curated by our proprietary analytics engine — sorted by urgency, personalized to your profile.
+                Sign in to access <span className="text-cyan-400 font-bold">live federal solicitations</span> curated by our proprietary analytics engine ΓÇö sorted by urgency, personalized to your profile.
               </p>
               <div className="mt-6 mb-8 grid grid-cols-1 gap-3 text-left">
                 {[
-                  { icon: '🎯', text: 'Personalized matches based on your NAICS codes and certifications' },
-                  { icon: '⚡', text: 'Real-time data from SAM.gov, filtered and deadline-sorted' },
-                  { icon: '🔔', text: 'Urgency alerts so you never miss a critical deadline' },
-                  { icon: '📊', text: 'Proprietary win-probability & competition analysis' },
+                  { icon: '≡ƒÄ»', text: 'Personalized matches based on your NAICS codes and certifications' },
+                  { icon: 'ΓÜí', text: 'Real-time data from SAM.gov, filtered and deadline-sorted' },
+                  { icon: '≡ƒöö', text: 'Urgency alerts so you never miss a critical deadline' },
+                  { icon: '≡ƒôè', text: 'Proprietary win-probability & competition analysis' },
                 ].map(({icon, text}) => (
                   <div key={text} className="flex items-start gap-3 px-4 py-3 bg-white/5 rounded-xl border border-white/10">
                     <span className="text-xl flex-shrink-0">{icon}</span>
@@ -1308,7 +1309,7 @@ Provide analysis in JSON format with:
               <p className="mt-4 text-slate-500 text-sm">
                 No account?{' '}
                 <a href="/login?mode=register" className="text-cyan-400 hover:underline font-semibold">
-                  Create one free →
+                  Create one free ΓåÆ
                 </a>
               </p>
             </div>
@@ -1430,7 +1431,7 @@ Provide analysis in JSON format with:
       )}
 
       <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
-        {/* 🎯 HERO SECTION - What we're showing and how */}
+        {/* ≡ƒÄ» HERO SECTION - What we're showing and how */}
         <div className="mb-2 p-2 sm:p-3 bg-gradient-to-br from-blue-900/30 via-indigo-900/20 to-purple-900/30 rounded-xl border border-blue-500/30">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
@@ -1446,7 +1447,7 @@ Provide analysis in JSON format with:
                   {(() => {
                     const h = new Date().getHours();
                     const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
-                    return (<><span className="text-white">{g}, </span><span className="text-orange-400">{userName || 'there'}</span><span className="text-white">! Welcome to your curated opportunities provided by </span><span className="text-orange-400">Precise GovCon</span><span className="text-white"> ®</span></>);
+                    return (<><span className="text-white">{g}, </span><span className="text-orange-400">{userName || 'there'}</span><span className="text-white">! Welcome to your curated opportunities provided by </span><span className="text-orange-400">Precise GovCon</span><span className="text-white"> ┬«</span></>);
                   })()}
                 </h1>
               </div>
@@ -1471,7 +1472,7 @@ Provide analysis in JSON format with:
               </div>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  {userName ? `Welcome, ${userName}! 👋` : 'Welcome! 👋'}
+                  {userName ? `Welcome, ${userName}! ≡ƒæï` : 'Welcome! ≡ƒæï'}
                 </h2>
                 <p className="text-slate-300 text-base mb-3">
                   Complete your opportunity preferences survey to get personalized recommendations
@@ -1520,12 +1521,12 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-        {/* 🎯 ACCURATE STATS PILLS - Interactive */}
+        {/* ≡ƒÄ» ACCURATE STATS PILLS - Interactive */}
         <div className="mb-2 flex gap-2">
           {[
             { filter: 'active' as const,      icon: <CheckCircle2 className="w-3.5 h-3.5" />, value: stats.totalActive, label: 'Active',        accent: 'text-emerald-400', border: 'border-emerald-700', activeBg: 'bg-emerald-500/10' },
             { filter: 'setasides' as const,    icon: <Award className="w-3.5 h-3.5" />,        value: stats.setAsides,   label: 'Set-Asides',   accent: 'text-violet-400',  border: 'border-violet-700',  activeBg: 'bg-violet-500/10'  },
-            { filter: 'expiring' as const,     icon: <Timer className="w-3.5 h-3.5" />,        value: stats.closingSoon, label: 'Closing ≤7d',  accent: 'text-rose-400',    border: 'border-rose-700',    activeBg: 'bg-rose-500/10'    },
+            { filter: 'expiring' as const,     icon: <Timer className="w-3.5 h-3.5" />,        value: stats.closingSoon, label: 'Closing Γëñ7d',  accent: 'text-rose-400',    border: 'border-rose-700',    activeBg: 'bg-rose-500/10'    },
             { filter: 'departments' as const,  icon: <Building2 className="w-3.5 h-3.5" />,    value: stats.departments, label: 'Agencies',     accent: 'text-teal-400',    border: 'border-teal-700',    activeBg: 'bg-teal-500/10'    },
           ].map(s => (
             <button key={s.filter} onClick={() => handlePillClick(s.filter)}
@@ -1544,13 +1545,13 @@ Provide analysis in JSON format with:
           </div>
         </div>
 
-        {/* 🎯 PROMINENT SEARCH BAR - White background, enhanced visibility */}
+        {/* ≡ƒÄ» PROMINENT SEARCH BAR - White background, enhanced visibility */}
         <div className="mb-8">
           <div className="relative">
             <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-600 w-6 h-6" />
             <input
               type="text"
-              placeholder="🔍 Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
+              placeholder="≡ƒöì Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setKeywordSearch(e.target.value); }}
               className="w-full pl-16 pr-16 py-5 bg-white text-slate-900 border-2 border-slate-300 rounded-2xl placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-medium shadow-xl"
@@ -1567,7 +1568,7 @@ Provide analysis in JSON format with:
           {(searchTerm || keywordSearch) && (
             <p className="mt-1 text-xs text-cyan-400 pl-1">
               {keywordFiltered.length === 0 
-                ? `No results for "${searchTerm || keywordSearch}" — try: veteran, army, wosb, 8a, hubzone, or a state abbreviation`
+                ? `No results for "${searchTerm || keywordSearch}" ΓÇö try: veteran, army, wosb, 8a, hubzone, or a state abbreviation`
                 : `${keywordFiltered.length} result${keywordFiltered.length !== 1 ? 's' : ''} for "${searchTerm || keywordSearch}"`
               }
             </p>
@@ -1679,7 +1680,7 @@ Provide analysis in JSON format with:
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
             {[
-              { label: 'CRITICAL', range: '≤3 days', days: 3, color: 'bg-red-600' },
+              { label: 'CRITICAL', range: 'Γëñ3 days', days: 3, color: 'bg-red-600' },
               { label: 'URGENT', range: '4-5 days', days: 5, color: 'bg-orange-600' },
               { label: 'HIGH', range: '6-7 days', days: 7, color: 'bg-amber-600' },
               { label: 'ACT SOON', range: '8-10 days', days: 10, color: 'bg-yellow-600' },
@@ -1703,7 +1704,7 @@ Provide analysis in JSON format with:
 
           <p className="mt-4 text-sm text-slate-400 text-center">
             {selectedUrgencyFilters.size > 0
-              ? `✓ Active filters: ${Array.from(selectedUrgencyFilters).join(' · ')} — click to deselect`
+              ? `Γ£ô Active filters: ${Array.from(selectedUrgencyFilters).join(' ┬╖ ')} ΓÇö click to deselect`
               : 'Click one or more deadline categories to filter. Multi-select supported.'}
           </p>
         </div>
@@ -1740,16 +1741,16 @@ Provide analysis in JSON format with:
 
         {/* Opportunities Display */}
 
-        {/* GRID VIEW — 8 columns side by side, each full-width column = one category */}
+        {/* GRID VIEW ΓÇö 8 columns side by side, each full-width column = one category */}
         {viewMode === 'grid' && (() => {
           const COLS = [
-            { key: 'CRITICAL',    min: 0,  max: 3,     label: 'CRITICAL',    range: '≤3 days',    hdr: '#dc2626', bg: '#1c0606' },
-            { key: 'URGENT',      min: 4,  max: 5,     label: 'URGENT',      range: '4–5 days',   hdr: '#ea580c', bg: '#1c0d04' },
-            { key: 'HIGH',        min: 6,  max: 7,     label: 'HIGH',        range: '6–7 days',   hdr: '#d97706', bg: '#1c1404' },
-            { key: 'ACT SOON',    min: 8,  max: 10,    label: 'ACT SOON',    range: '8–10 days',  hdr: '#ca8a04', bg: '#1c1804' },
-            { key: 'NORMAL',      min: 11, max: 14,    label: 'NORMAL',      range: '11–14 days', hdr: '#65a30d', bg: '#0b1803' },
-            { key: 'COMFORTABLE', min: 15, max: 21,    label: 'COMFORTABLE', range: '15–21 days', hdr: '#16a34a', bg: '#031809' },
-            { key: 'AMPLE',       min: 22, max: 30,    label: 'AMPLE',       range: '22–30 days', hdr: '#059669', bg: '#02140f' },
+            { key: 'CRITICAL',    min: 0,  max: 3,     label: 'CRITICAL',    range: 'Γëñ3 days',    hdr: '#dc2626', bg: '#1c0606' },
+            { key: 'URGENT',      min: 4,  max: 5,     label: 'URGENT',      range: '4ΓÇô5 days',   hdr: '#ea580c', bg: '#1c0d04' },
+            { key: 'HIGH',        min: 6,  max: 7,     label: 'HIGH',        range: '6ΓÇô7 days',   hdr: '#d97706', bg: '#1c1404' },
+            { key: 'ACT SOON',    min: 8,  max: 10,    label: 'ACT SOON',    range: '8ΓÇô10 days',  hdr: '#ca8a04', bg: '#1c1804' },
+            { key: 'NORMAL',      min: 11, max: 14,    label: 'NORMAL',      range: '11ΓÇô14 days', hdr: '#65a30d', bg: '#0b1803' },
+            { key: 'COMFORTABLE', min: 15, max: 21,    label: 'COMFORTABLE', range: '15ΓÇô21 days', hdr: '#16a34a', bg: '#031809' },
+            { key: 'AMPLE',       min: 22, max: 30,    label: 'AMPLE',       range: '22ΓÇô30 days', hdr: '#059669', bg: '#02140f' },
             { key: 'PLENTY',      min: 31, max: 99999, label: 'PLENTY',      range: '31+ days',        hdr: '#0d9488', bg: '#021718' },
           ];
 
@@ -1757,7 +1758,7 @@ Provide analysis in JSON format with:
           const buckets: Record<string, Tagged[]> = {};
           COLS.forEach(c => { buckets[c.key] = []; });
 
-          // Board uses boardFiltered — bypasses urgency pre-filter (columns handle it)
+          // Board uses boardFiltered ΓÇö bypasses urgency pre-filter (columns handle it)
           boardFiltered.forEach(opp => {
             if (opp.noticeId.startsWith('placeholder')) return;
             const dl = getEffectiveDeadline(opp);
@@ -1812,7 +1813,7 @@ Provide analysis in JSON format with:
                       }}>{all.length}</div>
                     </div>
 
-                    {/* Cards — every card is full width of this column, stacks down */}
+                    {/* Cards ΓÇö every card is full width of this column, stacks down */}
                     {shown.map(opp => {
                       const dl       = getEffectiveDeadline(opp);
                       const isSaved  = savedOpportunities.has(opp.noticeId);
@@ -1860,7 +1861,7 @@ Provide analysis in JSON format with:
                           <div style={{ marginBottom: '3px' }}>
                             <span style={{ color: '#94a3b8', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Due </span>
                             <span style={{ color: col.hdr, fontSize: '13px', fontWeight: 800 }}>
-                              {dl ? formatDate(dl) : '—'}
+                              {dl ? formatDate(dl) : 'ΓÇö'}
                             </span>
                           </div>
                           {/* Posted */}
@@ -1922,7 +1923,7 @@ Provide analysis in JSON format with:
           );
         })()}
 
-        {/* COMPACT + LIST VIEWS — grouped loop */}
+        {/* COMPACT + LIST VIEWS ΓÇö grouped loop */}
         {viewMode !== 'grid' && Object.entries(groupedOpportunities).map(([groupName, opportunities]) => {
           const sortedOpportunities = opportunities;
 
@@ -1965,7 +1966,7 @@ Provide analysis in JSON format with:
                             <div className="flex flex-col gap-2 w-[190px] flex-shrink-0">
                               <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current inline-flex items-center justify-between`}>
                                 <span>{urgencyLabel}</span>
-                                <span className="ml-2">{businessDays !== null ? `${businessDays}bd` : '∞'}</span>
+                                <span className="ml-2">{businessDays !== null ? `${businessDays}bd` : 'Γê₧'}</span>
                               </div>
                             </div>
                           )}
@@ -1986,7 +1987,7 @@ Provide analysis in JSON format with:
                               <div className="mt-1 pt-1 border-t border-slate-700/50 text-xs text-slate-400">
                                 Posted: {formatDate(postedDate)}
                                 {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
-                                  <span className="ml-2 text-cyan-400">• Updated: {formatDate(opp.updatedPostedDate)}</span>
+                                  <span className="ml-2 text-cyan-400">ΓÇó Updated: {formatDate(opp.updatedPostedDate)}</span>
                                 )}
                               </div>
                             </div>
@@ -2143,7 +2144,7 @@ Provide analysis in JSON format with:
                                   <>
                                     <span>Posted: {formatDate(postedDate)}</span>
                                     {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
-                                      <span className="text-cyan-400 ml-1">• Updated</span>
+                                      <span className="text-cyan-400 ml-1">ΓÇó Updated</span>
                                     )}
                                   </>
                                 )}
@@ -2168,7 +2169,7 @@ Provide analysis in JSON format with:
                                 </div>
                               )}
                               <div className="text-xs sm:text-sm text-slate-300">
-                                {deadline ? formatDate(deadline) : '—'}
+                                {deadline ? formatDate(deadline) : 'ΓÇö'}
                                 {opp.updatedResponseDeadLine && (
                                   <span className="ml-1 text-xs text-cyan-400">(Updated)</span>
                                 )}
@@ -2307,7 +2308,7 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-        {/* ── Opportunity Detail Modal ── */}
+        {/* ΓöÇΓöÇ Opportunity Detail Modal ΓöÇΓöÇ */}
         {selectedOpp && (() => {
           const opp = selectedOpp;
           const dl = getEffectiveDeadline(opp);
@@ -2355,10 +2356,10 @@ Provide analysis in JSON format with:
                   </button>
                 </div>
 
-                {/* Body — scrollable */}
+                {/* Body ΓÇö scrollable */}
                 <div className="overflow-y-auto max-h-[60vh]">
 
-                  {/* ── Set-aside badge row (prominent, full width) ── */}
+                  {/* ΓöÇΓöÇ Set-aside badge row (prominent, full width) ΓöÇΓöÇ */}
                   {(() => {
                     const sa = getSetAsideStyle(opp);
                     const rawCode = ((opp as any).setAside || opp.typeOfSetAside || '').trim();
@@ -2382,7 +2383,7 @@ Provide analysis in JSON format with:
                     );
                   })()}
 
-                  {/* ── Main info grid ── */}
+                  {/* ΓöÇΓöÇ Main info grid ΓöÇΓöÇ */}
                   <div className="px-6 py-3 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
 
                     {/* LEFT column */}
@@ -2391,37 +2392,37 @@ Provide analysis in JSON format with:
                       {/* Department / Agency */}
                       <div>
                         <p className="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                          🏛 Department / Agency
+                          ≡ƒÅ¢ Department / Agency
                         </p>
                         {(() => {
                           const dept = opp.fullParentPathName || opp.department || '';
-                          if (!dept || dept === 'Unknown') return <p className="text-slate-500 italic text-xs">Not available — view on SAM.gov</p>;
+                          if (!dept || dept === 'Unknown') return <p className="text-slate-500 italic text-xs">Not available ΓÇö view on SAM.gov</p>;
                           const parts = dept.split(':').map((p: string) => p.trim()).filter(Boolean);
                           return (
                             <div>
                               <p className="text-white font-semibold text-sm leading-snug">{parts[0]}</p>
                               {parts.length > 1 && (
-                                <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{parts.slice(1).join(' › ')}</p>
+                                <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{parts.slice(1).join(' ΓÇ║ ')}</p>
                               )}
                             </div>
                           );
                         })()}
                       </div>
 
-                      {/* Solicitation # — only show if it looks like a real solicitation number */}
+                      {/* Solicitation # ΓÇö only show if it looks like a real solicitation number */}
                       {opp.solicitationNumber && !opp.solicitationNumber.match(/^[0-9a-f]{32,}$/i) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📋 Solicitation #</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôï Solicitation #</p>
                           <p className="text-cyan-300 font-mono text-xs break-all leading-relaxed">{opp.solicitationNumber}</p>
                         </div>
                       )}
 
-                      {/* NAICS + PSC — only show if we have values */}
+                      {/* NAICS + PSC ΓÇö only show if we have values */}
                       {(opp.naicsCode || opp.classificationCode) && (
                         <div className="flex gap-4">
                           {opp.naicsCode && (
                             <div>
-                              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📊 NAICS</p>
+                              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôè NAICS</p>
                               <p className="text-slate-200 font-mono font-bold">{opp.naicsCode}</p>
                             </div>
                           )}
@@ -2437,7 +2438,7 @@ Provide analysis in JSON format with:
                       {/* Office location */}
                       {(opp.officeAddress?.city || opp.officeAddress?.state) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📍 Office Location</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôì Office Location</p>
                           <p className="text-slate-200 text-sm">
                             {[opp.officeAddress?.city, opp.officeAddress?.state, opp.officeAddress?.zip].filter(Boolean).join(', ')}
                           </p>
@@ -2447,7 +2448,7 @@ Provide analysis in JSON format with:
                       {/* Place of Performance */}
                       {(opp.placeOfPerformance?.city?.name || opp.placeOfPerformance?.state?.name || opp.placeOfPerformance?.state?.code) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🗺 Place of Performance</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒù║ Place of Performance</p>
                           <p className="text-slate-200 text-sm">
                             {[
                               opp.placeOfPerformance?.city?.name,
@@ -2461,13 +2462,13 @@ Provide analysis in JSON format with:
                       {/* Contact */}
                       {opp.pointOfContact && opp.pointOfContact.length > 0 && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1.5">👤 Point of Contact</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1.5">≡ƒæñ Point of Contact</p>
                           {opp.pointOfContact.slice(0, 2).map((poc, i) => (
                             <div key={i} className="mb-2 pl-2 border-l-2 border-slate-700">
                               {poc.fullname && (
                                 <p className="text-white text-xs font-semibold">
                                   {poc.fullname}
-                                  {poc.title && <span className="text-slate-400 font-normal ml-1 text-xs">· {poc.title}</span>}
+                                  {poc.title && <span className="text-slate-400 font-normal ml-1 text-xs">┬╖ {poc.title}</span>}
                                 </p>
                               )}
                               {poc.email && (
@@ -2485,17 +2486,17 @@ Provide analysis in JSON format with:
 
                       {/* Deadline */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">⏰ Response Deadline</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">ΓÅ░ Response Deadline</p>
                         <p className={`text-lg font-black ${urgencyTextColor}`}>{dl ? formatDate(dl) : 'No deadline'}</p>
                         {bd !== null && <p className="text-xs text-slate-400 mt-0.5">{bd} business days remaining</p>}
                         {opp.updatedResponseDeadLine && opp.updatedResponseDeadLine !== opp.responseDeadLine && (
-                          <p className="text-xs text-amber-400 mt-0.5">⚠ Deadline was updated</p>
+                          <p className="text-xs text-amber-400 mt-0.5">ΓÜá Deadline was updated</p>
                         )}
                       </div>
 
                       {/* Posted */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📅 Posted Date</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôà Posted Date</p>
                         <p className="text-slate-200 font-semibold">{formatDate(postedDate)}</p>
                         {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
                           <p className="text-xs text-cyan-400 mt-0.5">Updated: {formatDate(opp.updatedPostedDate)}</p>
@@ -2505,7 +2506,7 @@ Provide analysis in JSON format with:
                       {/* Opportunity type */}
                       {opp.type && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📄 Opportunity Type</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôä Opportunity Type</p>
                           <p className="text-slate-200 capitalize">{
                             ({ o: 'Solicitation', p: 'Pre-Solicitation', a: 'Award Notice', r: 'Sources Sought',
                                s: 'Special Notice', k: 'Combined Synopsis', u: 'Justification (J&A)',
@@ -2516,14 +2517,14 @@ Provide analysis in JSON format with:
 
                       {/* Notice ID */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🔑 Notice ID</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒöæ Notice ID</p>
                         <p className="text-slate-400 font-mono text-xs break-all">{opp.noticeId}</p>
                       </div>
 
                       {/* AI Analysis */}
                       {opp.aiAnalysis && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">🤖 AI Analysis</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">≡ƒñû AI Analysis</p>
                           <div className="grid grid-cols-3 gap-2 text-center mb-2">
                             <div className="bg-slate-800/60 rounded-lg p-2">
                               <p className="text-xs text-slate-400">Match</p>
@@ -2594,7 +2595,7 @@ Provide analysis in JSON format with:
                 Get Better <span className="text-orange-400">Curated</span> Opportunities
               </h3>
               <p className="text-slate-300 text-base leading-relaxed mb-6">
-                Fill out your opportunity preferences to unlock <strong className="text-white">personalized recommendations</strong> powered by our proprietary analytics tools — matching your NAICS codes, certifications, and target agencies.
+                Fill out your opportunity preferences to unlock <strong className="text-white">personalized recommendations</strong> powered by our proprietary analytics tools ΓÇö matching your NAICS codes, certifications, and target agencies.
               </p>
               <div className="space-y-3">
                 <button
@@ -2633,12 +2634,12 @@ Provide analysis in JSON format with:
       </div>
     </div>
 
-    {/* ── Floating action strip ────────────────────────────────────── */}
+    {/* ΓöÇΓöÇ Floating action strip ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
     {/* Positioned at bottom-right, lifted high enough to never overlap
         the app's native Menu / Support buttons that sit at the very bottom */}
     <div style={{
       position: 'fixed',
-      bottom: '100px',   // ← clears the Menu + Support buttons below
+      bottom: '100px',   // ΓåÉ clears the Menu + Support buttons below
       right: '20px',
       display: 'flex',
       flexDirection: 'column',
@@ -2647,7 +2648,7 @@ Provide analysis in JSON format with:
       zIndex: 9999,
     }}>
 
-      {/* ── Share tray (slides in above main buttons) ── */}
+      {/* ΓöÇΓöÇ Share tray (slides in above main buttons) ΓöÇΓöÇ */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -2763,7 +2764,7 @@ Provide analysis in JSON format with:
         </button>
       </div>
 
-      {/* ── Link copied toast ── */}
+      {/* ΓöÇΓöÇ Link copied toast ΓöÇΓöÇ */}
       {linkCopied && (
         <div style={{
           padding: '7px 16px',
@@ -2777,11 +2778,11 @@ Provide analysis in JSON format with:
           boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           animation: 'fadeInUp 0.2s ease',
         }}>
-          ✓ Link copied!
+          Γ£ô Link copied!
         </div>
       )}
 
-      {/* ── Main action row ── */}
+      {/* ΓöÇΓöÇ Main action row ΓöÇΓöÇ */}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
 
         {/* Back to top */}
@@ -2877,7 +2878,7 @@ Provide analysis in JSON format with:
           Refresh
         </button>
 
-        {/* Share — toggles the tray above */}
+        {/* Share ΓÇö toggles the tray above */}
         <button
           onClick={() => setShareOpen(s => !s)}
           title="Share"

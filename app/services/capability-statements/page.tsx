@@ -9,7 +9,8 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'Professional Capability Statements | Precise GovCon',
+  alternates: { canonical: 'https://www.precisegovcon.com/services/capability-statements' },
+  title: 'Capability Statements for Gov Contractors | PreciseGovCon',
   description: 'Modern, buyer-friendly one-page capability statements that win meetings and open doors. Tailored to your target agencies and NAICS codes.',
 }
 
@@ -127,9 +128,9 @@ export default function CapabilityStatementsPage() {
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { emoji: '😴', title: 'Too Generic', desc: 'Template language that sounds like everyone else. No specific value proposition.' },
-              { emoji: '📄', title: 'Poor Design', desc: 'Dense walls of text, tiny fonts, outdated styling. Not scannable in 10 seconds.' },
-              { emoji: '🎯', title: 'Wrong Focus', desc: 'Features instead of outcomes. What you do instead of the problems you solve.' },
+              { emoji: '😴', title: 'Capability Statements for Gov Contractors | PreciseGovCon', desc: 'Template language that sounds like everyone else. No specific value proposition.' },
+              { emoji: '📄', title: 'Capability Statements for Gov Contractors | PreciseGovCon', desc: 'Dense walls of text, tiny fonts, outdated styling. Not scannable in 10 seconds.' },
+              { emoji: '🎯', title: 'Capability Statements for Gov Contractors | PreciseGovCon', desc: 'Features instead of outcomes. What you do instead of the problems you solve.' },
             ].map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl p-5 border-2 border-amber-200 shadow-md">
                 <div className="text-4xl font-black text-amber-600 mb-2">{item.emoji}</div>
@@ -157,37 +158,37 @@ export default function CapabilityStatementsPage() {
             {[
               {
                 icon: Palette,
-                title: 'Professional Design',
+                title: 'Capability Statements for Gov Contractors | PreciseGovCon',
                 description: 'Modern, scannable format with clear hierarchy. Visual elements that draw the eye. Mobile and print-friendly.',
                 color: 'blue',
               },
               {
                 icon: Target,
-                title: 'Strategic Positioning',
+                title: 'Capability Statements for Gov Contractors | PreciseGovCon',
                 description: 'Value proposition tailored to your target agencies. Outcomes-focused language that resonates with buyers.',
                 color: 'emerald',
               },
               {
                 icon: BarChart3,
-                title: 'NAICS & PSC Alignment',
+                title: 'Capability Statements for Gov Contractors | PreciseGovCon',
                 description: 'Clearly displayed codes with descriptions. Easy for buyers to see if you fit their needs.',
                 color: 'purple',
               },
               {
                 icon: Users,
-                title: 'Prime & Sub Versions',
+                title: 'Capability Statements for Gov Contractors | PreciseGovCon',
                 description: 'Two versions: one for prime opportunities, one for subcontracting. Each with appropriate positioning.',
                 color: 'cyan',
               },
               {
                 icon: Award,
-                title: 'Past Performance',
+                title: 'Capability Statements for Gov Contractors | PreciseGovCon',
                 description: 'Relevant contract examples presented clearly. Metrics and outcomes highlighted.',
                 color: 'amber',
               },
               {
                 icon: Download,
-                title: 'Multiple Formats',
+                title: 'Capability Statements for Gov Contractors | PreciseGovCon',
                 description: 'High-res PDF for printing, web-optimized for email, editable source files.',
                 color: 'blue',
               },
@@ -216,10 +217,10 @@ export default function CapabilityStatementsPage() {
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: '1', title: 'Discovery Call', desc: 'We learn about your business, target agencies, and differentiators', icon: MessageSquare },
-              { step: '2', title: 'Content Draft', desc: 'We write compelling copy focused on buyer needs and your unique value', icon: FileText },
-              { step: '3', title: 'Design & Review', desc: 'Professional layout, visual elements, and your feedback round', icon: Palette },
-              { step: '4', title: 'Final Delivery', desc: 'Multiple formats ready to use immediately in your BD activities', icon: Download },
+              { step: '1', title: 'Capability Statements for Gov Contractors | PreciseGovCon', desc: 'We learn about your business, target agencies, and differentiators', icon: MessageSquare },
+              { step: '2', title: 'Capability Statements for Gov Contractors | PreciseGovCon', desc: 'We write compelling copy focused on buyer needs and your unique value', icon: FileText },
+              { step: '3', title: 'Capability Statements for Gov Contractors | PreciseGovCon', desc: 'Professional layout, visual elements, and your feedback round', icon: Palette },
+              { step: '4', title: 'Capability Statements for Gov Contractors | PreciseGovCon', desc: 'Multiple formats ready to use immediately in your BD activities', icon: Download },
             ].map((item, idx) => (
               <div key={idx} className="relative">
                 <div className="bg-white rounded-2xl p-6 border-2 border-blue-200 shadow-lg text-center">
@@ -258,19 +259,19 @@ export default function CapabilityStatementsPage() {
               {
                 quote: "The new one from Precise GovCon gets compliments at every networking event.",
                 author: "David Kim",
-                title: "President, SecureTech Solutions",
+                title: "Capability Statements for Gov Contractors | PreciseGovCon",
                 result: "3x meeting requests",
               },
               {
                 quote: "They completely repositioned how we talk about our services. The focus on outcomes made a huge difference.",
                 author: "Maria Gonzalez",
-                title: "BD Director, Strategic Services LLC",
+                title: "Capability Statements for Gov Contractors | PreciseGovCon",
                 result: "Landed first prime contract",
               },
               {
                 quote: "Finally, a capability statement that doesn't look like everyone else's. Our team is proud to hand this out.",
                 author: "James Wilson",
-                title: "CEO, Wilson Engineering Group",
+                title: "Capability Statements for Gov Contractors | PreciseGovCon",
                 result: "5 new opportunities",
               },
             ].map((item, idx) => (
@@ -341,3 +342,5 @@ export default function CapabilityStatementsPage() {
     </div>
   )
 }
+
+

@@ -1,8 +1,7 @@
 const CACHE_NAME = 'precisegovcon-cache-v1';
 const urlsToCache = [
   '/',
-  '/dashboard',
-  '/styles/globals.css'
+  '/dashboard'
 ];
 
 self.addEventListener('install', (event) => {

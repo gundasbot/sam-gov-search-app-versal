@@ -81,10 +81,12 @@ model alert_subscriptions {
   created_at              DateTime            @default(now())
   updated_at              DateTime
   user_id                 String
-  saved_search_id         String
+  saved_search_id         String?
   name                    String
   description             String?
   recipients              String
+  recipients_list         String?
+  params                  String?
   email_notification      Boolean             @default(true)
   send_empty_results      Boolean             @default(false)
   frequency               AlertFrequency      @default(DAILY)
@@ -98,11 +100,9 @@ model alert_subscriptions {
   last_run_at             DateTime?
   last_result_count       Int?
   last_error              String?
-  saved_searches_v2       saved_searches_v2   @relation(fields: [saved_search_id], references: [id], onDelete: Cascade)
   users                   users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
   subscription_runs       subscription_runs[]
 
-  @@index([saved_search_id])
   @@index([user_id, active])
   @@index([user_id])
 }
@@ -178,6 +178,9 @@ model recipient_contacts {
   user_id      String
   email        String
   name         String?
+  first_name   String?
+  last_name    String?
+  phone        String?
   organization String?
   notes        String?
   use_count    Int       @default(0)
@@ -329,30 +332,6 @@ model saved_searches_new {
 
   @@index([user_id])
   @@index([user_id, subscription_enabled])
-  @@index([user_id, updated_at])
-}
-
-model saved_searches_v2 {
-  id                   String                @id
-  created_at           DateTime              @default(now())
-  updated_at           DateTime
-  user_id              String
-  name                 String
-  description          String?
-  keywords             String?
-  naics                String?
-  agency               String?
-  set_aside            String?
-  state_of_performance String?
-  posted_after         String?
-  posted_before        String?
-  procurement_type     String?               @default("o")
-  last_used_at         DateTime?
-  use_count            Int                   @default(0)
-  alert_subscriptions  alert_subscriptions[]
-  users                users                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id])
   @@index([user_id, updated_at])
 }
 
@@ -537,7 +516,7 @@ model users {
   saved_opportunities        saved_opportunities[]
   saved_searches             saved_searches[]
   saved_searches_new         saved_searches_new[]
-  saved_searches_v2          saved_searches_v2[]
+
   search_alerts              search_alerts[]
   search_exports             search_exports[]
   searches                   searches[]

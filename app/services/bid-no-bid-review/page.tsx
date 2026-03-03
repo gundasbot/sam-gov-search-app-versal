@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'Bid/No-Bid Analysis Services | Precise GovCon',
+  alternates: { canonical: 'https://www.precisegovcon.com/services/bid-no-bid-review' },
+  title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
   description: 'Make smarter bid decisions with AI-powered analysis. Stop wasting resources on opportunities you can\'t win.',
 }
 
@@ -126,9 +127,9 @@ export default function BidNoBidPage() {
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { emoji: '💸', title: 'Wasted Resources', desc: 'Proposal development costs $15K-$150K per bid. Pursuing unwinnable opportunities drains your budget.' },
-              { emoji: '😓', title: 'Burned Out Teams', desc: 'Your team spreads thin across too many bids, reducing quality and morale.' },
-              { emoji: '📉', title: 'Lost Focus', desc: 'Chasing bad opportunities means missing the right ones. Opportunity cost is real.' },
+              { emoji: '💸', title: 'Bid/No-Bid Analysis Tool | PreciseGovCon', desc: 'Proposal development costs $15K-$150K per bid. Pursuing unwinnable opportunities drains your budget.' },
+              { emoji: '😓', title: 'Bid/No-Bid Analysis Tool | PreciseGovCon', desc: 'Your team spreads thin across too many bids, reducing quality and morale.' },
+              { emoji: '📉', title: 'Bid/No-Bid Analysis Tool | PreciseGovCon', desc: 'Chasing bad opportunities means missing the right ones. Opportunity cost is real.' },
             ].map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl p-5 border-2 border-amber-200 shadow-md">
                 <div className="text-4xl font-black text-amber-600 mb-2">{item.emoji}</div>
@@ -156,32 +157,32 @@ export default function BidNoBidPage() {
             {[
               {
                 icon: Target,
-                title: 'Win Probability Score',
+                title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
                 description: 'AI analyzes 50+ factors to calculate your realistic chance of winning this specific opportunity.',
               },
               {
                 icon: BarChart3,
-                title: 'Competitive Analysis',
+                title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
                 description: 'We identify likely competitors, their strengths/weaknesses, and how you stack up.',
               },
               {
                 icon: AlertTriangle,
-                title: 'Risk Assessment',
+                title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
                 description: 'Clear identification of technical, pricing, and compliance risks that could sink your bid.',
               },
               {
                 icon: TrendingUp,
-                title: 'Capture Strategy',
+                title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
                 description: 'If we recommend bidding, we provide strategic guidance to maximize your win probability.',
               },
               {
                 icon: Users,
-                title: 'Resource Requirements',
+                title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
                 description: 'Realistic estimate of time, people, and budget needed to compete effectively.',
               },
               {
                 icon: ThumbsUp,
-                title: 'Go/No-Go Recommendation',
+                title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
                 description: 'Clear, data-backed recommendation with reasoning so you can make the final call.',
               },
             ].map((item, idx) => (
@@ -209,10 +210,10 @@ export default function BidNoBidPage() {
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              { step: '1', title: 'Submit Opportunity', desc: 'Send us the solicitation and your company profile', icon: Target },
-              { step: '2', title: 'AI Analysis', desc: 'Our AI evaluates 50+ factors including past performance, competition, and requirements', icon: Zap },
-              { step: '3', title: 'Expert Review', desc: 'Federal contracting strategists validate and enhance the AI recommendations', icon: Users },
-              { step: '4', title: 'Detailed Report', desc: 'You receive actionable insights and a clear go/no-go recommendation', icon: BarChart3 },
+              { step: '1', title: 'Bid/No-Bid Analysis Tool | PreciseGovCon', desc: 'Send us the solicitation and your company profile', icon: Target },
+              { step: '2', title: 'Bid/No-Bid Analysis Tool | PreciseGovCon', desc: 'Our AI evaluates 50+ factors including past performance, competition, and requirements', icon: Zap },
+              { step: '3', title: 'Bid/No-Bid Analysis Tool | PreciseGovCon', desc: 'Federal contracting strategists validate and enhance the AI recommendations', icon: Users },
+              { step: '4', title: 'Bid/No-Bid Analysis Tool | PreciseGovCon', desc: 'You receive actionable insights and a clear go/no-go recommendation', icon: BarChart3 },
             ].map((item, idx) => (
               <div key={idx} className="relative">
                 <div className="bg-white rounded-2xl p-6 border-2 border-indigo-200 shadow-lg text-center">
@@ -251,19 +252,19 @@ export default function BidNoBidPage() {
               {
                 quote: "They told us not to bid on a $50M opportunity. We listened. The winner bid 40% lower than we would have. Saved us months of work.",
                 author: "Patricia Rodriguez",
-                title: "VP Strategy, Rodriguez Technologies",
+                title: "Bid/No-Bid Analysis Tool | PreciseGovCon",
                 result: "Avoided costly loss",
               },
               {
                 quote: "The analysis showed us exactly where we were weak and how to strengthen our position. We bid, we won, and it wasn't even close.",
                 author: "James Anderson",
-                title: "CEO, Anderson Solutions",
+                title: "Bid/No-Bid Analysis Tool | PreciseGovCon",
                 result: "$3.2M contract won",
               },
               {
                 quote: "We went from a 1-in-5 win rate to 3-in-5 by only bidding opportunities where we had real advantages. Game changer.",
                 author: "Michelle Lee",
-                title: "BD Director, Lee Consulting Group",
+                title: "Bid/No-Bid Analysis Tool | PreciseGovCon",
                 result: "3x win rate improvement",
               },
             ].map((item, idx) => (
@@ -334,3 +335,5 @@ export default function BidNoBidPage() {
     </div>
   )
 }
+
+

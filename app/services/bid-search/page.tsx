@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { Shield, CheckCircle, FileCheck, AlertTriangle, Clock, Users, ArrowRight, Calendar, Star, Award, Target } from 'lucide-react'
 
 export const metadata = {
-  title: 'Federal Compliance Services | Precise GovCon',
+  alternates: { canonical: 'https://www.precisegovcon.com/services/bid-search' },
+  title: 'Find Federal Contracts | PreciseGovCon',
   description: 'Stay compliant with federal contracting regulations. Annual renewals, FAR/DFARS compliance, and audit readiness.',
 }
 
@@ -100,37 +101,37 @@ export default function CompliancePage() {
             {[
               {
                 icon: FileCheck,
-                title: 'SAM Registration Renewals',
+                title: 'Find Federal Contracts | PreciseGovCon',
                 description: 'Annual renewal tracking with 90, 60, and 30-day reminders. We handle the entire renewal process.',
                 color: 'emerald',
               },
               {
                 icon: Shield,
-                title: 'Certification Maintenance',
+                title: 'Find Federal Contracts | PreciseGovCon',
                 description: '8(a), SDVOSB, HUBZone, WOSB certification renewals and ongoing compliance requirements.',
                 color: 'blue',
               },
               {
                 icon: Award,
-                title: 'FAR/DFARS Compliance',
+                title: 'Find Federal Contracts | PreciseGovCon',
                 description: 'Track changing regulations and ensure your policies, systems, and documentation stay compliant.',
                 color: 'purple',
               },
               {
                 icon: Users,
-                title: 'Subcontracting Plans',
+                title: 'Find Federal Contracts | PreciseGovCon',
                 description: 'Monitor subcontracting plan requirements and small business utilization reporting.',
                 color: 'cyan',
               },
               {
                 icon: Clock,
-                title: 'Contract Reporting',
+                title: 'Find Federal Contracts | PreciseGovCon',
                 description: 'Track required reports (CPARS, VETS-4212, EEO-1) and submission deadlines.',
                 color: 'amber',
               },
               {
                 icon: Target,
-                title: 'Audit Readiness',
+                title: 'Find Federal Contracts | PreciseGovCon',
                 description: 'Maintain organized documentation and systems to pass DCAA and other federal audits.',
                 color: 'emerald',
               },
@@ -199,3 +200,4 @@ export default function CompliancePage() {
     </div>
   )
 }
+

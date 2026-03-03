@@ -88,7 +88,7 @@ const PLACEHOLDER_OPPORTUNITIES: Opportunity[] = Array.from(
   { length: 5 },
   (_, i) => ({
     noticeId: `placeholder-${i}`,
-    title: 'Analyzing market opportunities.',
+    title: 'Federal Market Insights & Analytics | PreciseGovCon',
     solicitationNumber: `INS-XX-${i.toString().padStart(4, '0')}`,
     department: 'Federal Agency',
     postedDate: new Date().toISOString(),
@@ -150,28 +150,28 @@ const PLACEHOLDER_TRENDS: MarketTrend[] = [
 
 const PLACEHOLDER_INSIGHTS: AIInsight[] = [
   {
-    title: 'Loading insights',
+    title: 'Federal Market Insights & Analytics | PreciseGovCon',
     description:
       'Claude is analyzing your market signals and opportunities.',
     priority: 'medium',
     category: 'recommendation',
   },
   {
-    title: 'Identifying quick wins',
+    title: 'Federal Market Insights & Analytics | PreciseGovCon',
     description:
       'Prioritizing opportunities by urgency, set-aside, and agency behavior.',
     priority: 'low',
     category: 'trend',
   },
   {
-    title: 'Scanning deadline risk',
+    title: 'Federal Market Insights & Analytics | PreciseGovCon',
     description:
       'Detecting expiring solicitations that need immediate action.',
     priority: 'high',
     category: 'alert',
   },
   {
-    title: 'Building your focus list',
+    title: 'Federal Market Insights & Analytics | PreciseGovCon',
     description:
       'Surfacing the most actionable opportunities from the feed.',
     priority: 'medium',
@@ -1518,10 +1518,10 @@ export default function InsightsPage() {
                 <div>
                   <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-gray-900" />
-                    <span>Claude analytics</span>
+                    <span>YourANAlytics TidBits</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    A compact briefing based on live signals and AI
+                    A compact briefing based on live signals and PreciseGovcon AI
                     interpretation.
                   </div>
                 </div>
