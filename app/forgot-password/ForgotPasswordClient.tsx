@@ -45,7 +45,7 @@ export default function ForgotPasswordClient() {
           />
           <button
             disabled={loading}
-            className="w-full rounded-xl bg-white text-slate-900 py-3 font-medium disabled:opacity-60"
+            className="w-full rounded-2xl bg-[#ff7a18] py-3 text-sm font-black uppercase tracking-[0.2em] text-white shadow-[0_12px_25px_rgba(255,122,24,0.45)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Sending..." : "Send reset link"}
           </button>

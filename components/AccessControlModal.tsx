@@ -68,22 +68,21 @@ function UnverifiedEmailBanner({ email }: { email: string }) {
   }
 
   return (
-    <div className="mb-5 p-4 rounded-2xl border-2" style={{ background: '#fffbeb', borderColor: '#f59e0b' }}>
+    <div className="mb-5 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5" style={{ color: '#b45309' }} />
+        <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5 text-[var(--color-primary)]" />
         <div>
-          <p className="text-base font-black" style={{ color: '#78350f' }}>Email Not Yet Verified</p>
-          <p className="text-sm font-bold mt-1 leading-relaxed" style={{ color: '#92400e' }}>
+          <p className="text-base font-black text-[var(--color-text-primary)]">Email Not Yet Verified</p>
+          <p className="text-sm font-bold mt-1 leading-relaxed text-[var(--color-text-secondary)]">
             Check your inbox for the verification link before signing in.
           </p>
           {!resendSent ? (
             <button onClick={handleResend} disabled={resendBusy}
-              className="mt-2 text-sm font-black underline underline-offset-2 disabled:opacity-60"
-              style={{ color: '#b45309' }}>
-              {resendBusy ? 'Sending…' : 'Resend verification email →'}
+              className="mt-2 text-sm font-black underline underline-offset-2 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-60">
+              {resendBusy ? 'Sendingâ€¦' : 'Resend verification email â†’'}
             </button>
           ) : (
-            <p className="mt-2 text-sm font-black" style={{ color: '#065f46' }}>✓ Sent! Check your inbox.</p>
+            <p className="mt-2 text-sm font-black text-[var(--color-primary)]">âœ“ Sent! Check your inbox.</p>
           )}
         </div>
       </div>
@@ -110,8 +109,8 @@ function ResendVerificationButton({ email }: { email: string }) {
 
   if (sent) {
     return (
-      <p className="text-sm font-black mb-3" style={{ color: '#065f46' }}>
-        ✓ Verification email resent! Check your inbox.
+      <p className="text-sm font-black mb-3 text-[var(--color-primary)]">
+        âœ“ Verification email resent! Check your inbox.
       </p>
     )
   }
@@ -121,10 +120,9 @@ function ResendVerificationButton({ email }: { email: string }) {
       type="button"
       onClick={handleResend}
       disabled={busy}
-      className="w-full py-3 rounded-xl font-black text-base transition-all disabled:opacity-60 mb-1 flex items-center justify-center gap-2 shadow-md"
-      style={{ background: '#059669', color: '#ffffff' }}
+      className="pg-btn pg-btn-primary w-full py-3 rounded-xl font-black text-base disabled:opacity-60 mb-1 flex items-center justify-center gap-2"
     >
-      {busy ? <><Loader2 className="h-5 w-5 animate-spin" /> Sending…</> : '↺ Resend Verification Email'}
+      {busy ? <><Loader2 className="h-5 w-5 animate-spin" /> Sendingâ€¦</> : 'â†º Resend Verification Email'}
     </button>
   )
 }
@@ -134,19 +132,19 @@ function InputField({
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon?: any; error?: string }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">{label}</label>
       <div className="relative">
-        {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />}
+        {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-subtle)]" />}
         <input
           {...props}
           className={cx(
-            'w-full py-3 rounded-xl border text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400',
+            'pg-input w-full py-3 rounded-xl text-sm font-semibold',
             Icon ? 'pl-10 pr-4' : 'px-4',
-            error ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-slate-300'
+            error ? 'border-red-300 bg-red-50' : 'bg-[var(--color-surface)]'
           )}
         />
       </div>
-      {error && <p className="mt-1.5 text-sm font-black" style={{ color: '#dc2626' }}>{error}</p>}
+      {error && <p className="mt-1.5 text-sm font-black text-red-600">{error}</p>}
     </div>
   )
 }
@@ -157,26 +155,26 @@ function PasswordField({
   const [show, setShow] = useState(false)
   return (
     <div>
-      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">{label}</label>
       <div className="relative">
-        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-subtle)]" />
         <input
           type={show ? 'text' : 'password'}
           value={value}
           onChange={e => onChange(e.target.value)}
-          placeholder={placeholder || '••••••••'}
+          placeholder={placeholder || 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'}
           disabled={disabled}
           className={cx(
-            'w-full pl-10 pr-11 py-3 rounded-xl border text-sm font-semibold text-slate-900 placeholder-slate-400 bg-white transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400',
-            error ? 'border-red-300 bg-red-50' : 'border-slate-200 hover:border-slate-300'
+            'pg-input w-full pl-10 pr-11 py-3 rounded-xl text-sm font-semibold',
+            error ? 'border-red-300 bg-red-50' : 'bg-[var(--color-surface)]'
           )}
         />
         <button type="button" onClick={() => setShow(v => !v)}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)] hover:text-[var(--color-text-secondary)]">
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
-      {error && <p className="mt-1.5 text-sm font-black" style={{ color: '#dc2626' }}>{error}</p>}
+      {error && <p className="mt-1.5 text-sm font-black text-red-600">{error}</p>}
     </div>
   )
 }
@@ -235,35 +233,35 @@ export default function AccessControlModal({
       {
         key: 'basic', name: 'Basic', tagline: 'Perfect for solo contractors',
         topPrice: isAnnual ? '$249.90' : '$24.99', topPeriod: isAnnual ? '/year' : '/month',
-        monthlyPrice: '$24.99/mo', annualPrice: '$249.90/yr · save 16%',
+        monthlyPrice: '$24.99/mo', annualPrice: '$249.90/yr Â· save 16%',
         features: ['Unlimited opportunity searches', 'Advanced filtering (all criteria)', 'Save unlimited opportunities', 'Daily email digest alerts', 'Search history (30 days)', 'Export to CSV', 'Email support'],
         popular: false, buttonText: 'Start 7-Day Trial',
         priceId: isAnnual ? basicAnnualId : basicMonthlyId,
-        gradient: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 60%, #bbf7d0 100%)',
-        accentColor: '#059669', textColor: '#065f46',
-        badgeGradient: 'linear-gradient(135deg, #10b981, #059669)',
+        gradient: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-muted) 100%)',
+        accentColor: 'var(--color-primary)', textColor: 'var(--color-text-primary)',
+        badgeGradient: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
       },
       {
         key: 'professional', name: 'Professional', tagline: 'For growing businesses',
         topPrice: isAnnual ? '$499.90' : '$49.99', topPeriod: isAnnual ? '/year' : '/month',
-        monthlyPrice: '$49.99/mo', annualPrice: '$499.90/yr · save 16%',
+        monthlyPrice: '$49.99/mo', annualPrice: '$499.90/yr Â· save 16%',
         features: ['Everything in Basic', 'Real-time opportunity alerts', 'Advanced analytics dashboard', 'Competitor tracking', '25 custom alert criteria', 'Search history (1 year)', 'API access (1,000 calls/mo)', 'Excel export with formatting', 'Team collaboration (3 users)', 'Priority support'],
         popular: true, buttonText: 'Start 7-Day Trial',
         priceId: isAnnual ? proAnnualId : proMonthlyId,
-        gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
-        accentColor: '#10b981', textColor: '#f1f5f9',
-        badgeGradient: 'linear-gradient(135deg, #10b981, #06b6d4)',
+        gradient: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-muted)) 0%, var(--color-surface-muted) 100%)',
+        accentColor: 'var(--color-primary)', textColor: 'var(--color-text-primary)',
+        badgeGradient: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
       },
       {
         key: 'enterprise', name: 'Enterprise', tagline: 'For large prime contractors',
         topPrice: isAnnual ? '$1,999.90' : '$199.99', topPeriod: isAnnual ? '/year' : '/month',
-        monthlyPrice: '$199.99/mo', annualPrice: '$1,999.90/yr · save 16%',
+        monthlyPrice: '$199.99/mo', annualPrice: '$1,999.90/yr Â· save 16%',
         features: ['Everything in Professional', 'Unlimited team members', 'Dedicated account manager', 'Custom integrations', 'Unlimited API access', 'White-label reporting', 'Custom training sessions', 'SLA guarantees (99.9%)', 'Phone & priority support', 'Historical data (5+ years)'],
         popular: false, buttonText: 'Start 7-Day Trial',
         priceId: isAnnual ? entAnnualId : entMonthlyId,
-        gradient: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 60%, #fef08a 100%)',
-        accentColor: '#d97706', textColor: '#78350f',
-        badgeGradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+        gradient: 'linear-gradient(135deg, var(--color-surface-muted) 0%, color-mix(in srgb, var(--color-primary) 10%, var(--color-surface)) 100%)',
+        accentColor: 'var(--color-primary)', textColor: 'var(--color-text-primary)',
+        badgeGradient: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
       },
     ]
   }, [billing])
@@ -363,7 +361,7 @@ export default function AccessControlModal({
         setGeneralError('An account with this email already exists. Please sign in.')
         setAuthMode('signin'); setConfirmPassword(''); setIsLoading(false); setAuthMethod(null); return
       }
-      // Test-domain restriction — account created but email can't be sent in test mode
+      // Test-domain restriction â€” account created but email can't be sent in test mode
       if (data?.errorCode === 'TEST_DOMAIN_RESTRICTION') {
         setGeneralError(data.error || 'Verification email could not be sent in test mode. Please contact support.')
         setIsLoading(false); setAuthMethod(null); return
@@ -400,7 +398,7 @@ export default function AccessControlModal({
       }
       if (result?.ok) {
         await update()
-        setSuccessMessage('✓ Signed in! Redirecting…')
+        setSuccessMessage('âœ“ Signed in! Redirectingâ€¦')
         setTimeout(() => { onClose(); router.push(redirectTarget); router.refresh() }, 900)
       }
     } catch (error: any) {
@@ -454,7 +452,7 @@ export default function AccessControlModal({
     const newTab = window.open('', '_blank')
     if (!newTab) { setStripeError('Please allow popups for this site.'); setOpeningPaidPlan(null); return }
     try {
-      newTab.document.write(`<html><head><title>Redirecting…</title></head><body style="margin:0;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center;"><div style="width:40px;height:40px;border:3px solid #10b981;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div><p>Opening Stripe Checkout…</p><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></body></html>`)
+      newTab.document.write(`<html><head><title>Redirectingâ€¦</title></head><body style="margin:0;background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center;"><div style="width:40px;height:40px;border:3px solid #10b981;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div><p>Opening Stripe Checkoutâ€¦</p><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></body></html>`)
       newTab.document.close()
     } catch {}
     try {
@@ -485,20 +483,20 @@ export default function AccessControlModal({
     : 'Sign in to access your dashboard'
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif" }}>
+    <div className="pg-theme-cleanup pg-uniform fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif" }}>
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-[80vw] max-h-[92vh] overflow-y-auto rounded-3xl bg-white shadow-2xl border border-slate-100"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}>
+      <div className="relative w-full max-w-[80vw] max-h-[92vh] overflow-y-auto rounded-3xl bg-[var(--color-surface)] shadow-2xl border border-[var(--color-border)]"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--color-border) transparent' }}>
 
         {/* Top accent bar */}
-        <div className="h-1.5 w-full rounded-t-3xl" style={{ background: 'linear-gradient(90deg, #10b981, #06b6d4, #10b981)' }} />
+        <div className="h-1.5 w-full rounded-t-3xl" style={{ background: 'linear-gradient(90deg, var(--color-primary), var(--color-primary-hover), var(--color-primary))' }} />
 
         {/* Close button */}
         <button onClick={onClose}
-          className="absolute right-5 top-5 z-10 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-700 text-white shadow-md hover:shadow-lg transition-all">
+          className="absolute right-5 top-5 z-10 pg-btn pg-btn-secondary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold">
           <X className="h-4 w-4" /> Close
         </button>
 
@@ -507,14 +505,14 @@ export default function AccessControlModal({
           <div className="text-center mb-10">
             <Image src="/logo.png" alt="Precise GovCon" width={48} height={48} className="h-12 w-auto mx-auto mb-5" />
             <div className="mb-3">
-              <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#059669' }}>
-                7-Day Free Trial · No Credit Card Required
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--color-primary)]">
+                7-Day Free Trial Â· No Credit Card Required
               </span>
             </div>
-            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-3">
-              Welcome to <span className="font-black text-slate-900">PRECISE</span><span className="font-black" style={{ color: '#F97316' }}>GOVCON</span>
+            <h2 className="text-3xl lg:text-4xl font-black text-[var(--color-text-primary)] mb-3">
+              Welcome to <span className="font-black text-slate-900">PRECISE</span><span className="font-black text-[var(--color-primary)]">GOVCON</span>
             </h2>
-            <p className="text-xl font-black tracking-tight" style={{ color: '#ea580c' }}>
+            <p className="text-xl font-black tracking-tight text-[var(--color-text-secondary)]">
               Find, track and win more government contracts. Sign in or start your free trial below.
             </p>
           </div>
@@ -524,19 +522,19 @@ export default function AccessControlModal({
 
             {/* LEFT: Auth panel */}
             <div className="lg:col-span-2">
-              <div className="rounded-2xl border-2 border-slate-200 bg-white overflow-hidden shadow-sm">
+              <div className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden shadow-sm">
 
-                {/* SIGNUP COMPLETE — confirmation screen, no form visible */}
+                {/* SIGNUP COMPLETE â€” confirmation screen, no form visible */}
                 {signupComplete ? (
                   <div className="p-8 text-center">
                     <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
-                      style={{ background: '#ecfdf5', border: '3px solid #10b981' }}>
-                      <CheckCircle className="h-9 w-9" style={{ color: '#059669' }} />
+                      style={{ background: 'var(--color-accent-soft)', border: '3px solid var(--color-primary)' }}>
+                      <CheckCircle className="h-9 w-9 text-[var(--color-primary)]" />
                     </div>
                     <h3 className="text-xl font-black text-slate-900 mb-2">Check Your Email!</h3>
                     <p className="text-sm font-bold text-slate-600 mb-1">We sent a verification link to:</p>
-                    <p className="text-base font-black mb-5" style={{ color: '#059669' }}>{signupEmail}</p>
-                    <div className="rounded-xl p-4 mb-5 text-left" style={{ background: '#f0fdf4', border: '2px solid #bbf7d0' }}>
+                    <p className="text-base font-black mb-5 text-[var(--color-primary)]">{signupEmail}</p>
+                    <div className="rounded-xl p-4 mb-5 text-left border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
                       <p className="text-sm font-black text-slate-800 mb-2">What happens next:</p>
                       <ol className="space-y-1.5">
                         <li className="text-sm font-bold text-slate-700 flex items-start gap-2">
@@ -546,7 +544,7 @@ export default function AccessControlModal({
                           <span className="font-black text-emerald-600">2.</span> Click &quot;Verify Email &amp; Start Trial&quot;
                         </li>
                         <li className="text-sm font-bold text-slate-700 flex items-start gap-2">
-                          <span className="font-black text-emerald-600">3.</span> You&apos;re automatically signed in and taken to search — no extra steps!
+                          <span className="font-black text-emerald-600">3.</span> You&apos;re automatically signed in and taken to search â€” no extra steps!
                         </li>
                       </ol>
                     </div>
@@ -561,16 +559,16 @@ export default function AccessControlModal({
                   </div>
                 ) : (<>
 
-                {/* TAB BAR — Sign In / Sign Up / Google */}
+                {/* TAB BAR â€” Sign In / Sign Up / Google */}
                 {authMode !== 'forgot-password' && authMode !== 'reset-password' && (
-                  <div className="grid grid-cols-2 border-b-2 border-slate-200">
+                  <div className="grid grid-cols-2 border-b-2 border-[var(--color-border)]">
                     <button type="button"
                       onClick={() => { setShowEmailForm(true); toggleAuthMode('signin') }}
                       className={cx(
-                        'py-4 text-base font-black text-center transition-all border-r-2 border-slate-200',
+                        'py-4 text-base font-black text-center transition-all border-r-2 border-[var(--color-border)]',
                         authMode === 'signin'
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                          ? 'bg-[var(--color-primary)] text-white'
+                          : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)]'
                       )}>
                       Sign In
                     </button>
@@ -580,15 +578,15 @@ export default function AccessControlModal({
                         'py-4 text-base font-black text-center transition-all',
                         authMode === 'signup'
                           ? 'text-white'
-                          : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                          : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)]'
                       )}
-                      style={authMode === 'signup' ? { background: '#F97316' } : {}}>
+                      style={authMode === 'signup' ? { background: 'var(--color-primary)' } : {}}>
                       Sign Up
                     </button>
                   </div>
                 )}
 
-                {/* Google SSO — always visible strip */}
+                {/* Google SSO â€” always visible strip */}
                 {authMode !== 'forgot-password' && authMode !== 'reset-password' && (
                   <div className="px-5 pt-4 pb-2">
                     <button onClick={handleGoogleSignIn} disabled={isLoading}
@@ -604,7 +602,7 @@ export default function AccessControlModal({
                       Continue with Google
                     </button>
                     <div className="relative my-3">
-                      <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-slate-200" /></div>
+                      <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-[var(--color-border)]" /></div>
                       <div className="relative flex justify-center"><span className="px-3 bg-white text-sm font-black text-slate-400">OR</span></div>
                     </div>
                   </div>
@@ -615,7 +613,7 @@ export default function AccessControlModal({
                   {successMessage && (
                     <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 flex items-start gap-2.5">
                       <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm font-bold text-emerald-900 leading-relaxed">{successMessage}</p>
+                      <p className="text-sm font-bold text-[var(--color-text-primary)] leading-relaxed">{successMessage}</p>
                     </div>
                   )}
                   {generalError && (() => {
@@ -647,9 +645,8 @@ export default function AccessControlModal({
                         <PasswordField label="New Password" value={newPassword} onChange={setNewPassword} error={newPasswordError} disabled={isLoading} />
                         <PasswordField label="Confirm New Password" value={confirmNewPassword} onChange={setConfirmNewPassword} error={confirmNewPasswordError} disabled={isLoading} />
                         <button type="submit" disabled={isLoading}
-                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                          style={{ background: '#059669' }}>
-                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Resetting…</> : 'Reset Password'}
+                          className="pg-btn pg-btn-primary w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Resettingâ€¦</> : 'Reset Password'}
                         </button>
                         <button type="button" onClick={() => { setAuthMode('signin'); setResetToken(''); setNewPassword(''); setConfirmNewPassword('') }}
                           className="w-full text-center text-base font-black text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1">
@@ -667,9 +664,8 @@ export default function AccessControlModal({
                         </div>
                         <InputField label="Email Address" icon={Mail} type="email" value={email} onChange={e => setEmail(e.target.value)} error={emailError} placeholder="you@company.com" disabled={isLoading} />
                         <button type="submit" disabled={isLoading}
-                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-                          style={{ background: '#059669' }}>
-                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Sending…</> : 'Send Reset Link'}
+                          className="pg-btn pg-btn-primary w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Sendingâ€¦</> : 'Send Reset Link'}
                         </button>
                         <button type="button" onClick={() => toggleAuthMode('signin', true)}
                           className="w-full text-center text-base font-black text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1">
@@ -691,14 +687,13 @@ export default function AccessControlModal({
                         <PasswordField label="Password" value={password} onChange={setPassword} error={passwordError} disabled={isLoading} />
                         <PasswordField label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} error={confirmPasswordError} disabled={isLoading} />
                         <button type="submit" disabled={isLoading}
-                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md"
-                          style={{ background: '#F97316' }}>
-                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Creating Account…</> : <>Start Free Trial <ArrowRight className="h-5 w-5" /></>}
+                          className="pg-btn pg-btn-primary w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md">
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Creating Accountâ€¦</> : <>Start Free Trial <ArrowRight className="h-5 w-5" /></>}
                         </button>
                         <p className="text-center text-sm font-bold text-slate-600">
                           By signing up you agree to our{' '}
-                          <span className="text-emerald-700 underline cursor-pointer">Terms of Service</span> and{' '}
-                          <span className="text-emerald-700 underline cursor-pointer">Privacy Policy</span>
+                          <span className="text-[var(--color-primary)] underline cursor-pointer">Terms of Service</span> and{' '}
+                          <span className="text-[var(--color-primary)] underline cursor-pointer">Privacy Policy</span>
                         </p>
                       </>
                     )}
@@ -710,20 +705,19 @@ export default function AccessControlModal({
                         <PasswordField label="Password" value={password} onChange={setPassword} error={passwordError} disabled={isLoading} />
                         <div className="flex justify-end">
                           <button type="button" onClick={() => toggleAuthMode('forgot-password', true)}
-                            className="text-sm font-black text-emerald-700 hover:text-emerald-900 underline underline-offset-2">
+                            className="text-sm font-black text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] underline underline-offset-2">
                             Forgot password?
                           </button>
                         </div>
                         <button type="submit" disabled={isLoading}
-                          className="w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md"
-                          style={{ background: '#059669' }}>
-                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Signing In…</> : 'Sign In'}
+                          className="pg-btn pg-btn-primary w-full py-3.5 rounded-xl text-white font-black text-base transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md">
+                          {isLoading ? <><Loader2 className="h-5 w-5 animate-spin" /> Signing Inâ€¦</> : 'Sign In'}
                         </button>
                         <p className="text-center text-sm font-black text-slate-700">
                           No account yet?{' '}
                           <button type="button" onClick={() => toggleAuthMode('signup')}
-                            className="font-black underline underline-offset-2" style={{ color: '#F97316' }}>
-                            Create one free →
+                            className="font-black underline underline-offset-2 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">
+                            Create one free â†’
                           </button>
                         </p>
                       </>
@@ -735,9 +729,9 @@ export default function AccessControlModal({
 
               {/* Trust bar */}
               <div className="mt-4 flex items-center justify-center gap-4">
-                <span className="flex items-center gap-1.5 text-sm font-bold text-slate-600"><Shield className="h-4 w-4 text-emerald-600" /> SSL Secured</span>
-                <span className="flex items-center gap-1.5 text-sm font-bold text-slate-600"><Lock className="h-4 w-4 text-emerald-600" /> No card needed</span>
-                <span className="flex items-center gap-1.5 text-sm font-bold text-slate-600"><Zap className="h-4 w-4 text-emerald-600" /> Instant access</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-text-secondary)]"><Shield className="h-4 w-4 text-[var(--color-primary)]" /> SSL Secured</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-text-secondary)]"><Lock className="h-4 w-4 text-[var(--color-primary)]" /> No card needed</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-text-secondary)]"><Zap className="h-4 w-4 text-[var(--color-primary)]" /> Instant access</span>
               </div>
             </div>
 
@@ -745,25 +739,25 @@ export default function AccessControlModal({
             <div className="lg:col-span-5">
               {/* Billing toggle */}
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-xl font-black text-slate-900">Choose Your Plan</h3>
-                <div className="flex items-center gap-1.5 p-1.5 rounded-2xl border-2 border-slate-200 bg-slate-100">
+                <h3 className="text-xl font-black text-[var(--color-text-primary)]">Choose Your Plan</h3>
+                <div className="flex items-center gap-1.5 p-1.5 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface-muted)]">
                   <button type="button" onClick={() => setBilling('monthly')} disabled={!!openingPaidPlan}
                     className={cx('px-5 py-2.5 rounded-xl text-sm font-black transition-all',
                       billing === 'monthly'
                         ? 'text-white shadow-md'
-                        : 'text-slate-500 hover:text-slate-800')}
-                    style={billing === 'monthly' ? { background: 'linear-gradient(135deg, #10b981, #059669)' } : {}}>
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]')}
+                    style={billing === 'monthly' ? { background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))' } : {}}>
                     Monthly
                   </button>
                   <button type="button" onClick={() => setBilling('annual')} disabled={!!openingPaidPlan}
                     className={cx('px-5 py-2.5 rounded-xl text-sm font-black transition-all flex items-center gap-2',
                       billing === 'annual'
                         ? 'text-white shadow-md'
-                        : 'text-slate-500 hover:text-slate-800')}
-                    style={billing === 'annual' ? { background: 'linear-gradient(135deg, #06b6d4, #0891b2)' } : {}}>
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]')}
+                    style={billing === 'annual' ? { background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))' } : {}}>
                     Annual
                     <span className={cx('text-xs font-black px-1.5 py-0.5 rounded-lg',
-                      billing === 'annual' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700')}>
+                      billing === 'annual' ? 'bg-white/20 text-white' : 'bg-[var(--color-accent-soft)] text-[var(--color-primary)]')}>
                       -16%
                     </span>
                   </button>
@@ -785,7 +779,7 @@ export default function AccessControlModal({
                         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                           <div className="px-4 py-1 rounded-full text-white text-[10px] font-bold tracking-wider shadow-lg whitespace-nowrap"
                             style={{ background: plan.badgeGradient }}>
-                            ⚡ MOST POPULAR
+                            âš¡ MOST POPULAR
                           </div>
                         </div>
                       )}
@@ -793,7 +787,7 @@ export default function AccessControlModal({
                       {/* Plan header */}
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-1">
-                          <span className={cx('text-sm font-black uppercase tracking-wider', isDark ? 'text-emerald-400' : 'text-slate-500')}>
+                          <span className={cx('text-sm font-black uppercase tracking-wider', isDark ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]')}>
                             {plan.name}
                           </span>
                         </div>
@@ -810,7 +804,7 @@ export default function AccessControlModal({
                           <span className="font-bold">Monthly</span><span className="font-bold">{plan.monthlyPrice}</span>
                         </div>
                         <div className={cx('flex justify-between', isDark ? 'text-slate-100' : 'text-slate-700')}>
-                          <span className="font-bold">Annual</span><span className="font-bold text-emerald-500">{plan.annualPrice}</span>
+                          <span className="font-bold">Annual</span><span className="font-bold text-[var(--color-primary)]">{plan.annualPrice}</span>
                         </div>
                       </div>
 
@@ -829,7 +823,7 @@ export default function AccessControlModal({
                         disabled={isLoading || !!openingPaidPlan}
                         className="w-full py-2.5 px-4 rounded-xl text-sm font-black text-white transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:brightness-110"
                         style={{ background: plan.badgeGradient }}>
-                        {isOpening ? <><Loader2 className="h-4 w-4 animate-spin" /> Opening…</> : <>{plan.buttonText} <ExternalLink className="h-3.5 w-3.5" /></>}
+                        {isOpening ? <><Loader2 className="h-4 w-4 animate-spin" /> Openingâ€¦</> : <>{plan.buttonText} <ExternalLink className="h-3.5 w-3.5" /></>}
                       </button>
 
                       {plan.key === 'enterprise' && (
@@ -840,7 +834,7 @@ export default function AccessControlModal({
                         </a>
                       )}
                       <p className={cx('text-center text-xs font-medium mt-2', isDark ? 'text-slate-400' : 'text-slate-500')}>
-                        Opens in new tab · popups must be allowed
+                        Opens in new tab Â· popups must be allowed
                       </p>
                     </div>
                   )
@@ -850,10 +844,10 @@ export default function AccessControlModal({
           </div>
 
           {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center gap-2">
+          <div className="mt-8 pt-6 border-t border-[var(--color-border)] flex flex-col items-center gap-2">
             <button type="button" onClick={onClose}
               className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-4">
-              Maybe later — continue browsing
+              Maybe later â€” continue browsing
             </button>
             <p className="text-[10px] text-slate-300">
               By continuing, you agree to our Terms of Service and Privacy Policy
@@ -864,3 +858,4 @@ export default function AccessControlModal({
     </div>
   )
 }
+

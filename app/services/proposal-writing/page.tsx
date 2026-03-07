@@ -51,11 +51,11 @@ export default function ProposalWritingPage() {
                 </Link>
                 
                 <a
-                  href="tel:804-404-4005"
+                  href="tel:804-404-6005"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 rounded-xl font-bold text-base hover:bg-white/20 transition-all"
                 >
                   <Phone className="w-5 h-5" />
-                  (804) 404-4005
+                  (804) 404-6005
                 </a>
               </div>
 
@@ -308,11 +308,11 @@ export default function ProposalWritingPage() {
               Get Started Today
             </Link>
             <a
-              href="tel:804-404-4005"
+              href="tel:804-404-6005"
               className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white px-8 py-4 text-lg font-bold hover:bg-white/20 transition-all"
             >
               <Phone className="w-6 h-6" />
-              (804) 404-4005
+              (804) 404-6005
             </a>
           </div>
 

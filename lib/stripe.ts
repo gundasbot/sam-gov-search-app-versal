@@ -21,7 +21,7 @@ function getStripeClient(): Stripe {
   }
 
   const client = new Stripe(secretKey, {
-    apiVersion: '2026-01-28.clover' as any,
+    apiVersion: '2026-02-25.clover' as any,
     typescript: true,
   })
 

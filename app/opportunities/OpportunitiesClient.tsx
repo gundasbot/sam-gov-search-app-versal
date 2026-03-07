@@ -71,7 +71,9 @@ interface SamOpportunity {
 type ViewMode = 'list' | 'grid' | 'compact';
 type GroupMode = 'none' | 'department' | 'urgency' | 'setaside';
 
-// ≡ƒÄ» IMPROVED: Static placeholder data for immediate display
+const USE_MOCK_OPPORTUNITIES = true;
+
+// 📌 IMPROVED: Static placeholder data for immediate display
 const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (_, i) => ({
   noticeId: `placeholder-${i}`,
   title: 'Loading opportunity data...',
@@ -89,7 +91,130 @@ const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (
   }
 }));
 
-// ≡ƒÄ» NEW: User profile interface
+const MOCK_OPPORTUNITIES: SamOpportunity[] = [
+  {
+    noticeId: 'FA-8900-DEF',
+    title: 'Defensive Cyber Operations Surge',
+    solicitationNumber: 'FA-8900-DEF-2026',
+    department: 'Department of the Air Force',
+    postedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+    responseDeadLine: new Date(Date.now() + 5 * 86400000).toISOString(),
+    naicsCode: '541512',
+    classificationCode: 'D318',
+    typeOfSetAsideDescription: 'SDVOSB',
+    typeOfSetAside: 'SDVOSBC',
+    setAside: 'SDVOSBC',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE AIR FORCE',
+    placeOfPerformance: {
+      city: { name: 'Langley AFB' },
+      state: { code: 'VA', name: 'Virginia' },
+    },
+    pointOfContact: [{ fullname: 'Capt. Jordan Blake', email: 'jordan.blake@us.af.mil' }],
+  },
+  {
+    noticeId: '70RD-CLOUD-24',
+    title: 'DHS Secure Cloud Migration Pod',
+    solicitationNumber: '70RD2026CLD',
+    department: 'Department of Homeland Security',
+    postedDate: new Date(Date.now() - 4 * 86400000).toISOString(),
+    responseDeadLine: new Date(Date.now() + 9 * 86400000).toISOString(),
+    naicsCode: '541519',
+    classificationCode: 'D307',
+    typeOfSetAsideDescription: 'Small Business',
+    typeOfSetAside: 'SBA',
+    setAside: 'SBA',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF HOMELAND SECURITY:OFFICE OF THE CTO',
+    placeOfPerformance: {
+      city: { name: 'Washington' },
+      state: { code: 'DC', name: 'District of Columbia' },
+    },
+    pointOfContact: [{ fullname: 'Priya Shah', email: 'priya.shah@hq.dhs.gov' }],
+  },
+  {
+    noticeId: '36C10B-ANL-007',
+    title: 'VA Analytics Modernization Phase II',
+    solicitationNumber: '36C10B-2026-ANL',
+    department: 'Department of Veterans Affairs',
+    postedDate: new Date(Date.now() - 1 * 86400000).toISOString(),
+    responseDeadLine: new Date(Date.now() + 12 * 86400000).toISOString(),
+    naicsCode: '541611',
+    classificationCode: 'R699',
+    typeOfSetAsideDescription: 'SDVOSB',
+    typeOfSetAside: 'SDVOSBC',
+    setAside: 'SDVOSBC',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF VETERANS AFFAIRS:TECHNOLOGY ACQUISITION CENTER',
+    placeOfPerformance: {
+      city: { name: 'Austin' },
+      state: { code: 'TX', name: 'Texas' },
+    },
+    pointOfContact: [{ fullname: 'Nina Torres', email: 'nina.torres@va.gov' }],
+  },
+  {
+    noticeId: 'N66001-AI-2026',
+    title: 'Naval AI Decision Support Toolkit',
+    solicitationNumber: 'N66001-26-AI-DST',
+    department: 'Department of the Navy',
+    postedDate: new Date(Date.now() - 3 * 86400000).toISOString(),
+    responseDeadLine: new Date(Date.now() + 7 * 86400000).toISOString(),
+    naicsCode: '541715',
+    classificationCode: 'AJ13',
+    typeOfSetAsideDescription: '8(a) Program',
+    typeOfSetAside: '8A',
+    setAside: '8A',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE NAVY',
+    placeOfPerformance: {
+      city: { name: 'San Diego' },
+      state: { code: 'CA', name: 'California' },
+    },
+    pointOfContact: [{ fullname: 'Andrea Lee', email: 'andrea.lee@navy.mil' }],
+  },
+  {
+    noticeId: 'HQ0034-ZT-OPS',
+    title: 'Pentagon Zero Trust Operations Cell',
+    solicitationNumber: 'HQ0034-26-ZT',
+    department: 'Department of Defense',
+    postedDate: new Date(Date.now() - 5 * 86400000).toISOString(),
+    responseDeadLine: new Date(Date.now() + 15 * 86400000).toISOString(),
+    naicsCode: '541512',
+    classificationCode: 'D302',
+    typeOfSetAsideDescription: 'Small Business',
+    typeOfSetAside: 'SBA',
+    setAside: 'SBA',
+    uiLink: '#',
+    fullParentPathName: 'OFFICE OF THE SECRETARY OF DEFENSE',
+    placeOfPerformance: {
+      city: { name: 'Arlington' },
+      state: { code: 'VA', name: 'Virginia' },
+    },
+    pointOfContact: [{ fullname: 'Derrick Miles', email: 'derrick.miles@osd.mil' }],
+  },
+  {
+    noticeId: 'GS-00F-NextGen',
+    title: 'GSA NextGen Support Desk Expansion',
+    solicitationNumber: 'GS-00F-NXT-2026',
+    department: 'General Services Administration',
+    postedDate: new Date(Date.now() - 6 * 86400000).toISOString(),
+    responseDeadLine: new Date(Date.now() + 20 * 86400000).toISOString(),
+    naicsCode: '541513',
+    classificationCode: 'D305',
+    typeOfSetAsideDescription: 'Woman Owned Small Business',
+    typeOfSetAside: 'WOSB',
+    setAside: 'WOSB',
+    uiLink: '#',
+    fullParentPathName: 'GENERAL SERVICES ADMINISTRATION:FAS',
+    placeOfPerformance: {
+      city: { name: 'Kansas City' },
+      state: { code: 'MO', name: 'Missouri' },
+    },
+    pointOfContact: [{ fullname: 'Morgan Ellis', email: 'morgan.ellis@gsa.gov' }],
+  },
+]
+
+// 📌 NEW: User profile interface
 interface UserProfile {
   first_name: string;
   lastName?: string;
@@ -102,7 +227,7 @@ interface UserProfile {
   hasCompletedSurvey?: boolean;
 }
 
-// ≡ƒÄ» NEW: Personalized achievement messages
+// 📌 NEW: Personalized achievement messages
 const ACHIEVEMENT_MESSAGES = [
   "You're on track to hit your monthly goal!",
   "Great job staying ahead of deadlines!",
@@ -123,17 +248,17 @@ const getNoDeadlineGradient = () => 'from-slate-800/60 to-slate-900/70 border-sl
 const getNoDeadlineTextColor = () => 'text-slate-200';
 const getNoDeadlineBadgeColor = () => 'bg-slate-900/60 text-slate-200 border-slate-600/60';
 
-// ≡ƒÄ» NEW: Utility function to get urgency gradient colors
+// 📌 NEW: Utility function to get urgency gradient colors
 // Γ£à FIXED: Proper red-to-green gradient based on business days
 const getUrgencyGradient = (businessDays: number) => {
-  if (businessDays <= 3) return 'from-red-600/40 to-red-500/30 border-red-500/70';        // ≡ƒö┤ CRITICAL
-  if (businessDays <= 5) return 'from-orange-600/40 to-orange-500/30 border-orange-500/70'; // ≡ƒƒá URGENT
-  if (businessDays <= 7) return 'from-amber-600/40 to-amber-500/30 border-amber-500/70';   // ≡ƒƒí HIGH
-  if (businessDays <= 10) return 'from-yellow-500/40 to-yellow-400/30 border-yellow-400/70'; // ≡ƒƒí ACT SOON
-  if (businessDays <= 14) return 'from-lime-500/40 to-lime-400/30 border-lime-500/70';     // ≡ƒƒó NORMAL
-  if (businessDays <= 21) return 'from-green-500/40 to-green-400/30 border-green-500/70';  // ≡ƒƒó COMFORTABLE
-  if (businessDays <= 30) return 'from-emerald-500/40 to-emerald-400/30 border-emerald-500/70'; // ≡ƒƒó AMPLE
-  return 'from-emerald-600/40 to-emerald-700/30 border-emerald-600/70'; // ≡ƒƒó PLENTY
+  if (businessDays <= 3) return 'from-red-600/40 to-red-500/30 border-red-500/70';        // 🔴 CRITICAL
+  if (businessDays <= 5) return 'from-orange-600/40 to-orange-500/30 border-orange-500/70'; // 🟠 URGENT
+  if (businessDays <= 7) return 'from-amber-600/40 to-amber-500/30 border-amber-500/70';   // 🟡 HIGH
+  if (businessDays <= 10) return 'from-yellow-500/40 to-yellow-400/30 border-yellow-400/70'; // 🟡 ACT SOON
+  if (businessDays <= 14) return 'from-lime-500/40 to-lime-400/30 border-lime-500/70';     // 🟢 NORMAL
+  if (businessDays <= 21) return 'from-green-500/40 to-green-400/30 border-green-500/70';  // 🟢 COMFORTABLE
+  if (businessDays <= 30) return 'from-emerald-500/40 to-emerald-400/30 border-emerald-500/70'; // 🟢 AMPLE
+  return 'from-emerald-600/40 to-emerald-700/30 border-emerald-600/70'; // 🟢 PLENTY
 };
 
 const getUrgencyTextColor = (businessDays: number) => {
@@ -182,7 +307,7 @@ const getUrgencyRank = (businessDays: number | null) => {
   return 7;
 };
 
-// ≡ƒÄ» NEW: Department color mapping
+// 📌 NEW: Department color mapping
 const getDepartmentGradient = (department: string) => {
   const dept = department?.toUpperCase() || '';
   if (dept.includes('DEFENSE') || dept.includes('ARMY') || dept.includes('NAVY') || dept.includes('AIR FORCE')) 
@@ -394,6 +519,41 @@ const getSetAsideStyle = (opp: SamOpportunity) => {
   return SET_ASIDE_STYLES[code] || null;
 };
 
+function normalizeOpportunity(raw: any): SamOpportunity {
+  const fallbackId = raw.noticeId || raw.notice_id || raw.id || raw.solnbr || raw.solicitationNumber || raw.uiLink || `opp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const deptSource = raw.fullParentPathName || raw.department || raw.organizationName || raw.agency || '';
+  const department = typeof deptSource === 'string' ? deptSource.split(':')[0].trim() : 'Federal Agency';
+
+  return {
+    noticeId: String(fallbackId),
+    title: raw.title || raw.description || 'Untitled opportunity',
+    solicitationNumber: raw.solicitationNumber || raw.solnbr || raw.sol_num || 'N/A',
+    department: department || 'Federal Agency',
+    postedDate: raw.postedDate || raw.updatedPostedDate || raw.publishDate || new Date().toISOString(),
+    responseDeadLine:
+      raw.updatedResponseDeadLine ||
+      raw.responseDeadLine ||
+      raw.responseDeadline ||
+      raw.archiveDate ||
+      raw.closingDate ||
+      raw.dueDate ||
+      '',
+    naicsCode: raw.naicsCode || raw.naics_code || raw.naics || '',
+    classificationCode: raw.classificationCode || raw.pscCode || raw.productServiceCode,
+    typeOfSetAsideDescription: raw.typeOfSetAsideDescription || raw.setAsideDescription || raw.setAsideType || '',
+    typeOfSetAside: raw.setAside || raw.typeOfSetAside || '',
+    setAside: raw.setAside || raw.typeOfSetAside || '',
+    uiLink: raw.uiLink || raw.samUrl || raw.url || '#',
+    type: raw.type || raw.opportunityType || raw.ptype,
+    organizationType: raw.organizationType,
+    fullParentPathName: raw.fullParentPathName || raw.organizationName || department,
+    placeOfPerformance: raw.placeOfPerformance || raw.place_of_performance,
+    officeAddress: raw.officeAddress || raw.office_address,
+    pointOfContact: Array.isArray(raw.pointOfContact) ? raw.pointOfContact : raw.pointOfContact ? [raw.pointOfContact] : undefined,
+    aiAnalysis: raw.aiAnalysis,
+  };
+}
+
 
 export default function OpportunitiesClient() {
   const searchParams = useSearchParams();
@@ -428,7 +588,7 @@ export default function OpportunitiesClient() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [refreshIndicator, setRefreshIndicator] = useState(false);
 
-  // ≡ƒÄ» NEW: View mode state
+  // 📌 NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [groupMode, setGroupMode] = useState<GroupMode>('urgency');
   const [surveyOpen, setSurveyOpen] = useState(false);
@@ -447,13 +607,50 @@ export default function OpportunitiesClient() {
   const [shareOpen, setShareOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // ≡ƒÄ» FIXED: Get user name from session
+  const [dataSource, setDataSource] = useState<'mock' | 'live' | 'ticker'>('mock');
+  const [showSignInNudge, setShowSignInNudge] = useState(false);
+  const nudgeTimerRef = useRef<number | null>(null);
+
+  const scheduleSignInPrompt = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (nudgeTimerRef.current) {
+      window.clearTimeout(nudgeTimerRef.current);
+      nudgeTimerRef.current = null;
+    }
+    if (isLoggedIn) return;
+    nudgeTimerRef.current = window.setTimeout(() => setShowSignInNudge(true), 60000);
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      setShowSignInNudge(false);
+      if (nudgeTimerRef.current) {
+        window.clearTimeout(nudgeTimerRef.current);
+        nudgeTimerRef.current = null;
+      }
+      return;
+    }
+    scheduleSignInPrompt();
+    return () => {
+      if (nudgeTimerRef.current) {
+        window.clearTimeout(nudgeTimerRef.current);
+        nudgeTimerRef.current = null;
+      }
+    };
+  }, [isLoggedIn, scheduleSignInPrompt]);
+
+  const handleDismissSignInNudge = useCallback(() => {
+    setShowSignInNudge(false);
+    scheduleSignInPrompt();
+  }, [scheduleSignInPrompt]);
+
+  // 📌 FIXED: Get user name from session
   const userName = session?.user?.name?.split(' ')[0] || '';
   const userDisplayName = userName 
     ? (userName.endsWith('s') ? `${userName}'` : `${userName}'s`)
     : '';
 
-  // ≡ƒÄ» FIXED: Create user profile from session
+  // 📌 FIXED: Create user profile from session
   const [userProfile, setUserProfile] = useState<UserProfile>({
     first_name: userName,
     companyName: 'Your Business',
@@ -465,7 +662,7 @@ export default function OpportunitiesClient() {
   const [userAchievement, setUserAchievement] = useState('');
   const [userTip, setUserTip] = useState('');
 
-  // ≡ƒÄ» IMPROVED: Accurate stats calculation based on actual data
+  // 📌 IMPROVED: Accurate stats calculation based on actual data
   const stats = useMemo(() => {
     if (!dataLoaded) {
       return {
@@ -506,7 +703,7 @@ export default function OpportunitiesClient() {
     };
   }, [dataLoaded, allOpportunities]);
 
-  // ≡ƒÄ» OPTIMIZED: Memoized filter application - FIXED to not filter everything out
+  // 📌 OPTIMIZED: Memoized filter application - FIXED to not filter everything out
   const applyFilters = useCallback((opportunities: SamOpportunity[],
     filter: string | null,
     search: string,
@@ -654,6 +851,18 @@ export default function OpportunitiesClient() {
   const analyzeOpportunity = async (opportunity: SamOpportunity) => {
     try {
       setAnalyzingOpps(prev => new Set(prev).add(opportunity.noticeId));
+      if (USE_MOCK_OPPORTUNITIES) {
+        await new Promise(resolve => setTimeout(resolve, 400));
+        return {
+          matchScore: 88,
+          competitionLevel: 'Medium',
+          winProbability: 'High',
+          keyRequirements: ['Zero trust architecture plan', 'Cloud security accreditation package', 'Dedicated SDVOSB transition team'],
+          risks: ['Aggressive response timeline', 'Limited past performance references'],
+          opportunities: ['Set-aside friendly evaluation', 'Aligned NAICS and certifications'],
+          recommendation: 'Advance to capture review and assign pricing lead this week.',
+        };
+      }
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -703,6 +912,10 @@ Provide analysis in JSON format with:
   };
 
   const handleSaveOpportunity = async (noticeId: string) => {
+    if (!isLoggedIn) {
+      setShowSignInNudge(true);
+      return;
+    }
     const opp = allOpportunities.find(o => o.noticeId === noticeId);
     const isCurrentlySaved = savedOpportunities.has(noticeId);
 
@@ -714,6 +927,9 @@ Provide analysis in JSON format with:
     });
 
     try {
+      if (USE_MOCK_OPPORTUNITIES) {
+        return
+      }
       if (isCurrentlySaved) {
         // DELETE from DB
         await fetch(`/api/saved-opportunities/${encodeURIComponent(noticeId)}`, { method: 'DELETE' });
@@ -799,7 +1015,7 @@ Provide analysis in JSON format with:
     }
   };
 
-  // ≡ƒÄ» NEW: Listen for survey completion
+  // 📌 NEW: Listen for survey completion
   useEffect(() => {
     const handleSurveyCompleted = (event: CustomEvent) => {
       setUserProfile(prev => ({
@@ -815,7 +1031,7 @@ Provide analysis in JSON format with:
     };
   }, []);
 
-  // ≡ƒÄ» FIXED: Set achievement messages based on session
+  // 📌 FIXED: Set achievement messages based on session
   useEffect(() => {
     if (userName) {
       const randomAchievement = ACHIEVEMENT_MESSAGES[Math.floor(Math.random() * ACHIEVEMENT_MESSAGES.length)];
@@ -833,7 +1049,7 @@ Provide analysis in JSON format with:
     }
   }, [userName]);
 
-  // ≡ƒÄ» NEW: Listen for preference updates
+  // 📌 NEW: Listen for preference updates
   useEffect(() => {
     const handlePreferencesUpdate = (event: CustomEvent) => {
       setOpportunityPreferences(event.detail);
@@ -884,7 +1100,7 @@ Provide analysis in JSON format with:
 
   // Load saved opportunity IDs from DB on mount so bookmarks are persistent
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (USE_MOCK_OPPORTUNITIES || !isLoggedIn) return;
     fetch('/api/saved-opportunities')
       .then(r => r.ok ? r.json() : { savedOpportunities: [] })
       .then(data => {
@@ -894,8 +1110,74 @@ Provide analysis in JSON format with:
       .catch(err => console.error('Failed to load saved opportunities:', err));
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    if (sessionStatus === 'loading') return;
+    if (isLoggedIn) return;
+    let isMounted = true;
+
+    async function loadTickerFeed() {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/ticker', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error('Failed to load ticker opportunities');
+        }
+        const payload = await response.json();
+        const tickerOpps = (payload.opportunities || []).map((opp: any) => normalizeOpportunity(opp));
+        if (!isMounted) return;
+        setAllOpportunities(tickerOpps);
+        setFilteredOpportunities(tickerOpps);
+        setDisplayedOpportunities(tickerOpps);
+        setTotalRecords(tickerOpps.length);
+        setLastUpdated('Live ticker feed');
+        setDataLoaded(true);
+        setError(null);
+        setDataSource('ticker');
+      } catch (err) {
+        console.error('Failed to load ticker feed:', err);
+        if (!isMounted) return;
+        setError('Live ticker feed unavailable. Sign in for the full catalog.');
+        if (USE_MOCK_OPPORTUNITIES) {
+          setAllOpportunities(MOCK_OPPORTUNITIES);
+          setFilteredOpportunities(MOCK_OPPORTUNITIES);
+          setDisplayedOpportunities(MOCK_OPPORTUNITIES);
+          setTotalRecords(MOCK_OPPORTUNITIES.length);
+          setLastUpdated('Sample data');
+          setDataLoaded(true);
+          setDataSource('mock');
+        }
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+        setRefreshIndicator(false);
+      }
+    }
+
+    loadTickerFeed();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isLoggedIn, sessionStatus]);
+
     // Fetch ALL opportunities from SAM.gov
   useEffect(() => {
+    if (sessionStatus === 'loading') return;
+    if (!isLoggedIn) return;
+    if (dataSource === 'live') return;
+    if (USE_MOCK_OPPORTUNITIES) {
+      setAllOpportunities(MOCK_OPPORTUNITIES)
+      setFilteredOpportunities(MOCK_OPPORTUNITIES)
+      setDisplayedOpportunities(MOCK_OPPORTUNITIES)
+      setTotalRecords(MOCK_OPPORTUNITIES.length)
+      setLastUpdated('Using mock data')
+      setDataLoaded(true)
+      setLoading(false)
+      setRefreshIndicator(false)
+      setDataSource('mock')
+      return
+    }
+
     let isMounted = true;
     const abortController = new AbortController();
 
@@ -932,8 +1214,8 @@ Provide analysis in JSON format with:
           // Debug: dump full first opportunity to find real field names
           if (result.opportunities?.[0]) {
             const s = result.opportunities[0];
-            console.log('≡ƒöì FULL opportunity keys:', Object.keys(s));
-            console.log('≡ƒöì FULL opportunity:', JSON.stringify(s, null, 2));
+            console.log('🔍 FULL opportunity keys:', Object.keys(s));
+            console.log('🔍 FULL opportunity:', JSON.stringify(s, null, 2));
           }
           
           // Normalize every opportunity ΓÇö handle all possible API field name variants
@@ -1005,6 +1287,7 @@ Provide analysis in JSON format with:
             setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
             setDataLoaded(true);
             setError(null);
+            setDataSource('live');
           } else if (!dataLoaded) {
             console.log('ΓÅ│ Empty response from API ΓÇö waiting for real data...');
           }
@@ -1031,7 +1314,7 @@ Provide analysis in JSON format with:
       isMounted = false;
       abortController.abort();
     };
-  }, []);
+  }, [dataLoaded, dataSource, isLoggedIn, sessionStatus]);
 
   // Apply filters whenever dependencies change
   useEffect(() => {
@@ -1059,7 +1342,7 @@ Provide analysis in JSON format with:
     selectedUrgency, selectedUrgencyFilters, showAllOpportunities
   ]);
 
-  // ≡ƒÄ» NEW: Personalized stats
+  // 📌 NEW: Personalized stats
   const personalizedStats = useMemo(() => {
     if (!dataLoaded || !userProfile) return null;
     
@@ -1160,7 +1443,7 @@ Provide analysis in JSON format with:
   const visibleOpportunities = keywordFiltered.slice(0, displayCount);
   const hasMore = displayCount < displayedOpportunities.length;
 
-  // ≡ƒÄ» NEW: Group opportunities by selected criteria
+  // 📌 NEW: Group opportunities by selected criteria
   const groupedOpportunities = useMemo(() => {
     if (groupMode === 'none') {
       return { 'All Opportunities': visibleOpportunities };
@@ -1244,81 +1527,6 @@ Provide analysis in JSON format with:
     );
   }
 
-  // ΓöÇΓöÇ UNAUTHENTICATED: show teaser/locked page ΓöÇΓöÇ
-  if (!isLoggedIn && sessionStatus !== 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
-        {/* Blurred dummy feed behind the gate */}
-        <div className="relative">
-          <div className="pointer-events-none select-none blur-sm opacity-40 px-6 py-8 max-w-[1900px] mx-auto">
-            {/* Fake stat pills */}
-            <div className="grid grid-cols-5 gap-4 mb-8">
-              {['250 Active','47 Set-Asides','12 Closing Soon','8 Agencies','3 Posted Today'].map(t => (
-                <div key={t} className="p-4 rounded-xl bg-slate-800/60 border border-slate-700">
-                  <div className="text-xl font-bold text-white">{t.split(' ')[0]}</div>
-                  <div className="text-xs text-slate-400">{t.split(' ').slice(1).join(' ')}</div>
-                </div>
-              ))}
-            </div>
-            {/* Fake opportunity cards */}
-            {Array.from({length: 6}).map((_,i) => (
-              <div key={i} className="mb-4 p-5 rounded-xl bg-slate-800/60 border border-slate-700 flex gap-4">
-                <div className="w-24 h-12 rounded-lg bg-red-600/60 flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-slate-600 rounded w-3/4" />
-                  <div className="h-3 bg-slate-700 rounded w-1/2" />
-                  <div className="h-3 bg-slate-700 rounded w-1/3" />
-                </div>
-                <div className="w-32 h-10 bg-cyan-700/40 rounded-lg flex-shrink-0" />
-              </div>
-            ))}
-          </div>
-
-          {/* Gate overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="mx-4 w-full max-w-lg bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 border-2 border-cyan-500/40 rounded-3xl p-10 shadow-2xl text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
-                <Image src="/logo.png" alt="Precise GovCon" width={64} height={64} className="w-14 h-14 object-contain" />
-              </div>
-              <p className="text-xs text-cyan-400 font-bold tracking-widest uppercase mb-3">Precise GovCon</p>
-              <h2 className="text-3xl font-black text-white mb-3">
-                Curated <span className="text-orange-400">GovCon</span> Opportunities
-              </h2>
-              <p className="text-slate-300 text-lg mb-2 leading-relaxed">
-                Sign in to access <span className="text-cyan-400 font-bold">live federal solicitations</span> curated by our proprietary analytics engine ΓÇö sorted by urgency, personalized to your profile.
-              </p>
-              <div className="mt-6 mb-8 grid grid-cols-1 gap-3 text-left">
-                {[
-                  { icon: '≡ƒÄ»', text: 'Personalized matches based on your NAICS codes and certifications' },
-                  { icon: 'ΓÜí', text: 'Real-time data from SAM.gov, filtered and deadline-sorted' },
-                  { icon: '≡ƒöö', text: 'Urgency alerts so you never miss a critical deadline' },
-                  { icon: '≡ƒôè', text: 'Proprietary win-probability & competition analysis' },
-                ].map(({icon, text}) => (
-                  <div key={text} className="flex items-start gap-3 px-4 py-3 bg-white/5 rounded-xl border border-white/10">
-                    <span className="text-xl flex-shrink-0">{icon}</span>
-                    <span className="text-sm text-slate-300">{text}</span>
-                  </div>
-                ))}
-              </div>
-              <a
-                href="/login"
-                className="block w-full py-4 rounded-xl text-white font-black text-lg shadow-xl transition-all hover:scale-[1.02]"
-                style={{background: 'linear-gradient(135deg,#059669,#06b6d4)'}}
-              >
-                Sign In to View Opportunities
-              </a>
-              <p className="mt-4 text-slate-500 text-sm">
-                No account?{' '}
-                <a href="/login?mode=register" className="text-cyan-400 hover:underline font-semibold">
-                  Create one free ΓåÆ
-                </a>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -1359,9 +1567,9 @@ Provide analysis in JSON format with:
             </div>
             <div className="flex items-center gap-3">
               {userProfile && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-500/30">
-                  <TargetIcon className="w-3 h-3 text-purple-400" />
-                  <span className="text-xs text-purple-300 font-medium">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/40 bg-white/10 shadow-lg shadow-black/10">
+                  <TargetIcon className="w-3 h-3 text-white" />
+                  <span className="text-xs font-semibold text-white">
                     Goal: {userProfile.achievedThisMonth || 0}/{userProfile.monthlyGoal || 10} this month
                   </span>
                 </div>
@@ -1381,7 +1589,13 @@ Provide analysis in JSON format with:
                 <span className="hidden sm:inline">Insights</span>
               </button>
               <button
-                onClick={() => setSurveyOpen(true)}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setShowSignInNudge(true);
+                    return;
+                  }
+                  setSurveyOpen(true);
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 px-4 py-2.5 text-sm font-bold text-white transition shadow-lg hover:shadow-xl"
               >
                 <Settings className="h-4 w-4" />
@@ -1431,8 +1645,33 @@ Provide analysis in JSON format with:
         </div>
       )}
 
+      {!isLoggedIn && dataSource === 'ticker' && (
+          <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3">
+            <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-cyan-200">You are viewing a live sample feed</p>
+                <p className="text-xs text-cyan-100/80">Sign in to unlock the full SAM.gov catalog, saved searches, and AI scoring.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowSignInNudge(true)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-bold shadow-lg"
+                >
+                  Sign In for Full Access
+                </button>
+                <button
+                  onClick={handleDismissSignInNudge}
+                  className="px-3 py-2 rounded-xl border border-white/20 text-xs text-white/70"
+                >
+                  Keep Browsing
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
-        {/* ≡ƒÄ» HERO SECTION - What we're showing and how */}
+        {/* 📌 HERO SECTION - What we're showing and how */}
         <div className="mb-2 p-2 sm:p-3 bg-gradient-to-br from-blue-900/30 via-indigo-900/20 to-purple-900/30 rounded-xl border border-blue-500/30">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
@@ -1444,11 +1683,19 @@ Provide analysis in JSON format with:
                   height={56}
                   className="w-8 h-8 object-contain flex-shrink-0"
                 />
-                <h1 className="text-base sm:text-lg font-bold leading-tight">
+                <h1 className="text-base sm:text-lg font-bold leading-tight text-[var(--color-text-primary)]">
                   {(() => {
                     const h = new Date().getHours();
                     const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
-                    return (<><span className="text-white">{g}, </span><span className="text-orange-400">{userName || 'there'}</span><span className="text-white">! Welcome to your curated opportunities provided by </span><span className="text-orange-400">Precise GovCon</span><span className="text-white"> ┬«</span></>);
+                    return (
+                      <>
+                        <span className="text-[var(--color-text-primary)]">{g}, </span>
+                        <span className="text-[#ff7a18] font-extrabold">{userName || 'there'}</span>
+                        <span className="text-[var(--color-text-primary)]">! Welcome to your curated opportunities provided by </span>
+                        <span className="text-[#ff7a18] font-extrabold">Precise GovCon</span>
+                        <span className="text-[var(--color-text-primary)] font-semibold"> TM</span>
+                      </>
+                    );
                   })()}
                 </h1>
               </div>
@@ -1473,7 +1720,7 @@ Provide analysis in JSON format with:
               </div>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  {userName ? `Welcome, ${userName}! ≡ƒæï` : 'Welcome! ≡ƒæï'}
+                  {userName ? `Welcome, ${userName}! 👋` : 'Welcome! 👋'}
                 </h2>
                 <p className="text-slate-300 text-base mb-3">
                   Complete your opportunity preferences survey to get personalized recommendations
@@ -1522,7 +1769,7 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-        {/* ≡ƒÄ» ACCURATE STATS PILLS - Interactive */}
+        {/* 📌 ACCURATE STATS PILLS - Interactive */}
         <div className="mb-2 flex gap-2">
           {[
             { filter: 'active' as const,      icon: <CheckCircle2 className="w-3.5 h-3.5" />, value: stats.totalActive, label: 'Active',        accent: 'text-emerald-400', border: 'border-emerald-700', activeBg: 'bg-emerald-500/10' },
@@ -1546,13 +1793,13 @@ Provide analysis in JSON format with:
           </div>
         </div>
 
-        {/* ≡ƒÄ» PROMINENT SEARCH BAR - White background, enhanced visibility */}
+        {/* 📌 PROMINENT SEARCH BAR - White background, enhanced visibility */}
         <div className="mb-8">
           <div className="relative">
             <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-600 w-6 h-6" />
             <input
               type="text"
-              placeholder="≡ƒöì Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
+              placeholder="🔍 Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setKeywordSearch(e.target.value); }}
               className="w-full pl-16 pr-16 py-5 bg-white text-slate-900 border-2 border-slate-300 rounded-2xl placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-medium shadow-xl"
@@ -2393,7 +2640,7 @@ Provide analysis in JSON format with:
                       {/* Department / Agency */}
                       <div>
                         <p className="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                          ≡ƒÅ¢ Department / Agency
+                          🏛 Department / Agency
                         </p>
                         {(() => {
                           const dept = opp.fullParentPathName || opp.department || '';
@@ -2413,7 +2660,7 @@ Provide analysis in JSON format with:
                       {/* Solicitation # ΓÇö only show if it looks like a real solicitation number */}
                       {opp.solicitationNumber && !opp.solicitationNumber.match(/^[0-9a-f]{32,}$/i) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôï Solicitation #</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📋 Solicitation #</p>
                           <p className="text-cyan-300 font-mono text-xs break-all leading-relaxed">{opp.solicitationNumber}</p>
                         </div>
                       )}
@@ -2423,7 +2670,7 @@ Provide analysis in JSON format with:
                         <div className="flex gap-4">
                           {opp.naicsCode && (
                             <div>
-                              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôè NAICS</p>
+                              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📦 NAICS</p>
                               <p className="text-slate-200 font-mono font-bold">{opp.naicsCode}</p>
                             </div>
                           )}
@@ -2439,7 +2686,7 @@ Provide analysis in JSON format with:
                       {/* Office location */}
                       {(opp.officeAddress?.city || opp.officeAddress?.state) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôì Office Location</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📍 Office Location</p>
                           <p className="text-slate-200 text-sm">
                             {[opp.officeAddress?.city, opp.officeAddress?.state, opp.officeAddress?.zip].filter(Boolean).join(', ')}
                           </p>
@@ -2449,7 +2696,7 @@ Provide analysis in JSON format with:
                       {/* Place of Performance */}
                       {(opp.placeOfPerformance?.city?.name || opp.placeOfPerformance?.state?.name || opp.placeOfPerformance?.state?.code) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒù║ Place of Performance</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🏢 Place of Performance</p>
                           <p className="text-slate-200 text-sm">
                             {[
                               opp.placeOfPerformance?.city?.name,
@@ -2463,7 +2710,7 @@ Provide analysis in JSON format with:
                       {/* Contact */}
                       {opp.pointOfContact && opp.pointOfContact.length > 0 && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1.5">≡ƒæñ Point of Contact</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1.5">👤 Point of Contact</p>
                           {opp.pointOfContact.slice(0, 2).map((poc, i) => (
                             <div key={i} className="mb-2 pl-2 border-l-2 border-slate-700">
                               {poc.fullname && (
@@ -2497,7 +2744,7 @@ Provide analysis in JSON format with:
 
                       {/* Posted */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôà Posted Date</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📅 Posted Date</p>
                         <p className="text-slate-200 font-semibold">{formatDate(postedDate)}</p>
                         {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
                           <p className="text-xs text-cyan-400 mt-0.5">Updated: {formatDate(opp.updatedPostedDate)}</p>
@@ -2507,7 +2754,7 @@ Provide analysis in JSON format with:
                       {/* Opportunity type */}
                       {opp.type && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôä Opportunity Type</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📄 Opportunity Type</p>
                           <p className="text-slate-200 capitalize">{
                             ({ o: 'Solicitation', p: 'Pre-Solicitation', a: 'Award Notice', r: 'Sources Sought',
                                s: 'Special Notice', k: 'Combined Synopsis', u: 'Justification (J&A)',
@@ -2518,14 +2765,14 @@ Provide analysis in JSON format with:
 
                       {/* Notice ID */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒöæ Notice ID</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🔎 Notice ID</p>
                         <p className="text-slate-400 font-mono text-xs break-all">{opp.noticeId}</p>
                       </div>
 
                       {/* AI Analysis */}
                       {opp.aiAnalysis && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">≡ƒñû AI Analysis</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">🤖 AI Analysis</p>
                           <div className="grid grid-cols-3 gap-2 text-center mb-2">
                             <div className="bg-slate-800/60 rounded-lg p-2">
                               <p className="text-xs text-slate-400">Match</p>
@@ -2927,6 +3174,42 @@ Provide analysis in JSON format with:
         </button>
       </div>
     </div>
+    {showSignInNudge && (
+      <div className="fixed inset-0 z-[90]">
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={handleDismissSignInNudge} />
+        <div className="relative z-10 h-full flex items-center justify-center px-4">
+          <div className="w-full max-w-lg bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 border border-cyan-500/40 rounded-3xl shadow-2xl p-8 text-center space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-semibold text-cyan-200">Limited preview</p>
+              <button onClick={handleDismissSignInNudge} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+              <Image src="/logo.png" alt="Precise GovCon" width={48} height={48} className="w-10 h-10 object-contain" />
+            </div>
+            <h3 className="text-2xl font-black text-white">Sign in for full GovCon intelligence</h3>
+            <p className="text-slate-300 text-sm">
+              Browse thousands more opportunities, enable saved searches, and unlock AI match scoring when you sign in.
+            </p>
+            <div className="space-y-3">
+              <a
+                href="/login"
+                className="block w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold shadow-lg"
+              >
+                Sign In / Create Account
+              </a>
+              <button
+                onClick={handleDismissSignInNudge}
+                className="block w-full py-3 rounded-xl border border-white/20 text-slate-200 font-semibold"
+              >
+                Continue Browsing
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

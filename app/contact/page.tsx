@@ -425,11 +425,11 @@ function ContactPageContent() {
                 </a>
 
                 <a
-                  href="tel:804-404-4005"
+                  href="tel:804-404-6005"
                   className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
                   <Phone className="h-5 w-5" />
-                  (804) 404-4005
+                  (804) 404-6005
                 </a>
 
                 <p className="text-sm text-slate-400 mt-4">

@@ -1,4 +1,3 @@
-// components/layout/Footer.tsx
 'use client'
 
 import Link from 'next/link'
@@ -8,6 +7,7 @@ import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import ContactModal from './ContactModal'
 import { Mail, Phone, ExternalLink } from 'lucide-react'
+import { BRAND_CONFIG } from '@/lib/brand-config'
 
 export default function Footer() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
@@ -16,6 +16,11 @@ export default function Footer() {
   const { status } = useSession()
   const pathname = usePathname()
   const isAuthed = status === 'authenticated'
+  const { contact, tagline } = BRAND_CONFIG
+  const formattedTagline = tagline
+    .split(' ')
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(' ')
 
   const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href === '/search' && !isAuthed) {
@@ -31,44 +36,45 @@ export default function Footer() {
 
   return (
     <>
-      <footer
-        className="bg-slate-950"
-        // Most reliable way right now — prefers Aptos when available
-        style={{
-          fontFamily:
-            '"Aptos", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif',
-        }}
-      >
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-4 items-start">
-            
-            {/* Column 1: Brand + Contact */}
+      <footer className="mt-16 border-t border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm">
+        <div className="pg-container max-w-[1600px] px-3 sm:px-5 lg:px-6 py-10">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
             <div className="col-span-2 md:col-span-1">
-              <Link href="/" className="flex items-center gap-2.5 mb-3">
-                <Image src="/logo.png" alt="PreciseGovCon" width={32} height={32} className="w-8 h-8 rounded-lg" />
-                <span className="text-base font-bold text-white tracking-tight">
-                  PRECISE <span className="text-orange-500">GOVCON</span>
-                </span>
+              <Link
+                href="/"
+                className="group mb-3 flex items-center gap-2.5"
+                aria-label="Navigate to Precise GovCon homepage"
+              >
+                <Image
+                  src="/logo.png"
+                  alt="Precise GovCon logo"
+                  width={56}
+                  height={56}
+                  className="h-10 w-10 flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
+                />
+                <div className="flex flex-col gap-0.5">
+                  <div className="text-base font-black leading-none tracking-tight text-[var(--color-text-primary)]">
+                    <span>PRECISE</span>{' '}
+                    <span className="text-[var(--color-highlight)]">GOVCON</span>
+                  </div>
+                  <div className="text-[0.75rem] italic font-semibold tracking-wide text-[var(--color-text-secondary)]">
+                    {formattedTagline}
+                  </div>
+                </div>
               </Link>
+              <div className="mb-4" />
               <div className="space-y-1.5">
-                <a
-                  href="mailto:support@precisegovcon.com"
-                  className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-emerald-400 transition-colors"
-                >
-                  <Mail className="w-4 h-4" /> support@precisegovcon.com
+                <a href={`mailto:${contact.email}`} className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                  <Mail className="h-4 w-4" /> {contact.email}
                 </a>
-                <a
-                  href="tel:8044044005"
-                  className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-emerald-400 transition-colors"
-                >
-                  <Phone className="w-4 h-4" /> (804) 404-4005
+                <a href={`tel:${contact.phone.replace(/[^0-9]/g, '')}`} className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                  <Phone className="h-4 w-4" /> {contact.phone}
                 </a>
               </div>
             </div>
 
-            {/* Column 2: Platform */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-2.5">Platform</h4>
+              <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Platform</h4>
               <ul className="space-y-2">
                 {[
                   { label: 'Search', href: '/search' },
@@ -77,11 +83,7 @@ export default function Footer() {
                   { label: 'Alerts', href: '/alerts' },
                 ].map(({ label, href }) => (
                   <li key={href}>
-                    <Link
-                      href={href}
-                      onClick={(e) => handleNav(e, href)}
-                      className="text-sm font-bold text-white/70 hover:text-white transition-colors"
-                    >
+                    <Link href={href} onClick={(e) => handleNav(e, href)} className="text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
                       {label}
                     </Link>
                   </li>
@@ -89,9 +91,8 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Column 3: Services */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-2.5">Services</h4>
+              <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Services</h4>
               <ul className="space-y-2">
                 {[
                   { label: 'SAM Registration', href: '/services/sam-registration' },
@@ -100,7 +101,7 @@ export default function Footer() {
                   { label: 'Certifications', href: '/services/set-aside-certifications' },
                 ].map(({ label, href }) => (
                   <li key={href}>
-                    <Link href={href} className="text-sm font-bold text-white/70 hover:text-white transition-colors">
+                    <Link href={href} className="text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
                       {label}
                     </Link>
                   </li>
@@ -108,9 +109,8 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Column 4: Company */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-2.5">Company</h4>
+              <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Company</h4>
               <ul className="space-y-2">
                 {[
                   { label: 'About', href: '/about' },
@@ -119,7 +119,7 @@ export default function Footer() {
                   { label: 'Privacy', href: '/privacy' },
                 ].map(({ label, href }) => (
                   <li key={href}>
-                    <Link href={href} className="text-sm font-bold text-white/70 hover:text-white transition-colors">
+                    <Link href={href} className="text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
                       {label}
                     </Link>
                   </li>
@@ -127,31 +127,20 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Column 5: CTAs */}
             <div className="col-span-2 md:col-span-4 lg:col-span-1">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-2.5">Get Started</h4>
+              <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Get Started</h4>
               <div className="space-y-2">
-                <Link
-                  href="/support#book"
-                  className="flex items-center justify-center gap-1.5 w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-sm font-bold rounded-lg transition-all"
-                >
-                  Book a Meeting <ExternalLink className="w-3.5 h-3.5" />
+                <Link href="/support#book" className="pg-btn pg-btn-primary w-full rounded-xl px-4 py-2.5 text-sm font-bold">
+                  Book a Meeting <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
-                <button
-                  onClick={() => setIsContactModalOpen(true)}
-                  className="w-full px-4 py-2.5 bg-[#D9520A] hover:bg-[#e65d12] text-white text-sm font-bold rounded-lg transition-all"
-                >
+                <button onClick={() => setIsContactModalOpen(true)} className="pg-btn pg-btn-secondary w-full rounded-xl px-4 py-2.5 text-sm font-bold">
                   Contact Us
                 </button>
-                <Link
-                  href="/signup"
-                  className="flex items-center justify-center w-full px-4 py-2.5 border border-white/25 hover:border-white/50 text-white/90 hover:text-white text-sm font-bold rounded-lg transition-all"
-                >
+                <Link href="/signup" className="pg-btn pg-btn-tertiary w-full rounded-xl px-4 py-2.5 text-sm font-bold">
                   Start Free Trial
                 </Link>
               </div>
             </div>
-
           </div>
         </div>
       </footer>
@@ -159,22 +148,15 @@ export default function Footer() {
       <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
 
       {showLoginPrompt && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md mx-4 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-2">Sign In Required</h3>
-            <p className="text-sm text-slate-300 mb-4">Please sign in to access Contract Search.</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-modal)]">
+            <h3 className="mb-2 text-lg font-bold text-[var(--color-text-primary)]">Sign In Required</h3>
+            <p className="mb-4 text-sm text-[var(--color-text-secondary)]">Please sign in to access Contract Search.</p>
             <div className="flex gap-3">
-              <Link
-                href="/login"
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white text-sm font-semibold rounded-lg text-center"
-                onClick={() => setShowLoginPrompt(false)}
-              >
+              <Link href="/login" className="pg-btn pg-btn-primary flex-1 rounded-lg px-4 py-2 text-sm font-semibold" onClick={() => setShowLoginPrompt(false)}>
                 Sign In
               </Link>
-              <button
-                onClick={() => setShowLoginPrompt(false)}
-                className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition-all"
-              >
+              <button onClick={() => setShowLoginPrompt(false)} className="pg-btn pg-btn-secondary flex-1 rounded-lg px-4 py-2 text-sm font-semibold">
                 Cancel
               </button>
             </div>

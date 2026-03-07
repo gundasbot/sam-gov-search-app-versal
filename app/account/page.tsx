@@ -165,7 +165,7 @@ export default function AccountPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-screen bg-[#0a0d14]" style={{fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif"}}>
+        <div className="pg-account-modern flex items-center justify-center min-h-screen bg-[#0a0d14]" style={{fontFamily: 'var(--font-ui), system-ui, sans-serif'}}>
           <Loader2 className="w-8 h-8 animate-spin text-[#1a4bff]" />
         </div>
       }
@@ -485,7 +485,7 @@ function AccountPageContent() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0d14]" style={{fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif"}}>
+      <div className="pg-account-modern flex flex-col items-center justify-center min-h-screen bg-[#0a0d14]" style={{fontFamily: 'var(--font-ui), system-ui, sans-serif'}}>
         <div className="relative">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1a4bff] to-[#0ea5e9] flex items-center justify-center shadow-2xl shadow-blue-500/40 mb-6">
             <Loader2 className="w-8 h-8 animate-spin text-white" />
@@ -500,7 +500,7 @@ function AccountPageContent() {
   const currentPlanDetails = plan?.tier && plan.tier !== 'NONE' ? PLAN_DETAILS[plan.tier] : null
 
   return (
-    <div className="min-h-screen bg-[#0a0d14]" style={{fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif"}}>
+    <div className="pg-account-modern min-h-screen bg-[#0a0d14]" style={{fontFamily: 'var(--font-ui), system-ui, sans-serif'}}>
       {/* ── Hero Header ── */}
       <div className="relative border-b border-white/[0.06] overflow-hidden">
         {/* Rich layered background */}
@@ -585,7 +585,7 @@ function AccountPageContent() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-0.5 overflow-x-auto pb-px scrollbar-none">
+          <div className="pg-account-tabs flex gap-0.5 overflow-x-auto pb-px scrollbar-none">
             {[
               { id: 'overview', label: 'Overview', icon: Sparkles },
               { id: 'profile', label: 'Profile', icon: User },
@@ -620,7 +620,7 @@ function AccountPageContent() {
       {message && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5">
           <div
-            className={`px-5 py-3.5 rounded-xl flex items-center gap-3 border shadow-lg transition-all duration-300 ${
+            className={`pg-account-banner px-5 py-3.5 rounded-xl flex items-center gap-3 border shadow-lg transition-all duration-300 ${
               message.type === 'success'
                 ? 'bg-emerald-500/[0.08] border-emerald-500/20 text-emerald-400'
                 : 'bg-red-500/[0.08] border-red-500/20 text-red-400'
@@ -636,51 +636,65 @@ function AccountPageContent() {
       )}
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div className="pg-account-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         {activeTab === 'overview' && (
-          <OverviewTab
-            profile={profile}
-            setProfile={setProfile}
-            plan={plan}
-            currentPlanDetails={currentPlanDetails}
-            paymentMethods={paymentMethods}
-            usage={usage}
-            bids={bids}
-            setActiveTab={setActiveTab}
-          />
+          <section className="pg-account-pane">
+            <OverviewTab
+              profile={profile}
+              setProfile={setProfile}
+              plan={plan}
+              currentPlanDetails={currentPlanDetails}
+              paymentMethods={paymentMethods}
+              usage={usage}
+              bids={bids}
+              setActiveTab={setActiveTab}
+            />
+          </section>
         )}
 
         {activeTab === 'profile' && (
-          <ProfileTab
-            profile={profile}
-            setProfile={setProfile}
-            editMode={editMode}
-            setEditMode={setEditMode}
-            saving={saving}
-            saveProfile={saveProfile}
-            sendEmailVerification={sendEmailVerification}
-            verificationSent={verificationSent}
-          />
+          <section className="pg-account-pane">
+            <ProfileTab
+              profile={profile}
+              setProfile={setProfile}
+              editMode={editMode}
+              setEditMode={setEditMode}
+              saving={saving}
+              saveProfile={saveProfile}
+              sendEmailVerification={sendEmailVerification}
+              verificationSent={verificationSent}
+            />
+          </section>
         )}
 
         {activeTab === 'billing' && (
-          <BillingTab
-            plan={plan}
-            currentPlanDetails={currentPlanDetails}
-            paymentMethods={paymentMethods}
-            invoices={invoices}
-            billingInterval={billingInterval}
-            setBillingInterval={setBillingInterval}
-            handlePlanChange={handlePlanChange}
-            managePaymentMethod={managePaymentMethod}
-            handleCancelSubscription={handleCancelSubscription}
-            loadingPlanChange={loadingPlanChange}
-          />
+          <section className="pg-account-pane">
+            <BillingTab
+              plan={plan}
+              currentPlanDetails={currentPlanDetails}
+              paymentMethods={paymentMethods}
+              invoices={invoices}
+              billingInterval={billingInterval}
+              setBillingInterval={setBillingInterval}
+              handlePlanChange={handlePlanChange}
+              managePaymentMethod={managePaymentMethod}
+              handleCancelSubscription={handleCancelSubscription}
+              loadingPlanChange={loadingPlanChange}
+            />
+          </section>
         )}
 
-        {activeTab === 'support' && <SupportTab profile={profile} plan={plan} />}
+        {activeTab === 'support' && (
+          <section className="pg-account-pane">
+            <SupportTab profile={profile} plan={plan} />
+          </section>
+        )}
 
-        {activeTab === 'bids' && <BidsTab bids={bids} setBids={setBids} />}
+        {activeTab === 'bids' && (
+          <section className="pg-account-pane">
+            <BidsTab bids={bids} setBids={setBids} />
+          </section>
+        )}
       </div>
     </div>
   )
@@ -2039,7 +2053,7 @@ function BidsTab({ bids, setBids }: any) {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-[#0d1117] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden" style={{fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif"}}>
+          <div className="w-full max-w-lg bg-[#0d1117] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden" style={{fontFamily: 'var(--font-ui), system-ui, sans-serif'}}>
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-white/[0.02]">
               <h3 className="text-base font-bold text-white">

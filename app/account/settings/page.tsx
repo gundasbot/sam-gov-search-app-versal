@@ -235,7 +235,7 @@ function UserSettingsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'Outfit', 'Segoe UI', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }}>
       {/* Toast */}
       {toast && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 pointer-events-none">
