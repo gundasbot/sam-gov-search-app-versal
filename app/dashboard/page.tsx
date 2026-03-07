@@ -1471,7 +1471,7 @@ function getMatchScoreColor(score: number) {
         {/* Header Section */}
         <div className="mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-in fade-in duration-500">
           <div>
-            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2">Intelligence Hub</h1>
+            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2">Welcome to your personalized Analytics Intelligence Hub</h1>
             <p className="text-slate-400 text-lg">Your gateway to federal contracting opportunities</p>
           </div>
           <div className="flex gap-3 flex-wrap">

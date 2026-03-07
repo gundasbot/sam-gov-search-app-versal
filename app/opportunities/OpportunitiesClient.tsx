@@ -73,7 +73,7 @@ type GroupMode = 'none' | 'department' | 'urgency' | 'setaside';
 
 const USE_MOCK_OPPORTUNITIES = true;
 
-// ≡ƒÄ» IMPROVED: Static placeholder data for immediate display
+// 📌 IMPROVED: Static placeholder data for immediate display
 const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (_, i) => ({
   noticeId: `placeholder-${i}`,
   title: 'Loading opportunity data...',
@@ -214,7 +214,7 @@ const MOCK_OPPORTUNITIES: SamOpportunity[] = [
   },
 ]
 
-// ≡ƒÄ» NEW: User profile interface
+// 📌 NEW: User profile interface
 interface UserProfile {
   first_name: string;
   lastName?: string;
@@ -227,7 +227,7 @@ interface UserProfile {
   hasCompletedSurvey?: boolean;
 }
 
-// ≡ƒÄ» NEW: Personalized achievement messages
+// 📌 NEW: Personalized achievement messages
 const ACHIEVEMENT_MESSAGES = [
   "You're on track to hit your monthly goal!",
   "Great job staying ahead of deadlines!",
@@ -248,17 +248,17 @@ const getNoDeadlineGradient = () => 'from-slate-800/60 to-slate-900/70 border-sl
 const getNoDeadlineTextColor = () => 'text-slate-200';
 const getNoDeadlineBadgeColor = () => 'bg-slate-900/60 text-slate-200 border-slate-600/60';
 
-// ≡ƒÄ» NEW: Utility function to get urgency gradient colors
+// 📌 NEW: Utility function to get urgency gradient colors
 // Γ£à FIXED: Proper red-to-green gradient based on business days
 const getUrgencyGradient = (businessDays: number) => {
-  if (businessDays <= 3) return 'from-red-600/40 to-red-500/30 border-red-500/70';        // ≡ƒö┤ CRITICAL
-  if (businessDays <= 5) return 'from-orange-600/40 to-orange-500/30 border-orange-500/70'; // ≡ƒƒá URGENT
-  if (businessDays <= 7) return 'from-amber-600/40 to-amber-500/30 border-amber-500/70';   // ≡ƒƒí HIGH
-  if (businessDays <= 10) return 'from-yellow-500/40 to-yellow-400/30 border-yellow-400/70'; // ≡ƒƒí ACT SOON
-  if (businessDays <= 14) return 'from-lime-500/40 to-lime-400/30 border-lime-500/70';     // ≡ƒƒó NORMAL
-  if (businessDays <= 21) return 'from-green-500/40 to-green-400/30 border-green-500/70';  // ≡ƒƒó COMFORTABLE
-  if (businessDays <= 30) return 'from-emerald-500/40 to-emerald-400/30 border-emerald-500/70'; // ≡ƒƒó AMPLE
-  return 'from-emerald-600/40 to-emerald-700/30 border-emerald-600/70'; // ≡ƒƒó PLENTY
+  if (businessDays <= 3) return 'from-red-600/40 to-red-500/30 border-red-500/70';        // 🔴 CRITICAL
+  if (businessDays <= 5) return 'from-orange-600/40 to-orange-500/30 border-orange-500/70'; // 🟠 URGENT
+  if (businessDays <= 7) return 'from-amber-600/40 to-amber-500/30 border-amber-500/70';   // 🟡 HIGH
+  if (businessDays <= 10) return 'from-yellow-500/40 to-yellow-400/30 border-yellow-400/70'; // 🟡 ACT SOON
+  if (businessDays <= 14) return 'from-lime-500/40 to-lime-400/30 border-lime-500/70';     // 🟢 NORMAL
+  if (businessDays <= 21) return 'from-green-500/40 to-green-400/30 border-green-500/70';  // 🟢 COMFORTABLE
+  if (businessDays <= 30) return 'from-emerald-500/40 to-emerald-400/30 border-emerald-500/70'; // 🟢 AMPLE
+  return 'from-emerald-600/40 to-emerald-700/30 border-emerald-600/70'; // 🟢 PLENTY
 };
 
 const getUrgencyTextColor = (businessDays: number) => {
@@ -307,7 +307,7 @@ const getUrgencyRank = (businessDays: number | null) => {
   return 7;
 };
 
-// ≡ƒÄ» NEW: Department color mapping
+// 📌 NEW: Department color mapping
 const getDepartmentGradient = (department: string) => {
   const dept = department?.toUpperCase() || '';
   if (dept.includes('DEFENSE') || dept.includes('ARMY') || dept.includes('NAVY') || dept.includes('AIR FORCE')) 
@@ -588,7 +588,7 @@ export default function OpportunitiesClient() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [refreshIndicator, setRefreshIndicator] = useState(false);
 
-  // ≡ƒÄ» NEW: View mode state
+  // 📌 NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [groupMode, setGroupMode] = useState<GroupMode>('urgency');
   const [surveyOpen, setSurveyOpen] = useState(false);
@@ -644,13 +644,13 @@ export default function OpportunitiesClient() {
     scheduleSignInPrompt();
   }, [scheduleSignInPrompt]);
 
-  // ≡ƒÄ» FIXED: Get user name from session
+  // 📌 FIXED: Get user name from session
   const userName = session?.user?.name?.split(' ')[0] || '';
   const userDisplayName = userName 
     ? (userName.endsWith('s') ? `${userName}'` : `${userName}'s`)
     : '';
 
-  // ≡ƒÄ» FIXED: Create user profile from session
+  // 📌 FIXED: Create user profile from session
   const [userProfile, setUserProfile] = useState<UserProfile>({
     first_name: userName,
     companyName: 'Your Business',
@@ -662,7 +662,7 @@ export default function OpportunitiesClient() {
   const [userAchievement, setUserAchievement] = useState('');
   const [userTip, setUserTip] = useState('');
 
-  // ≡ƒÄ» IMPROVED: Accurate stats calculation based on actual data
+  // 📌 IMPROVED: Accurate stats calculation based on actual data
   const stats = useMemo(() => {
     if (!dataLoaded) {
       return {
@@ -703,7 +703,7 @@ export default function OpportunitiesClient() {
     };
   }, [dataLoaded, allOpportunities]);
 
-  // ≡ƒÄ» OPTIMIZED: Memoized filter application - FIXED to not filter everything out
+  // 📌 OPTIMIZED: Memoized filter application - FIXED to not filter everything out
   const applyFilters = useCallback((opportunities: SamOpportunity[],
     filter: string | null,
     search: string,
@@ -1015,7 +1015,7 @@ Provide analysis in JSON format with:
     }
   };
 
-  // ≡ƒÄ» NEW: Listen for survey completion
+  // 📌 NEW: Listen for survey completion
   useEffect(() => {
     const handleSurveyCompleted = (event: CustomEvent) => {
       setUserProfile(prev => ({
@@ -1031,7 +1031,7 @@ Provide analysis in JSON format with:
     };
   }, []);
 
-  // ≡ƒÄ» FIXED: Set achievement messages based on session
+  // 📌 FIXED: Set achievement messages based on session
   useEffect(() => {
     if (userName) {
       const randomAchievement = ACHIEVEMENT_MESSAGES[Math.floor(Math.random() * ACHIEVEMENT_MESSAGES.length)];
@@ -1049,7 +1049,7 @@ Provide analysis in JSON format with:
     }
   }, [userName]);
 
-  // ≡ƒÄ» NEW: Listen for preference updates
+  // 📌 NEW: Listen for preference updates
   useEffect(() => {
     const handlePreferencesUpdate = (event: CustomEvent) => {
       setOpportunityPreferences(event.detail);
@@ -1214,8 +1214,8 @@ Provide analysis in JSON format with:
           // Debug: dump full first opportunity to find real field names
           if (result.opportunities?.[0]) {
             const s = result.opportunities[0];
-            console.log('≡ƒöì FULL opportunity keys:', Object.keys(s));
-            console.log('≡ƒöì FULL opportunity:', JSON.stringify(s, null, 2));
+            console.log('🔍 FULL opportunity keys:', Object.keys(s));
+            console.log('🔍 FULL opportunity:', JSON.stringify(s, null, 2));
           }
           
           // Normalize every opportunity ΓÇö handle all possible API field name variants
@@ -1342,7 +1342,7 @@ Provide analysis in JSON format with:
     selectedUrgency, selectedUrgencyFilters, showAllOpportunities
   ]);
 
-  // ≡ƒÄ» NEW: Personalized stats
+  // 📌 NEW: Personalized stats
   const personalizedStats = useMemo(() => {
     if (!dataLoaded || !userProfile) return null;
     
@@ -1443,7 +1443,7 @@ Provide analysis in JSON format with:
   const visibleOpportunities = keywordFiltered.slice(0, displayCount);
   const hasMore = displayCount < displayedOpportunities.length;
 
-  // ≡ƒÄ» NEW: Group opportunities by selected criteria
+  // 📌 NEW: Group opportunities by selected criteria
   const groupedOpportunities = useMemo(() => {
     if (groupMode === 'none') {
       return { 'All Opportunities': visibleOpportunities };
@@ -1671,7 +1671,7 @@ Provide analysis in JSON format with:
         )}
 
       <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
-        {/* ≡ƒÄ» HERO SECTION - What we're showing and how */}
+        {/* 📌 HERO SECTION - What we're showing and how */}
         <div className="mb-2 p-2 sm:p-3 bg-gradient-to-br from-blue-900/30 via-indigo-900/20 to-purple-900/30 rounded-xl border border-blue-500/30">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
@@ -1720,7 +1720,7 @@ Provide analysis in JSON format with:
               </div>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  {userName ? `Welcome, ${userName}! ≡ƒæï` : 'Welcome! ≡ƒæï'}
+                  {userName ? `Welcome, ${userName}! 👋` : 'Welcome! 👋'}
                 </h2>
                 <p className="text-slate-300 text-base mb-3">
                   Complete your opportunity preferences survey to get personalized recommendations
@@ -1769,7 +1769,7 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-        {/* ≡ƒÄ» ACCURATE STATS PILLS - Interactive */}
+        {/* 📌 ACCURATE STATS PILLS - Interactive */}
         <div className="mb-2 flex gap-2">
           {[
             { filter: 'active' as const,      icon: <CheckCircle2 className="w-3.5 h-3.5" />, value: stats.totalActive, label: 'Active',        accent: 'text-emerald-400', border: 'border-emerald-700', activeBg: 'bg-emerald-500/10' },
@@ -1793,13 +1793,13 @@ Provide analysis in JSON format with:
           </div>
         </div>
 
-        {/* ≡ƒÄ» PROMINENT SEARCH BAR - White background, enhanced visibility */}
+        {/* 📌 PROMINENT SEARCH BAR - White background, enhanced visibility */}
         <div className="mb-8">
           <div className="relative">
             <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-600 w-6 h-6" />
             <input
               type="text"
-              placeholder="≡ƒöì Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
+              placeholder="🔍 Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setKeywordSearch(e.target.value); }}
               className="w-full pl-16 pr-16 py-5 bg-white text-slate-900 border-2 border-slate-300 rounded-2xl placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-medium shadow-xl"
@@ -2640,7 +2640,7 @@ Provide analysis in JSON format with:
                       {/* Department / Agency */}
                       <div>
                         <p className="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                          ≡ƒÅ¢ Department / Agency
+                          🏛 Department / Agency
                         </p>
                         {(() => {
                           const dept = opp.fullParentPathName || opp.department || '';
@@ -2660,7 +2660,7 @@ Provide analysis in JSON format with:
                       {/* Solicitation # ΓÇö only show if it looks like a real solicitation number */}
                       {opp.solicitationNumber && !opp.solicitationNumber.match(/^[0-9a-f]{32,}$/i) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôï Solicitation #</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📋 Solicitation #</p>
                           <p className="text-cyan-300 font-mono text-xs break-all leading-relaxed">{opp.solicitationNumber}</p>
                         </div>
                       )}
@@ -2670,7 +2670,7 @@ Provide analysis in JSON format with:
                         <div className="flex gap-4">
                           {opp.naicsCode && (
                             <div>
-                              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôè NAICS</p>
+                              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📦 NAICS</p>
                               <p className="text-slate-200 font-mono font-bold">{opp.naicsCode}</p>
                             </div>
                           )}
@@ -2686,7 +2686,7 @@ Provide analysis in JSON format with:
                       {/* Office location */}
                       {(opp.officeAddress?.city || opp.officeAddress?.state) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôì Office Location</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📍 Office Location</p>
                           <p className="text-slate-200 text-sm">
                             {[opp.officeAddress?.city, opp.officeAddress?.state, opp.officeAddress?.zip].filter(Boolean).join(', ')}
                           </p>
@@ -2696,7 +2696,7 @@ Provide analysis in JSON format with:
                       {/* Place of Performance */}
                       {(opp.placeOfPerformance?.city?.name || opp.placeOfPerformance?.state?.name || opp.placeOfPerformance?.state?.code) && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒù║ Place of Performance</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🏢 Place of Performance</p>
                           <p className="text-slate-200 text-sm">
                             {[
                               opp.placeOfPerformance?.city?.name,
@@ -2710,7 +2710,7 @@ Provide analysis in JSON format with:
                       {/* Contact */}
                       {opp.pointOfContact && opp.pointOfContact.length > 0 && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1.5">≡ƒæñ Point of Contact</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1.5">👤 Point of Contact</p>
                           {opp.pointOfContact.slice(0, 2).map((poc, i) => (
                             <div key={i} className="mb-2 pl-2 border-l-2 border-slate-700">
                               {poc.fullname && (
@@ -2744,7 +2744,7 @@ Provide analysis in JSON format with:
 
                       {/* Posted */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôà Posted Date</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📅 Posted Date</p>
                         <p className="text-slate-200 font-semibold">{formatDate(postedDate)}</p>
                         {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
                           <p className="text-xs text-cyan-400 mt-0.5">Updated: {formatDate(opp.updatedPostedDate)}</p>
@@ -2754,7 +2754,7 @@ Provide analysis in JSON format with:
                       {/* Opportunity type */}
                       {opp.type && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒôä Opportunity Type</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📄 Opportunity Type</p>
                           <p className="text-slate-200 capitalize">{
                             ({ o: 'Solicitation', p: 'Pre-Solicitation', a: 'Award Notice', r: 'Sources Sought',
                                s: 'Special Notice', k: 'Combined Synopsis', u: 'Justification (J&A)',
@@ -2765,14 +2765,14 @@ Provide analysis in JSON format with:
 
                       {/* Notice ID */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">≡ƒöæ Notice ID</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🔎 Notice ID</p>
                         <p className="text-slate-400 font-mono text-xs break-all">{opp.noticeId}</p>
                       </div>
 
                       {/* AI Analysis */}
                       {opp.aiAnalysis && (
                         <div>
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">≡ƒñû AI Analysis</p>
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">🤖 AI Analysis</p>
                           <div className="grid grid-cols-3 gap-2 text-center mb-2">
                             <div className="bg-slate-800/60 rounded-lg p-2">
                               <p className="text-xs text-slate-400">Match</p>

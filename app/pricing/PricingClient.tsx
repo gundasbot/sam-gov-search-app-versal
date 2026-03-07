@@ -151,7 +151,7 @@ export default function PricingClient() {
             return (
               <div
                 key={plan.id}
-                className={`relative overflow-hidden rounded-2xl border p-6 transition-all bg-gradient-to-b ${plan.gradient} ${plan.highlight ? 'border-[var(--color-primary)] shadow-[var(--shadow-lg)] ring-1 ring-[var(--color-primary)]/20' : 'border-[var(--color-border)] shadow-[var(--shadow-sm)]'}`}
+                className={`relative overflow-hidden rounded-2xl border p-6 transition-all bg-[var(--color-surface)] ${plan.highlight ? 'border-[var(--color-primary)] shadow-[var(--shadow-lg)] ring-1 ring-[var(--color-primary)]/20 bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] shadow-[var(--shadow-sm)]'}`}
               >
                 {plan.highlight && (
                   <span className="mb-4 inline-flex rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
@@ -194,7 +194,7 @@ export default function PricingClient() {
                 </ul>
 
                 <Link
-                  href="/register"
+                  href={`/signup?plan=${plan.id.toUpperCase()}`}
                   className={`pg-btn w-full rounded-xl py-3 text-sm font-bold ${plan.highlight ? 'pg-btn-primary' : 'pg-btn-secondary text-[var(--color-text-primary)]'}`}
                 >
                   {plan.cta}
@@ -256,4 +256,3 @@ export default function PricingClient() {
     </div>
   )
 }
-
