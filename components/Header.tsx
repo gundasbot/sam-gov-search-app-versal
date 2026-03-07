@@ -224,7 +224,7 @@ export default function Header() {
           scrolled ? 'border-b border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm backdrop-blur-lg' : 'border-b border-[var(--color-border)] bg-[var(--color-surface)]'
         }`}
       >
-        <div className="pg-container mx-auto w-full max-w-[1720px] px-3 sm:px-5 lg:px-6">
+        <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8">
           <div className="flex h-16 items-center justify-between gap-2 sm:h-16 lg:h-[68px] xl:gap-5">
 
             {/* ── Logo ── */}
@@ -254,7 +254,7 @@ export default function Header() {
             </Link>
 
             {/* ── Desktop Nav ── */}
-            <div className="hidden min-w-0 flex-1 justify-center xl:flex">
+            <div className="hidden min-w-0 flex-1 justify-center lg:flex">
             <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-center gap-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/80 px-1.5 text-sm shadow-sm overflow-x-auto">
               {[
                 { href: '/search', label: 'Search', icon: <Search className="w-4 h-4" /> },
@@ -263,7 +263,7 @@ export default function Header() {
                 { href: '/alerts', label: 'Alerts & Searches', icon: <Bell className="w-4 h-4" /> },
               ].map(({ href, label, icon }) => (
                 <Link key={href} href={href} prefetch={false}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-1.5 text-[0.8rem] font-semibold tracking-tight transition-all xl:px-2.5 xl:text-[0.86rem] 2xl:px-3 2xl:text-[0.92rem] ${
                     isActive(href) ? activePillClasses : inactivePillClasses
                   }`}
                 >
@@ -282,7 +282,7 @@ export default function Header() {
                   }}
                   onMouseEnter={() => setServicesOpen(true)}
                   onFocus={() => setServicesOpen(true)}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-1.5 text-[0.8rem] font-semibold tracking-tight transition-all xl:px-2.5 xl:text-[0.86rem] 2xl:px-3 2xl:text-[0.92rem] ${
                     servicesOpen || pathname.startsWith('/services')
                       ? activePillClasses
                       : inactivePillClasses
@@ -334,7 +334,7 @@ export default function Header() {
                 { href: '/support', label: 'Support', icon: <Mail className="w-4 h-4" /> },
               ].map(({ href, label, icon }) => (
                 <Link key={href} href={href} prefetch={false}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-1.5 py-1.5 text-[0.8rem] font-semibold tracking-tight transition-all xl:px-2.5 xl:text-[0.86rem] 2xl:px-3 2xl:text-[0.92rem] ${
                     isActive(href) ? activePillClasses : inactivePillClasses
                   }`}
                 >
@@ -354,7 +354,7 @@ export default function Header() {
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: '/' })}
-                    className="hidden xl:inline-flex items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2 text-[0.8rem] font-bold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] 2xl:px-3 2xl:text-[0.9rem]"
+                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2 text-[0.8rem] font-bold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] 2xl:px-3 2xl:text-[0.9rem]"
                     aria-label="Sign out"
                   >
                     <LogOut className="w-4 h-4" />
@@ -403,7 +403,7 @@ export default function Header() {
               {/* Hamburger — visible below xl */}
               <button type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setAccountOpen(false); setServicesOpen(false) }}
-                className="text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] xl:hidden p-2 rounded-xl flex-shrink-0"
+                className="text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] lg:hidden p-2 rounded-xl flex-shrink-0"
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileMenuOpen}
               >
