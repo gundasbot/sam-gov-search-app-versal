@@ -315,11 +315,11 @@ export default function CapabilityStatementsPage() {
               Schedule Consultation
             </Link>
             <a
-              href="tel:804-404-4005"
+              href="tel:804-404-6005"
               className="inline-flex items-center gap-2 rounded-xl border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white px-8 py-4 text-lg font-bold hover:bg-white/20 transition-all"
             >
               <Phone className="w-6 h-6" />
-              (804) 404-4005
+              (804) 404-6005
             </a>
           </div>
 

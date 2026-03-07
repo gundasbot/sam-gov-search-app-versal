@@ -38,7 +38,7 @@ type FormState = {
 }
 
 const SUPPORT_EMAIL = 'support@precisegovcon.com'
-const SUPPORT_TEL = '804-404-4005'
+const SUPPORT_TEL = '804-404-6005'
 const CALENDLY_URL = 'https://calendly.com/precisegovcon/30min'
 
 export default function SupportOptionsModal({

@@ -20,7 +20,7 @@ export const BRAND_CONFIG = {
   },
   contact: {
     email: process.env.SUPPORT_EMAIL || 'support@precisegovcon.com',
-    phone: '(804) 404-4005',
+    phone: '(804) 404-6005',
   },
   social: {
     // Add your social media links here if needed

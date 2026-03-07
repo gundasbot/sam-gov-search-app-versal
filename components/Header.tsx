@@ -143,17 +143,25 @@ export default function Header() {
   }, [])
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
+  const activePillClasses = 'bg-[#ff7a18] text-white shadow-[0_10px_20px_rgba(255,122,24,0.35)] border border-[#ffb366]/50 ring-2 ring-[#ff7a18] ring-offset-1 ring-offset-[var(--color-surface)]'
+  const inactivePillClasses = 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)] border border-transparent'
 
   return (
     <>
       <style jsx global>{`
         @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         .animate-scroll { animation: scroll 60s linear infinite; }
+        .header-nav-scroll {
+          scrollbar-width: none;
+        }
+        .header-nav-scroll::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
 
       {/* ── LIVE TICKER ── */}
       <div ref={tickerRef} className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm">
-        <div className="max-w-[1760px] mx-auto px-3 sm:px-5 lg:px-6">
+        <div className="pg-container max-w-[1720px] px-3 sm:px-5 lg:px-6">
           <div className="flex items-center justify-between py-2 sm:py-3 min-h-[44px]">
             {/* Label + count */}
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -216,8 +224,8 @@ export default function Header() {
           scrolled ? 'border-b border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm backdrop-blur-lg' : 'border-b border-[var(--color-border)] bg-[var(--color-surface)]'
         }`}
       >
-        <div className="mx-auto w-full max-w-[1800px] px-3 sm:px-5 lg:px-6">
-          <div className="flex h-16 items-center justify-between gap-2 sm:h-16 lg:h-[68px] xl:gap-4">
+        <div className="pg-container mx-auto w-full max-w-[1720px] px-3 sm:px-5 lg:px-6">
+          <div className="flex h-16 items-center justify-between gap-2 sm:h-16 lg:h-[68px] xl:gap-5">
 
             {/* ── Logo ── */}
             <Link
@@ -247,7 +255,7 @@ export default function Header() {
 
             {/* ── Desktop Nav ── */}
             <div className="hidden min-w-0 flex-1 justify-center xl:flex">
-            <nav className="flex max-w-full items-center gap-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/70 px-1 2xl:gap-0 2xl:px-1 text-sm">
+            <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-center gap-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/80 px-1.5 text-sm shadow-sm overflow-x-auto">
               {[
                 { href: '/search', label: 'Search', icon: <Search className="w-4 h-4" /> },
                 { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -255,10 +263,8 @@ export default function Header() {
                 { href: '/alerts', label: 'Alerts & Searches', icon: <Bell className="w-4 h-4" /> },
               ].map(({ href, label, icon }) => (
                 <Link key={href} href={href} prefetch={false}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-1.5 py-2 text-[0.82rem] font-bold transition-all 2xl:px-2 2xl:text-[0.88rem] ${
-                    isActive(href)
-                      ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]'
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                    isActive(href) ? activePillClasses : inactivePillClasses
                   }`}
                 >
                   {icon}{label}
@@ -267,25 +273,26 @@ export default function Header() {
 
               {/* Services dropdown */}
               <div className="relative" ref={servicesRef}>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setServicesOpen(v => !v)
+                <Link
+                  href="/services"
+                  prefetch={false}
+                  onClick={() => {
+                    setServicesOpen(true)
                     setAccountOpen(false)
                   }}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-1.5 py-2 text-[0.82rem] font-bold transition-all 2xl:px-2 2xl:text-[0.88rem] ${
+                  onMouseEnter={() => setServicesOpen(true)}
+                  onFocus={() => setServicesOpen(true)}
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
                     servicesOpen || pathname.startsWith('/services')
-                      ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]'
+                      ? activePillClasses
+                      : inactivePillClasses
                   }`}
-                  aria-label="Toggle services menu"
+                  aria-label="Open services menu"
                 >
                   <Building className="w-4 h-4" />
                   <span>Services</span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
-                </button>
+                </Link>
 
                 {servicesOpen && (
                   <div className="absolute right-0 top-full mt-2 w-80 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
@@ -327,10 +334,8 @@ export default function Header() {
                 { href: '/support', label: 'Support', icon: <Mail className="w-4 h-4" /> },
               ].map(({ href, label, icon }) => (
                 <Link key={href} href={href} prefetch={false}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-lg px-1.5 py-2 text-[0.82rem] font-bold transition-all 2xl:px-2 2xl:text-[0.88rem] ${
-                    isActive(href)
-                      ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]'
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                    isActive(href) ? activePillClasses : inactivePillClasses
                   }`}
                 >
                   {icon}{label}
@@ -340,8 +345,8 @@ export default function Header() {
             </div>
 
             {/* ── Auth + Hamburger ── */}
-            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
-              <div className="block">
+            <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
+              <div className="block flex-shrink-0">
                 <ThemeToggle />
               </div>
               {isAuthed ? (
@@ -374,9 +379,9 @@ export default function Header() {
                           <div className="my-2 border-t border-[var(--color-border)]" />
                           <Link href="/support#contact" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-3 rounded-xl px-4 py-3 font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-muted)]"><Mail className="w-4 h-4" />Contact Support</Link>
                           <Link href="/about" prefetch={false} onClick={() => setAccountOpen(false)} className="flex items-center gap-3 rounded-xl px-4 py-3 font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-muted)]"><ShieldCheck className="w-4 h-4" />About Us</Link>
-                          <a href="tel:804-404-4005" className="flex items-center gap-3 rounded-xl px-4 py-3 font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-surface-muted)]">
+                          <a href="tel:804-404-6005" className="flex items-center gap-3 rounded-xl px-4 py-3 font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-surface-muted)]">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                            (804) 404-4005
+                            (804) 404-6005
                           </a>
                           <div className="my-2 border-t border-[var(--color-border)]" />
                           <button type="button" onClick={() => { setAccountOpen(false); signOut({ callbackUrl: '/' }) }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-400 font-semibold"><LogOut className="w-4 h-4" />Sign Out</button>
@@ -398,7 +403,7 @@ export default function Header() {
               {/* Hamburger — visible below xl */}
               <button type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setAccountOpen(false); setServicesOpen(false) }}
-                className="text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] xl:hidden p-2 rounded-xl"
+                className="text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] xl:hidden p-2 rounded-xl flex-shrink-0"
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileMenuOpen}
               >
@@ -441,7 +446,7 @@ export default function Header() {
               return (
                 <Link key={href} href={href} prefetch={false} onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-base transition-colors ${
-                    active ? 'bg-[var(--color-primary)] text-white shadow-sm' : 'hover:bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                    active ? 'bg-[#ff7a18] text-white shadow-[0_8px_18px_rgba(255,122,24,0.35)]' : 'hover:bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                   }`}
                 >
                   {icon}{label}
@@ -509,4 +514,3 @@ export default function Header() {
     </>
   )
 }
-

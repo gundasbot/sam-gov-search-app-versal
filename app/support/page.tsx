@@ -34,7 +34,7 @@ export const dynamic = 'force-dynamic'
 const CALENDLY_URL = 'https://calendly.com/precisegovcon/30min'
 const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_gdpr_banner=1&hide_landing_page_details=1&hide_event_type_details=0&primary_color=3f7f61`
 const SUPPORT_EMAIL = 'support@precisegovcon.com'
-const SUPPORT_TEL = '804-404-4005'
+const SUPPORT_TEL = '804-404-6005'
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
@@ -888,7 +888,7 @@ export default function SupportPage() {
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {topicCards.map((t) => (
             <Link
-              key={t.title}
+              key={`${t.title}-${t.href}`}
               href={t.href}
               className={cx(
                 'group rounded-2xl border border-white/12 bg-white/7 backdrop-blur-xl p-5 transition-all',

@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import ContactModal from './ContactModal'
 import { Mail, Phone, ExternalLink } from 'lucide-react'
+import { BRAND_CONFIG } from '@/lib/brand-config'
 
 export default function Footer() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
@@ -15,6 +16,11 @@ export default function Footer() {
   const { status } = useSession()
   const pathname = usePathname()
   const isAuthed = status === 'authenticated'
+  const { contact, tagline } = BRAND_CONFIG
+  const formattedTagline = tagline
+    .split(' ')
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(' ')
 
   const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href === '/search' && !isAuthed) {
@@ -31,22 +37,38 @@ export default function Footer() {
   return (
     <>
       <footer className="mt-16 border-t border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm">
-        <div className="pg-container py-10">
+        <div className="pg-container max-w-[1600px] px-3 sm:px-5 lg:px-6 py-10">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
             <div className="col-span-2 md:col-span-1">
-              <Link href="/" className="mb-3 flex items-center gap-2.5">
-                <Image src="/logo.png" alt="PreciseGovCon" width={36} height={36} className="h-9 w-9 rounded-lg" />
-                <span className="text-base font-extrabold tracking-tight text-[var(--color-text-primary)]">
-                  PRECISE <span className="text-[var(--color-highlight)]">GOVCON</span>
-                </span>
+              <Link
+                href="/"
+                className="group mb-3 flex items-center gap-2.5"
+                aria-label="Navigate to Precise GovCon homepage"
+              >
+                <Image
+                  src="/logo.png"
+                  alt="Precise GovCon logo"
+                  width={56}
+                  height={56}
+                  className="h-10 w-10 flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
+                />
+                <div className="flex flex-col gap-0.5">
+                  <div className="text-base font-black leading-none tracking-tight text-[var(--color-text-primary)]">
+                    <span>PRECISE</span>{' '}
+                    <span className="text-[var(--color-highlight)]">GOVCON</span>
+                  </div>
+                  <div className="text-[0.75rem] italic font-semibold tracking-wide text-[var(--color-text-secondary)]">
+                    {formattedTagline}
+                  </div>
+                </div>
               </Link>
-              <p className="mb-3 text-sm text-[var(--color-text-secondary)]">Federal contracting intelligence and workflow tools.</p>
+              <div className="mb-4" />
               <div className="space-y-1.5">
-                <a href="mailto:support@precisegovcon.com" className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
-                  <Mail className="h-4 w-4" /> support@precisegovcon.com
+                <a href={`mailto:${contact.email}`} className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                  <Mail className="h-4 w-4" /> {contact.email}
                 </a>
-                <a href="tel:8044044005" className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
-                  <Phone className="h-4 w-4" /> (804) 404-4005
+                <a href={`tel:${contact.phone.replace(/[^0-9]/g, '')}`} className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
+                  <Phone className="h-4 w-4" /> {contact.phone}
                 </a>
               </div>
             </div>

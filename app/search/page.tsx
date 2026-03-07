@@ -3812,7 +3812,7 @@ ${filteredResults.map(opp => `  <opportunity>
         {/* ── STEP 6: Add ToastUI render at the top of the JSX return ── */}
         {ToastUI}
         {/* Main content - full height utilization */}
-        <div className="max-w-[1600px] mx-auto px-3.5 sm:px-5 lg:px-6 py-3 flex-1 flex flex-col">
+        <div className="pg-container px-3.5 sm:px-5 lg:px-6 py-3 flex-1 flex flex-col">
 
           {/* Professional Welcome Banner */}
           <div className="mb-2">
@@ -3839,18 +3839,34 @@ ${filteredResults.map(opp => `  <opportunity>
                 </div>
 
                 {/* ── STEP 9: Add navigation links inside the welcome banner ── */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Link href="/dashboard"
-                    className="flex items-center gap-1.5 rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">
+                <div className="flex flex-wrap items-center gap-2 flex-shrink-0 justify-end">
+                  <Link
+                    href="/alerts/manage-searches"
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(255,122,24,0.35)] transition-transform hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg, #ff7a18, #ffb347)' }}
+                  >
+                    <Bookmark className="h-4 w-4" />Saved Searches
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#043524] shadow-[0_12px_30px_rgba(0,214,125,0.25)] transition-transform hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg, #00d67d, #8dffb5)' }}
+                  >
                     <BarChart3 className="h-4 w-4" />Dashboard
                   </Link>
-                  <Link href="/insights"
-                    className="flex items-center gap-1.5 rounded-lg border border-[#d9e2ef] bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">
+                  <Link
+                    href="/insights"
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#3d2200] shadow-[0_10px_24px_rgba(255,179,71,0.25)] transition-transform hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg, #ffb347, #ffe78f)' }}
+                  >
                     <TrendingUp className="h-4 w-4" />Insights
                   </Link>
-                  <Link href="/alerts"
-                    className="flex items-center gap-1.5 rounded-lg bg-[var(--color-surface-muted)] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-surface-muted)]">
-                    <Bell className="h-4 w-4" />My Alerts
+                  <Link
+                    href="/alerts/manage-alerts"
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#012b2d] shadow-[0_12px_28px_rgba(0,178,169,0.35)] transition-transform hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg, #00b2a9, #6bffe5)' }}
+                  >
+                    <Bell className="h-4 w-4" />Alert Subscriptions
                   </Link>
                 </div>
               </div>

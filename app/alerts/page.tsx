@@ -74,10 +74,26 @@ function formatRelative(dateIso?: string): string {
 
 function AlertsHub() {
   const [activeTab, setActiveTab] = useState<'alerts' | 'searches'>('alerts')
+  const [alertFilter, setAlertFilter] = useState<'all' | 'active'>('all')
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(INITIAL_SUBSCRIPTIONS)
   const [searches] = useState<SavedSearch[]>(INITIAL_SEARCHES)
 
   const activeCount = useMemo(() => subscriptions.filter(s => s.active).length, [subscriptions])
+  const visibleSubscriptions = useMemo(
+    () => (alertFilter === 'active' ? subscriptions.filter((s) => s.active) : subscriptions),
+    [alertFilter, subscriptions]
+  )
+
+  const summaryCardClass = (isActive: boolean, accent: 'emerald' | 'cyan' = 'emerald') =>
+    clsx(
+      'rounded-xl border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+      accent === 'emerald' ? 'focus-visible:outline-emerald-400' : 'focus-visible:outline-cyan-400',
+      isActive
+        ? accent === 'emerald'
+          ? 'bg-gradient-to-br from-emerald-600/25 to-emerald-500/10 border-emerald-400 text-white shadow-lg shadow-emerald-500/20'
+          : 'bg-gradient-to-br from-cyan-600/25 to-cyan-500/10 border-cyan-400 text-white shadow-lg shadow-cyan-500/20'
+        : 'bg-slate-900 border-slate-800 text-slate-100 hover:border-emerald-400/60'
+    )
 
   function toggleSubscription(id: string) {
     setSubscriptions((prev) =>
@@ -87,7 +103,7 @@ function AlertsHub() {
 
   return (
     <div className="pg-alerts-modern min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="pg-container py-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Alert Manager</h1>
@@ -97,6 +113,20 @@ function AlertsHub() {
             <Link href="/search" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:bg-slate-800">
               <Search className="h-4 w-4" /> New Search
             </Link>
+            <Link
+              href="/alerts/manage-searches"
+              className="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(255,122,24,0.25)] transition-transform hover:scale-[1.02]"
+              style={{ background: 'linear-gradient(135deg, #ff7a18, #ffb347)' }}
+            >
+              <Bookmark className="h-4 w-4" /> Manage Saved Searches
+            </Link>
+            <Link
+              href="/alerts/manage-alerts"
+              className="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(0,178,169,0.25)] transition-transform hover:scale-[1.02]"
+              style={{ background: 'linear-gradient(135deg, #00bfa6, #4ef7d8)' }}
+            >
+              <Bell className="h-4 w-4" /> Manage Alert Subscriptions
+            </Link>
             <button className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold hover:bg-emerald-500">
               <Plus className="h-4 w-4" /> Create Alert
             </button>
@@ -104,23 +134,61 @@ function AlertsHub() {
         </div>
 
         <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Subscriptions</p>
-            <p className="mt-2 text-2xl font-bold">{subscriptions.length}</p>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Active</p>
-            <p className="mt-2 text-2xl font-bold text-emerald-400">{activeCount}</p>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Saved Searches</p>
-            <p className="mt-2 text-2xl font-bold">{searches.length}</p>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('alerts')
+              setAlertFilter('all')
+            }}
+            className={summaryCardClass(activeTab === 'alerts' && alertFilter === 'all', 'emerald')}
+          >
+            <p className={clsx('text-xs uppercase tracking-wide', activeTab === 'alerts' && alertFilter === 'all' ? 'text-white/80' : 'text-slate-400')}>
+              Subscriptions
+            </p>
+            <p className={clsx('mt-2 text-2xl font-bold', activeTab === 'alerts' && alertFilter === 'all' ? 'text-white' : 'text-slate-100')}>
+              {subscriptions.length}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('alerts')
+              setAlertFilter('active')
+            }}
+            className={summaryCardClass(activeTab === 'alerts' && alertFilter === 'active', 'emerald')}
+          >
+            <p className={clsx('text-xs uppercase tracking-wide', activeTab === 'alerts' && alertFilter === 'active' ? 'text-white/80' : 'text-slate-400')}>
+              Active
+            </p>
+            <p className={clsx('mt-2 text-2xl font-bold', activeTab === 'alerts' && alertFilter === 'active' ? 'text-white' : 'text-emerald-400')}>
+              {activeCount}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('searches')
+              setAlertFilter('all')
+            }}
+            className={summaryCardClass(activeTab === 'searches', 'cyan')}
+          >
+            <p className={clsx('text-xs uppercase tracking-wide', activeTab === 'searches' ? 'text-white/80' : 'text-slate-400')}>
+              Saved Searches
+            </p>
+            <p className={clsx('mt-2 text-2xl font-bold', activeTab === 'searches' ? 'text-white' : 'text-slate-100')}>
+              {searches.length}
+            </p>
+          </button>
         </div>
 
         <div className="mb-4 inline-flex rounded-xl border border-slate-800 bg-slate-900 p-1">
           <button
-            onClick={() => setActiveTab('alerts')}
+            onClick={() => {
+              setActiveTab('alerts')
+              setAlertFilter('all')
+            }}
             className={clsx(
               'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
               activeTab === 'alerts' ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:bg-slate-800'
@@ -129,7 +197,10 @@ function AlertsHub() {
             Alerts ({subscriptions.length})
           </button>
           <button
-            onClick={() => setActiveTab('searches')}
+            onClick={() => {
+              setActiveTab('searches')
+              setAlertFilter('all')
+            }}
             className={clsx(
               'rounded-lg px-4 py-2 text-sm font-semibold transition-colors',
               activeTab === 'searches' ? 'bg-cyan-600 text-white' : 'text-slate-300 hover:bg-slate-800'
@@ -141,12 +212,12 @@ function AlertsHub() {
 
         {activeTab === 'alerts' ? (
           <div className="space-y-3">
-            {subscriptions.length === 0 ? (
+            {visibleSubscriptions.length === 0 ? (
               <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center text-slate-400">
-                No alert subscriptions yet.
+                {alertFilter === 'active' ? 'No active alert subscriptions.' : 'No alert subscriptions yet.'}
               </div>
             ) : (
-              subscriptions.map((alert) => (
+              visibleSubscriptions.map((alert) => (
                 <div key={alert.id} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>

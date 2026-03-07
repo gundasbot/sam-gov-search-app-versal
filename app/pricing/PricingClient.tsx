@@ -22,6 +22,7 @@ const plans = [
     ],
     cta: 'Start 7-Day Free Trial',
     highlight: false,
+    gradient: 'from-[#dbeafe] via-[#eff6ff] to-white',
   },
   {
     id: 'professional',
@@ -40,6 +41,7 @@ const plans = [
     ],
     cta: 'Start 7-Day Free Trial',
     highlight: true,
+    gradient: 'from-[#fef3c7] via-[#fde68a] to-[#fbcfe8]',
   },
   {
     id: 'enterprise',
@@ -58,6 +60,7 @@ const plans = [
     ],
     cta: 'Start 7-Day Free Trial',
     highlight: false,
+    gradient: 'from-[#ede9fe] via-[#f5d0fe] to-[#cffafe]',
   },
 ]
 
@@ -82,6 +85,16 @@ const testimonials = [
   },
 ]
 
+const wholeNumberFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
+
+const preciseNumberFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
 export default function PricingClient() {
   const [annual, setAnnual] = useState(false)
 
@@ -103,7 +116,7 @@ export default function PricingClient() {
               Simple, transparent pricing
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base md:text-lg">
-              Win more federal contracts without overpaying for tools. Cancel anytime.
+              Win more federal contracts without overpaying. Start monthly, switch anytime, and flip to annual when you are ready to lock in savings.
             </p>
 
             <div className="mt-8 inline-flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
@@ -126,55 +139,70 @@ export default function PricingClient() {
       </section>
 
       <section className="pg-container mt-10">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`rounded-2xl border p-6 transition-all ${plan.highlight ? 'border-[var(--color-primary)] bg-[var(--color-accent-soft)] shadow-[var(--shadow-lg)]' : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]'}`}
-            >
-              {plan.highlight && (
-                <span className="mb-4 inline-flex rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
-                  Most Popular
-                </span>
-              )}
+        <div className="pg-card-grid">
+          {plans.map((plan) => {
+            const annualTotal = plan.annualPrice * 12
+            const formattedPrice = annual
+              ? wholeNumberFormatter.format(annualTotal)
+              : preciseNumberFormatter.format(plan.monthlyPrice)
+            const annualSavings = Math.max((plan.monthlyPrice - plan.annualPrice) * 12, 0)
+            const equivalentMonthly = preciseNumberFormatter.format(plan.annualPrice)
 
-              <div className="mb-1 flex items-center gap-2">
-                {plan.icon}
-                <h2 className="text-lg font-bold text-[var(--color-text-primary)]">{plan.name}</h2>
-              </div>
-              <p className="mb-4 text-sm text-[var(--color-text-secondary)]">{plan.tagline}</p>
-
-              <div className="mb-1 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-[var(--color-text-primary)]">${annual ? plan.annualPrice : plan.monthlyPrice}</span>
-                <span className="text-sm text-[var(--color-text-secondary)]">/mo</span>
-              </div>
-              {annual && (
-                <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
-                  Billed annually - Save ${((plan.monthlyPrice - plan.annualPrice) * 12).toFixed(0)}/yr
-                </p>
-              )}
-
-              <p className="mb-5 text-xs text-[var(--color-text-secondary)]"><span className="font-semibold text-[var(--color-text-primary)]">Best for:</span> {plan.bestFor}</p>
-              <div className="mb-5 border-t border-[var(--color-border)]" />
-
-              <ul className="mb-6 flex-1 space-y-2.5">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5">
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
-                    <span className="text-sm text-[var(--color-text-primary)]">{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href="/register"
-                className={`pg-btn w-full rounded-xl py-3 text-sm font-bold ${plan.highlight ? 'pg-btn-primary' : 'pg-btn-secondary text-[var(--color-text-primary)]'}`}
+            return (
+              <div
+                key={plan.id}
+                className={`relative overflow-hidden rounded-2xl border p-6 transition-all bg-gradient-to-b ${plan.gradient} ${plan.highlight ? 'border-[var(--color-primary)] shadow-[var(--shadow-lg)] ring-1 ring-[var(--color-primary)]/20' : 'border-[var(--color-border)] shadow-[var(--shadow-sm)]'}`}
               >
-                {plan.cta}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          ))}
+                {plan.highlight && (
+                  <span className="mb-4 inline-flex rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
+                    Most Popular
+                  </span>
+                )}
+
+                <div className="mb-1 flex items-center gap-2">
+                  {plan.icon}
+                  <h2 className="text-lg font-bold text-[var(--color-text-primary)]">{plan.name}</h2>
+                </div>
+                <p className="mb-4 text-sm text-[var(--color-text-secondary)]">{plan.tagline}</p>
+
+                <div className="mb-1 flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-[var(--color-text-primary)]">${formattedPrice}</span>
+                  <span className="text-sm text-[var(--color-text-secondary)]">{annual ? '/yr' : '/mo'}</span>
+                </div>
+                {annual ? (
+                  <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
+                    Billed annually · Equivalent to ${equivalentMonthly}/mo{annualSavings > 0 ? ` · Save $${wholeNumberFormatter.format(annualSavings)}/yr` : ''}
+                  </p>
+                ) : (
+                  <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
+                    Billed monthly · Cancel anytime
+                  </p>
+                )}
+
+                <p className="mb-5 text-xs text-[var(--color-text-secondary)]">
+                  <span className="font-semibold text-[var(--color-text-primary)]">Best for:</span> {plan.bestFor}
+                </p>
+                <div className="mb-5 border-t border-[var(--color-border)]" />
+
+                <ul className="mb-6 flex-1 space-y-2.5">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5">
+                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
+                      <span className="text-sm text-[var(--color-text-primary)]">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href="/register"
+                  className={`pg-btn w-full rounded-xl py-3 text-sm font-bold ${plan.highlight ? 'pg-btn-primary' : 'pg-btn-secondary text-[var(--color-text-primary)]'}`}
+                >
+                  {plan.cta}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            )
+          })}
         </div>
 
         <div className="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-6 py-4">
@@ -190,7 +218,7 @@ export default function PricingClient() {
               What our customers say
             </h2>
           </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="pg-card-grid">
             {testimonials.map((t) => (
               <div key={t.name} className="pg-surface p-6">
                 <div className="mb-3 flex gap-1">

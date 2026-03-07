@@ -12,6 +12,7 @@ import {
   Activity, Clock, Target, Award, Rocket, ArrowUpRight, ArrowDownRight,
   MapPin, Building2, AlertTriangle, Lightbulb, RefreshCw, Grid3X3, List, Sparkles
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type OpportunityCard = {
@@ -38,13 +39,63 @@ type Alert = {
   lastRun?: string
 }
 
-type DashboardStats = {
-  totalAlerts: number
-  activeAlerts: number
-  newMatches: number
-  savedSearches: number
-  teamMembers: number
-  totalWatchlist: number
+type SearchFilters = {
+  naics?: string
+  state?: string
+  setaside?: string
+  agency?: string
+  type?: string
+}
+
+type ActiveSearch = {
+  id: string
+  name: string
+  query: string
+  filters?: SearchFilters
+  resultsCount?: number
+  newCount?: number
+}
+
+type SavedOpportunity = {
+  noticeId: string
+  title: string
+  agency: string
+  value?: number
+  posted?: string
+  deadline?: string
+  naics?: string
+  match?: number | null
+}
+
+type NotificationIcon = 'deadline' | 'match' | 'alert' | 'ai'
+
+type DashboardNotification = {
+  type: NotificationIcon
+  title: string
+  time?: string
+  iconType: NotificationIcon
+}
+
+type DeadlineItem = {
+  title: string
+  agency: string
+  deadline: string
+  value?: number | string
+}
+
+type DashboardData = {
+  activeSearchesCount: number
+  savedOppCount: number
+  avgMatchScore: number | null
+  thisWeekCount: number
+  activeSearches: ActiveSearch[]
+  savedOpportunities: SavedOpportunity[]
+  recentOpportunities: SavedOpportunity[]
+  notifications: DashboardNotification[]
+  upcomingDeadlines: DeadlineItem[]
+  userGoals: string[]
+  loading: boolean
+  error: string | null
 }
 
 type ActivityLog = {
@@ -53,6 +104,313 @@ type ActivityLog = {
   title: string
   timestamp: string
   icon: string
+}
+
+type TrendData = {
+  month: string
+  opportunities: number
+  matches: number
+}
+
+type DrawerKey =
+  | 'activeSearches'
+  | 'savedOpps'
+  | 'matchInfo'
+  | 'notifications'
+  | 'settings'
+  | 'goalSetup'
+  | 'recentMatches'
+  | 'deadlines'
+  | null
+
+const USE_MOCK_DASHBOARD = true
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value))
+}
+
+const MOCK_DASHBOARD_DATA: DashboardData = {
+  activeSearchesCount: 3,
+  savedOppCount: 5,
+  avgMatchScore: 82,
+  thisWeekCount: 12,
+  activeSearches: [
+    {
+      id: 'search-cyber',
+      name: 'Cybersecurity - VA',
+      query: 'zero trust modernization',
+      filters: { naics: '541512', state: 'VA', setaside: 'SDVOSB', agency: 'Department of Veterans Affairs' },
+      resultsCount: 186,
+      newCount: 5,
+    },
+    {
+      id: 'search-cloud',
+      name: 'Cloud Migration - DHS',
+      query: 'cloud migration devsecops',
+      filters: { naics: '541519', setaside: 'SBA', agency: 'Department of Homeland Security' },
+      resultsCount: 142,
+      newCount: 3,
+    },
+    {
+      id: 'search-ai',
+      name: 'AI & Data Science',
+      query: 'machine learning analytics',
+      filters: { naics: '541715', state: 'MD' },
+      resultsCount: 97,
+      newCount: 2,
+    },
+  ],
+  savedOpportunities: [
+    {
+      noticeId: 'W91-DEF-2412',
+      title: 'Zero Trust Engineering Support',
+      agency: 'Department of the Army',
+      value: 3200000,
+      posted: '2 days ago',
+      deadline: '5 days',
+      naics: '541512',
+      match: 90,
+    },
+    {
+      noticeId: '70RD-CLD-2403',
+      title: 'DHS Cloud Migration Surge Team',
+      agency: 'Department of Homeland Security',
+      value: 2100000,
+      posted: '4 days ago',
+      deadline: '8 days',
+      naics: '541519',
+      match: 84,
+    },
+    {
+      noticeId: '36C10B-ALR-007',
+      title: 'VA Analytics Modernization',
+      agency: 'Department of Veterans Affairs',
+      value: 1500000,
+      posted: '1 week ago',
+      deadline: '12 days',
+      naics: '541611',
+      match: 78,
+    },
+    {
+      noticeId: 'FA-8604-AI-2024',
+      title: 'AI-enabled ISR Tooling',
+      agency: 'Department of the Air Force',
+      value: 5800000,
+      posted: '3 days ago',
+      deadline: '15 days',
+      naics: '541715',
+      match: 86,
+    },
+    {
+      noticeId: 'GS-35F-NextGen',
+      title: 'GSA NextGen Support Desk',
+      agency: 'General Services Administration',
+      value: 950000,
+      posted: '5 days ago',
+      deadline: '21 days',
+      naics: '541513',
+      match: 74,
+    },
+  ],
+  recentOpportunities: [
+    {
+      noticeId: 'FA-4801-CYBER',
+      title: 'Defensive Cyber Readiness',
+      agency: 'Department of the Air Force',
+      value: 2600000,
+      posted: 'Today',
+      deadline: '7 days',
+      naics: '541519',
+      match: 88,
+    },
+    {
+      noticeId: 'HQ0034-CloudOps',
+      title: 'Pentagon Cloud Operations Cell',
+      agency: 'Department of Defense',
+      value: 4100000,
+      posted: '1 day ago',
+      deadline: '10 days',
+      naics: '541512',
+      match: 83,
+    },
+    {
+      noticeId: 'N00189-AI-Naval',
+      title: 'Naval AI Decision Support',
+      agency: 'Department of the Navy',
+      value: 2800000,
+      posted: '3 days ago',
+      deadline: '6 days',
+      naics: '541715',
+      match: 79,
+    },
+  ],
+  notifications: [
+    {
+      type: 'deadline',
+      title: 'Deadline in 3 days: Defensive Cyber Readiness',
+      time: 'Department of the Air Force',
+      iconType: 'deadline',
+    },
+    {
+      type: 'match',
+      title: 'Saved: DHS Cloud Migration Surge Team',
+      time: 'Posted 4 days ago',
+      iconType: 'match',
+    },
+    {
+      type: 'ai',
+      title: 'AI flagged 2 expiring SDVOSB set-asides',
+      time: 'Review this week',
+      iconType: 'ai',
+    },
+  ],
+  upcomingDeadlines: [
+    {
+      title: 'Defensive Cyber Readiness',
+      agency: 'Department of the Air Force',
+      deadline: '3 days',
+      value: '$2.6M',
+    },
+    {
+      title: 'Zero Trust Engineering Support',
+      agency: 'Department of the Army',
+      deadline: '5 days',
+      value: '$3.2M',
+    },
+    {
+      title: 'VA Analytics Modernization',
+      agency: 'Department of Veterans Affairs',
+      deadline: '12 days',
+      value: '$1.5M',
+    },
+  ],
+  userGoals: ['Capture two VA task orders per quarter', 'Maintain SDVOSB pipeline above $5M'],
+  loading: false,
+  error: null,
+}
+
+const MOCK_CLAUDE_ANALYSIS = {
+  summary: 'Your pipeline holds five strong fits with deadlines inside two weeks. Lean into SDVOSB-friendly IT modernization where you already score above an 80 match.',
+  topOpportunities: [
+    { title: 'Zero Trust Engineering Support', reason: '92% match • Army zero-trust sprint', urgency: 'high' as const },
+    { title: 'DHS Cloud Migration Surge Team', reason: '84% match • DevSecOps emphasis', urgency: 'medium' as const },
+    { title: 'VA Analytics Modernization', reason: '78% match • Set-aside friendly', urgency: 'medium' as const },
+  ],
+  recommendations: [
+    'Schedule capture calls for Army and DHS pursuits this week',
+    'Refine AI & Data Science search with HUBZone filter to unlock more set-aside fits',
+    'Prepare capability snippet for zero-trust wins to reuse in proposals',
+  ],
+}
+
+const MOCK_REFRESH_INTERVAL_MS = 20000
+
+function randomBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function generateLiveMockDashboardData(): DashboardData {
+  const base = clone(MOCK_DASHBOARD_DATA)
+
+  base.activeSearches = base.activeSearches.map((search) => {
+    const results = Math.max(40, (search.resultsCount ?? 0) + randomBetween(-18, 24))
+    const newCount = Math.max(0, randomBetween(0, 7))
+    return {
+      ...search,
+      resultsCount: results,
+      newCount,
+    }
+  })
+
+  base.savedOpportunities = base.savedOpportunities.map((opp) => {
+    const match = Math.min(97, Math.max(65, (opp.match ?? 80) + randomBetween(-6, 6)))
+    const deadlineDays = randomBetween(3, 21)
+    const valueJitter = opp.value ? Math.max(250000, opp.value + randomBetween(-250000, 250000)) : undefined
+    return {
+      ...opp,
+      match,
+      value: valueJitter,
+      deadline: `${deadlineDays} days`,
+      posted: formatRelativeDate(new Date(Date.now() - randomBetween(0, 6) * 86400000).toISOString()),
+    }
+  })
+
+  base.recentOpportunities = base.recentOpportunities.map((opp) => {
+    const match = Math.min(95, Math.max(60, (opp.match ?? 75) + randomBetween(-8, 8)))
+    const deadlineDays = randomBetween(4, 14)
+    return {
+      ...opp,
+      match,
+      deadline: `${deadlineDays} days`,
+      posted: formatRelativeDate(new Date(Date.now() - randomBetween(0, 3) * 86400000).toISOString()),
+    }
+  })
+
+  const allScored = [...base.savedOpportunities, ...base.recentOpportunities].filter((o) => typeof o.match === 'number')
+  base.avgMatchScore = allScored.length
+    ? Math.round(allScored.reduce((sum, o) => sum + (o.match ?? 0), 0) / allScored.length)
+    : base.avgMatchScore
+
+  base.thisWeekCount = Math.max(
+    6,
+    base.activeSearches.reduce((sum, s) => sum + (s.newCount ?? 0), 0) + randomBetween(4, 9),
+  )
+
+  base.notifications = [
+    ...base.savedOpportunities.slice(0, 2).map((opp) => ({
+      type: 'deadline' as const,
+      title: `Deadline in ${opp.deadline}: ${opp.title}`,
+      time: opp.agency,
+      iconType: 'deadline' as const,
+    })),
+    {
+      type: 'ai' as const,
+      title: `${randomBetween(2, 4)} AI highlights ready`,
+      time: 'Review insights in Intelligence Hub',
+      iconType: 'ai' as const,
+    },
+    {
+      type: 'match' as const,
+      title: `${randomBetween(8, 15)} fresh matches synced`,
+      time: 'Live mock feed',
+      iconType: 'match' as const,
+    },
+  ].slice(0, 4)
+
+  base.upcomingDeadlines = base.savedOpportunities
+    .slice(0, 3)
+    .map((opp) => ({
+      title: opp.title,
+      agency: opp.agency,
+      deadline: opp.deadline ?? '',
+      value: opp.value ? `$${(opp.value / 1_000_000).toFixed(1)}M` : 'TBD',
+    }))
+
+  base.loading = false
+  base.error = null
+
+  return base
+}
+
+function buildMockAnalysis(data: DashboardData) {
+  const top = [...data.savedOpportunities]
+    .filter((opp) => typeof opp.match === 'number')
+    .sort((a, b) => (b.match ?? 0) - (a.match ?? 0))
+    .slice(0, 3)
+
+  return {
+    summary: `Live feed is tracking ${data.thisWeekCount} curated matches with an average fit of ${data.avgMatchScore ?? '—'}%. Prioritize high-score SDVOSB-friendly IT pursuits to stay ahead.`,
+    topOpportunities: top.map((opp) => ({
+      title: opp.title,
+      reason: `${opp.match ?? '--'}% match • ${opp.agency}`,
+      urgency: (parseInt(opp.deadline ?? '30', 10) <= 7 ? 'high' : parseInt(opp.deadline ?? '30', 10) <= 14 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
+    })),
+    recommendations: [
+      'Review deadlines inside 7 days first to keep pipeline momentum',
+      'Use Alerts to duplicate high-performing searches into new NAICS codes',
+      'Share the weekly pipeline snapshot with capture leads before Friday',
+    ],
+  }
 }
 
 // -- Utility: format a date as relative string ---------------------------------
@@ -90,6 +448,100 @@ function getWelcomeName(session: any): string {
   return 'there'
 }
 
+function formatDaysUntil(dateStr?: string): string {
+  if (!dateStr) return ''
+  const deadline = new Date(dateStr)
+  if (Number.isNaN(deadline.getTime())) return ''
+  const diffDays = Math.ceil((deadline.getTime() - Date.now()) / 86400000)
+  if (diffDays < 0) return 'Expired'
+  if (diffDays === 0) return '0 days'
+  if (diffDays === 1) return '1 day'
+  return `${diffDays} days`
+}
+
+function computeOpportunityMatchScore(
+  opportunity: any,
+  searches: ActiveSearch[] = [],
+  goals: string[] = [],
+): number | null {
+  if (!opportunity || (searches.length === 0 && goals.length === 0)) {
+    return null
+  }
+
+  let score = 40
+  const normalizedTitle = String(opportunity.title || opportunity.name || '').toLowerCase()
+  const normalizedDescription = String(opportunity.description || '').toLowerCase()
+  const combinedText = `${normalizedTitle} ${normalizedDescription}`.trim()
+
+  const keywordSet = new Set(
+    searches
+      .map((s) => s.query)
+      .filter(Boolean)
+      .flatMap((q) => q.toLowerCase().split(/\s+/).filter(Boolean)),
+  )
+
+  keywordSet.forEach((keyword) => {
+    if (combinedText.includes(keyword)) {
+      score += 4
+    }
+  })
+
+  const naics = String(opportunity.naics || opportunity.naics_code || opportunity.naicsCode || '').trim()
+  if (naics && searches.some((s) => s.filters?.naics && s.filters.naics === naics)) {
+    score += 20
+  }
+
+  const setAside = String(opportunity.setAside || opportunity.set_aside || opportunity.setAsideType || '').toLowerCase()
+  if (setAside && searches.some((s) => s.filters?.setaside && setAside.includes(s.filters.setaside.toLowerCase()))) {
+    score += 10
+  }
+
+  if (goals.length) {
+    const goalsText = goals.join(' ').toLowerCase()
+    if (naics && goalsText.includes(naics.toLowerCase())) score += 8
+    if (setAside && goalsText.includes(setAside)) score += 4
+    if (combinedText && goals.some((goal) => goal.length > 3 && combinedText.includes(goal.toLowerCase()))) {
+      score += 4
+    }
+  }
+
+  const agency = String(opportunity.agency || opportunity.department || opportunity.organization_name || '').toLowerCase()
+  if (agency && searches.some((s) => s.filters?.agency && agency.includes(s.filters.agency.toLowerCase()))) {
+    score += 6
+  }
+
+  const value = Number(opportunity.value || opportunity.estimated_value || opportunity.awardValue || 0)
+  if (value > 5_000_000) score += 5
+  else if (value > 1_000_000) score += 3
+
+  return Math.min(100, Math.max(35, Math.round(score)))
+}
+
+function buildQueryString(params: Record<string, string | number | undefined | null>): string {
+  const searchParams = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.set(key, String(value))
+    }
+  })
+  const query = searchParams.toString()
+  return query ? `?${query}` : ''
+}
+
+const notifIconMap: Record<NotificationIcon, LucideIcon> = {
+  deadline: AlertTriangle,
+  match: Target,
+  alert: Bell,
+  ai: Sparkles,
+}
+
+const notifColorMap: Record<NotificationIcon, string> = {
+  deadline: 'text-orange-300',
+  match: 'text-emerald-300',
+  alert: 'text-rose-300',
+  ai: 'text-purple-300',
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -98,7 +550,7 @@ export default function DashboardPage() {
   const [drawer, setDrawer] = useState<DrawerKey>(null);
 
   // -- Real data state ----------------------------------------------------------
-  const [dashData, setDashData] = useState<DashboardStats>({
+  const [dashData, setDashData] = useState<DashboardData>({
     activeSearchesCount: 0,
     savedOppCount: 0,
     avgMatchScore: null,
@@ -124,10 +576,27 @@ export default function DashboardPage() {
   // -- Goal setup state ---------------------------------------------------------
   const [goalInput, setGoalInput] = useState('');
   const [goalSaving, setGoalSaving] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // -- Fetch all real data on mount ---------------------------------------------
   useEffect(() => {
-    if (!session?.user?.email) return;
+    if (USE_MOCK_DASHBOARD) {
+      const pushMockSnapshot = () => {
+        const mockData = generateLiveMockDashboardData()
+        setDashData(mockData)
+        if (mockData.userGoals.length) {
+          setGoalInput((prev) => (prev.trim().length ? prev : mockData.userGoals.join('\n')))
+        }
+        setClaudeAnalysis(buildMockAnalysis(mockData))
+        setAnalysisLoading(false)
+      }
+
+      pushMockSnapshot()
+      const interval = setInterval(pushMockSnapshot, MOCK_REFRESH_INTERVAL_MS)
+      return () => clearInterval(interval)
+    }
+
+    if (!session?.user?.email) return
 
     async function loadDashboard() {
       try {
@@ -200,21 +669,21 @@ export default function DashboardPage() {
           }));
 
         // Generate notifications from real data: upcoming deadlines + recent saves
-        const notifs = [
+        const notifs: DashboardNotification[] = [
           ...scoredSavedOpps
             .filter(o => o.deadline && parseInt(o.deadline) <= 7 && !o.deadline.includes('Expired'))
             .slice(0, 2)
             .map(o => ({
-              type: 'deadline',
+              type: 'deadline' as const,
               title: `Deadline in ${o.deadline}: ${o.title}`,
               time: o.agency,
-              iconType: 'deadline',
+              iconType: 'deadline' as const,
             })),
           ...scoredSavedOpps.slice(0, 2).map(o => ({
-            type: 'match',
+            type: 'match' as const,
             title: `Saved: ${o.title}`,
             time: o.posted ? `Posted ${o.posted}` : '',
-            iconType: 'match',
+            iconType: 'match' as const,
           })),
         ].slice(0, 5);
 
@@ -251,22 +720,25 @@ export default function DashboardPage() {
       } catch (err) {
         console.error('Dashboard load error:', err);
         setDashData(prev => ({ ...prev, loading: false, error: 'Failed to load dashboard data' }));
+        setToast({ type: 'error', message: 'Failed to load dashboard data' });
       }
     }
 
-    loadDashboard();
-  }, [session?.user?.email]);
+    loadDashboard()
+  }, [session?.user?.email])
 
   // -- Save user goals ----------------------------------------------------------
   const saveGoals = useCallback(async () => {
     const goals = goalInput.split('\n').map((g: string) => g.trim()).filter(Boolean);
     setGoalSaving(true);
     try {
-      await fetch('/api/account/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goals }),
-      });
+      if (!USE_MOCK_DASHBOARD) {
+        await fetch('/api/account/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goals }),
+        })
+      }
       setDashData(prev => {
         const rescored = {
           ...prev,
@@ -296,6 +768,11 @@ export default function DashboardPage() {
 
   // -- Claude AI analysis -------------------------------------------------------
   const analyzeWithClaude = useCallback(async () => {
+    if (USE_MOCK_DASHBOARD) {
+      setClaudeAnalysis(buildMockAnalysis(dashData))
+      setAnalysisLoading(false)
+      return
+    }
     if (analysisLoading) return;
     setAnalysisLoading(true);
     setClaudeAnalysis(null);
@@ -347,6 +824,58 @@ Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reas
   // -- Navigation helpers -------------------------------------------------------
   const closeDrawer = () => setDrawer(null);
 
+  const openActiveSearches = useCallback(() => {
+    if (dashData.activeSearchesCount === 0) {
+      router.push('/search')
+      return
+    }
+    setDrawer('activeSearches')
+  }, [dashData.activeSearchesCount, router])
+
+  const openSavedOpportunities = useCallback(() => {
+    if (dashData.savedOppCount === 0) {
+      router.push('/opportunities')
+      return
+    }
+    setDrawer('savedOpps')
+  }, [dashData.savedOppCount, router])
+
+  const openLatestMatches = useCallback(() => {
+    if (dashData.recentOpportunities.length === 0) {
+      router.push('/search')
+      return
+    }
+    setDrawer('recentMatches')
+  }, [dashData.recentOpportunities.length, router])
+
+  const openDeadlineView = useCallback(() => {
+    if (dashData.upcomingDeadlines.length === 0) {
+      router.push('/opportunities')
+      return
+    }
+    setDrawer('deadlines')
+  }, [dashData.upcomingDeadlines.length, router])
+
+  const goToSearch = useCallback((search: ActiveSearch) => {
+    const query = buildQueryString({
+      keywords: search.query,
+      naics: search.filters?.naics,
+      state: search.filters?.state,
+      setAside: search.filters?.setaside,
+      agency: search.filters?.agency,
+      type: search.filters?.type,
+      searchId: search.id,
+    })
+    router.push(`/search${query}`)
+    setDrawer(null)
+  }, [router])
+
+  const goToSavedOpp = useCallback((opp: SavedOpportunity) => {
+    const query = buildQueryString({ noticeId: opp.noticeId })
+    router.push(`/opportunities${query}`)
+    setDrawer(null)
+  }, [router])
+
 function formatCurrency(v?: number) {
   if (!v) return 'TBD'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 0 }).format(v)
@@ -360,43 +889,76 @@ function getMatchScoreColor(score: number) {
 }
 
   // -- Stat cards ---------------------------------------------------------------
-  const stats = useMemo(() => [
+  const summaryCards = useMemo((): Array<{ label: string; value: string | number; icon: LucideIcon; color: string; subtext: string; onClick?: () => void }> => [
     {
-      id: '1',
-      title: 'IT Infrastructure Modernization - Department of Defense',
-      agency: 'DoD',
-      type: 'RFP',
-      value: 5000000,
-      dueDate: new Date(Date.now() + 21 * 86400000).toISOString(),
-      matchScore: 92,
-      description: 'Comprehensive IT infrastructure overhaul including cloud migration, security hardening, and modern DevOps practices.',
-      naics: '541512',
-      setAside: 'Small Business',
-      location: 'Washington, DC',
-      aiSummary: 'High priority match. Strong alignment with your cybersecurity expertise. Estimated prep time: 2-3 weeks.'
+      label: 'Active Searches',
+      value: dashData.activeSearchesCount,
+      icon: Search,
+      color: 'from-sky-100 to-blue-100',
+      subtext: 'Configured alerts',
+      onClick: openActiveSearches,
     },
     {
-      id: '2',
-      title: 'Cybersecurity Services - Veterans Affairs',
-      agency: 'VA',
-      type: 'Solicitation',
-      value: 2500000,
-      dueDate: new Date(Date.now() + 14 * 86400000).toISOString(),
-      matchScore: 88,
-      description: 'Multi-year IDIQ contract for cybersecurity consulting, threat assessment, and incident response planning.',
-      setAside: 'Service-Disabled Veteran-Owned',
-      location: 'Multiple Locations',
+      label: 'Saved Opportunities',
+      value: dashData.savedOppCount,
+      icon: Target,
+      color: 'from-rose-100 to-orange-100',
+      subtext: 'Watchlist items',
+      onClick: openSavedOpportunities,
+    },
+    {
+      label: 'New This Week',
+      value: dashData.thisWeekCount,
+      icon: Zap,
+      color: 'from-emerald-100 to-lime-100',
+      subtext: 'Matches detected',
+      onClick: openLatestMatches,
     },
     {
       label: 'Avg Match Score',
-      value: dashData.loading ? '—' : dashData.avgMatchScore !== null ? `${dashData.avgMatchScore}%` : 'Set goals ?',
-      change: dashData.avgMatchScore !== null ? 'Based on your profile' : 'Not computed yet',
-      icon: Target, gradient: 'from-green-500 to-emerald-600',
+      value: dashData.avgMatchScore !== null ? `${dashData.avgMatchScore}%` : 'Set goals',
+      icon: Target,
+      color: 'from-violet-100 to-indigo-100',
+      subtext: dashData.avgMatchScore !== null ? 'Based on profile' : 'Click to personalize',
       onClick: () => setDrawer(dashData.avgMatchScore === null ? 'goalSetup' : 'matchInfo'),
-      hint: dashData.avgMatchScore === null ? 'Click to set goals' : 'What does Match mean?',
-      loading: dashData.loading,
     },
+    {
+      label: 'Notifications',
+      value: dashData.notifications.length,
+      icon: Bell,
+      color: 'from-amber-100 to-orange-100',
+      subtext: 'Latest signals',
+      onClick: () => setDrawer('notifications'),
+    },
+    {
+      label: 'Upcoming Deadlines',
+      value: dashData.upcomingDeadlines.length,
+      icon: Calendar,
+      color: 'from-cyan-100 to-sky-100',
+      subtext: 'Next 7 days',
+      onClick: openDeadlineView,
+    },
+  ], [
+    dashData.activeSearchesCount,
+    dashData.savedOppCount,
+    dashData.thisWeekCount,
+    dashData.avgMatchScore,
+    dashData.notifications.length,
+    dashData.upcomingDeadlines.length,
+    openActiveSearches,
+    openSavedOpportunities,
+    openLatestMatches,
+    openDeadlineView,
   ])
+
+  const heroHighlights = useMemo(
+    () => [
+      { label: 'Live matches streaming', value: dashData.thisWeekCount, accent: 'from-emerald-400 via-emerald-500 to-teal-400', icon: Sparkles },
+      { label: 'Average fit score', value: dashData.avgMatchScore !== null ? `${dashData.avgMatchScore}%` : 'Set goals', accent: 'from-cyan-400 via-blue-500 to-indigo-500', icon: Target },
+      { label: 'Saved watchlist', value: dashData.savedOppCount, accent: 'from-amber-400 via-orange-500 to-rose-500', icon: Award },
+    ] satisfies Array<{ label: string; value: string | number; accent: string; icon: LucideIcon }>,
+    [dashData.thisWeekCount, dashData.avgMatchScore, dashData.savedOppCount]
+  )
 
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([
     { id: '1', type: 'search', title: 'Searched: "Cloud Services"', timestamp: new Date(Date.now() - 3600000).toISOString(), icon: 'Search' },
@@ -417,7 +979,6 @@ function getMatchScoreColor(score: number) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showAiPanel, setShowAiPanel] = useState(false)
   const [selectedOpp, setSelectedOpp] = useState<OpportunityCard | null>(null)
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const recentAlerts: Alert[] = dashData.activeSearches.slice(0, 4).map((search) => ({
     id: search.id,
@@ -429,29 +990,21 @@ function getMatchScoreColor(score: number) {
   }))
 
   useEffect(() => {
-    void fetchDashboardData()
-  }, [])
-
-  useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 3500)
     return () => clearTimeout(t)
   }, [toast])
 
-  async function fetchDashboardData() {
-    try {
-      setLoading(true)
-      // Mock API calls
-      await new Promise(r => setTimeout(r, 800))
-      setLoading(false)
-    } catch (err) {
-      setToast({ type: 'error', message: 'Failed to load dashboard' })
-      setLoading(false)
-    }
-  }
+  const primarySearch = dashData.activeSearches[0]
 
   return (
-    <div className="pg-dashboard-modern min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }}>
+    <div
+      className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]"
+      style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }}
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-60" style={{ background: 'radial-gradient(circle at 20% 0%, rgba(14,165,233,0.18), transparent 60%)' }} aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 opacity-50" style={{ background: 'radial-gradient(circle at 80% 100%, rgba(236,72,153,0.18), transparent 65%)' }} aria-hidden="true" />
+      <div className="pg-dashboard-modern relative z-10 min-h-screen">
       {/* Toast */}
       {toast && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 pointer-events-none">
@@ -598,6 +1151,153 @@ function getMatchScoreColor(score: number) {
                       className="w-full rounded-xl py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold transition"
                     >
                       View All Saved Opportunities
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {drawer === 'recentMatches' && (
+                <div>
+                  <p className="text-slate-300 text-sm mb-4">Live feed of the freshest matches we pulled for you this week.</p>
+
+                  {dashData.recentOpportunities.length === 0 ? (
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 text-center text-slate-400 text-sm">
+                      No live matches yet. Run a search to populate this list.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {dashData.recentOpportunities.map((opp) => (
+                        <button
+                          key={opp.noticeId}
+                          onClick={() => goToSavedOpp(opp)}
+                          className="w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-white font-semibold group-hover:text-emerald-300 transition truncate">
+                                {opp.title}
+                              </div>
+                              <div className="text-xs text-slate-400 mt-1 flex flex-wrap gap-3">
+                                <span className="font-semibold text-slate-200">
+                                  <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Agency</span>
+                                  {opp.agency}
+                                </span>
+                                {opp.naics ? (
+                                  <span className="font-semibold text-cyan-200">
+                                    <span className="text-cyan-500 font-bold uppercase tracking-wide mr-1">NAICS</span>
+                                    {opp.naics}
+                                  </span>
+                                ) : null}
+                                {opp.posted ? (
+                                  <span>
+                                    <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Posted</span>
+                                    {opp.posted}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 shrink-0 text-right">
+                              {typeof opp.match === 'number' && (
+                                <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 text-xs font-bold border border-emerald-500/25">
+                                  {opp.match}% match
+                                </span>
+                              )}
+                              {opp.deadline ? (
+                                <span className="text-xs font-semibold text-orange-300">
+                                  <span className="text-orange-500 font-bold uppercase tracking-wide mr-1">Deadline</span>
+                                  {opp.deadline}
+                                </span>
+                              ) : null}
+                              {opp.value ? (
+                                <span className="text-xs text-slate-200 font-semibold">
+                                  <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Value</span>
+                                  {formatCurrency(opp.value)}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={() => {
+                        router.push('/search')
+                        closeDrawer()
+                      }}
+                      className="flex-1 rounded-xl py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition"
+                    >
+                      Run New Search
+                    </button>
+                    <button
+                      onClick={closeDrawer}
+                      className="flex-1 rounded-xl py-3 bg-slate-800/70 hover:bg-slate-800 text-slate-100 font-semibold border border-white/10 transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {drawer === 'deadlines' && (
+                <div>
+                  <p className="text-slate-300 text-sm mb-4">Deadlines that need attention in the next two weeks.</p>
+
+                  {dashData.upcomingDeadlines.length === 0 ? (
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 text-center text-slate-400 text-sm">
+                      No approaching deadlines yet. Save opportunities to start tracking them here.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {dashData.upcomingDeadlines.map((deadline, idx) => (
+                        <div key={`${deadline.title}-${idx}`} className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-white font-semibold">{deadline.title}</div>
+                              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                                <span className="text-slate-500 font-bold uppercase tracking-wide">Agency</span>
+                                <span className="inline-flex items-center gap-1 text-slate-200">
+                                  <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                                  {deadline.agency}
+                                </span>
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-orange-300 flex items-center justify-end gap-1">
+                                <span className="text-orange-500 font-bold uppercase tracking-wide">Deadline</span>
+                                <Clock className="w-4 h-4" />
+                                {deadline.deadline}
+                              </p>
+                              {deadline.value ? (
+                                <p className="text-xs text-slate-300 mt-1">
+                                  <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Value</span>
+                                  {deadline.value}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={() => {
+                        router.push('/opportunities')
+                        closeDrawer()
+                      }}
+                      className="flex-1 rounded-xl py-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold transition"
+                    >
+                      Review Pipeline
+                    </button>
+                    <button
+                      onClick={closeDrawer}
+                      className="flex-1 rounded-xl py-3 bg-slate-800/70 hover:bg-slate-800 text-slate-100 font-semibold border border-white/10 transition"
+                    >
+                      Close
                     </button>
                   </div>
                 </div>
@@ -766,7 +1466,7 @@ function getMatchScoreColor(score: number) {
       )}
 
       {/* Main Content */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-8 py-8">
+      <div className="pg-container py-8">
 
         {/* Header Section */}
         <div className="mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-in fade-in duration-500">
@@ -784,26 +1484,86 @@ function getMatchScoreColor(score: number) {
           </div>
         </div>
 
+        <div className="mb-12 grid gap-8 rounded-[32px] border border-[var(--color-border)] bg-gradient-to-r from-[var(--color-surface)] via-[var(--color-surface-muted)] to-[var(--color-surface)] p-6 text-[var(--color-text-primary)] shadow-[0_30px_80px_-50px_rgba(14,165,233,0.45)] md:p-10 lg:grid-cols-[1.2fr,0.9fr]">
+          <div className="space-y-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)]/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
+              Live Mock Feed
+              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Beta</span>
+            </div>
+            <div>
+              <p className="text-sm text-[var(--color-text-secondary)]">Hello {welcomeName},</p>
+              <h2 className="mt-2 text-3xl font-black text-[var(--color-text-primary)] sm:text-4xl">Your pipeline is refreshing with new intelligence every few seconds.</h2>
+              <p className="mt-3 max-w-2xl text-sm text-[var(--color-text-secondary)] sm:text-base">
+                We blend saved searches, AI scoring, and deadline risk to keep the dashboard readable. Watch the live counters update as new opportunities stream in.
+              </p>
+            </div>
+            {primarySearch && (
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)] shadow-inner">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-bold uppercase tracking-[0.25em] text-[var(--color-text-tertiary)]">Featured Search</span>
+                  <span className="rounded-full bg-cyan-500/10 px-3 py-0.5 text-xs font-semibold text-cyan-700">
+                    {primarySearch.resultsCount ?? '--'} results · +{primarySearch.newCount ?? 0} new
+                  </span>
+                </div>
+                <p className="mt-2 text-base font-semibold text-[var(--color-text-primary)]">{primarySearch.name}</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">Keywords: “{primarySearch.query}” · NAICS {primarySearch.filters?.naics ?? '—'} · {primarySearch.filters?.setaside ?? 'No set-aside filter'}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {heroHighlights.map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.label} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-lg">
+                  <div className={`mb-4 h-10 w-10 rounded-xl bg-gradient-to-r ${item.accent} flex items-center justify-center text-white`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-text-tertiary)]">{item.label}</p>
+                  <p className="mt-3 text-3xl font-black text-[var(--color-text-primary)]">{dashData.loading ? '—' : item.value}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">Auto-refreshed mock data</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12 animate-in fade-in duration-500 stagger">
-          {[
-            { label: 'Active Alerts', value: stats.activeAlerts, icon: Bell, color: 'from-orange-500 to-red-500', subtext: `of ${stats.totalAlerts} total` },
-            { label: 'New Matches', value: stats.newMatches, icon: Zap, color: 'from-emerald-500 to-teal-500', subtext: 'This week' },
-            { label: 'Saved Searches', value: stats.savedSearches, icon: Search, color: 'from-cyan-500 to-blue-500', subtext: 'Quick access' },
-            { label: 'Watchlist Items', value: stats.totalWatchlist, icon: Target, color: 'from-purple-500 to-pink-500', subtext: 'Opportunities' },
-            { label: 'Team Members', value: stats.teamMembers, icon: Users, color: 'from-indigo-500 to-purple-500', subtext: 'Collaborating' },
-            { label: 'This Month', value: '127', icon: Calendar, color: 'from-amber-500 to-orange-500', subtext: 'Opportunities' },
-          ].map(({ label, value, icon: Icon, color, subtext }) => (
-            <div key={label} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6 hover:border-slate-600 transition-all group cursor-pointer hover:bg-slate-800/70">
+        <div className="pg-card-grid mb-12 animate-in fade-in duration-500 stagger">
+          {summaryCards.map(({ label, value, icon: Icon, color, subtext, onClick }) => (
+            <div
+              key={label}
+              role={onClick ? 'button' : undefined}
+              tabIndex={onClick ? 0 : undefined}
+              onClick={onClick}
+              onKeyDown={(event) => {
+                if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault()
+                  onClick()
+                }
+              }}
+              className={clsx(
+                'rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-[var(--color-text-primary)] shadow-[0_20px_45px_-25px_rgba(15,23,42,0.35)] transition-all group hover:-translate-y-1 hover:shadow-2xl',
+                onClick ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60' : 'cursor-default',
+              )}
+            >
               <div className="flex items-start justify-between mb-4">
                 <div className={clsx('rounded-xl p-3 bg-gradient-to-br', color)}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
-                <ArrowUpRight className="h-5 w-5 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {onClick ? (
+                  <button type="button" className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition" aria-label="View details">
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                ) : (
+                  <div className="text-[var(--color-text-tertiary)] text-sm font-semibold">Live</div>
+                )}
               </div>
-              <p className="text-slate-400 text-sm font-medium mb-1">{label}</p>
-              <p className="text-3xl font-black text-white mb-2">{value}</p>
-              <p className="text-xs text-slate-500">{subtext}</p>
+              <div className="text-[var(--color-text-secondary)] text-sm font-semibold tracking-wide">{label}</div>
+              <div className="mt-2 text-3xl font-black text-[var(--color-text-primary)]">
+                {dashData.loading ? <Loader2 className="h-6 w-6 animate-spin" /> : value ?? '—'}
+              </div>
+              {subtext ? <p className="text-[var(--color-text-secondary)] text-sm mt-1">{subtext}</p> : null}
             </div>
           ))}
         </div>
@@ -843,10 +1603,10 @@ function getMatchScoreColor(score: number) {
                   </div>
                   <div>
                     <div className="text-white font-semibold text-sm">
-                      {claudeAnalysis ? 'AI Analysis by Claude' : 'Get AI Analysis'}
+                      {claudeAnalysis ? 'AI Augmented Analyticcs by Precise Govcon Intelligence' : 'Get AI Analysis'}
                     </div>
                     <div className="text-slate-400 text-xs">
-                      Claude will analyze your pipeline and surface priorities
+                      Precise Govcon Intelligence will analyze your pipeline and surface priorities
                     </div>
                   </div>
                 </div>
@@ -1072,6 +1832,7 @@ function getMatchScoreColor(score: number) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

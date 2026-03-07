@@ -63,6 +63,8 @@ interface MarketTrend {
   timeframe: string;
 }
 
+type ExecutionTone = 'critical' | 'active' | 'info' | 'neutral';
+
 interface Stats {
   totalActive: number;
   newToday: number;
@@ -837,6 +839,7 @@ export default function InsightsPage() {
       )
       .slice(0, 6)
       .map(([name, count]) => ({ name, count }));
+    const naicsBreadth = Object.keys(naicsCounts).length;
 
     const highPriority = aiInsights.filter(
       (i) => i.priority === 'high'
@@ -871,6 +874,58 @@ export default function InsightsPage() {
         )
       : 0;
 
+    const focusNow = expiringSorted
+      .filter((o: any) => o.daysToDeadline >= 0)
+      .slice(0, 6);
+
+    const coverageKpis = [
+      {
+        label: 'Urgent queue covered',
+        value: `${Math.min(focusNow.length, 6)}/6`,
+        sub: 'Tracked inside Focus now',
+        progress: Math.round(
+          (Math.min(focusNow.length, 6) / 6) * 100
+        ),
+        color: 'from-orange-500 to-amber-500',
+        icon: <Shield className="h-5 w-5" />,
+      },
+      {
+        label: 'Set-aside coverage',
+        value: `${setAsideFriendlyPct}%`,
+        sub: 'Goal ≥ 60% of current feed',
+        progress: setAsideFriendlyPct,
+        color: 'from-emerald-500 to-green-500',
+        icon: <PieChart className="h-5 w-5" />,
+      },
+      {
+        label: 'Agency breadth',
+        value: formatCompact(stats?.activeAgencies ?? 0),
+        sub: 'Active buyers right now',
+        progress: Math.min(
+          100,
+          ((stats?.activeAgencies ?? 0) / 40) * 100
+        ),
+        color: 'from-blue-500 to-cyan-500',
+        icon: <Building className="h-5 w-5" />,
+        insights: agenciesSeries.slice(0, 3).map((agency) => ({
+          label: agency.name,
+          value: formatCompact(agency.count),
+        })),
+      },
+      {
+        label: 'NAICS spread',
+        value: `${naicsBreadth} codes`,
+        sub: 'Diversity of the pipeline',
+        progress: Math.min(100, (naicsBreadth / 12) * 100),
+        color: 'from-purple-500 to-pink-500',
+        icon: <Database className="h-5 w-5" />,
+        insights: naicsSeries.slice(0, 3).map((code) => ({
+          label: code.name,
+          value: formatCompact(code.count),
+        })),
+      },
+    ];
+
     const actions = [
       {
         label: 'Review expiring <72h',
@@ -898,9 +953,47 @@ export default function InsightsPage() {
       },
     ] as const;
 
-    const focusNow = expiringSorted
-      .filter((o: any) => o.daysToDeadline >= 0)
-      .slice(0, 6);
+    const executionChecklist: {
+      title: string;
+      detail: string;
+      href: string;
+      badge: string;
+      tone: ExecutionTone;
+      icon: React.ComponentType<{ className?: string }>;
+    }[] = [
+      {
+        title: 'Triage expiring ≤72h',
+        detail: `${expiring72h} open deadlines to assign`,
+        href: '/opportunities?filter=expiring',
+        badge: 'Critical',
+        tone: 'critical',
+        icon: Clock,
+      },
+      {
+        title: 'Score new postings',
+        detail: `${stats?.newToday ?? 0} waiting for a go/no-go`,
+        href: '/opportunities?filter=today',
+        badge: 'Daily',
+        tone: 'active',
+        icon: Zap,
+      },
+      {
+        title: 'Expand agency coverage',
+        detail: `${stats?.activeAgencies ?? 0} buyers active this week`,
+        href: '/opportunities?filter=agencies',
+        badge: 'Relationship',
+        tone: 'info',
+        icon: Building,
+      },
+      {
+        title: 'Tune alerts & searches',
+        detail: 'Lock in filters, set owners, and save views',
+        href: '/alerts/manage-alerts',
+        badge: 'Workflow',
+        tone: 'neutral',
+        icon: Bell,
+      },
+    ];
 
     return {
       expiring24h,
@@ -917,6 +1010,9 @@ export default function InsightsPage() {
       timeToActDays,
       focusNow,
       actions,
+      naicsBreadth,
+      coverageKpis,
+      executionChecklist,
       allOpportunities: opps,
       aiInsights,
       stats,
@@ -958,6 +1054,20 @@ export default function InsightsPage() {
     'from-purple-500 to-pink-500',
   ];
 
+  const executionToneBg: Record<ExecutionTone, string> = {
+    critical: 'from-red-500 to-orange-500',
+    active: 'from-emerald-500 to-green-500',
+    info: 'from-blue-500 to-cyan-500',
+    neutral: 'from-gray-500 to-gray-700',
+  };
+
+  const executionTonePill: Record<ExecutionTone, string> = {
+    critical: 'bg-red-50 text-red-700 border-red-200',
+    active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    info: 'bg-blue-50 text-blue-700 border-blue-200',
+    neutral: 'bg-gray-50 text-gray-700 border-gray-200',
+  };
+
   return (
     <div className="pg-theme-cleanup pg-insights-modern min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 text-[14px] sm:text-[15px]">
       {/* Header */}
@@ -971,7 +1081,7 @@ export default function InsightsPage() {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
-                    Insights Dashboard
+                    Welcome to your Curated Insights Dashboard
                   </h1>
                   <p className="text-sm text-gray-600 truncate">
                     {welcomeMessage || 'Your intelligence hub'}
@@ -1065,7 +1175,7 @@ export default function InsightsPage() {
               </button>
             ))}
           </div>
-        </div>
+          </div>
       </div>
 
       {/* Main */}
@@ -1508,6 +1618,163 @@ export default function InsightsPage() {
                 )}
               </div>
             </div>
+
+            {/* Coverage + execution */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div>
+                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                      <LineChart className="h-5 w-5 text-gray-900" />
+                      <span>Coverage scoreboard</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Ensure the portfolio stays balanced while the feed shifts.
+                    </div>
+                  </div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Live pulse
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {dashboard.coverageKpis.map((kpi, index) => (
+                    <div
+                      key={`${kpi.label}-${index}`}
+                      className="rounded-2xl border border-gray-200 bg-white p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                            {kpi.label}
+                          </div>
+                          <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                            {kpi.value}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {kpi.sub}
+                          </div>
+                        </div>
+                        <div
+                          className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${kpi.color} text-white flex items-center justify-center`}
+                        >
+                          {kpi.icon}
+                        </div>
+                      </div>
+                      <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full bg-gradient-to-r ${kpi.color}`}
+                          style={{
+                            width: `${Math.min(100, Math.max(8, kpi.progress))}%`,
+                          }}
+                        />
+                      </div>
+                      {Array.isArray(kpi.insights) && kpi.insights.length > 0 && (
+                        <div className="mt-4 space-y-1.5">
+                          {kpi.insights.map((item, detailIndex) => (
+                            <div
+                              key={`${kpi.label}-insight-${detailIndex}`}
+                              className="flex items-center justify-between text-xs text-gray-600 gap-3"
+                            >
+                              <span className="font-semibold text-gray-800 truncate">
+                                {item.label}
+                              </span>
+                              <span className="text-gray-500 font-medium">
+                                {item.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div>
+                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-gray-900" />
+                      <span>Execution playbook</span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Translate insights into concrete owner-ready steps.
+                    </div>
+                  </div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Next up
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {dashboard.executionChecklist.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={`${item.title}-${index}`}
+                        onClick={() => router.push(item.href)}
+                        className="w-full text-left rounded-2xl border border-gray-200 bg-white px-4 py-4 hover:bg-gray-50 transition shadow-sm"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${executionToneBg[item.tone]} text-white flex items-center justify-center`}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-extrabold text-gray-900 truncate">
+                                  {item.title}
+                                </div>
+                                <div className="text-xs text-gray-600 truncate">
+                                  {item.detail}
+                                </div>
+                              </div>
+                              <div
+                                className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${executionTonePill[item.tone]}`}
+                              >
+                                <span>{item.badge}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <ArrowUpRight className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Set-aside breakdown */}
+            <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                    <PieChart className="h-5 w-5 text-gray-900" />
+                    <span>Set-aside breakdown</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Distribution of set-aside designations across the current feed.
+                  </div>
+                </div>
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Live
+                </div>
+              </div>
+              {dashboard.setAsideSeries.length ? (
+                <SimpleBarList
+                  items={dashboard.setAsideSeries}
+                  maxItems={8}
+                />
+              ) : (
+                <div className="text-sm text-gray-600">
+                  No set-aside data in the current feed.
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right column: AI & trends */}
@@ -1518,7 +1785,7 @@ export default function InsightsPage() {
                 <div>
                   <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-gray-900" />
-                    <span>YourANAlytics TidBits</span>
+                    <span>Your Analytics Tidbits</span>
                   </div>
                   <div className="text-sm text-gray-600">
                     A compact briefing based on live signals and PreciseGovcon AI

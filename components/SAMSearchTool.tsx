@@ -1485,7 +1485,7 @@ const currentSearchParamsForModal = useMemo(() => {
             : `✅ Search saved: "${name}" — Find it anytime in Alerts & Searches.`
           console.log(msg)
           // If the modal itself shows a success state, this is enough.
-          // If not, we could navigate: router.push('/alerts-searches')
+          // If not, we could navigate: router.push('/alerts/manage-searches')
         }}
       />
     </div>

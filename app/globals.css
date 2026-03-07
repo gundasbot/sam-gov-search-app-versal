@@ -4,6 +4,10 @@
   --color-primary: #4a7862;
   --color-primary-hover: #3f6754;
   --color-highlight: #4a7862;
+  --color-accent-sky: #3a86ff;
+  --color-accent-coral: #ff7e5f;
+  --color-accent-violet: #7b5bff;
+  --color-accent-sunrise: #fbbf24;
 
   --color-bg: #f7f8f7;
   --color-surface: #ffffff;
@@ -37,11 +41,11 @@
   --shadow-lg: 0 10px 26px rgba(16, 24, 20, 0.08);
   --shadow-modal: 0 20px 50px rgba(16, 24, 20, 0.18);
 
-  --container: 1240px;
+  --container: 1600px;
 
-  --bg-grad-1: rgba(47, 107, 79, 0.04);
-  --bg-grad-2: #eef1ef;
-  --bg-grad-3: var(--color-bg);
+  --bg-grad-1: rgba(58, 134, 255, 0.08);
+  --bg-grad-2: rgba(255, 126, 95, 0.08);
+  --bg-grad-3: rgba(123, 91, 255, 0.06);
   --bg-grad-4: #eef1ef;
 }
 
@@ -58,6 +62,10 @@
   --color-primary: #5d886f;
   --color-primary-hover: #4d745f;
   --color-highlight: #5d886f;
+  --color-accent-sky: #5aa4ff;
+  --color-accent-coral: #ff9a7a;
+  --color-accent-violet: #a98cff;
+  --color-accent-sunrise: #ffd166;
 
   --color-accent-soft: #1e2a24;
 
@@ -66,9 +74,9 @@
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.34);
   --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.55);
 
-  --bg-grad-1: rgba(78, 138, 104, 0.1);
-  --bg-grad-2: #121a1f;
-  --bg-grad-3: var(--color-bg);
+  --bg-grad-1: rgba(90, 164, 255, 0.14);
+  --bg-grad-2: rgba(255, 154, 122, 0.12);
+  --bg-grad-3: rgba(169, 140, 255, 0.12);
   --bg-grad-4: #121a1f;
 
   color-scheme: dark;
@@ -89,7 +97,9 @@ body {
   margin: 0;
   color: var(--text);
   background:
-    radial-gradient(circle at 90% -10%, var(--bg-grad-1), transparent 35%),
+    radial-gradient(circle at 90% -10%, var(--bg-grad-1), transparent 38%),
+    radial-gradient(circle at 10% 20%, var(--bg-grad-2), transparent 45%),
+    radial-gradient(circle at 55% 120%, var(--bg-grad-3), transparent 42%),
     linear-gradient(180deg, var(--bg-grad-3) 0%, var(--bg-grad-4) 100%);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -146,13 +156,27 @@ a {
 }
 
 .pg-container {
-  width: min(var(--container), calc(100% - 2rem));
+  width: 100%;
+  max-width: var(--container);
   margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .pg-container {
+    padding-inline: 1.5rem;
+  }
 }
 
 @media (min-width: 1024px) {
   .pg-container {
-    width: min(var(--container), calc(100% - 4rem));
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .pg-container {
+    padding-inline: 2.5rem;
   }
 }
 
@@ -164,8 +188,14 @@ a {
 }
 
 .pg-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--line);
+  background:
+    linear-gradient(
+      140deg,
+      color-mix(in srgb, var(--color-accent-sky) 6%, transparent),
+      color-mix(in srgb, var(--color-accent-violet) 6%, transparent)
+    ),
+    var(--bg-elevated);
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
@@ -291,26 +321,51 @@ select:focus-visible {
   gap: 1rem;
 }
 
+.pg-card-grid {
+  display: grid;
+  gap: 1.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: stretch;
+}
+
+@media (min-width: 1280px) {
+  .pg-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+
+.pg-stacked-zone {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+}
+
+.pg-stacked-zone > * {
+  height: 100%;
+}
+
 .pg-cta-bg {
   background:
-    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 35%),
-    radial-gradient(circle at 20% 100%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 32%),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--color-accent-coral) 28%, transparent), transparent 35%),
+    radial-gradient(circle at 20% 100%, color-mix(in srgb, var(--color-accent-sky) 24%, transparent), transparent 32%),
     linear-gradient(
-      110deg,
-      color-mix(in srgb, var(--color-primary) 72%, #1f2937) 0%,
-      color-mix(in srgb, var(--color-primary-hover) 68%, #334155) 100%
+      120deg,
+      color-mix(in srgb, var(--color-primary) 60%, #1f2937) 0%,
+      color-mix(in srgb, var(--color-accent-violet) 55%, #334155) 50%,
+      color-mix(in srgb, var(--color-accent-coral) 45%, #1f2937) 100%
     );
   color: #f8fafc;
 }
 
 [data-theme="dark"] .pg-cta-bg {
   background:
-    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 35%),
-    radial-gradient(circle at 20% 100%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 32%),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--color-accent-coral) 24%, transparent), transparent 35%),
+    radial-gradient(circle at 20% 100%, color-mix(in srgb, var(--color-accent-sky) 22%, transparent), transparent 32%),
     linear-gradient(
-      110deg,
-      color-mix(in srgb, var(--color-primary) 55%, #111827) 0%,
-      color-mix(in srgb, var(--color-primary-hover) 52%, #1f2937) 100%
+      120deg,
+      color-mix(in srgb, var(--color-primary) 48%, #111827) 0%,
+      color-mix(in srgb, var(--color-accent-violet) 52%, #1f2937) 50%,
+      color-mix(in srgb, var(--color-accent-coral) 38%, #0f172a) 100%
     );
 }
 

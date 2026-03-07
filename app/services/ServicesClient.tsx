@@ -1,5 +1,4 @@
-// app/services/page.tsx
-'use client'
+"use client"
 
 import React from 'react'
 import Image from 'next/image'
@@ -20,13 +19,7 @@ import {
   Phone,
 } from 'lucide-react'
 
-
-export const metadata = {
-  alternates: { canonical: 'https://www.precisegovcon.com/services' },
-  title: 'Federal Contracting Services | PreciseGovCon',
-  description: 'Explore PreciseGovCon services: SAM registration, proposal writing, compliance monitoring, capability statements, and bid analysis.',
-}
-export default function ServicesPage() {
+export default function ServicesClient() {
   const services = [
     {
       title: 'Bid Search',
@@ -99,7 +92,7 @@ export default function ServicesPage() {
       <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="absolute inset-0 bg-grid-slate-700/25 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
         
-        <div className="relative mx-auto max-w-7xl px-6 py-12 lg:px-8">
+        <div className="relative mx-auto w-full max-w-[1720px] px-6 py-12 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Heading & Description */}
             <div>
@@ -182,7 +175,7 @@ export default function ServicesPage() {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+      <section className="mx-auto w-full max-w-[1720px] px-6 py-12 lg:px-8">
         <div className="grid lg:grid-cols-3 gap-6 mb-12">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
@@ -211,7 +204,7 @@ export default function ServicesPage() {
       </section>
 
       {/* Services Grid - More Compact */}
-      <section className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+      <section className="mx-auto w-full max-w-[1720px] px-6 py-8 lg:px-8">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl mb-3">
             Our Professional Services
@@ -281,7 +274,7 @@ export default function ServicesPage() {
       </section>
 
       {/* Partnership CTA */}
-      <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
+      <section className="mx-auto w-full max-w-[1720px] px-6 py-16 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-12 text-center shadow-2xl">
           <div className="mx-auto max-w-2xl">
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl mb-4">
@@ -301,11 +294,11 @@ export default function ServicesPage() {
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <a
-                href="tel:804-404-4005"
+                href="tel:804-404-6005"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all hover:bg-white/20"
               >
                 <Phone className="h-5 w-5" />
-                (804) 404-4005
+                (804) 404-6005
               </a>
             </div>
 
