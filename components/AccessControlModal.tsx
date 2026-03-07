@@ -1,4 +1,4 @@
-﻿// components/AccessControlModal.tsx
+// components/AccessControlModal.tsx
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'

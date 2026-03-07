@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 
 // Fixed: Use valid Stripe API version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover',
+  apiVersion: '2026-02-25.clover',
 })
 
 type DbUser = {
