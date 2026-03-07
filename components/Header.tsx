@@ -246,8 +246,7 @@ export default function Header() {
                   <span className="text-[var(--color-text-primary)]">PRECISE</span>{' '}
                   <span className="text-[var(--color-highlight)]">GOVCON</span>
                 </div>
-                {/* Tagline: hidden on smallest screens */}
-                <div className="hidden max-w-[200px] truncate text-[8px] italic font-medium tracking-wide text-[var(--color-text-secondary)] 2xl:block 2xl:max-w-none 2xl:text-[0.8rem]">
+                <div className="hidden text-[0.72rem] italic font-medium tracking-wide text-[var(--color-text-secondary)] xl:block whitespace-nowrap">
                   Contracting Intelligence and Procurement Experts
                 </div>
               </div>
@@ -255,7 +254,7 @@ export default function Header() {
 
             {/* ── Desktop Nav ── */}
             <div className="hidden min-w-0 flex-1 justify-center xl:flex">
-            <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-center gap-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/80 px-1.5 text-sm shadow-sm overflow-x-auto">
+            <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-center gap-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]/80 px-1 text-sm shadow-sm overflow-x-hidden">
               {[
                 { href: '/search', label: 'Search', icon: <Search className="w-4 h-4" /> },
                 { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -263,7 +262,7 @@ export default function Header() {
                 { href: '/alerts', label: 'Alerts & Searches', icon: <Bell className="w-4 h-4" /> },
               ].map(({ href, label, icon }) => (
                 <Link key={href} href={href} prefetch={false}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-[0.5625rem] py-2 text-[0.82rem] font-semibold tracking-tight transition-all 2xl:px-[0.5625rem] 2xl:text-[0.88rem] ${
                     isActive(href) ? activePillClasses : inactivePillClasses
                   }`}
                 >
@@ -282,7 +281,7 @@ export default function Header() {
                   }}
                   onMouseEnter={() => setServicesOpen(true)}
                   onFocus={() => setServicesOpen(true)}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-[0.5625rem] py-2 text-[0.82rem] font-semibold tracking-tight transition-all 2xl:px-[0.5625rem] 2xl:text-[0.88rem] ${
                     servicesOpen || pathname.startsWith('/services')
                       ? activePillClasses
                       : inactivePillClasses
@@ -334,7 +333,7 @@ export default function Header() {
                 { href: '/support', label: 'Support', icon: <Mail className="w-4 h-4" /> },
               ].map(({ href, label, icon }) => (
                 <Link key={href} href={href} prefetch={false}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-2 py-2 text-[0.86rem] font-semibold tracking-tight transition-all 2xl:px-3 2xl:text-[0.92rem] ${
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-xl px-[0.5625rem] py-2 text-[0.82rem] font-semibold tracking-tight transition-all 2xl:px-[0.5625rem] 2xl:text-[0.88rem] ${
                     isActive(href) ? activePillClasses : inactivePillClasses
                   }`}
                 >
