@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { ArrowRight, Loader2, X, Check, Search } from 'lucide-react'
 import { NAICS_CODES } from '@/lib/naics-codes'
+import { PSC_CODES } from '@/lib/psc-codes'
 import { SET_ASIDE_CODES, US_STATES } from '@/lib/sam-gov-constants'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +30,7 @@ const aptosFontStyle = `
 type UserPreferences = {
   setAsides: string[]
   naicsCodes: string[]
+  pscCodes: string[]
   keywords: string[]
   states: string[]
   contractSizeMin?: number
@@ -63,9 +65,13 @@ export default function DashboardOnboardingPage() {
   }, [])
 
   const [naicsSearch, setNaicsSearch] = useState('')
+  const [pscSearch, setPscSearch] = useState('')
+  const [keywordInput, setKeywordInput] = useState('')
+  const [activeTab, setActiveTab] = useState<'naics' | 'psc' | 'keywords'>('naics')
   const [prefs, setPrefs] = useState<Partial<UserPreferences>>({
     setAsides: [],
     naicsCodes: [],
+    pscCodes: [],
     keywords: [],
     states: [],
   })
@@ -155,7 +161,7 @@ export default function DashboardOnboardingPage() {
     return NAICS_CODES.filter(c => popularCodes.includes(c.code))
   }, [])
 
-  // Filter NAICS codes - ONLY from library
+  // Filter NAICS codes
   const filteredNaics = useMemo(() => {
     if (!naicsSearch.trim()) return NAICS_CODES.slice(0, 50)
     const q = naicsSearch.toLowerCase()
@@ -166,6 +172,19 @@ export default function DashboardOnboardingPage() {
         code.description?.toLowerCase().includes(q)
     ).slice(0, 50)
   }, [naicsSearch])
+
+  // Filter PSC codes
+  const filteredPsc = useMemo(() => {
+    if (!pscSearch.trim()) return PSC_CODES.slice(0, 50)
+    const q = pscSearch.toLowerCase()
+    return PSC_CODES.filter(
+      code =>
+        code.code.toLowerCase().includes(q) ||
+        code.title.toLowerCase().includes(q) ||
+        code.description?.toLowerCase().includes(q) ||
+        code.category?.toLowerCase().includes(q)
+    ).slice(0, 50)
+  }, [pscSearch])
 
   if (status === 'loading') {
     return (
@@ -251,19 +270,55 @@ export default function DashboardOnboardingPage() {
             </div>
           </section>
 
-          {/* Industry Expertise */}
+          {/* Industry Expertise & Services */}
           <section>
             <div className="mb-8">
-              <h2 className="text-3xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Industry Expertise (NAICS)</h2>
-              <p className="text-lg text-slate-600 mt-2">Select industry codes that describe your business. Search by code, keywords, or industry name.</p>
+              <h2 className="text-3xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Expertise & Services</h2>
+              <p className="text-lg text-slate-600 mt-2">Search and select NAICS codes, PSC codes, and keywords that describe your business.</p>
             </div>
 
-            {/* Trending NAICS Codes */}
-            {!naicsSearch && (
-              <div className="mb-10">
-                <p className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">🔥 Popular Industries</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {trendingNaics.map(code => {
+            {/* Tabs */}
+            <div className="mb-8 flex gap-2 border-b border-slate-200">
+              {(['naics', 'psc', 'keywords'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-3 font-bold uppercase text-sm transition-all border-b-2 ${
+                    activeTab === tab
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {tab === 'naics' ? 'NAICS Codes' : tab === 'psc' ? 'PSC Codes' : 'Keywords'}
+                </button>
+              ))}
+            </div>
+
+            {/* NAICS Tab */}
+            {activeTab === 'naics' && (
+              <div className="space-y-6">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-500" />
+                  <input
+                    type="text"
+                    placeholder="Search: 541512, Software, Engineering..."
+                    value={naicsSearch}
+                    onChange={e => setNaicsSearch(e.target.value)}
+                    className="w-full pl-12 pr-6 py-4 text-base rounded-xl border-2 border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none font-semibold transition-all"
+                  />
+                  {naicsSearch && (
+                    <button
+                      onClick={() => setNaicsSearch('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* NAICS Results */}
+                <div className="space-y-2 max-h-[600px] overflow-y-auto pr-4">
+                  {filteredNaics.map(code => {
                     const isSelected = (prefs.naicsCodes || []).includes(code.code)
                     return (
                       <button
@@ -275,18 +330,24 @@ export default function DashboardOnboardingPage() {
                               : [...(prefs.naicsCodes || []), code.code],
                           })
                         }
-                        className={`text-left p-3 rounded-lg border-2 transition-all text-sm ${
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                           isSelected
                             ? 'border-orange-400 bg-orange-50 shadow-sm'
                             : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-900">{code.code}</p>
-                            <p className="text-slate-700 font-semibold text-xs mt-1 line-clamp-2">{code.title}</p>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-black text-lg text-slate-900">{code.code}</p>
+                              <span className="text-slate-400">—</span>
+                              <p className="text-slate-800 font-semibold">{code.title}</p>
+                            </div>
+                            {code.description && (
+                              <p className="text-sm text-slate-600 mt-2">{code.description}</p>
+                            )}
                           </div>
-                          {isSelected && <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />}
+                          {isSelected && <Check className="h-5 w-5 text-orange-600 flex-shrink-0" />}
                         </div>
                       </button>
                     )
@@ -295,55 +356,64 @@ export default function DashboardOnboardingPage() {
               </div>
             )}
 
-            {/* Search Input */}
-            <div className="mb-8">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-500" />
-                <input
-                  type="text"
-                  placeholder="Search: 541512, Software, Engineering, IT Services..."
-                  value={naicsSearch}
-                  onChange={e => setNaicsSearch(e.target.value)}
-                  className="w-full pl-12 pr-6 py-4 text-base rounded-xl border-2 border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none font-semibold transition-all"
-                />
-                {naicsSearch && (
-                  <button
-                    onClick={() => setNaicsSearch('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-              {naicsSearch && (
-                <p className="mt-3 text-sm text-slate-600">
-                  Found <span className="font-bold text-orange-600">{filteredNaics.length}</span> matching codes
-                </p>
-              )}
-            </div>
+            {/* PSC Tab */}
+            {activeTab === 'psc' && (
+              <div className="space-y-6">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-500" />
+                  <input
+                    type="text"
+                    placeholder="Search: R401, Engineering, Systems..."
+                    value={pscSearch}
+                    onChange={e => setPscSearch(e.target.value)}
+                    className="w-full pl-12 pr-6 py-4 text-base rounded-xl border-2 border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none font-semibold transition-all"
+                  />
+                  {pscSearch && (
+                    <button
+                      onClick={() => setPscSearch('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
 
-            {/* Selected Codes */}
-            {(prefs.naicsCodes || []).length > 0 && (
-              <div className="mb-8 pb-8 border-b border-slate-200">
-                <p className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">
-                  ✓ Selected ({prefs.naicsCodes!.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(prefs.naicsCodes || []).map(code => {
-                    const codeObj = NAICS_CODES.find(c => c.code === code)
+                {/* PSC Results */}
+                <div className="space-y-2 max-h-[600px] overflow-y-auto pr-4">
+                  {filteredPsc.map(code => {
+                    const isSelected = (prefs.pscCodes || []).includes(code.code)
                     return (
                       <button
-                        key={code}
+                        key={code.code}
                         onClick={() =>
                           updatePrefs({
-                            naicsCodes: (prefs.naicsCodes || []).filter(c => c !== code),
+                            pscCodes: isSelected
+                              ? (prefs.pscCodes || []).filter(c => c !== code.code)
+                              : [...(prefs.pscCodes || []), code.code],
                           })
                         }
-                        className="inline-flex items-center gap-2 rounded-lg bg-orange-100 border-2 border-orange-400 px-3 py-2 text-sm font-bold text-orange-700 hover:bg-orange-200 transition-all group"
-                        title={codeObj?.title}
+                        className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? 'border-orange-400 bg-orange-50 shadow-sm'
+                            : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
+                        }`}
                       >
-                        <span>{code}</span>
-                        <X className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-black text-lg text-slate-900">{code.code}</p>
+                              <span className="text-slate-400">—</span>
+                              <p className="text-slate-800 font-semibold">{code.title}</p>
+                            </div>
+                            {code.description && (
+                              <p className="text-sm text-slate-600 mt-2">{code.description}</p>
+                            )}
+                            {code.category && (
+                              <p className="text-xs text-slate-500 mt-1">Category: {code.category}</p>
+                            )}
+                          </div>
+                          {isSelected && <Check className="h-5 w-5 text-orange-600 flex-shrink-0" />}
+                        </div>
                       </button>
                     )
                   })}
@@ -351,50 +421,112 @@ export default function DashboardOnboardingPage() {
               </div>
             )}
 
-            {/* Filtered List */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[650px] overflow-y-auto pr-4">
-              {filteredNaics.length === 0 ? (
-                <div className="col-span-full py-12 text-center">
-                  <Search className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 font-semibold">No codes found for "{naicsSearch}"</p>
-                  <p className="text-slate-400 text-sm mt-1">Try: Computer, Software, Engineering, or Services</p>
+            {/* Keywords Tab */}
+            {activeTab === 'keywords' && (
+              <div className="space-y-6">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add keyword: Cloud, Security, AI, DevOps..."
+                    value={keywordInput}
+                    onChange={e => setKeywordInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && keywordInput.trim()) {
+                        updatePrefs({
+                          keywords: [...(prefs.keywords || []), keywordInput.trim()],
+                        })
+                        setKeywordInput('')
+                      }
+                    }}
+                    className="flex-1 px-4 py-4 text-base rounded-xl border-2 border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none font-semibold transition-all"
+                  />
+                  <button
+                    onClick={() => {
+                      if (keywordInput.trim()) {
+                        updatePrefs({
+                          keywords: [...(prefs.keywords || []), keywordInput.trim()],
+                        })
+                        setKeywordInput('')
+                      }
+                    }}
+                    className="px-6 py-4 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition-all"
+                  >
+                    Add
+                  </button>
                 </div>
-              ) : (
-                filteredNaics.map(code => {
-                  const isSelected = (prefs.naicsCodes || []).includes(code.code)
-                  return (
+
+                {/* Keywords List */}
+                <div className="flex flex-wrap gap-2">
+                  {(prefs.keywords || []).map(kw => (
                     <button
-                      key={code.code}
+                      key={kw}
                       onClick={() =>
                         updatePrefs({
-                          naicsCodes: isSelected
-                            ? (prefs.naicsCodes || []).filter(c => c !== code.code)
-                            : [...(prefs.naicsCodes || []), code.code],
+                          keywords: (prefs.keywords || []).filter(k => k !== kw),
                         })
                       }
-                      className={`text-left p-4 rounded-lg border-2 transition-all ${
-                        isSelected
-                          ? 'border-orange-400 bg-orange-50 shadow-sm'
-                          : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
-                      }`}
+                      className="inline-flex items-center gap-2 rounded-lg bg-orange-100 border-2 border-orange-400 px-4 py-2 text-sm font-bold text-orange-700 hover:bg-orange-200 transition-all group"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-slate-900">{code.code}</p>
-                            {isSelected && <Check className="h-4 w-4 text-orange-600 flex-shrink-0" />}
-                          </div>
-                          <p className="text-slate-800 font-semibold text-sm mt-1">{code.title}</p>
-                          {code.description && (
-                            <p className="text-xs text-slate-600 mt-2 line-clamp-2">{code.description}</p>
-                          )}
-                        </div>
-                      </div>
+                      <span>{kw}</span>
+                      <X className="h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
                     </button>
-                  )
-                })
-              )}
-            </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Selected Summary */}
+            {((prefs.naicsCodes?.length || 0) + (prefs.pscCodes?.length || 0) + (prefs.keywords?.length || 0) > 0) && (
+              <div className="mt-8 pt-8 border-t border-slate-200">
+                <p className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">
+                  ✓ Selected ({(prefs.naicsCodes?.length || 0) + (prefs.pscCodes?.length || 0) + (prefs.keywords?.length || 0)})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(prefs.naicsCodes || []).map(code => (
+                    <button
+                      key={`naics-${code}`}
+                      onClick={() =>
+                        updatePrefs({
+                          naicsCodes: (prefs.naicsCodes || []).filter(c => c !== code),
+                        })
+                      }
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-100 border-2 border-blue-400 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-200 transition-all group"
+                    >
+                      <span>N:{code}</span>
+                      <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                    </button>
+                  ))}
+                  {(prefs.pscCodes || []).map(code => (
+                    <button
+                      key={`psc-${code}`}
+                      onClick={() =>
+                        updatePrefs({
+                          pscCodes: (prefs.pscCodes || []).filter(c => c !== code),
+                        })
+                      }
+                      className="inline-flex items-center gap-2 rounded-lg bg-green-100 border-2 border-green-400 px-3 py-1.5 text-xs font-bold text-green-700 hover:bg-green-200 transition-all group"
+                    >
+                      <span>P:{code}</span>
+                      <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                    </button>
+                  ))}
+                  {(prefs.keywords || []).map(kw => (
+                    <button
+                      key={`kw-${kw}`}
+                      onClick={() =>
+                        updatePrefs({
+                          keywords: (prefs.keywords || []).filter(k => k !== kw),
+                        })
+                      }
+                      className="inline-flex items-center gap-2 rounded-lg bg-purple-100 border-2 border-purple-400 px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-200 transition-all group"
+                    >
+                      <span>K:{kw}</span>
+                      <X className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Geographic & Contract Size */}
