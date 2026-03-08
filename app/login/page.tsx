@@ -663,11 +663,11 @@ function SignInContent() {
 
                 {/* Footer helpers */}
                 <div className="pt-0.5 flex items-center justify-between text-xs flex-wrap gap-2" style={{ borderTop: `1px solid ${C.border}` }}>
-                  <div className="flex items-center gap-1 text-xs" style={{ color: C.textMuted }}>
-                    <ShieldCheck className="h-3 w-3 shrink-0" style={{ color: '#f97316' }} />
-                    MFA for admins
+                  <div className="flex items-center gap-1.5" style={{ color: C.textSecondary }}>
+                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" style={{ color: '#f97316' }} />
+                    MFA enforced for admin roles
                   </div>
-                  <div className="flex gap-2 font-semibold text-xs">
+                  <div className="flex gap-3 font-semibold text-xs">
                     <Link href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} style={{ color: '#ea580c' }}>Reset</Link>
                     <Link href="/support?openContact=1&category=Account%20%26%20Access" style={{ color: '#0f766e' }}>Support</Link>
                   </div>
