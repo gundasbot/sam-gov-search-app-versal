@@ -17,7 +17,7 @@ const PUBLIC_PATHS = [
   '/features', '/support', '/privacy', '/terms', '/security', '/accessibility'
 ]
 
-const BROWSING_TIME_LIMIT_MS = 15 * 60 * 1000 // 15 minutes
+const BROWSING_TIME_LIMIT_MS = 20 * 60 * 1000 // 20 minutes (consistent with browsing-status.ts)
 const MAX_DELAYS = 2
 
 const COOKIE_START  = 'browsing_start_time'

@@ -373,10 +373,19 @@ export async function GET(req: NextRequest) {
     // Map frontend parameters to SAM.gov API parameters
     console.log('📥 Frontend params received:', Array.from(requestUrl.searchParams.entries()).slice(0, 10))
     const mappedParams = mapParametersToSAMAPI(requestUrl.searchParams)
-    
+
     // Apply mapped parameters to upstream URL
     for (const [key, value] of mappedParams.entries()) {
       upstreamUrl.searchParams.set(key, value)
+    }
+
+    // 🔒 LIMIT: Unauthenticated browsing sessions are restricted to 25 results
+    // Authenticated users can request up to 1000
+    if (isBrowsingSession) {
+      const currentLimit = parseInt(upstreamUrl.searchParams.get('limit') || '1000', 10)
+      const restrictedLimit = Math.min(25, currentLimit)
+      upstreamUrl.searchParams.set('limit', String(restrictedLimit))
+      console.log(`🔒 Unauthenticated browsing: limiting results to ${restrictedLimit}`)
     }
 
     // ✅ Ensure required postedFrom/postedTo and correct date format

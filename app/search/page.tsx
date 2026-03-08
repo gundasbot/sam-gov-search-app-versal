@@ -2765,11 +2765,12 @@ useEffect(() => {
     }
 
     // CRITICAL: Check if user can browse
-    if (!canBrowse) {
-      console.log('Search blocked: canBrowse is false');
-      setShowLockoutModal(true);
-      return;
-    }
+    // TODO: Reinstate this blocking mechanism after search testing
+    // if (!canBrowse) {
+    //   console.log('Search blocked: canBrowse is false');
+    //   setShowLockoutModal(true);
+    //   return;
+    // }
 
     // Gate the search action
     if (!requireAccess('Search Federal Opportunities')) {
@@ -2989,11 +2990,12 @@ useEffect(() => {
     })
     
     // CRITICAL: Check if user can browse for unauthenticated/expired users
-    if (!canBrowse) {
-      console.log('❌ Search blocked: canBrowse is false')
-      setShowLockoutModal(true)
-      return
-    }
+    // TODO: Reinstate this blocking mechanism after search testing
+    // if (!canBrowse) {
+    //   console.log('❌ Search blocked: canBrowse is false')
+    //   setShowLockoutModal(true)
+    //   return
+    // }
     
     // CRITICAL FIX: Prevent duplicate simultaneous searches
     if (!isLoadMore && loading) {

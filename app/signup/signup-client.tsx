@@ -494,6 +494,30 @@ export default function SignUpClient() {
             </div>
           </div>
 
+          {/* ── What's Included in Your 7-Day Trial ──────────────────────────── */}
+          <div className="rounded-2xl overflow-hidden border border-[var(--color-border)] flex-shrink-0 bg-gradient-to-br from-[var(--color-surface)] via-[var(--color-surface)] to-[var(--color-surface-muted)] shadow-sm">
+            <div className="px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+              <p className="text-[var(--color-text-primary)] text-sm font-bold">✨ What's Included in Your 7-Day Trial</p>
+            </div>
+            <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5">
+              {[
+                '🔍 Unlimited federal opportunity searches',
+                '📧 Email alerts for matching opportunities',
+                '📊 Advanced NAICS & set-aside filters',
+                '💾 Save unlimited opportunities',
+                '📥 Export search results to CSV',
+                '⏱️ Auto-saved search preferences',
+              ].map(f => (
+                <div key={f} className="flex items-center gap-2.5">
+                  <div className="w-4 h-4 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-2.5 h-2.5 text-[var(--color-primary)]" />
+                  </div>
+                  <span className="text-[var(--color-text-secondary)] text-xs sm:text-sm">{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* ── Plan cards ──────────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {PLANS.map(plan => {
@@ -604,6 +628,43 @@ export default function SignUpClient() {
                   <span className="text-[var(--color-text-secondary)] text-sm">{f}</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* ── Plan Comparison Table ────────────────────────────────────────── */}
+          <div className="rounded-2xl overflow-hidden border border-[var(--color-border)] flex-shrink-0 bg-[var(--color-surface)]">
+            <div className="px-5 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+              <p className="text-[var(--color-text-primary)] text-sm font-bold">Plan comparison</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    <th className="px-5 py-3 text-left font-bold text-[var(--color-text-secondary)]">Feature</th>
+                    {PLANS.map(plan => (
+                      <th key={plan.id} className={`px-4 py-3 text-center font-bold whitespace-nowrap ${plan.highlight ? 'bg-[var(--color-accent-soft)]' : ''}`}>
+                        <span className={plan.highlight ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-primary)]'}>{plan.name}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { feature: 'Saved opportunities', basic: '10', pro: 'Unlimited', ent: 'Unlimited' },
+                    { feature: 'Email alerts', basic: '-', pro: '✓', ent: '✓' },
+                    { feature: 'CSV export', basic: '-', pro: '✓', ent: '✓' },
+                    { feature: 'Team accounts', basic: '-', pro: '-', ent: '✓' },
+                    { feature: 'Advanced reporting', basic: '-', pro: '-', ent: '✓' },
+                  ].map((row, idx) => (
+                    <tr key={row.feature} className={idx % 2 === 1 ? 'bg-[var(--color-surface-muted)]' : ''}>
+                      <td className="px-5 py-2.5 font-medium text-[var(--color-text-secondary)]">{row.feature}</td>
+                      <td className="px-4 py-2.5 text-center text-[var(--color-text-secondary)]">{row.basic}</td>
+                      <td className="px-4 py-2.5 text-center bg-[var(--color-accent-soft)] text-[var(--color-primary)] font-semibold">{row.pro}</td>
+                      <td className="px-4 py-2.5 text-center text-[var(--color-text-secondary)]">{row.ent}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
