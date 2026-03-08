@@ -118,7 +118,6 @@ export default function SignUpClient() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const emailParam   = searchParams.get('email') ?? ''
-  const codeParam    = searchParams.get('code')  ?? ''
   const planParam    = searchParams.get('plan')?.toUpperCase()
   const initialPlan  = planParam && PLANS.find(p => p.id === planParam) ? planParam : 'PROFESSIONAL'
 
@@ -129,7 +128,6 @@ export default function SignUpClient() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword,    setShowPassword]    = useState(false)
   const [showConfirm,     setShowConfirm]     = useState(false)
-  const [offerCode,       setOfferCode]       = useState(codeParam)
   const [selectedPlan,    setSelectedPlan]    = useState(initialPlan)
   const [annual,          setAnnual]          = useState(false)
   const [loading,         setLoading]         = useState(false)
@@ -148,10 +146,13 @@ export default function SignUpClient() {
     if (password !== confirmPassword){ setError('Passwords do not match.'); return }
     setLoading(true); setError('')
     try {
-      const res  = await fetch('/api/auth/register', {
+      const nameParts = name.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+      const res  = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, company, email, password, offerCode, plan: selectedPlan, billing: annual ? 'annual' : 'monthly' }),
+        body: JSON.stringify({ firstName, lastName, company, email, password, plan: selectedPlan, billing: annual ? 'annual' : 'monthly' }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data?.error || data?.message || 'Registration failed.'); setLoading(false); return }
@@ -407,15 +408,6 @@ export default function SignUpClient() {
                   </div>
                   {passwordsMismatch && <p className="mt-1.5 text-sm text-red-500 font-medium">Passwords do not match</p>}
                   {passwordsMatch    && <p className="mt-1.5 text-sm text-[var(--color-primary)] font-medium">Passwords match ✓</p>}
-                </div>
-
-                {/* Offer Code */}
-                <div>
-                  <label className="block text-xs sm:text-sm font-bold text-[var(--color-text-secondary)] mb-1.5 uppercase tracking-wide">
-                    Offer Code <span className="normal-case font-normal text-[var(--color-text-subtle)]">(optional)</span>
-                  </label>
-                  <input type="text" value={offerCode} onChange={e => setOfferCode(e.target.value)} placeholder="e.g. NEW-REGISTRANT"
-                    className="pg-input h-12 px-4 text-base font-mono bg-[var(--color-surface-muted)] placeholder:text-[var(--color-text-subtle)] placeholder:font-sans" />
                 </div>
 
                 {/* ── Selected plan summary bar ────────────────────────────── */}

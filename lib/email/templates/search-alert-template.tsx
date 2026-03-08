@@ -1,6 +1,8 @@
 // lib/email/templates/search-alert-template.tsx
 // Enhanced email template for SAM.gov search alerts
 
+import { getBrand } from '../brand'
+
 interface EmailTemplateProps {
   searchName: string
   resultCount: number
@@ -32,6 +34,7 @@ export function generateSearchAlertEmail({
   runDate,
   recipientName = 'Valued User',
 }: EmailTemplateProps): string {
+  const brand = getBrand()
   const formatDate = (date: string | Date | null) => {
     if (!date) return 'N/A'
     const d = new Date(date)
@@ -81,6 +84,8 @@ export function generateSearchAlertEmail({
           <!-- Header with Logo -->
           <tr>
             <td style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 40px 30px; text-align: center;">
+              <img src="${brand.logoUrl}" alt="${brand.name}"
+                   style="max-width: 180px; height: auto; display: block; margin: 0 auto 20px; border: 0;" />
               <div style="background-color: #ffffff; display: inline-block; padding: 15px 30px; border-radius: 8px; margin-bottom: 20px;">
                 <h1 style="margin: 0; color: #1e3a8a; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">
                   🇺🇸 SAM.gov
@@ -202,9 +207,11 @@ export function generateSearchAlertEmail({
           <!-- Footer -->
           <tr>
             <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <img src="${brand.logoUrl}" alt="${brand.name}"
+                   style="max-width: 120px; height: auto; display: block; margin: 0 auto 16px; opacity: 0.8; border: 0;" />
               <p style="margin: 0 0 10px; color: #6b7280; font-size: 14px;">
                 Best regards,<br>
-                <strong style="color: #1f2937;">Your SAM.gov Search Team</strong>
+                <strong style="color: #1f2937;">${brand.name}</strong>
               </p>
               <p style="margin: 0 0 15px; color: #9ca3af; font-size: 12px;">
                 This is an automated alert for your saved search. To manage your alerts,<br>
@@ -212,9 +219,9 @@ export function generateSearchAlertEmail({
               </p>
               <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                 <p style="margin: 0; color: #9ca3af; font-size: 11px;">
-                  © ${new Date().getFullYear()} SAM.gov Search Alert System. All rights reserved.<br>
-                  <a href="https://precisegovcon.com/unsubscribe" style="color: #6b7280; text-decoration: none;">Unsubscribe</a> | 
-                  <a href="https://precisegovcon/privacy" style="color: #6b7280; text-decoration: none;">Privacy Policy</a>
+                  © ${new Date().getFullYear()} ${brand.name}. All rights reserved.<br>
+                  <a href="https://precisegovcon.com/unsubscribe" style="color: #6b7280; text-decoration: none;">Unsubscribe</a> |
+                  <a href="https://precisegovcon.com/privacy" style="color: #6b7280; text-decoration: none;">Privacy Policy</a>
                 </p>
               </div>
             </td>

@@ -22,6 +22,8 @@ build/
 # Testing / coverage
 # --------------------
 coverage/
+.nyc_output/
+*.lcov
 
 # --------------------
 # Environment variables

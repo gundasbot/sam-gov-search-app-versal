@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
 }
 
 function buildEmail(name: string, verifyUrl: string): string {
+  const brand = getBrand()
   return `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#f3f4f6;">
@@ -75,11 +76,13 @@ function buildEmail(name: string, verifyUrl: string): string {
       <table width="600" cellpadding="0" cellspacing="0"
              style="background:#ffffff;border-radius:16px;box-shadow:0 4px 6px rgba(0,0,0,0.07);">
         <tr>
-          <td style="padding:32px 40px;background:linear-gradient(135deg,#0f172a,#1e293b);
+          <td style="padding:32px 40px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);
                      border-radius:16px 16px 0 0;text-align:center;">
-            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:900;">
-              PRECISE<span style="color:#f97316;">GOVCON</span>
-            </h1>
+            <img src="${brand.logoUrl}" alt="${brand.name}"
+                 style="max-width:200px;height:auto;display:block;margin:0 auto 12px;border:0;" />
+            <p style="margin:0;color:#cbd5e1;font-size:11px;font-weight:600;letter-spacing:0.05em;">
+              ${brand.tagline}
+            </p>
           </td>
         </tr>
         <tr>

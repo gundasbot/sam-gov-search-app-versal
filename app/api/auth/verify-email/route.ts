@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { encode } from 'next-auth/jwt'
 import crypto from 'crypto'
+import { getBrand } from '@/lib/email/brand'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ function endOfDay(d: Date) {
 // ─── core verification logic ──────────────────────────────────────────────────
 
 async function verifyAndActivate(rawToken: string): Promise<
-  | { ok: true;  user: { id: string; email: string; name: string | null } }
+  | { ok: true;  user: { id: string; email: string; name: string | null }; planTier: string }
   | { ok: false; error: string; alreadyVerified?: boolean }
 > {
   const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
@@ -63,7 +64,7 @@ async function verifyAndActivate(rawToken: string): Promise<
   if (user.email_verified) {
     // Already verified — still log them in
     await prisma.email_verification_tokens.delete({ where: { token_hash: tokenHash } }).catch(() => {})
-    return { ok: true, user: { id: user.id, email: user.email, name: user.name } }
+    return { ok: true, user: { id: user.id, email: user.email, name: user.name }, planTier: user.plan_tier || 'BASIC' }
   }
 
   // ── Activate the account ──────────────────────────────────────────────────
@@ -100,6 +101,7 @@ async function verifyAndActivate(rawToken: string): Promise<
       email: user.email,
       name:  user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || null,
     },
+    planTier: user.plan_tier || 'BASIC',
   }
 }
 
@@ -109,6 +111,7 @@ async function mintSessionCookie(
   userId: string,
   email: string,
   name: string | null,
+  planTier: string,
   isSecure: boolean
 ): Promise<{ cookieName: string; cookieValue: string }> {
   const secret = process.env.NEXTAUTH_SECRET!
@@ -123,7 +126,7 @@ async function mintSessionCookie(
       email,
       name:            name ?? undefined,
       role:            'user',
-      tier:            'BASIC',
+      tier:            planTier,
       status:          'trialing',
       trial_active:    true,
       hasSubscription: false,
@@ -156,10 +159,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL(`/login?error=${msg}`, req.url))
   }
 
-  const { user } = result
+  const { user, planTier } = result
   const isSecure = req.url.startsWith('https')
   const { cookieName, cookieValue } = await mintSessionCookie(
-    user.id, user.email, user.name, isSecure
+    user.id, user.email, user.name, planTier, isSecure
   )
 
   const firstName = user.name?.split(' ')[0] || 'there'
@@ -229,6 +232,7 @@ function sendWelcomeEmailSilent(email: string, name: string) {
 }
 
 function buildWelcomeEmail(name: string, appUrl: string, brandName: string): string {
+  const brand = getBrand()
   return `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#f3f4f6;">
@@ -237,11 +241,13 @@ function buildWelcomeEmail(name: string, appUrl: string, brandName: string): str
       <table width="600" cellpadding="0" cellspacing="0"
              style="background:#ffffff;border-radius:16px;box-shadow:0 4px 6px rgba(0,0,0,0.07);">
         <tr>
-          <td style="padding:40px;background:linear-gradient(135deg,#0f172a,#1e293b);
+          <td style="padding:40px 40px 24px;background:linear-gradient(135deg,#0f172a,#1e293b);
                      border-radius:16px 16px 0 0;text-align:center;">
-            <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:900;">
-              PRECISE<span style="color:#f97316;">GOVCON</span>
-            </h1>
+            <img src="${brand.logoUrl}" alt="${brand.name}"
+                 style="max-width:200px;height:auto;display:block;margin:0 auto 12px;border:0;" />
+            <p style="margin:0;color:#cbd5e1;font-size:11px;font-weight:600;letter-spacing:0.05em;">
+              ${brand.tagline}
+            </p>
           </td>
         </tr>
         <tr>
