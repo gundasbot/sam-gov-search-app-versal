@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "verify:deploy": "npm run typecheck && npm run build",
+    "verify": "npm run typecheck && npm run lint && npm run build",
+    "setup:hooks": "git config core.hooksPath .githooks",
     "postinstall": "prisma generate"
   },
   "dependencies": {

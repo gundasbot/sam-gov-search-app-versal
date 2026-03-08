@@ -7,6 +7,15 @@
 export const BRAND_CONFIG = {
   name: 'Precise GovCon',
   tagline: 'contracting intelligence and procurement experts',
+  wordmark: {
+    preciseText: 'PRECISE',
+    govconText: 'GOVCON',
+    colors: {
+      precise: '#ffffff',
+      govcon: '#ff6a00',
+      background: '#041a44',
+    },
+  },
   logo: {
     // Local development and production (relative path from public folder)
     path: '/precise-govcon-logo-light.png',

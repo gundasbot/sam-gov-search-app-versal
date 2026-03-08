@@ -590,6 +590,7 @@ export default function OpportunitiesClient() {
 
   // 📌 NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [groupMode, setGroupMode] = useState<GroupMode>('urgency');
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [showPrefsReminder, setShowPrefsReminder] = useState(false);
@@ -661,6 +662,18 @@ export default function OpportunitiesClient() {
 
   const [userAchievement, setUserAchievement] = useState('');
   const [userTip, setUserTip] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const applyViewportMode = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobileViewport(mobile);
+      if (mobile) setViewMode('compact');
+    };
+    applyViewportMode();
+    window.addEventListener('resize', applyViewportMode);
+    return () => window.removeEventListener('resize', applyViewportMode);
+  }, []);
 
   // 📌 IMPROVED: Accurate stats calculation based on actual data
   const stats = useMemo(() => {
@@ -1835,10 +1848,10 @@ Provide analysis in JSON format with:
         </div>
 
         {/* View Controls */}
-        <div className="mb-2 flex flex-row items-center justify-between gap-3 p-2 bg-slate-800/40 rounded-xl border border-slate-700">
+        <div className="mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-2 bg-slate-800/40 rounded-xl border border-slate-700">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-300">View:</span>
-            <div className="flex items-center gap-2 p-1 bg-slate-900/50 rounded-lg">
+            <div className="flex items-center gap-2 p-1 bg-slate-900/50 rounded-lg overflow-x-auto">
               <button
                 onClick={() => setViewMode('list')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-bold ${
@@ -1867,12 +1880,12 @@ Provide analysis in JSON format with:
           </div>
 
           {viewMode !== 'grid' && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               <span className="text-sm font-semibold text-slate-300">Group By:</span>
               <select
                 value={groupMode}
                 onChange={(e) => setGroupMode(e.target.value as GroupMode)}
-                className="px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-auto"
               >
                 <option value="none">No Grouping</option>
                 <option value="urgency">Deadline Urgency</option>
@@ -2019,12 +2032,14 @@ Provide analysis in JSON format with:
           COLS.forEach(c => buckets[c.key].sort((a, b) => a.bd - b.bd));
 
           return (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(8, 1fr)',
-              gap: '4px',
-              width: '100%',
-            }}>
+            <div style={{ width: '100%', overflowX: isMobileViewport ? 'auto' : 'visible', paddingBottom: isMobileViewport ? '4px' : '0' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobileViewport ? 'repeat(8, minmax(160px, 1fr))' : 'repeat(8, 1fr)',
+                gap: '4px',
+                minWidth: isMobileViewport ? '1280px' : '0',
+                width: '100%',
+              }}>
               {COLS.map(col => {
                 const all    = buckets[col.key];
                 // When urgency filters are active, only show cards for selected columns
@@ -2167,6 +2182,7 @@ Provide analysis in JSON format with:
                   </div>
                 );
               })}
+              </div>
             </div>
           );
         })()}
@@ -2211,7 +2227,7 @@ Provide analysis in JSON format with:
                         <div className="flex items-center gap-3">
                           {/* Urgency Badge */}
                           {!isPlaceholder && (
-                            <div className="flex flex-col gap-2 w-[190px] flex-shrink-0">
+                            <div className="flex flex-col gap-2 w-[132px] sm:w-[190px] shrink-0">
                               <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current inline-flex items-center justify-between`}>
                                 <span>{urgencyLabel}</span>
                                 <span className="ml-2">{businessDays !== null ? `${businessDays}bd` : 'Γê₧'}</span>

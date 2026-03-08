@@ -87,8 +87,7 @@ export default async function proxy(request: NextRequest) {
   if (!isProtectedPath) return NextResponse.next()
 
   if (pathname === '/account' || pathname.startsWith('/account/')) {
-    const loginUrl = new URL('/', request.url)
-    loginUrl.searchParams.set('mode', 'login')
+    const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('callbackUrl', '/account')
     return NextResponse.redirect(loginUrl)
   }

@@ -1072,7 +1072,7 @@ export default function InsightsPage() {
     <div className="pg-theme-cleanup pg-insights-modern min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 text-[14px] sm:text-[15px]">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-5">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-5">
           <div className="flex flex-col lg:flex-row lg:items-center items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
@@ -1179,7 +1179,7 @@ export default function InsightsPage() {
       </div>
 
       {/* Main */}
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
         {!!error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 mt-0.5" />

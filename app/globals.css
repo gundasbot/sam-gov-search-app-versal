@@ -15,8 +15,8 @@
   --color-border: #dee3e0;
 
   --color-text-primary: #111714;
-  --color-text-secondary: #53625a;
-  --color-text-subtle: #7c8b84;
+  --color-text-secondary: #2f3f38;
+  --color-text-subtle: #42544c;
 
   --color-accent-soft: #eef3f0;
 
@@ -41,7 +41,7 @@
   --shadow-lg: 0 10px 26px rgba(16, 24, 20, 0.08);
   --shadow-modal: 0 20px 50px rgba(16, 24, 20, 0.18);
 
-  --container: 1600px;
+  --container: 1920px;
 
   --bg-grad-1: rgba(58, 134, 255, 0.08);
   --bg-grad-2: rgba(255, 126, 95, 0.08);
@@ -56,8 +56,8 @@
   --color-border: #27323a;
 
   --color-text-primary: #e9eef2;
-  --color-text-secondary: #a0afb8;
-  --color-text-subtle: #758590;
+  --color-text-secondary: #d6e0e6;
+  --color-text-subtle: #bcc9d1;
 
   --color-primary: #5d886f;
   --color-primary-hover: #4d745f;
@@ -90,7 +90,7 @@ body {
 }
 
 html {
-  font-size: clamp(14px, 0.28vw + 13px, 16px);
+  font-size: clamp(15px, 0.3vw + 13.5px, 17px);
 }
 
 body {
@@ -130,16 +130,39 @@ h1,
 h2,
 h3,
 h4 {
-  letter-spacing: -0.02em;
+  font-size: clamp(18px, 0.55vw + 15px, 22px);
 }
 
 p {
-  color: var(--text-muted);
+  color: var(--color-text-primary);
+  font-size: 17px;
+  font-weight: 500;
   line-height: 1.65;
 }
 
 a {
   color: inherit;
+}
+
+/* Readability standard: avoid faint text classes with alpha/opacity. */
+[class*="text-white/"],
+[class*="text-black/"],
+[class*="text-gray-"][class*="/"],
+[class*="text-slate-"][class*="/"] {
+  color: var(--color-text-primary) !important;
+}
+
+[data-theme="dark"] [class*="text-white/"],
+[data-theme="dark"] [class*="text-black/"],
+[data-theme="dark"] [class*="text-gray-"][class*="/"],
+[data-theme="dark"] [class*="text-slate-"][class*="/"] {
+  color: var(--color-text-primary) !important;
+}
+
+/* Global contrast safeguard for light mode: prevent white-on-white controls */
+[data-theme="light"] button[class*="bg-white"][class*="text-white"],
+[data-theme="light"] a[class*="bg-white"][class*="text-white"] {
+  color: var(--color-text-primary) !important;
 }
 
 ::selection {
@@ -918,7 +941,6 @@ select:focus-visible {
 /* Modern cohesion layer for high-traffic routes: reduce hard boxes, increase rhythm */
 .pg-flow-modern,
 .pg-dashboard-modern,
-.pg-account-modern,
 .pg-alerts-modern {
   background:
     radial-gradient(circle at 8% -12%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 33%),
@@ -930,8 +952,6 @@ select:focus-visible {
 .pg-flow-modern [class*="rounded-2xl"][class*="border"],
 .pg-dashboard-modern [class*="rounded-xl"][class*="border"],
 .pg-dashboard-modern [class*="rounded-2xl"][class*="border"],
-.pg-account-modern [class*="rounded-xl"][class*="border"],
-.pg-account-modern [class*="rounded-2xl"][class*="border"],
 .pg-alerts-modern [class*="rounded-xl"][class*="border"],
 .pg-alerts-modern [class*="rounded-2xl"][class*="border"] {
   border-color: color-mix(in srgb, var(--color-border) 62%, transparent) !important;
@@ -942,8 +962,6 @@ select:focus-visible {
 .pg-flow-modern [class*="bg-white"],
 .pg-dashboard-modern [class*="bg-slate-900"],
 .pg-dashboard-modern [class*="bg-slate-800"],
-.pg-account-modern [class*="bg-white/"],
-.pg-account-modern [class*="bg-slate-"],
 .pg-alerts-modern [class*="bg-slate-900"],
 .pg-alerts-modern [class*="bg-slate-800"] {
   background-color: var(--color-surface) !important;
@@ -955,9 +973,6 @@ select:focus-visible {
 .pg-dashboard-modern [class*="p-4"],
 .pg-dashboard-modern [class*="p-5"],
 .pg-dashboard-modern [class*="p-6"],
-.pg-account-modern [class*="p-4"],
-.pg-account-modern [class*="p-5"],
-.pg-account-modern [class*="p-6"],
 .pg-alerts-modern [class*="p-4"],
 .pg-alerts-modern [class*="p-5"],
 .pg-alerts-modern [class*="p-6"] {
@@ -968,8 +983,6 @@ select:focus-visible {
 .pg-flow-modern [class*="text-slate-500"],
 .pg-dashboard-modern [class*="text-slate-400"],
 .pg-dashboard-modern [class*="text-slate-500"],
-.pg-account-modern [class*="text-slate-400"],
-.pg-account-modern [class*="text-slate-500"],
 .pg-alerts-modern [class*="text-slate-400"],
 .pg-alerts-modern [class*="text-slate-500"] {
   color: var(--color-text-secondary) !important;
@@ -981,12 +994,59 @@ select:focus-visible {
 .pg-dashboard-modern .shadow-sm,
 .pg-dashboard-modern .shadow-md,
 .pg-dashboard-modern .shadow-lg,
-.pg-account-modern .shadow-sm,
-.pg-account-modern .shadow-md,
-.pg-account-modern .shadow-lg,
 .pg-alerts-modern .shadow-sm,
 .pg-alerts-modern .shadow-md,
 .pg-alerts-modern .shadow-lg {
+  box-shadow: 0 5px 14px color-mix(in srgb, #0f1720 8%, transparent) !important;
+}
+
+/* Account page specific pass: lock to high-contrast light surfaces */
+.pg-account-modern {
+  color: var(--color-text-primary);
+  background:
+    radial-gradient(circle at 8% -12%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 35%),
+    radial-gradient(circle at 98% 0%, color-mix(in srgb, var(--color-accent-sky) 5%, transparent), transparent 33%),
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 92%, var(--bg-grad-3)) 0%, var(--color-bg) 100%);
+}
+
+.pg-account-modern [class*="rounded-xl"][class*="border"],
+.pg-account-modern [class*="rounded-2xl"][class*="border"] {
+  border-color: color-mix(in srgb, var(--color-border) 68%, transparent) !important;
+  border-radius: 1.05rem !important;
+  box-shadow: 0 5px 14px color-mix(in srgb, #0f1720 8%, transparent);
+}
+
+.pg-account-modern [class*="bg-[#0a0d14]"],
+.pg-account-modern [class*="bg-[#0d1117]"],
+.pg-account-modern [class*="bg-white/"],
+.pg-account-modern [class*="bg-slate-"] {
+  background-color: var(--color-surface) !important;
+}
+
+.pg-account-modern [class*="text-white"] {
+  color: var(--color-text-primary) !important;
+}
+
+.pg-account-modern [class*="text-slate-300"] {
+  color: color-mix(in srgb, var(--color-text-primary) 84%, white) !important;
+}
+
+.pg-account-modern [class*="text-slate-400"],
+.pg-account-modern [class*="text-slate-500"] {
+  color: var(--color-text-secondary) !important;
+}
+
+.pg-account-modern button[class*="bg-[#1a4bff]"][class*="text-white"],
+.pg-account-modern a[class*="bg-[#1a4bff]"][class*="text-white"],
+.pg-account-modern [class*="bg-gradient-to-r"][class*="text-white"],
+.pg-account-modern [class*="bg-gradient-to-br"][class*="text-white"],
+.pg-account-modern [class*="bg-black"] [class*="text-white"] {
+  color: #ffffff !important;
+}
+
+.pg-account-modern .shadow-sm,
+.pg-account-modern .shadow-md,
+.pg-account-modern .shadow-lg {
   box-shadow: 0 5px 14px color-mix(in srgb, #0f1720 8%, transparent) !important;
 }
 
@@ -1013,6 +1073,81 @@ select:focus-visible {
 .pg-account-tabs > button {
   border-radius: 0.85rem 0.85rem 0 0;
   padding-inline: 1rem;
+}
+
+/* Align Account page content width/padding with header spacing rhythm */
+.pg-account-shell {
+  width: 100%;
+  max-width: 1920px;
+  margin-inline: auto;
+  padding-inline: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .pg-account-shell {
+    padding-inline: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pg-account-shell {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .pg-account-shell {
+    padding-inline: 2rem;
+  }
+}
+
+/* Account readability pass: increase text size and weight by ~50% */
+.pg-account-modern .text-xs {
+  font-size: 1.125rem !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+}
+
+.pg-account-modern .text-sm {
+  font-size: 1.3125rem !important;
+  line-height: 1.4 !important;
+  font-weight: 700 !important;
+}
+
+.pg-account-modern .text-base {
+  font-size: 1.5rem !important;
+  line-height: 1.4 !important;
+  font-weight: 700 !important;
+}
+
+.pg-account-modern .text-lg {
+  font-size: 1.6875rem !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+}
+
+.pg-account-modern .text-xl {
+  font-size: 1.875rem !important;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+}
+
+.pg-account-modern .text-2xl {
+  font-size: 2.25rem !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+}
+
+.pg-account-modern p,
+.pg-account-modern label,
+.pg-account-modern span,
+.pg-account-modern li,
+.pg-account-modern button,
+.pg-account-modern a,
+.pg-account-modern input,
+.pg-account-modern textarea,
+.pg-account-modern select {
+  font-weight: 700;
 }
 
 /* Dashboard drawer pass: section rhythm and reduced card borders */

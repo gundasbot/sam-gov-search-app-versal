@@ -3,6 +3,7 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Search,
   FileText,
@@ -20,6 +21,8 @@ import {
 } from 'lucide-react'
 
 export default function ServicesClient() {
+  const router = useRouter()
+
   const services = [
     {
       title: 'Bid Search',
@@ -87,12 +90,12 @@ export default function ServicesClient() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       {/* Compact Hero Section */}
       <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="absolute inset-0 bg-grid-slate-700/25 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
         
-        <div className="relative mx-auto w-full max-w-[1720px] px-6 py-12 lg:px-8">
+        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Heading & Description */}
             <div>
@@ -123,10 +126,34 @@ export default function ServicesClient() {
                 </Link>
                 <Link
                   href="/pricing"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-base font-bold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/20 px-6 py-3 text-base font-bold text-white backdrop-blur-sm transition-all hover:bg-white/30"
                 >
                   View Pricing
                 </Link>
+              </div>
+
+              <div className="mt-4 max-w-sm rounded-xl border border-white/30 bg-white/15 p-3 backdrop-blur-sm">
+                <label htmlFor="service-jump" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-200">
+                  Jump to a Service Page
+                </label>
+                <select
+                  id="service-jump"
+                  defaultValue=""
+                  onChange={(e) => {
+                    const path = e.target.value
+                    if (!path) return
+                    router.push(path)
+                    e.currentTarget.value = ''
+                  }}
+                  className="w-full rounded-lg border border-white/40 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-emerald-400"
+                >
+                  <option value="">Select a service...</option>
+                  {services.map((service) => (
+                    <option key={service.href} value={service.href}>
+                      {service.title}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -175,7 +202,7 @@ export default function ServicesClient() {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="mx-auto w-full max-w-[1720px] px-6 py-12 lg:px-8">
+      <section className="w-full px-3 sm:px-5 lg:px-6 py-12">
         <div className="grid lg:grid-cols-3 gap-6 mb-12">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
@@ -204,7 +231,7 @@ export default function ServicesClient() {
       </section>
 
       {/* Services Grid - More Compact */}
-      <section className="mx-auto w-full max-w-[1720px] px-6 py-8 lg:px-8">
+      <section className="w-full px-3 sm:px-5 lg:px-6 py-8">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl mb-3">
             Our Professional Services
@@ -274,7 +301,7 @@ export default function ServicesClient() {
       </section>
 
       {/* Partnership CTA */}
-      <section className="mx-auto w-full max-w-[1720px] px-6 py-16 lg:px-8">
+      <section className="w-full px-3 sm:px-5 lg:px-6 py-16">
         <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-12 text-center shadow-2xl">
           <div className="mx-auto max-w-2xl">
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl mb-4">
@@ -295,7 +322,7 @@ export default function ServicesClient() {
               </Link>
               <a
                 href="tel:804-404-6005"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/20 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all hover:bg-white/30"
               >
                 <Phone className="h-5 w-5" />
                 (804) 404-6005

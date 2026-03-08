@@ -1,1839 +1,1422 @@
 // app/dashboard/page.tsx
 'use client'
 
-import { useEffect, useState, useMemo, useCallback, Suspense } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import {
-  Search, Bell, TrendingUp, Zap, BarChart3, Users, Brain, Calendar,
-  FileText, DollarSign, Filter, Plus, ArrowRight, Loader2, CheckCircle,
-  AlertCircle, X, Eye, Download, Share2, Settings, ChevronRight,
-  Activity, Clock, Target, Award, Rocket, ArrowUpRight, ArrowDownRight,
-  MapPin, Building2, AlertTriangle, Lightbulb, RefreshCw, Grid3X3, List, Sparkles
+  Search, Bell, TrendingUp, Zap, Plus, ArrowRight, Loader2, CheckCircle,
+  AlertCircle, X, Share2, Settings, ChevronRight, Activity, Clock,
+  Target, Award, Rocket, MapPin, Building2, AlertTriangle, Lightbulb,
+  RefreshCw, Sparkles, Shield, CheckSquare, Square, Database, Brain,
+  BarChart3, Calendar, FileText
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type OpportunityCard = {
-  id: string
-  title: string
-  agency: string
-  type: 'RFP' | 'RFQ' | 'Solicitation' | 'Notice'
-  value?: number
-  dueDate: string
-  matchScore: number
-  description: string
-  naics?: string
-  setAside?: string
-  location?: string
-  aiSummary?: string
+
+type UserPreferences = {
+  setAsides: string[]
+  naicsCodes: string[]
+  agencies: string[]
+  contractSizeMin?: number
+  contractSizeMax?: number
+  keywords: string[]
+  states: string[]
+  businessType: string
+  completedOnboarding: boolean
 }
 
-type Alert = {
-  id: string
-  name: string
-  frequency: 'REAL_TIME' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
-  active: boolean
-  matchesCount: number
-  lastRun?: string
-}
-
-type SearchFilters = {
-  naics?: string
-  state?: string
-  setaside?: string
-  agency?: string
-  type?: string
-}
+type SearchFilters = { naics?: string; state?: string; setaside?: string; agency?: string }
 
 type ActiveSearch = {
-  id: string
-  name: string
-  query: string
-  filters?: SearchFilters
-  resultsCount?: number
-  newCount?: number
+  id: string; name: string; query: string
+  filters?: SearchFilters; resultsCount?: number; newCount?: number
 }
 
 type SavedOpportunity = {
-  noticeId: string
-  title: string
-  agency: string
-  value?: number
-  posted?: string
-  deadline?: string
-  naics?: string
-  match?: number | null
+  noticeId: string; title: string; agency: string
+  value?: number; posted?: string; deadline?: string
+  naics?: string; match?: number | null; setAside?: string
 }
 
-type NotificationIcon = 'deadline' | 'match' | 'alert' | 'ai'
-
-type DashboardNotification = {
-  type: NotificationIcon
-  title: string
-  time?: string
-  iconType: NotificationIcon
+type DashNotification = {
+  type: 'deadline'|'match'|'alert'|'ai'
+  title: string; time?: string
+  iconType: 'deadline'|'match'|'alert'|'ai'
 }
 
-type DeadlineItem = {
-  title: string
-  agency: string
-  deadline: string
-  value?: number | string
-}
+type DeadlineItem = { title: string; agency: string; deadline: string; value?: number|string }
+
+type DataSource = 'live' | 'public' | 'loading'
 
 type DashboardData = {
-  activeSearchesCount: number
-  savedOppCount: number
-  avgMatchScore: number | null
-  thisWeekCount: number
-  activeSearches: ActiveSearch[]
-  savedOpportunities: SavedOpportunity[]
-  recentOpportunities: SavedOpportunity[]
-  notifications: DashboardNotification[]
-  upcomingDeadlines: DeadlineItem[]
-  userGoals: string[]
-  loading: boolean
-  error: string | null
+  activeSearchesCount: number; savedOppCount: number
+  avgMatchScore: number | null; thisWeekCount: number
+  totalActiveOpportunities: number
+  activeSearches: ActiveSearch[]; savedOpportunities: SavedOpportunity[]
+  recentOpportunities: SavedOpportunity[]; notifications: DashNotification[]
+  upcomingDeadlines: DeadlineItem[]; userGoals: string[]
+  userPreferences?: UserPreferences
+  loading: boolean; error: string | null; dataSource: DataSource; lastRefreshed?: Date
 }
 
-type ActivityLog = {
-  id: string
-  type: 'search' | 'alert' | 'save' | 'share' | 'ai'
-  title: string
-  timestamp: string
-  icon: string
-}
+type ActivityLog = { id: string; type: 'search'|'alert'|'save'|'share'|'ai'; title: string; timestamp: string }
+type TrendData = { month: string; opportunities: number; matches: number }
+type DrawerKey = 'activeSearches'|'savedOpps'|'matchInfo'|'notifications'|'settings'|'goalSetup'|'recentMatches'|'deadlines'|null
 
-type TrendData = {
-  month: string
-  opportunities: number
-  matches: number
-}
+// ─── Survey Config ────────────────────────────────────────────────────────────
 
-type DrawerKey =
-  | 'activeSearches'
-  | 'savedOpps'
-  | 'matchInfo'
-  | 'notifications'
-  | 'settings'
-  | 'goalSetup'
-  | 'recentMatches'
-  | 'deadlines'
-  | null
+const SET_ASIDE_OPTIONS = [
+  { value: 'SDVOSB', label: 'SDVOSB', desc: 'Service-Disabled Veteran-Owned' },
+  { value: 'VOSB',   label: 'VOSB',   desc: 'Veteran-Owned Small Business' },
+  { value: '8A',     label: '8(a)',    desc: 'SBA 8(a) Program' },
+  { value: 'WOSB',   label: 'WOSB',   desc: 'Women-Owned Small Business' },
+  { value: 'HUBZONE',label: 'HUBZone',desc: 'Historically Underutilized Business Zone' },
+  { value: 'SBA',    label: 'Small Business', desc: 'General SB Set-Aside' },
+]
 
-const USE_MOCK_DASHBOARD = true
+const NAICS_OPTIONS = [
+  { value: '541512', label: '541512 — Computer Systems Design' },
+  { value: '541519', label: '541519 — IT Services' },
+  { value: '541611', label: '541611 — Management Consulting' },
+  { value: '541715', label: '541715 — R&D / AI / Data Science' },
+  { value: '541513', label: '541513 — Computer Facilities Mgmt' },
+  { value: '236220', label: '236220 — Commercial Construction' },
+  { value: '621999', label: '621999 — Healthcare & Medical' },
+  { value: '541330', label: '541330 — Engineering Services' },
+]
 
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value))
-}
+const AGENCY_OPTIONS = [
+  'Department of Defense (DoD)', 'Department of Veterans Affairs (VA)',
+  'Department of Homeland Security (DHS)', 'General Services Administration (GSA)',
+  'Department of the Army', 'Department of the Navy',
+  'Department of the Air Force', 'Dept of Health and Human Services',
+  'Department of Transportation', 'Department of Energy',
+]
 
-const MOCK_DASHBOARD_DATA: DashboardData = {
-  activeSearchesCount: 3,
-  savedOppCount: 5,
-  avgMatchScore: 82,
-  thisWeekCount: 12,
+const CONTRACT_SIZE_OPTIONS = [
+  { label: 'Under $250K', min: 0, max: 250000 },
+  { label: '$250K – $1M', min: 250000, max: 1000000 },
+  { label: '$1M – $5M',   min: 1000000, max: 5000000 },
+  { label: '$5M – $25M',  min: 5000000, max: 25000000 },
+  { label: '$25M+',       min: 25000000, max: undefined },
+]
+
+const STATE_OPTIONS = ['VA','MD','DC','TX','FL','CA','NY','GA','PA','NC','IL','OH','AZ','CO','WA','MA','Remote/Nationwide']
+
+// ─── Seed data ────────────────────────────────────────────────────────────────
+
+const MOCK_REFRESH_MS = 25000
+
+function clone<T>(v: T): T { return JSON.parse(JSON.stringify(v)) }
+
+const BASE: Omit<DashboardData,'dataSource'> = {
+  activeSearchesCount: 3, savedOppCount: 5, avgMatchScore: 82, thisWeekCount: 12,
+  totalActiveOpportunities: 1328,
   activeSearches: [
-    {
-      id: 'search-cyber',
-      name: 'Cybersecurity - VA',
-      query: 'zero trust modernization',
-      filters: { naics: '541512', state: 'VA', setaside: 'SDVOSB', agency: 'Department of Veterans Affairs' },
-      resultsCount: 186,
-      newCount: 5,
-    },
-    {
-      id: 'search-cloud',
-      name: 'Cloud Migration - DHS',
-      query: 'cloud migration devsecops',
-      filters: { naics: '541519', setaside: 'SBA', agency: 'Department of Homeland Security' },
-      resultsCount: 142,
-      newCount: 3,
-    },
-    {
-      id: 'search-ai',
-      name: 'AI & Data Science',
-      query: 'machine learning analytics',
-      filters: { naics: '541715', state: 'MD' },
-      resultsCount: 97,
-      newCount: 2,
-    },
+    { id: 's1', name: 'Cybersecurity – VA', query: 'zero trust modernization', filters: { naics:'541512', state:'VA', setaside:'SDVOSB', agency:'Dept of Veterans Affairs' }, resultsCount: 186, newCount: 5 },
+    { id: 's2', name: 'Cloud Migration – DHS', query: 'cloud migration devsecops', filters: { naics:'541519', setaside:'SBA', agency:'Dept of Homeland Security' }, resultsCount: 142, newCount: 3 },
+    { id: 's3', name: 'AI & Data Science', query: 'machine learning analytics', filters: { naics:'541715', state:'MD' }, resultsCount: 97, newCount: 2 },
   ],
   savedOpportunities: [
-    {
-      noticeId: 'W91-DEF-2412',
-      title: 'Zero Trust Engineering Support',
-      agency: 'Department of the Army',
-      value: 3200000,
-      posted: '2 days ago',
-      deadline: '5 days',
-      naics: '541512',
-      match: 90,
-    },
-    {
-      noticeId: '70RD-CLD-2403',
-      title: 'DHS Cloud Migration Surge Team',
-      agency: 'Department of Homeland Security',
-      value: 2100000,
-      posted: '4 days ago',
-      deadline: '8 days',
-      naics: '541519',
-      match: 84,
-    },
-    {
-      noticeId: '36C10B-ALR-007',
-      title: 'VA Analytics Modernization',
-      agency: 'Department of Veterans Affairs',
-      value: 1500000,
-      posted: '1 week ago',
-      deadline: '12 days',
-      naics: '541611',
-      match: 78,
-    },
-    {
-      noticeId: 'FA-8604-AI-2024',
-      title: 'AI-enabled ISR Tooling',
-      agency: 'Department of the Air Force',
-      value: 5800000,
-      posted: '3 days ago',
-      deadline: '15 days',
-      naics: '541715',
-      match: 86,
-    },
-    {
-      noticeId: 'GS-35F-NextGen',
-      title: 'GSA NextGen Support Desk',
-      agency: 'General Services Administration',
-      value: 950000,
-      posted: '5 days ago',
-      deadline: '21 days',
-      naics: '541513',
-      match: 74,
-    },
+    { noticeId:'W91-DEF-2412', title:'Zero Trust Engineering Support', agency:'Dept of the Army', value:3200000, posted:'2 days ago', deadline:'5 days', naics:'541512', match:90, setAside:'SDVOSB' },
+    { noticeId:'70RD-CLD-2403', title:'DHS Cloud Migration Surge Team', agency:'Dept of Homeland Security', value:2100000, posted:'4 days ago', deadline:'8 days', naics:'541519', match:84 },
+    { noticeId:'36C10B-ALR-007', title:'VA Analytics Modernization', agency:'Dept of Veterans Affairs', value:1500000, posted:'1 week ago', deadline:'12 days', naics:'541611', match:78, setAside:'VOSB' },
+    { noticeId:'FA-8604-AI-2024', title:'AI-enabled ISR Tooling', agency:'Dept of the Air Force', value:5800000, posted:'3 days ago', deadline:'15 days', naics:'541715', match:86 },
+    { noticeId:'GS-35F-NextGen', title:'GSA NextGen Support Desk', agency:'General Services Administration', value:950000, posted:'5 days ago', deadline:'21 days', naics:'541513', match:74 },
   ],
   recentOpportunities: [
-    {
-      noticeId: 'FA-4801-CYBER',
-      title: 'Defensive Cyber Readiness',
-      agency: 'Department of the Air Force',
-      value: 2600000,
-      posted: 'Today',
-      deadline: '7 days',
-      naics: '541519',
-      match: 88,
-    },
-    {
-      noticeId: 'HQ0034-CloudOps',
-      title: 'Pentagon Cloud Operations Cell',
-      agency: 'Department of Defense',
-      value: 4100000,
-      posted: '1 day ago',
-      deadline: '10 days',
-      naics: '541512',
-      match: 83,
-    },
-    {
-      noticeId: 'N00189-AI-Naval',
-      title: 'Naval AI Decision Support',
-      agency: 'Department of the Navy',
-      value: 2800000,
-      posted: '3 days ago',
-      deadline: '6 days',
-      naics: '541715',
-      match: 79,
-    },
+    { noticeId:'FA-4801-CYBER', title:'Defensive Cyber Readiness', agency:'Dept of the Air Force', value:2600000, posted:'Today', deadline:'7 days', naics:'541519', match:88 },
+    { noticeId:'HQ0034-CloudOps', title:'Pentagon Cloud Operations Cell', agency:'Dept of Defense', value:4100000, posted:'1 day ago', deadline:'10 days', naics:'541512', match:83 },
+    { noticeId:'N00189-AI-Naval', title:'Naval AI Decision Support', agency:'Dept of the Navy', value:2800000, posted:'3 days ago', deadline:'6 days', naics:'541715', match:79 },
   ],
   notifications: [
-    {
-      type: 'deadline',
-      title: 'Deadline in 3 days: Defensive Cyber Readiness',
-      time: 'Department of the Air Force',
-      iconType: 'deadline',
-    },
-    {
-      type: 'match',
-      title: 'Saved: DHS Cloud Migration Surge Team',
-      time: 'Posted 4 days ago',
-      iconType: 'match',
-    },
-    {
-      type: 'ai',
-      title: 'AI flagged 2 expiring SDVOSB set-asides',
-      time: 'Review this week',
-      iconType: 'ai',
-    },
+    { type:'deadline', title:'Deadline in 3 days: Defensive Cyber Readiness', time:'Dept of the Air Force', iconType:'deadline' },
+    { type:'match', title:'Saved: DHS Cloud Migration Surge Team', time:'Posted 4 days ago', iconType:'match' },
+    { type:'ai', title:'AI flagged 2 expiring SDVOSB set-asides', time:'Review this week', iconType:'ai' },
   ],
   upcomingDeadlines: [
-    {
-      title: 'Defensive Cyber Readiness',
-      agency: 'Department of the Air Force',
-      deadline: '3 days',
-      value: '$2.6M',
-    },
-    {
-      title: 'Zero Trust Engineering Support',
-      agency: 'Department of the Army',
-      deadline: '5 days',
-      value: '$3.2M',
-    },
-    {
-      title: 'VA Analytics Modernization',
-      agency: 'Department of Veterans Affairs',
-      deadline: '12 days',
-      value: '$1.5M',
-    },
+    { title:'Defensive Cyber Readiness', agency:'Dept of the Air Force', deadline:'3 days', value:'$2.6M' },
+    { title:'Zero Trust Engineering Support', agency:'Dept of the Army', deadline:'5 days', value:'$3.2M' },
+    { title:'VA Analytics Modernization', agency:'Dept of Veterans Affairs', deadline:'12 days', value:'$1.5M' },
   ],
-  userGoals: ['Capture two VA task orders per quarter', 'Maintain SDVOSB pipeline above $5M'],
-  loading: false,
-  error: null,
+  userGoals: [], loading: false, error: null,
 }
 
-const MOCK_CLAUDE_ANALYSIS = {
-  summary: 'Your pipeline holds five strong fits with deadlines inside two weeks. Lean into SDVOSB-friendly IT modernization where you already score above an 80 match.',
-  topOpportunities: [
-    { title: 'Zero Trust Engineering Support', reason: '92% match • Army zero-trust sprint', urgency: 'high' as const },
-    { title: 'DHS Cloud Migration Surge Team', reason: '84% match • DevSecOps emphasis', urgency: 'medium' as const },
-    { title: 'VA Analytics Modernization', reason: '78% match • Set-aside friendly', urgency: 'medium' as const },
-  ],
-  recommendations: [
-    'Schedule capture calls for Army and DHS pursuits this week',
-    'Refine AI & Data Science search with HUBZone filter to unlock more set-aside fits',
-    'Prepare capability snippet for zero-trust wins to reuse in proposals',
-  ],
-}
+function rand(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
-const MOCK_REFRESH_INTERVAL_MS = 20000
-
-function randomBetween(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
-
-function generateLiveMockDashboardData(): DashboardData {
-  const base = clone(MOCK_DASHBOARD_DATA)
-
-  base.activeSearches = base.activeSearches.map((search) => {
-    const results = Math.max(40, (search.resultsCount ?? 0) + randomBetween(-18, 24))
-    const newCount = Math.max(0, randomBetween(0, 7))
-    return {
-      ...search,
-      resultsCount: results,
-      newCount,
-    }
-  })
-
-  base.savedOpportunities = base.savedOpportunities.map((opp) => {
-    const match = Math.min(97, Math.max(65, (opp.match ?? 80) + randomBetween(-6, 6)))
-    const deadlineDays = randomBetween(3, 21)
-    const valueJitter = opp.value ? Math.max(250000, opp.value + randomBetween(-250000, 250000)) : undefined
-    return {
-      ...opp,
-      match,
-      value: valueJitter,
-      deadline: `${deadlineDays} days`,
-      posted: formatRelativeDate(new Date(Date.now() - randomBetween(0, 6) * 86400000).toISOString()),
-    }
-  })
-
-  base.recentOpportunities = base.recentOpportunities.map((opp) => {
-    const match = Math.min(95, Math.max(60, (opp.match ?? 75) + randomBetween(-8, 8)))
-    const deadlineDays = randomBetween(4, 14)
-    return {
-      ...opp,
-      match,
-      deadline: `${deadlineDays} days`,
-      posted: formatRelativeDate(new Date(Date.now() - randomBetween(0, 3) * 86400000).toISOString()),
-    }
-  })
-
-  const allScored = [...base.savedOpportunities, ...base.recentOpportunities].filter((o) => typeof o.match === 'number')
-  base.avgMatchScore = allScored.length
-    ? Math.round(allScored.reduce((sum, o) => sum + (o.match ?? 0), 0) / allScored.length)
-    : base.avgMatchScore
-
-  base.thisWeekCount = Math.max(
-    6,
-    base.activeSearches.reduce((sum, s) => sum + (s.newCount ?? 0), 0) + randomBetween(4, 9),
-  )
-
-  base.notifications = [
-    ...base.savedOpportunities.slice(0, 2).map((opp) => ({
-      type: 'deadline' as const,
-      title: `Deadline in ${opp.deadline}: ${opp.title}`,
-      time: opp.agency,
-      iconType: 'deadline' as const,
-    })),
-    {
-      type: 'ai' as const,
-      title: `${randomBetween(2, 4)} AI highlights ready`,
-      time: 'Review insights in Intelligence Hub',
-      iconType: 'ai' as const,
-    },
-    {
-      type: 'match' as const,
-      title: `${randomBetween(8, 15)} fresh matches synced`,
-      time: 'Live mock feed',
-      iconType: 'match' as const,
-    },
-  ].slice(0, 4)
-
-  base.upcomingDeadlines = base.savedOpportunities
-    .slice(0, 3)
-    .map((opp) => ({
-      title: opp.title,
-      agency: opp.agency,
-      deadline: opp.deadline ?? '',
-      value: opp.value ? `$${(opp.value / 1_000_000).toFixed(1)}M` : 'TBD',
-    }))
-
-  base.loading = false
-  base.error = null
-
-  return base
-}
-
-function buildMockAnalysis(data: DashboardData) {
-  const top = [...data.savedOpportunities]
-    .filter((opp) => typeof opp.match === 'number')
-    .sort((a, b) => (b.match ?? 0) - (a.match ?? 0))
-    .slice(0, 3)
-
-  return {
-    summary: `Live feed is tracking ${data.thisWeekCount} curated matches with an average fit of ${data.avgMatchScore ?? '—'}%. Prioritize high-score SDVOSB-friendly IT pursuits to stay ahead.`,
-    topOpportunities: top.map((opp) => ({
-      title: opp.title,
-      reason: `${opp.match ?? '--'}% match • ${opp.agency}`,
-      urgency: (parseInt(opp.deadline ?? '30', 10) <= 7 ? 'high' : parseInt(opp.deadline ?? '30', 10) <= 14 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
-    })),
-    recommendations: [
-      'Review deadlines inside 7 days first to keep pipeline momentum',
-      'Use Alerts to duplicate high-performing searches into new NAICS codes',
-      'Share the weekly pipeline snapshot with capture leads before Friday',
-    ],
-  }
-}
-
-// -- Utility: format a date as relative string ---------------------------------
-function formatRelativeDate(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} minute${mins !== 1 ? 's' : ''} ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days !== 1 ? 's' : ''} ago`;
-}
-
-function formatRelative(dateStr: string): string {
-  if (!dateStr) return 'just now'
-  const parsed = new Date(dateStr)
-  if (Number.isNaN(parsed.getTime())) return dateStr
-  return formatRelativeDate(dateStr)
+function makePublicData(): DashboardData {
+  const b = clone(BASE)
+  b.activeSearches = b.activeSearches.map((s: ActiveSearch) => ({ ...s, resultsCount: Math.max(40,(s.resultsCount??0)+rand(-18,24)), newCount: rand(0,7) }))
+  b.savedOpportunities = b.savedOpportunities.map((o: SavedOpportunity) => ({
+    ...o, match: Math.min(97,Math.max(65,(o.match??80)+rand(-5,5))),
+    value: o.value ? Math.max(250000,o.value+rand(-200000,200000)) : undefined,
+    deadline: `${rand(3,21)} days`, posted: fmtRel(new Date(Date.now()-rand(0,6)*86400000).toISOString()),
+  }))
+  b.recentOpportunities = b.recentOpportunities.map((o: SavedOpportunity) => ({
+    ...o, match: Math.min(95,Math.max(60,(o.match??75)+rand(-7,7))),
+    deadline: `${rand(4,14)} days`, posted: fmtRel(new Date(Date.now()-rand(0,3)*86400000).toISOString()),
+  }))
+  const all = [...b.savedOpportunities,...b.recentOpportunities].filter((o: SavedOpportunity) => o.match)
+  b.avgMatchScore = all.length ? Math.round(all.reduce((s: number,o: SavedOpportunity) => s+(o.match??0),0)/all.length) : b.avgMatchScore
+  b.thisWeekCount = Math.max(6, b.activeSearches.reduce((s: number,sr: ActiveSearch) => s+(sr.newCount??0),0)+rand(3,8))
+  b.totalActiveOpportunities = rand(1290,1380)
+  b.upcomingDeadlines = b.savedOpportunities.slice(0,3).map((o: SavedOpportunity) => ({
+    title:o.title, agency:o.agency, deadline:o.deadline??'',
+    value: o.value ? `$${(o.value/1_000_000).toFixed(1)}M` : 'TBD',
+  }))
+  return { ...b, dataSource:'public', loading:false, error:null, lastRefreshed: new Date() }
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
-function clsx(...c: Array<string | boolean | null | undefined>) {
-  return c.filter(Boolean).join(' ')
+
+function fmtRel(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const m = Math.floor(diff/60000)
+  if (m < 2) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m/60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h/24)
+  return d === 1 ? 'Yesterday' : `${d} days ago`
 }
 
-function getWelcomeName(session: any): string {
-  const fullName = session?.user?.name?.trim?.() || ''
-  if (fullName) return fullName.split(' ')[0]
-
-  const email = session?.user?.email || ''
-  if (typeof email === 'string' && email.includes('@')) {
-    return email.split('@')[0]
-  }
-
-  return 'there'
+function fmtCur(v?: number) {
+  if (!v) return 'TBD'
+  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',notation:'compact',maximumFractionDigits:1}).format(v)
 }
 
-function formatDaysUntil(dateStr?: string): string {
-  if (!dateStr) return ''
-  const deadline = new Date(dateStr)
-  if (Number.isNaN(deadline.getTime())) return ''
-  const diffDays = Math.ceil((deadline.getTime() - Date.now()) / 86400000)
-  if (diffDays < 0) return 'Expired'
-  if (diffDays === 0) return '0 days'
-  if (diffDays === 1) return '1 day'
-  return `${diffDays} days`
+function firstName(session: any): string {
+  const n = session?.user?.name?.trim?.() || ''
+  if (n) return n.split(' ')[0]
+  const e = session?.user?.email || ''
+  return e.includes('@') ? e.split('@')[0] : 'there'
 }
 
-function computeOpportunityMatchScore(
-  opportunity: any,
-  searches: ActiveSearch[] = [],
-  goals: string[] = [],
-): number | null {
-  if (!opportunity || (searches.length === 0 && goals.length === 0)) {
-    return null
-  }
+function qs(p: Record<string,string|number|undefined|null>): string {
+  const sp = new URLSearchParams()
+  Object.entries(p).forEach(([k,v]) => { if(v!=null && v!=='') sp.set(k,String(v)) })
+  const q = sp.toString(); return q ? `?${q}` : ''
+}
 
+function matchScore(opp: any, searches: ActiveSearch[], goals: string[], prefs?: UserPreferences): number|null {
   let score = 40
-  const normalizedTitle = String(opportunity.title || opportunity.name || '').toLowerCase()
-  const normalizedDescription = String(opportunity.description || '').toLowerCase()
-  const combinedText = `${normalizedTitle} ${normalizedDescription}`.trim()
+  const text = `${opp?.title||''} ${opp?.description||''}`.toLowerCase()
+  const kws = new Set(searches.flatMap(s => s.query.toLowerCase().split(/\s+/).filter(Boolean)))
+  kws.forEach(kw => { if(text.includes(kw)) score += 4 })
+  const naics = String(opp?.naics||opp?.naics_code||'').trim()
+  if (naics && searches.some(s => s.filters?.naics===naics)) score += 20
+  if (prefs?.naicsCodes?.includes(naics)) score += 10
+  const sa = String(opp?.setAside||opp?.set_aside||'').toUpperCase()
+  if (sa && prefs?.setAsides?.includes(sa)) score += 12
+  if (sa && searches.some(s => s.filters?.setaside && sa.includes(s.filters.setaside))) score += 8
+  const agency = String(opp?.agency||'').toLowerCase()
+  if (prefs?.agencies?.some(a => agency.includes(a.toLowerCase().split(' ')[0]))) score += 6
+  if (searches.some(s => s.filters?.agency && agency.includes(s.filters.agency.toLowerCase()))) score += 5
+  const val = Number(opp?.value||0)
+  if (prefs?.contractSizeMin && val>=prefs.contractSizeMin) score += 4
+  if (prefs?.contractSizeMax && val<=prefs.contractSizeMax) score += 4
+  return Math.min(100,Math.max(35,Math.round(score)))
+}
 
-  const keywordSet = new Set(
-    searches
-      .map((s) => s.query)
-      .filter(Boolean)
-      .flatMap((q) => q.toLowerCase().split(/\s+/).filter(Boolean)),
+// ─── Score pill ───────────────────────────────────────────────────────────────
+
+function Score({ v }: { v: number }) {
+  const cls = v >= 85
+    ? 'bg-emerald-100 text-emerald-700 border border-emerald-400 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-600'
+    : v >= 70
+    ? 'bg-sky-100 text-sky-700 border border-sky-400 dark:bg-sky-900/40 dark:text-sky-300 dark:border-sky-600'
+    : 'bg-slate-100 text-slate-500 border border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-600'
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-base font-bold ${cls}`}>
+      {v}%
+    </span>
   )
+}
 
-  keywordSet.forEach((keyword) => {
-    if (combinedText.includes(keyword)) {
-      score += 4
-    }
+// ─── Onboarding Survey ────────────────────────────────────────────────────────
+
+function Survey({ name, onComplete, onDismiss }: {
+  name: string; onComplete: (p: UserPreferences) => void; onDismiss: (dontShowAgain?: boolean) => void
+}) {
+  const [step, setStep] = useState(0)
+  const [hideFuture, setHideFuture] = useState(false)
+  const [prefs, setPrefs] = useState<Partial<UserPreferences>>({
+    setAsides:[], naicsCodes:[], agencies:[], keywords:[], states:[], businessType:'SDVOSB'
   })
-
-  const naics = String(opportunity.naics || opportunity.naics_code || opportunity.naicsCode || '').trim()
-  if (naics && searches.some((s) => s.filters?.naics && s.filters.naics === naics)) {
-    score += 20
-  }
-
-  const setAside = String(opportunity.setAside || opportunity.set_aside || opportunity.setAsideType || '').toLowerCase()
-  if (setAside && searches.some((s) => s.filters?.setaside && setAside.includes(s.filters.setaside.toLowerCase()))) {
-    score += 10
-  }
-
-  if (goals.length) {
-    const goalsText = goals.join(' ').toLowerCase()
-    if (naics && goalsText.includes(naics.toLowerCase())) score += 8
-    if (setAside && goalsText.includes(setAside)) score += 4
-    if (combinedText && goals.some((goal) => goal.length > 3 && combinedText.includes(goal.toLowerCase()))) {
-      score += 4
+  const TOTAL = 5
+  function tog<T>(arr: T[], v: T): T[] { return arr.includes(v) ? arr.filter(x=>x!==v) : [...arr,v] }
+  function done() {
+    const p: UserPreferences = {
+      setAsides:prefs.setAsides||[], naicsCodes:prefs.naicsCodes||[],
+      agencies:prefs.agencies||[], keywords:prefs.keywords||[], states:prefs.states||[],
+      contractSizeMin:prefs.contractSizeMin, contractSizeMax:prefs.contractSizeMax,
+      businessType:prefs.businessType||'SDVOSB', completedOnboarding:true,
     }
+    fetch('/api/account/preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(()=>{})
+    onComplete(p)
   }
 
-  const agency = String(opportunity.agency || opportunity.department || opportunity.organization_name || '').toLowerCase()
-  if (agency && searches.some((s) => s.filters?.agency && agency.includes(s.filters.agency.toLowerCase()))) {
-    score += 6
-  }
+  const steps = [
+    // Step 0: Welcome
+    <div key="w" className="text-center py-4">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-100 to-emerald-100 border border-sky-200 flex items-center justify-center mx-auto mb-5 shadow-lg">
+        <Building2 className="w-7 h-7 text-sky-500" />
+      </div>
+      <h2 className="text-3xl font-black mb-3 bg-gradient-to-r from-orange-500 via-sky-500 to-emerald-500 bg-clip-text text-transparent">
+        Welcome, {name}
+      </h2>
+      <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed max-w-sm mx-auto">
+        60-second setup to personalize your intelligence feed — certifications, NAICS codes, and target agencies.
+      </p>
+      <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto mt-5">
+        {([['Set-Asides', Shield, 'text-emerald-600'], ['NAICS', Target, 'text-sky-600'], ['Agencies', Building2, 'text-violet-600']] as const).map(([l, Icon, c]) => (
+          <div key={l} className="rounded-xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 p-3 text-center shadow">
+            <Icon className={`w-4 h-4 ${c} mx-auto mb-1`} />
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{l}</p>
+          </div>
+        ))}
+      </div>
+    </div>,
 
-  const value = Number(opportunity.value || opportunity.estimated_value || opportunity.awardValue || 0)
-  if (value > 5_000_000) score += 5
-  else if (value > 1_000_000) score += 3
+    // Step 1: Set-Asides
+    <div key="sa" className="flex flex-col gap-3">
+      <div>
+        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Small Business Certifications</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-sm">Select all that apply — filters exclusive set-aside opportunities.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {SET_ASIDE_OPTIONS.map(o => {
+          const sel = prefs.setAsides?.includes(o.value)
+          return (
+            <button key={o.value} type="button"
+              onClick={() => setPrefs(p=>({...p,setAsides:tog(p.setAsides||[],o.value)}))}
+              className={`flex items-center gap-2 w-full text-left rounded-xl border p-3 transition-all text-sm cursor-pointer ${sel ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/30 dark:border-sky-500' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+              {sel
+                ? <CheckSquare className="w-4 h-4 text-sky-500 shrink-0" />
+                : <Square className="w-4 h-4 text-slate-400 shrink-0" />}
+              <div>
+                <p className={`font-bold text-sm ${sel ? 'text-sky-600 dark:text-sky-400' : 'text-slate-900 dark:text-white'}`}>{o.label}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{o.desc}</p>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>,
 
-  return Math.min(100, Math.max(35, Math.round(score)))
+    // Step 2: NAICS
+    <div key="n" className="flex flex-col gap-3">
+      <div>
+        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">NAICS Codes</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-sm">Select codes matching your core capabilities.</p>
+      </div>
+      <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+        {NAICS_OPTIONS.map(o => {
+          const sel = prefs.naicsCodes?.includes(o.value)
+          return (
+            <button key={o.value} type="button"
+              onClick={() => setPrefs(p=>({...p,naicsCodes:tog(p.naicsCodes||[],o.value)}))}
+              className={`flex items-center gap-2 w-full text-left rounded-xl border p-3 transition-all text-sm cursor-pointer ${sel ? 'border-violet-400 bg-violet-50 dark:bg-violet-900/30 dark:border-violet-500' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300'}`}>
+              {sel
+                ? <CheckSquare className="w-4 h-4 text-violet-500 shrink-0" />
+                : <Square className="w-4 h-4 text-slate-400 shrink-0" />}
+              <span className="font-mono text-sm text-slate-700 dark:text-slate-300">{o.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>,
+
+    // Step 3: Agencies
+    <div key="ag" className="flex flex-col gap-3">
+      <div>
+        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Target Agencies</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-sm">Select up to 5 to prioritize in your pipeline.</p>
+      </div>
+      <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+        {AGENCY_OPTIONS.map(ag => {
+          const sel = prefs.agencies?.includes(ag)
+          const maxed = !sel && (prefs.agencies||[]).length >= 5
+          return (
+            <button key={ag} type="button"
+              onClick={() => !maxed && setPrefs(p=>({...p,agencies:tog(p.agencies||[],ag)}))}
+              className={`flex items-center gap-2 w-full text-left rounded-xl border p-3 transition-all text-sm ${maxed ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${sel ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 dark:border-emerald-500' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300'}`}>
+              {sel
+                ? <CheckSquare className="w-4 h-4 text-emerald-500 shrink-0" />
+                : <Square className="w-4 h-4 text-slate-400 shrink-0" />}
+              <span className="text-sm text-slate-700 dark:text-slate-300">{ag}</span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-slate-400">{(prefs.agencies||[]).length}/5 selected</p>
+    </div>,
+
+    // Step 4: Size & State
+    <div key="sz" className="flex flex-col gap-4">
+      <div>
+        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Contract Size & Location</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-sm">Match your capacity and place of performance.</p>
+      </div>
+      <div>
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Contract Size</p>
+        <div className="grid grid-cols-2 gap-2">
+          {CONTRACT_SIZE_OPTIONS.map(o => {
+            const sel = prefs.contractSizeMin === o.min
+            return (
+              <button key={o.label} type="button"
+                onClick={() => setPrefs(p=>({...p,contractSizeMin:o.min,contractSizeMax:o.max}))}
+                className={`text-left rounded-xl border p-2.5 text-sm font-semibold transition-all cursor-pointer ${sel ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'}`}>
+                {o.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div>
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Place of Performance</p>
+        <div className="flex flex-wrap gap-1.5">
+          {STATE_OPTIONS.map(s => {
+            const sel = prefs.states?.includes(s)
+            return (
+              <button key={s} type="button"
+                onClick={() => setPrefs(p=>({...p,states:tog(p.states||[],s)}))}
+                className={`rounded-lg border px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${sel ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}>
+                {s}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>,
+  ]
+
+  return (
+    <div onClick={() => onDismiss(hideFuture)}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      <div onClick={e => e.stopPropagation()}
+        className="relative w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
+        {/* Progress bar */}
+        <div className="h-1 bg-slate-100 dark:bg-slate-800 absolute top-0 left-0 right-0">
+          <div className="h-full bg-sky-500 transition-all duration-300" style={{width:`${(step/(TOTAL-1))*100}%`}} />
+        </div>
+        <button onClick={() => onDismiss(hideFuture)}
+          className="absolute right-3 top-3 z-10 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold cursor-pointer">
+          <X className="w-3 h-3" />Close
+        </button>
+
+        <div className="p-6 pt-8">
+          {/* Step dots */}
+          <div className="flex items-center gap-1.5 mb-5">
+            {Array.from({length:TOTAL}).map((_,i) => (
+              <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-sky-500 flex-[2]' : 'bg-slate-200 dark:bg-slate-700 flex-1'}`} />
+            ))}
+            <span className="text-xs text-slate-400 font-bold ml-1 shrink-0">{step+1}/{TOTAL}</span>
+          </div>
+
+          <div className="min-h-[280px]">{steps[step]}</div>
+
+          <label className="inline-flex items-center gap-2 mt-4 cursor-pointer text-slate-500 dark:text-slate-400 text-xs font-medium">
+            <input type="checkbox" checked={hideFuture} onChange={e => setHideFuture(e.target.checked)} className="w-3.5 h-3.5 cursor-pointer" />
+            Don&apos;t show this setup modal again if I close it
+          </label>
+
+          <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-200 dark:border-slate-700">
+            {step === 0
+              ? <button onClick={() => onDismiss(hideFuture)} className="px-4 py-2 rounded-lg bg-transparent border border-slate-200 dark:border-slate-700 text-slate-500 text-sm font-bold cursor-pointer">Skip</button>
+              : <button onClick={() => setStep(s => Math.max(0,s-1))} className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold cursor-pointer">← Back</button>
+            }
+            {step < TOTAL - 1
+              ? <button onClick={() => setStep(s => s+1)} className="px-5 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-sm font-black cursor-pointer border-none transition-colors">
+                  {step === 0 ? 'Get Started' : 'Continue'} →
+                </button>
+              : <button onClick={done} className="flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-black cursor-pointer border-none transition-colors">
+                  Launch My Dashboard
+                </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-function buildQueryString(params: Record<string, string | number | undefined | null>): string {
-  const searchParams = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      searchParams.set(key, String(value))
-    }
-  })
-  const query = searchParams.toString()
-  return query ? `?${query}` : ''
-}
-
-const notifIconMap: Record<NotificationIcon, LucideIcon> = {
-  deadline: AlertTriangle,
-  match: Target,
-  alert: Bell,
-  ai: Sparkles,
-}
-
-const notifColorMap: Record<NotificationIcon, string> = {
-  deadline: 'text-orange-300',
-  match: 'text-emerald-300',
-  alert: 'text-rose-300',
-  ai: 'text-purple-300',
-}
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { data: session } = useSession();
-  const welcomeName = useMemo(() => getWelcomeName(session), [session]);
+  const router = useRouter()
+  const { data: session } = useSession()
+  const name = useMemo(() => firstName(session), [session])
+  const [mounted, setMounted] = useState(false)
 
-  const [drawer, setDrawer] = useState<DrawerKey>(null);
+  const [drawer, setDrawer] = useState<DrawerKey>(null)
+  const [showSurvey, setShowSurvey] = useState(false)
+  const [userPrefs, setUserPrefs] = useState<UserPreferences|null>(null)
 
-  // -- Real data state ----------------------------------------------------------
-  const [dashData, setDashData] = useState<DashboardData>({
-    activeSearchesCount: 0,
-    savedOppCount: 0,
-    avgMatchScore: null,
-    thisWeekCount: 0,
-    activeSearches: [],
-    savedOpportunities: [],
-    recentOpportunities: [],
-    notifications: [],
-    upcomingDeadlines: [],
-    userGoals: [],
-    loading: true,
-    error: null,
-  });
+  const [dash, setDash] = useState<DashboardData>({
+    activeSearchesCount:0, savedOppCount:0, avgMatchScore:null, thisWeekCount:0,
+    totalActiveOpportunities:0, activeSearches:[], savedOpportunities:[],
+    recentOpportunities:[], notifications:[], upcomingDeadlines:[], userGoals:[],
+    loading:true, error:null, dataSource:'loading',
+  })
 
-  // -- AI analysis state --------------------------------------------------------
-  const [claudeAnalysis, setClaudeAnalysis] = useState<{
-    summary: string;
-    topOpportunities: Array<{ title: string; reason: string; urgency: 'high' | 'medium' | 'low' }>;
-    recommendations: string[];
-  } | null>(null);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<{summary:string;topOpps:Array<{title:string;reason:string;urgency:'high'|'medium'|'low'}>;recs:string[]}|null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [goalInput, setGoalInput] = useState('')
+  const [goalSaving, setGoalSaving] = useState(false)
+  const [toast, setToast] = useState<{type:'success'|'error';msg:string}|null>(null)
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [hoveredTrend, setHoveredTrend] = useState<TrendData | null>(null)
 
-  // -- Goal setup state ---------------------------------------------------------
-  const [goalInput, setGoalInput] = useState('');
-  const [goalSaving, setGoalSaving] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  // -- Fetch all real data on mount ---------------------------------------------
-  useEffect(() => {
-    if (USE_MOCK_DASHBOARD) {
-      const pushMockSnapshot = () => {
-        const mockData = generateLiveMockDashboardData()
-        setDashData(mockData)
-        if (mockData.userGoals.length) {
-          setGoalInput((prev) => (prev.trim().length ? prev : mockData.userGoals.join('\n')))
-        }
-        setClaudeAnalysis(buildMockAnalysis(mockData))
-        setAnalysisLoading(false)
-      }
-
-      pushMockSnapshot()
-      const interval = setInterval(pushMockSnapshot, MOCK_REFRESH_INTERVAL_MS)
-      return () => clearInterval(interval)
-    }
-
-    if (!session?.user?.email) return
-
-    async function loadDashboard() {
-      try {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 86400000)
-          .toISOString().split('T')[0].replace(/-/g, '/')
-
-        const [searchesRes, savedOppsRes, weeklyRes, profileRes] =
-          await Promise.allSettled([
-            fetch('/api/saved-searches').then(r => r.ok ? r.json() : { searches: [] }),
-            fetch('/api/saved-opportunities').then(r => r.ok ? r.json() : { savedOpportunities: [] }),
-            fetch(`/api/sam/opportunities?limit=5&postedFrom=${sevenDaysAgo}`).then(r => r.ok ? r.json() : { ok: false, totalRecords: 0, opportunities: [] }),
-            fetch('/api/account/profile').then(r => r.ok ? r.json() : { goals: [] }),
-          ]);
-
-        const searches: ActiveSearch[] =
-          searchesRes.status === 'fulfilled'
-            ? (searchesRes.value?.searches ?? []).map((s: any) => ({
-                id: s.id,
-                name: s.name,
-                query: s.keywords || s.query || '',
-                filters: {
-                  naics: s.naics || s.naicsCode || '',
-                  state: s.stateOfPerformance || s.state || '',
-                  setaside: s.setAside || '',
-                  agency: s.agency || '',
-                  type: s.procurementType || '',
-                },
-                resultsCount: s._count?.search_runs ?? s.resultsCount ?? undefined,
-                newCount: s.newResults ?? s.newCount ?? 0,
-              }))
-            : [];
-
-        const savedOpps: SavedOpportunity[] =
-          savedOppsRes.status === 'fulfilled'
-            ? (savedOppsRes.value?.savedOpportunities ?? []).map((o: any) => ({
-                noticeId: o.notice_id || o.noticeId || o.id,
-                title: o.title || 'Untitled',
-                agency: o.organization_name || o.department || o.agency || '',
-                value: o.awardValue || o.value || undefined,
-                posted: (o.posted_date || o.postedDate) ? formatRelativeDate(o.posted_date || o.postedDate) : undefined,
-                deadline: (o.response_deadline || o.responseDeadLine) ? formatDaysUntil(o.response_deadline || o.responseDeadLine) : undefined,
-                naics: o.naics_code || o.naicsCode || o.naics || undefined,
-              }))
-            : [];
-
-        const weeklyData =
-          weeklyRes.status === 'fulfilled' ? weeklyRes.value : { totalRecords: 0, opportunities: [] };
-
-        const profile =
-          profileRes.status === 'fulfilled' ? profileRes.value : { goals: [] };
-
-        const goals: string[] = profile?.goals ?? [];
-
-        // -- Compute match scores against real saved-search profile --
-        const scoredSavedOpps = savedOpps.map(o => ({
-          ...o,
-          match: computeOpportunityMatchScore(o, searches, goals),
-        }));
-
-        const recentOpps: SavedOpportunity[] =
-          (weeklyData.opportunities ?? []).slice(0, 3).map((o: any) => ({
-            noticeId: o.noticeId || o.id,
-            title: o.title || 'Untitled',
-            agency: o.department || o.agency || '',
-            value: o.awardValue || o.value || undefined,
-            posted: o.postedDate ? formatRelativeDate(o.postedDate) : undefined,
-            deadline: (o.responseDeadline || o.responseDeadLine) ? formatDaysUntil(o.responseDeadline || o.responseDeadLine) : undefined,
-            naics: o.naics || o.naicsCode || undefined,
-            match: computeOpportunityMatchScore(o, searches, goals),
-          }));
-
-        // Generate notifications from real data: upcoming deadlines + recent saves
-        const notifs: DashboardNotification[] = [
-          ...scoredSavedOpps
-            .filter(o => o.deadline && parseInt(o.deadline) <= 7 && !o.deadline.includes('Expired'))
-            .slice(0, 2)
-            .map(o => ({
-              type: 'deadline' as const,
-              title: `Deadline in ${o.deadline}: ${o.title}`,
-              time: o.agency,
-              iconType: 'deadline' as const,
-            })),
-          ...scoredSavedOpps.slice(0, 2).map(o => ({
-            type: 'match' as const,
-            title: `Saved: ${o.title}`,
-            time: o.posted ? `Posted ${o.posted}` : '',
-            iconType: 'match' as const,
-          })),
-        ].slice(0, 5);
-
-        // -- Avg match across all scored items --
-        const allScored = [...scoredSavedOpps, ...recentOpps].filter(o => o.match);
-        const avgMatch =
-          allScored.length > 0
-            ? Math.round(allScored.reduce((sum, o) => sum + (o.match ?? 0), 0) / allScored.length)
-            : null;
-
-        // -- Upcoming deadlines sorted by urgency --
-        const deadlines = scoredSavedOpps
-          .filter(o => o.deadline && !o.deadline.includes('Expired'))
-          .sort((a, b) => parseInt(a.deadline ?? '999') - parseInt(b.deadline ?? '999'))
-          .slice(0, 3)
-          .map(o => ({ title: o.title, agency: o.agency, deadline: o.deadline ?? '', value: o.value ?? '' }));
-
-        if (goals.length) setGoalInput(goals.join('\n'));
-
-        setDashData({
-          activeSearchesCount: searches.length,
-          savedOppCount: scoredSavedOpps.length,
-          avgMatchScore: avgMatch,
-          thisWeekCount: weeklyData.totalRecords ?? weeklyData.opportunities?.length ?? 0,
-          activeSearches: searches,
-          savedOpportunities: scoredSavedOpps,
-          recentOpportunities: recentOpps,
-          notifications: notifs,
-          upcomingDeadlines: deadlines,
-          userGoals: goals,
-          loading: false,
-          error: null,
-        });
-      } catch (err) {
-        console.error('Dashboard load error:', err);
-        setDashData(prev => ({ ...prev, loading: false, error: 'Failed to load dashboard data' }));
-        setToast({ type: 'error', message: 'Failed to load dashboard data' });
-      }
-    }
-
-    loadDashboard()
-  }, [session?.user?.email])
-
-  // -- Save user goals ----------------------------------------------------------
-  const saveGoals = useCallback(async () => {
-    const goals = goalInput.split('\n').map((g: string) => g.trim()).filter(Boolean);
-    setGoalSaving(true);
-    try {
-      if (!USE_MOCK_DASHBOARD) {
-        await fetch('/api/account/profile', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ goals }),
-        })
-      }
-      setDashData(prev => {
-        const rescored = {
-          ...prev,
-          userGoals: goals,
-          savedOpportunities: prev.savedOpportunities.map(o => ({
-            ...o, match: computeOpportunityMatchScore(o, prev.activeSearches, goals),
-          })),
-          recentOpportunities: prev.recentOpportunities.map(o => ({
-            ...o, match: computeOpportunityMatchScore(o, prev.activeSearches, goals),
-          })),
-        };
-        const allScored = [...rescored.savedOpportunities, ...rescored.recentOpportunities].filter(o => o.match);
-        return {
-          ...rescored,
-          avgMatchScore: allScored.length
-            ? Math.round(allScored.reduce((s, o) => s + (o.match ?? 0), 0) / allScored.length)
-            : null,
-        };
-      });
-      closeDrawer();
-    } catch (err) {
-      console.error('Failed to save goals:', err);
-    } finally {
-      setGoalSaving(false);
-    }
-  }, [goalInput]);
-
-  // -- Claude AI analysis -------------------------------------------------------
-  const analyzeWithClaude = useCallback(async () => {
-    if (USE_MOCK_DASHBOARD) {
-      setClaudeAnalysis(buildMockAnalysis(dashData))
-      setAnalysisLoading(false)
-      return
-    }
-    if (analysisLoading) return;
-    setAnalysisLoading(true);
-    setClaudeAnalysis(null);
-    try {
-      const response = await fetch('/api/anthropic/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 800,
-          system: `You are a federal contracting advisor. Analyze user dashboard data and return ONLY valid JSON. No markdown.${dashData.userGoals.length ? ` User goals: ${dashData.userGoals.join('; ')}` : ''}`,
-          messages: [{
-            role: 'user',
-            content: `Data: ${JSON.stringify({
-              searches: dashData.activeSearches.slice(0, 8).map(s => ({ name: s.name, query: s.query, naics: s.filters?.naics, newCount: s.newCount })),
-              recentOpps: dashData.recentOpportunities.map(o => ({ title: o.title, agency: o.agency, naics: o.naics, match: o.match, deadline: o.deadline })),
-              stats: { savedCount: dashData.savedOppCount, weeklyNew: dashData.thisWeekCount, avgMatch: dashData.avgMatchScore },
-              goals: dashData.userGoals,
-            })}
-
-Return: {"summary":"2 sentence insight","topOpportunities":[{"title":"...","reason":"...","urgency":"high|medium|low"}],"recommendations":["action1","action2","action3"]}`,
-          }],
-        }),
-      });
-      if (!response.ok) throw new Error('API error');
-      const data = await response.json();
-      const text = data.content?.[0]?.text || '';
-      setClaudeAnalysis(JSON.parse(text.replace(/```json|```/g, '').trim()));
-    } catch {
-      // Local fallback
-      setClaudeAnalysis({
-        summary: `You have ${dashData.savedOppCount} saved opportunities and ${dashData.thisWeekCount} new postings this week.${dashData.avgMatchScore ? ` Your avg match score is ${dashData.avgMatchScore}%.` : ' Set your goals to activate match scoring.'}`,
-        topOpportunities: dashData.recentOpportunities.slice(0, 3).map(o => ({
-          title: o.title,
-          reason: `${o.match ?? '--'}% match with your search profile`,
-          urgency: (parseInt(o.deadline ?? '99') <= 7 ? 'high' : parseInt(o.deadline ?? '99') <= 14 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
-        })),
-        recommendations: [
-          'Review opportunities closing within 7 days first',
-          dashData.userGoals.length === 0 ? 'Set your business goals to improve match scoring' : 'Refine saved searches based on recent wins',
-          `Run a new search for ${dashData.activeSearches[0]?.query || 'your top keywords'} this week`,
-        ],
-      });
-    } finally {
-      setAnalysisLoading(false);
-    }
-  }, [dashData, analysisLoading]);
-
-  // -- Navigation helpers -------------------------------------------------------
-  const closeDrawer = () => setDrawer(null);
-
-  const openActiveSearches = useCallback(() => {
-    if (dashData.activeSearchesCount === 0) {
-      router.push('/search')
-      return
-    }
-    setDrawer('activeSearches')
-  }, [dashData.activeSearchesCount, router])
-
-  const openSavedOpportunities = useCallback(() => {
-    if (dashData.savedOppCount === 0) {
-      router.push('/opportunities')
-      return
-    }
-    setDrawer('savedOpps')
-  }, [dashData.savedOppCount, router])
-
-  const openLatestMatches = useCallback(() => {
-    if (dashData.recentOpportunities.length === 0) {
-      router.push('/search')
-      return
-    }
-    setDrawer('recentMatches')
-  }, [dashData.recentOpportunities.length, router])
-
-  const openDeadlineView = useCallback(() => {
-    if (dashData.upcomingDeadlines.length === 0) {
-      router.push('/opportunities')
-      return
-    }
-    setDrawer('deadlines')
-  }, [dashData.upcomingDeadlines.length, router])
-
-  const goToSearch = useCallback((search: ActiveSearch) => {
-    const query = buildQueryString({
-      keywords: search.query,
-      naics: search.filters?.naics,
-      state: search.filters?.state,
-      setAside: search.filters?.setaside,
-      agency: search.filters?.agency,
-      type: search.filters?.type,
-      searchId: search.id,
-    })
-    router.push(`/search${query}`)
-    setDrawer(null)
-  }, [router])
-
-  const goToSavedOpp = useCallback((opp: SavedOpportunity) => {
-    const query = buildQueryString({ noticeId: opp.noticeId })
-    router.push(`/opportunities${query}`)
-    setDrawer(null)
-  }, [router])
-
-function formatCurrency(v?: number) {
-  if (!v) return 'TBD'
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 0 }).format(v)
-}
-
-function getMatchScoreColor(score: number) {
-  if (score >= 85) return 'from-emerald-500 to-teal-500'
-  if (score >= 70) return 'from-blue-500 to-cyan-500'
-  if (score >= 50) return 'from-amber-500 to-orange-500'
-  return 'from-slate-400 to-slate-500'
-}
-
-  // -- Stat cards ---------------------------------------------------------------
-  const summaryCards = useMemo((): Array<{ label: string; value: string | number; icon: LucideIcon; color: string; subtext: string; onClick?: () => void }> => [
-    {
-      label: 'Active Searches',
-      value: dashData.activeSearchesCount,
-      icon: Search,
-      color: 'from-sky-100 to-blue-100',
-      subtext: 'Configured alerts',
-      onClick: openActiveSearches,
-    },
-    {
-      label: 'Saved Opportunities',
-      value: dashData.savedOppCount,
-      icon: Target,
-      color: 'from-rose-100 to-orange-100',
-      subtext: 'Watchlist items',
-      onClick: openSavedOpportunities,
-    },
-    {
-      label: 'New This Week',
-      value: dashData.thisWeekCount,
-      icon: Zap,
-      color: 'from-emerald-100 to-lime-100',
-      subtext: 'Matches detected',
-      onClick: openLatestMatches,
-    },
-    {
-      label: 'Avg Match Score',
-      value: dashData.avgMatchScore !== null ? `${dashData.avgMatchScore}%` : 'Set goals',
-      icon: Target,
-      color: 'from-violet-100 to-indigo-100',
-      subtext: dashData.avgMatchScore !== null ? 'Based on profile' : 'Click to personalize',
-      onClick: () => setDrawer(dashData.avgMatchScore === null ? 'goalSetup' : 'matchInfo'),
-    },
-    {
-      label: 'Notifications',
-      value: dashData.notifications.length,
-      icon: Bell,
-      color: 'from-amber-100 to-orange-100',
-      subtext: 'Latest signals',
-      onClick: () => setDrawer('notifications'),
-    },
-    {
-      label: 'Upcoming Deadlines',
-      value: dashData.upcomingDeadlines.length,
-      icon: Calendar,
-      color: 'from-cyan-100 to-sky-100',
-      subtext: 'Next 7 days',
-      onClick: openDeadlineView,
-    },
-  ], [
-    dashData.activeSearchesCount,
-    dashData.savedOppCount,
-    dashData.thisWeekCount,
-    dashData.avgMatchScore,
-    dashData.notifications.length,
-    dashData.upcomingDeadlines.length,
-    openActiveSearches,
-    openSavedOpportunities,
-    openLatestMatches,
-    openDeadlineView,
-  ])
-
-  const heroHighlights = useMemo(
-    () => [
-      { label: 'Live matches streaming', value: dashData.thisWeekCount, accent: 'from-emerald-400 via-emerald-500 to-teal-400', icon: Sparkles },
-      { label: 'Average fit score', value: dashData.avgMatchScore !== null ? `${dashData.avgMatchScore}%` : 'Set goals', accent: 'from-cyan-400 via-blue-500 to-indigo-500', icon: Target },
-      { label: 'Saved watchlist', value: dashData.savedOppCount, accent: 'from-amber-400 via-orange-500 to-rose-500', icon: Award },
-    ] satisfies Array<{ label: string; value: string | number; accent: string; icon: LucideIcon }>,
-    [dashData.thisWeekCount, dashData.avgMatchScore, dashData.savedOppCount]
+  const surveyDismissKey = useMemo(
+    () => `pgc-survey-dismissed:${session?.user?.email?.toLowerCase() ?? 'anon'}`,
+    [session?.user?.email]
   )
 
-  const [activityLog, setActivityLog] = useState<ActivityLog[]>([
-    { id: '1', type: 'search', title: 'Searched: "Cloud Services"', timestamp: new Date(Date.now() - 3600000).toISOString(), icon: 'Search' },
-    { id: '2', type: 'alert', title: 'Alert triggered: 3 new matches', timestamp: new Date(Date.now() - 7200000).toISOString(), icon: 'Bell' },
-    { id: '3', type: 'ai', title: 'AI summary generated for 2 opportunities', timestamp: new Date(Date.now() - 14400000).toISOString(), icon: 'Brain' },
-    { id: '4', type: 'share', title: 'Shared search with team', timestamp: new Date(Date.now() - 86400000).toISOString(), icon: 'Share2' },
+  const shouldSuppressSurvey = useCallback(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(surveyDismissKey) === '1'
+  }, [surveyDismissKey])
+
+  const dismissSurvey = useCallback((dontShowAgain?: boolean) => {
+    if (typeof window !== 'undefined' && dontShowAgain) {
+      window.localStorage.setItem(surveyDismissKey, '1')
+    }
+    setShowSurvey(false)
+  }, [surveyDismissKey])
+
+  useEffect(() => { setMounted(true) }, [])
+
+  const [activityLog] = useState<ActivityLog[]>([
+    {id:'1',type:'search',title:'Searched: "Zero Trust Modernization"',timestamp:new Date(Date.now()-3600000).toISOString()},
+    {id:'2',type:'alert',title:'Alert: 5 new SDVOSB matches',timestamp:new Date(Date.now()-7200000).toISOString()},
+    {id:'3',type:'ai',title:'AI summary generated for 3 opportunities',timestamp:new Date(Date.now()-14400000).toISOString()},
+    {id:'4',type:'save',title:'Saved: VA Analytics Modernization',timestamp:new Date(Date.now()-86400000).toISOString()},
   ])
 
-  const [trendData] = useState<TrendData[]>([
-    { month: 'Jan', opportunities: 240, matches: 45 },
-    { month: 'Feb', opportunities: 310, matches: 68 },
-    { month: 'Mar', opportunities: 280, matches: 52 },
-    { month: 'Apr', opportunities: 390, matches: 87 },
-    { month: 'May', opportunities: 450, matches: 123 },
-    { month: 'Jun', opportunities: 520, matches: 156 },
+  const [trend] = useState<TrendData[]>([
+    {month:'Oct',opportunities:240,matches:45},{month:'Nov',opportunities:310,matches:68},
+    {month:'Dec',opportunities:280,matches:52},{month:'Jan',opportunities:390,matches:87},
+    {month:'Feb',opportunities:450,matches:123},{month:'Mar',opportunities:520,matches:156},
   ])
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [showAiPanel, setShowAiPanel] = useState(false)
-  const [selectedOpp, setSelectedOpp] = useState<OpportunityCard | null>(null)
+  useEffect(() => {
+    if (!session?.user?.email) return
+    fetch('/api/account/preferences').then(r=>r.ok?r.json():null)
+      .then(d => {
+        if (d?.completedOnboarding) { setUserPrefs(d); return }
+        if (!shouldSuppressSurvey()) setShowSurvey(true)
+      })
+      .catch(() => { if (!shouldSuppressSurvey()) setShowSurvey(true) })
+  }, [session?.user?.email, shouldSuppressSurvey])
 
-  const recentAlerts: Alert[] = dashData.activeSearches.slice(0, 4).map((search) => ({
-    id: search.id,
-    name: search.name,
-    frequency: 'REAL_TIME',
-    active: true,
-    matchesCount: search.newCount ?? 0,
-    lastRun: undefined,
-  }))
+  useEffect(() => {
+    if (!session?.user?.email) {
+      const tick = () => setDash(makePublicData())
+      tick()
+      const id = setInterval(tick, MOCK_REFRESH_MS)
+      return () => clearInterval(id)
+    }
+    async function load() {
+      try {
+        const since = new Date(Date.now()-7*86400000).toISOString().split('T')[0].replace(/-/g,'/')
+        const pq = [userPrefs?.naicsCodes?.[0]?`&naics=${userPrefs.naicsCodes[0]}`:'',userPrefs?.setAsides?.[0]?`&setAside=${userPrefs.setAsides[0]}`:'',userPrefs?.states?.[0]?`&state=${userPrefs.states[0]}`:''].join('')
+        const [sR,oR,wR,pR,prR] = await Promise.allSettled([
+          fetch('/api/saved-searches').then(r=>r.ok?r.json():{searches:[]}),
+          fetch('/api/saved-opportunities').then(r=>r.ok?r.json():{savedOpportunities:[]}),
+          fetch(`/api/sam/opportunities?limit=10&postedFrom=${since}${pq}`).then(r=>r.ok?r.json():{totalRecords:0,opportunities:[]}),
+          fetch('/api/account/profile').then(r=>r.ok?r.json():{goals:[]}),
+          fetch('/api/account/preferences').then(r=>r.ok?r.json():null),
+        ])
+        const searches: ActiveSearch[] = sR.status==='fulfilled' ? (sR.value?.searches??[]).map((s:any) => ({id:s.id,name:s.name,query:s.keywords||s.query||'',filters:{naics:s.naics||'',state:s.state||'',setaside:s.setAside||'',agency:s.agency||''},resultsCount:s._count?.search_runs,newCount:s.newResults??0})) : []
+        const prefs: UserPreferences|null = prR.status==='fulfilled' ? prR.value : userPrefs
+        const goals: string[] = pR.status==='fulfilled' ? (pR.value?.goals??[]) : []
+        const weekly = wR.status==='fulfilled' ? wR.value : {totalRecords:0,opportunities:[]}
+        const savedOpps: SavedOpportunity[] = oR.status==='fulfilled' ? (oR.value?.savedOpportunities??[]).map((o:any) => ({noticeId:o.notice_id||o.noticeId||o.id,title:o.title||'Untitled',agency:o.organization_name||o.agency||'',value:o.awardValue||o.value,posted:(o.posted_date||o.postedDate)?fmtRel(o.posted_date||o.postedDate):undefined,deadline:o.response_deadline?`${Math.ceil((new Date(o.response_deadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics_code||o.naics,setAside:o.setAside||o.set_aside,match:matchScore(o,searches,[],prefs||undefined)})) : []
+        const recentOpps: SavedOpportunity[] = (weekly.opportunities??[]).slice(0,5).map((o:any) => ({noticeId:o.noticeId||o.id,title:o.title||'Untitled',agency:o.department||o.agency||'',value:o.awardValue||o.value,posted:o.postedDate?fmtRel(o.postedDate):undefined,deadline:o.responseDeadline?`${Math.ceil((new Date(o.responseDeadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics||o.naicsCode,setAside:o.setAside,match:matchScore(o,searches,goals,prefs||undefined)}))
+        const notifs: DashNotification[] = [...savedOpps.filter(o=>o.deadline&&parseInt(o.deadline)<=7&&!o.deadline.includes('Expired')).slice(0,2).map(o=>({type:'deadline' as const,title:`Deadline in ${o.deadline}: ${o.title}`,time:o.agency,iconType:'deadline' as const})),...recentOpps.filter(o=>(o.match??0)>=80).slice(0,2).map(o=>({type:'match' as const,title:`${o.match}% match: ${o.title}`,time:`Posted ${o.posted}`,iconType:'match' as const}))].slice(0,5)
+        const allScored = [...savedOpps,...recentOpps].filter(o=>o.match)
+        const avgMatch = allScored.length ? Math.round(allScored.reduce((s,o)=>s+(o.match??0),0)/allScored.length) : null
+        const deadlines = savedOpps.filter(o=>o.deadline&&!o.deadline.includes('Expired')).sort((a,b)=>parseInt(a.deadline??'999')-parseInt(b.deadline??'999')).slice(0,3).map(o=>({title:o.title,agency:o.agency,deadline:o.deadline??'',value:o.value??''}))
+        if(goals.length) setGoalInput(goals.join('\n'))
+        setDash({activeSearchesCount:searches.length,savedOppCount:savedOpps.length,avgMatchScore:avgMatch,thisWeekCount:weekly.totalRecords??weekly.opportunities?.length??0,totalActiveOpportunities:weekly.totalRecords??0,activeSearches:searches,savedOpportunities:savedOpps,recentOpportunities:recentOpps,notifications:notifs,upcomingDeadlines:deadlines,userGoals:goals,userPreferences:prefs||undefined,loading:false,error:null,dataSource:'live',lastRefreshed:new Date()})
+      } catch { setDash({...makePublicData(),error:'Using general feed — personalized data temporarily unavailable'}) }
+    }
+    load()
+    const id = setInterval(load,5*60*1000)
+    return () => clearInterval(id)
+  }, [session?.user?.email, userPrefs])
+
+  const buildAnalysis = useCallback((d: DashboardData) => {
+    const top = [...d.savedOpportunities,...d.recentOpportunities].filter(o=>typeof o.match==='number').sort((a,b)=>(b.match??0)-(a.match??0)).slice(0,3)
+    return {
+      summary:`${d.userPreferences?.setAsides?.length?`Your ${d.userPreferences.setAsides.join('/')} certification is active. `:''}Pipeline shows ${d.thisWeekCount} curated matches with ${d.avgMatchScore??'—'}% avg fit. Prioritize pursuits closing within 10 days.`,
+      topOpps:top.map(o=>({title:o.title,reason:`${o.match??'--'}% match · ${o.agency}`,urgency:(parseInt(o.deadline??'30')<=7?'high':parseInt(o.deadline??'30')<=14?'medium':'low') as 'high'|'medium'|'low'})),
+      recs:[d.upcomingDeadlines[0]?`${d.upcomingDeadlines.length} deadline${d.upcomingDeadlines.length>1?'s':''} approaching — earliest closes in ${d.upcomingDeadlines[0].deadline}`:null,d.userPreferences?.setAsides?.length?`Filter by ${d.userPreferences.setAsides[0]} to surface exclusive set-aside wins`:'Complete your profile to unlock set-aside filtering',d.userPreferences?.naicsCodes?.[0]?`NAICS ${d.userPreferences.naicsCodes[0]} is trending — run a fresh search`:'Add NAICS codes to improve match scoring'].filter(Boolean) as string[],
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!dash.loading && (dash.savedOppCount>0||dash.recentOpportunities.length>0)) setAnalysis(buildAnalysis(dash))
+  }, [dash, buildAnalysis])
+
+  const runAi = useCallback(async () => {
+    if (analysisLoading) return
+    setAnalysisLoading(true)
+    try {
+      const res = await fetch('/api/anthropic/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5-20250929',max_tokens:800,system:`Federal contracting advisor for ${userPrefs?.businessType||'SDVOSB'} business. Return ONLY valid JSON.`,messages:[{role:'user',content:`Data: ${JSON.stringify({searches:dash.activeSearches.slice(0,5),opps:dash.recentOpportunities,stats:{saved:dash.savedOppCount,weekly:dash.thisWeekCount,avgMatch:dash.avgMatchScore},prefs:{setAsides:userPrefs?.setAsides,naics:userPrefs?.naicsCodes}})}\nReturn: {"summary":"","topOpps":[{"title":"","reason":"","urgency":"high|medium|low"}],"recs":["",""]}`}]})})
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      const text = data.content?.[0]?.text||''
+      const p = JSON.parse(text.replace(/```json|```/g,'').trim())
+      setAnalysis({summary:p.summary,topOpps:p.topOpps||p.topOpportunities,recs:p.recs||p.recommendations})
+    } catch { setAnalysis(buildAnalysis(dash)) }
+    finally { setAnalysisLoading(false) }
+  }, [dash, analysisLoading, userPrefs, buildAnalysis])
+
+  const saveGoals = useCallback(async () => {
+    const goals = goalInput.split('\n').map(g=>g.trim()).filter(Boolean)
+    setGoalSaving(true)
+    try {
+      await fetch('/api/account/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({goals})})
+      setDash(prev=>({...prev,userGoals:goals}))
+      setDrawer(null)
+      setToast({type:'success',msg:'Goals saved. Match scores updated.'})
+    } catch { setToast({type:'error',msg:'Failed to save goals.'}) }
+    finally { setGoalSaving(false) }
+  }, [goalInput])
 
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(null), 3500)
+    const t = setTimeout(()=>setToast(null),3500)
     return () => clearTimeout(t)
   }, [toast])
 
-  const primarySearch = dashData.activeSearches[0]
+  const isAuth = !!session?.user?.email
+  const hour = mounted ? new Date().getHours() : 12
+  const greeting = hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'
+
+  const stats = useMemo(() => [
+    {label:'Deadlines',       value:dash.upcomingDeadlines.length, sub:'Next 14 days',    bg:'linear-gradient(135deg,#f97316,#dc2626)', onClick:()=>router.push('/opportunities?filter=deadlines')},
+    {label:'Active Searches', value:dash.activeSearchesCount,      sub:'Saved alerts',    bg:'linear-gradient(135deg,#38bdf8,#4f46e5)', onClick:()=>router.push('/alerts')},
+    {label:'Saved Opps',      value:dash.savedOppCount,            sub:'Watchlist',       bg:'linear-gradient(135deg,#fbbf24,#ea580c)', onClick:()=>router.push('/opportunities?saved=1')},
+    {label:'New This Week',   value:dash.thisWeekCount,            sub:'SAM.gov matches', bg:'linear-gradient(135deg,#34d399,#0f766e)', onClick:()=>router.push('/search')},
+    {label:'Avg Match Score', value:dash.avgMatchScore!==null?`${dash.avgMatchScore}%`:'—', sub:'Profile fit', bg:'linear-gradient(135deg,#a78bfa,#7c3aed,#c026d3)', onClick:()=>router.push('/opportunities?sort=match')},
+    {label:'Notifications',   value:dash.notifications.length,     sub:'Signals',         bg:'linear-gradient(135deg,#64748b,#1e293b)', onClick:()=>router.push('/alerts?tab=notifications')},
+  ], [dash, router])
+
+  const primarySearch = dash.activeSearches[0]
+
+  if (!mounted) {
+    return (
+      <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 px-3 sm:px-4 lg:px-6 xl:px-8 pt-4 pb-8">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+          <p className="text-slate-500 dark:text-slate-400 font-semibold">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const drawerTitles: Record<NonNullable<DrawerKey>, string> = {
+    activeSearches:'Active Searches', savedOpps:'Saved Opportunities', recentMatches:'Latest Matches',
+    deadlines:'Upcoming Deadlines', notifications:'Notifications', matchInfo:'Match Score',
+    goalSetup:'Business Goals', settings:'Settings',
+  }
+
+  const notifIconMap: Record<string, LucideIcon> = { deadline:AlertTriangle, match:Target, alert:Bell, ai:Bell }
+  const notifColorMap: Record<string, string> = { deadline:'text-amber-500', match:'text-emerald-500', alert:'text-rose-500', ai:'text-violet-500' }
 
   return (
-    <div
-      className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]"
-      style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }}
-    >
-      <div className="pointer-events-none absolute inset-0 opacity-60" style={{ background: 'radial-gradient(circle at 20% 0%, rgba(14,165,233,0.18), transparent 60%)' }} aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-0 opacity-50" style={{ background: 'radial-gradient(circle at 80% 100%, rgba(236,72,153,0.18), transparent 65%)' }} aria-hidden="true" />
-      <div className="pg-dashboard-modern relative z-10 min-h-screen">
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 text-slate-900 dark:text-slate-100">
+
+      {/* Survey */}
+      {showSurvey && (
+        <Survey name={name} onDismiss={dismissSurvey}
+          onComplete={p => {
+            if (typeof window !== 'undefined') window.localStorage.removeItem(surveyDismissKey)
+            setUserPrefs(p)
+            setShowSurvey(false)
+            setToast({type:'success',msg:`Welcome, ${name}! Your personalized feed is ready.`})
+          }} />
+      )}
+
       {/* Toast */}
       {toast && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 pointer-events-none">
-          <div className={clsx('relative w-full max-w-xl mx-4 rounded-2xl shadow-2xl border-2 p-5',
-            toast.type === 'success' && 'border-emerald-400 bg-emerald-50',
-            toast.type === 'error' && 'border-rose-400 bg-rose-50')}>
-            <div className="flex items-center gap-3 pointer-events-auto">
-              {toast.type === 'success' && <CheckCircle className="h-6 w-6 text-emerald-600 flex-shrink-0" />}
-              {toast.type === 'error' && <AlertCircle className="h-6 w-6 text-rose-600 flex-shrink-0" />}
-              <p className={clsx('flex-1 text-sm font-medium', toast.type === 'success' && 'text-emerald-800', toast.type === 'error' && 'text-rose-800')}>{toast.message}</p>
-              <button onClick={() => setToast(null)} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 pointer-events-none">
+          <div className={`flex items-center gap-3 rounded-xl border backdrop-blur-md px-4 py-3 shadow-2xl pointer-events-auto ${toast.type==='success' ? 'border-emerald-500/40 bg-emerald-950/95 text-emerald-400' : 'border-rose-500/40 bg-rose-950/95 text-rose-400'}`}>
+            {toast.type==='success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+            <p className="flex-1 text-sm font-semibold">{toast.msg}</p>
+            <button onClick={()=>setToast(null)} className="text-current opacity-60 hover:opacity-100 cursor-pointer bg-transparent border-none p-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Drawer */}
+      {drawer && (
+        <div className="fixed inset-0 z-50">
+          <div onClick={()=>setDrawer(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 shadow-2xl">
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                {drawerTitles[drawer]}
+              </h2>
+              <button onClick={()=>setDrawer(null)} className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+
+              {drawer==='activeSearches' && (
+                <>
+                  {dash.activeSearches.map(s => (
+                    <button key={s.id}
+                      onClick={()=>{router.push(`/search${qs({keywords:s.query,naics:s.filters?.naics,state:s.filters?.state,setAside:s.filters?.setaside})}`);setDrawer(null)}}
+                      className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 p-3 transition-colors cursor-pointer">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-slate-900 dark:text-white truncate mb-1">{s.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            "{s.query}"
+                            {s.filters?.naics && <span className="text-sky-500 font-mono ml-2">NAICS {s.filters.naics}</span>}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {(s.newCount??0)>0 && <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 text-xs font-bold">+{s.newCount}</span>}
+                          <span className="text-sm font-bold text-sky-500">{s.resultsCount??'—'}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  <Link href="/search" onClick={()=>setDrawer(null)} className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-black mt-1 transition-colors shadow-md shadow-orange-500/20">
+                    <Search className="w-3.5 h-3.5" />Go to Search
+                  </Link>
+                </>
+              )}
+
+              {drawer==='savedOpps' && (
+                <>
+                  {dash.savedOpportunities.map(o => (
+                    <button key={o.noticeId}
+                      onClick={()=>{router.push(`/opportunities${qs({noticeId:o.noticeId})}`);setDrawer(null)}}
+                      className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 p-3 transition-colors cursor-pointer">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm text-slate-900 dark:text-white truncate mb-1">{o.title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
+                            <span>{o.agency}</span>
+                            {o.setAside && <span className="text-emerald-600 dark:text-emerald-400">{o.setAside}</span>}
+                            {o.deadline && <span className="text-amber-600 dark:text-amber-400">Closes {o.deadline}</span>}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {typeof o.match==='number' && <Score v={o.match} />}
+                          {o.value && <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{fmtCur(o.value)}</span>}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  <button onClick={()=>{router.push('/opportunities?saved=1');setDrawer(null)}} className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer mt-1 transition-colors shadow-md shadow-emerald-600/20">
+                    View All Saved →
+                  </button>
+                </>
+              )}
+
+              {drawer==='recentMatches' && (
+                <>
+                  {dash.recentOpportunities.length===0
+                    ? <p className="text-sm text-slate-400 text-center py-8">No matches yet. Run a search to populate.</p>
+                    : dash.recentOpportunities.map(o => (
+                      <button key={o.noticeId}
+                        onClick={()=>{router.push(`/opportunities${qs({noticeId:o.noticeId})}`);setDrawer(null)}}
+                        className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 p-3 transition-colors cursor-pointer">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-slate-900 dark:text-white truncate mb-1">{o.title}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{o.agency}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {typeof o.match==='number' && <Score v={o.match} />}
+                            {o.deadline && <span className="text-xs font-bold text-amber-500">{o.deadline}</span>}
+                            {o.value && <span className="text-xs text-slate-400">{fmtCur(o.value)}</span>}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  }
+                </>
+              )}
+
+              {drawer==='deadlines' && (
+                <>
+                  {dash.upcomingDeadlines.map((dl,i) => (
+                    <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-sm text-slate-900 dark:text-white mb-1">{dl.title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><Building2 className="w-3 h-3" />{dl.agency}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-black text-amber-500 flex items-center gap-1"><Clock className="w-3 h-3" />{dl.deadline}</p>
+                          {dl.value && <p className="text-xs text-slate-400 mt-0.5">{dl.value}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={()=>{router.push('/opportunities');setDrawer(null)}} className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-black cursor-pointer mt-1 border-none transition-colors">
+                    Review Pipeline →
+                  </button>
+                </>
+              )}
+
+              {drawer==='notifications' && (
+                <>
+                  {dash.notifications.map((n,i) => {
+                    const Icon = notifIconMap[n.iconType] || Bell
+                    return (
+                      <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3">
+                        <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${notifColorMap[n.iconType]}`} />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white mb-0.5">{n.title}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{n.time}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+
+              {drawer==='matchInfo' && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Match score (0–100) estimates how well an opportunity fits your business profile and search intent.</p>
+                  {['NAICS code alignment','Set-aside certification match','Keyword relevance','Agency preference','Contract size fit','Search profile overlap'].map(item => (
+                    <div key={item} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                      <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />{item}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {drawer==='goalSetup' && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Describe your capture goals to refine match scoring and AI analysis.</p>
+                  <textarea value={goalInput} onChange={e=>setGoalInput(e.target.value)} rows={6}
+                    placeholder={'Capture 2 VA task orders per quarter\nSDVOSB IT modernization under $5M\nBuild DoD cloud portfolio'}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm p-3 resize-none outline-none focus:border-sky-400 dark:focus:border-sky-500 transition-colors" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {['IT & Cybersecurity','Cloud Migration','8(a) Set-Asides','SDVOSB Contracts','DoD Contracts'].map(t => (
+                      <button key={t} type="button" onClick={()=>setGoalInput(p=>p?`${p}\n${t}`:t)}
+                        className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+                        + {t}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={saveGoals} disabled={goalSaving||!goalInput.trim()}
+                    className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-black cursor-pointer border-none transition-colors">
+                    {goalSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving…</> : <><CheckCircle className="w-3.5 h-3.5" />Save & Update Scores</>}
+                  </button>
+                </div>
+              )}
+
+              {drawer==='settings' && (
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 text-sm">
+                    <p className="text-slate-500 dark:text-slate-400 mb-2">Name: <strong className="text-slate-900 dark:text-white">{name}</strong></p>
+                    <p className="text-slate-500 dark:text-slate-400 mb-2">Email: <strong className="text-slate-900 dark:text-white">{session?.user?.email}</strong></p>
+                    {userPrefs?.setAsides?.length && <p className="text-slate-500 dark:text-slate-400">Certifications: <strong className="text-emerald-600 dark:text-emerald-400">{userPrefs.setAsides.join(', ')}</strong></p>}
+                  </div>
+                  <button onClick={()=>{setShowSurvey(true);setDrawer(null)}} className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                    Update Preferences →
+                  </button>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
       )}
-      {/* Action Drawer */}
-      {drawer && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeDrawer} />
-          <div className="pg-drawer-shell absolute right-0 top-0 h-full w-full sm:w-[520px] max-w-full bg-gradient-to-br from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-2xl overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-              <div className="text-white font-bold text-lg">
-                {drawer === 'activeSearches' && 'Active Searches'}
-                {drawer === 'savedOpps' && 'Saved Opportunities'}
-                {drawer === 'matchInfo' && 'Match Score'}
-                {drawer === 'notifications' && 'Notifications'}
-                {drawer === 'settings' && 'Settings'}
-                {drawer === 'goalSetup' && 'Set My Business Goals'}
-              </div>
-              <button
-                onClick={closeDrawer}
-                className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-white/10 transition"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5 text-slate-200" />
-              </button>
-            </div>
 
-            <div className="pg-drawer-body p-5 overflow-y-auto h-[calc(100%-64px)]">
-              {drawer === 'activeSearches' && (
-                <div>
-                  <p className="text-slate-300 text-sm mb-4">These are your saved searches. Click one to run it.</p>
+      {/* ── Page content ─────────────────────────────────────────────────────── */}
+      <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pb-10">
 
-                  <div className="space-y-3">
-                    {dashData.activeSearches.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => goToSearch(s)}
-                        className="pg-drawer-item w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-white font-semibold group-hover:text-cyan-300 transition">
-                              {s.name}
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1">
-                              Query: <span className="text-slate-200">"{s.query}"</span>
-                              {s.filters?.naics ? (
-                                <span className="ml-2 text-cyan-300 font-mono">NAICS {s.filters.naics}</span>
-                              ) : null}
-                              {s.filters?.state ? (
-                                <span className="ml-2 text-slate-300">State {s.filters.state}</span>
-                              ) : null}
-                              {s.filters?.agency ? <span className="ml-2 text-slate-300">{s.filters.agency}</span> : null}
-                            </div>
-                          </div>
+        {/* ── Hero section ─────────────────────────────────────────────────── */}
+        <section className="relative overflow-hidden rounded-2xl mb-4 shadow-md border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-white via-slate-50 to-sky-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900">
+          <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6">
+            {isAuth ? (
+              <div className="flex flex-col gap-5">
 
-                          <div className="flex items-center gap-2">
-                            {typeof s.newCount === 'number' && s.newCount > 0 && (
-                              <span className="px-2 py-1 rounded-full bg-red-500 text-white text-xs font-bold">
-                                +{s.newCount}
-                              </span>
-                            )}
-                            <span className="px-2 py-1 rounded-full bg-cyan-500/15 text-cyan-300 text-xs font-bold border border-cyan-500/25">
-                              {s.resultsCount ?? '--'} results
-                            </span>
-                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-200 transition" />
-                          </div>
+                {/* ── Row 1: Greeting + live stats ── */}
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border"
+                        style={{
+                          background: hour < 12 ? 'rgba(251,191,36,0.15)' : hour < 17 ? 'rgba(249,115,22,0.15)' : 'rgba(139,92,246,0.15)',
+                          borderColor: hour < 12 ? 'rgba(251,191,36,0.5)' : hour < 17 ? 'rgba(249,115,22,0.5)' : 'rgba(139,92,246,0.5)',
+                          color: hour < 12 ? '#b45309' : hour < 17 ? '#c2410c' : '#7c3aed'
+                        }}>
+                        {hour < 12 ? 'Morning Briefing' : hour < 17 ? 'Afternoon Update' : 'Evening Review'}
+                      </span>
+                      {dash.dataSource!=='loading' && (
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-600">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Live · SAM.gov</span>
+                          {dash.lastRefreshed && <span className="text-xs text-slate-400">· {fmtRel(dash.lastRefreshed.toISOString())}</span>}
                         </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="mt-5">
-                    <Link
-                      href="/search"
-                      onClick={() => closeDrawer()}
-                      className="block w-full text-center rounded-xl py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition"
-                    >
-                      Go to Search
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {drawer === 'savedOpps' && (
-                <div>
-                  <p className="text-slate-300 text-sm mb-4">Your saved opportunities live here. Click one to open it.</p>
-
-                  <div className="space-y-3">
-                    {dashData.savedOpportunities.map((o) => (
-                      <button
-                        key={o.noticeId}
-                        onClick={() => goToSavedOpp(o)}
-                        className="pg-drawer-item w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-white font-semibold group-hover:text-purple-300 transition truncate">
-                              {o.title}
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1 flex flex-wrap gap-2">
-                              <span className="text-slate-300">{o.agency}</span>
-                              {o.naics ? <span className="text-cyan-300 font-mono">NAICS {o.naics}</span> : null}
-                              {o.posted ? <span>Posted {o.posted}</span> : null}
-                              {o.deadline ? <span className="text-orange-300">Closes in {o.deadline}</span> : null}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            {typeof o.match === 'number' && (
-                              <span className="px-2 py-1 rounded-lg bg-green-500/15 text-green-300 text-xs font-bold border border-green-500/25">
-                                {o.match}% Match
-                              </span>
-                            )}
-                            {o.value ? (
-                              <span className="px-2 py-1 rounded-lg bg-slate-800/60 text-slate-200 text-xs font-bold border border-white/10">
-                                {o.value}
-                              </span>
-                            ) : null}
-                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-200 transition" />
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="mt-5">
-                    <button
-                      onClick={() => {
-                        router.push(`/opportunities${buildQueryString({ saved: '1' })}`);
-                        closeDrawer();
-                      }}
-                      className="w-full rounded-xl py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold transition"
-                    >
-                      View All Saved Opportunities
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {drawer === 'recentMatches' && (
-                <div>
-                  <p className="text-slate-300 text-sm mb-4">Live feed of the freshest matches we pulled for you this week.</p>
-
-                  {dashData.recentOpportunities.length === 0 ? (
-                    <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 text-center text-slate-400 text-sm">
-                      No live matches yet. Run a search to populate this list.
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {dashData.recentOpportunities.map((opp) => (
-                        <button
-                          key={opp.noticeId}
-                          onClick={() => goToSavedOpp(opp)}
-                          className="w-full text-left group rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900 px-4 py-4 transition"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="text-white font-semibold group-hover:text-emerald-300 transition truncate">
-                                {opp.title}
-                              </div>
-                              <div className="text-xs text-slate-400 mt-1 flex flex-wrap gap-3">
-                                <span className="font-semibold text-slate-200">
-                                  <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Agency</span>
-                                  {opp.agency}
-                                </span>
-                                {opp.naics ? (
-                                  <span className="font-semibold text-cyan-200">
-                                    <span className="text-cyan-500 font-bold uppercase tracking-wide mr-1">NAICS</span>
-                                    {opp.naics}
-                                  </span>
-                                ) : null}
-                                {opp.posted ? (
-                                  <span>
-                                    <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Posted</span>
-                                    {opp.posted}
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-1 shrink-0 text-right">
-                              {typeof opp.match === 'number' && (
-                                <span className="px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 text-xs font-bold border border-emerald-500/25">
-                                  {opp.match}% match
-                                </span>
-                              )}
-                              {opp.deadline ? (
-                                <span className="text-xs font-semibold text-orange-300">
-                                  <span className="text-orange-500 font-bold uppercase tracking-wide mr-1">Deadline</span>
-                                  {opp.deadline}
-                                </span>
-                              ) : null}
-                              {opp.value ? (
-                                <span className="text-xs text-slate-200 font-semibold">
-                                  <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Value</span>
-                                  {formatCurrency(opp.value)}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    <button
-                      onClick={() => {
-                        router.push('/search')
-                        closeDrawer()
-                      }}
-                      className="flex-1 rounded-xl py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold transition"
-                    >
-                      Run New Search
-                    </button>
-                    <button
-                      onClick={closeDrawer}
-                      className="flex-1 rounded-xl py-3 bg-slate-800/70 hover:bg-slate-800 text-slate-100 font-semibold border border-white/10 transition"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {drawer === 'deadlines' && (
-                <div>
-                  <p className="text-slate-300 text-sm mb-4">Deadlines that need attention in the next two weeks.</p>
-
-                  {dashData.upcomingDeadlines.length === 0 ? (
-                    <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 text-center text-slate-400 text-sm">
-                      No approaching deadlines yet. Save opportunities to start tracking them here.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {dashData.upcomingDeadlines.map((deadline, idx) => (
-                        <div key={`${deadline.title}-${idx}`} className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="text-white font-semibold">{deadline.title}</div>
-                              <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                                <span className="text-slate-500 font-bold uppercase tracking-wide">Agency</span>
-                                <span className="inline-flex items-center gap-1 text-slate-200">
-                                  <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                                  {deadline.agency}
-                                </span>
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-orange-300 flex items-center justify-end gap-1">
-                                <span className="text-orange-500 font-bold uppercase tracking-wide">Deadline</span>
-                                <Clock className="w-4 h-4" />
-                                {deadline.deadline}
-                              </p>
-                              {deadline.value ? (
-                                <p className="text-xs text-slate-300 mt-1">
-                                  <span className="text-slate-500 font-bold uppercase tracking-wide mr-1">Value</span>
-                                  {deadline.value}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    <button
-                      onClick={() => {
-                        router.push('/opportunities')
-                        closeDrawer()
-                      }}
-                      className="flex-1 rounded-xl py-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold transition"
-                    >
-                      Review Pipeline
-                    </button>
-                    <button
-                      onClick={closeDrawer}
-                      className="flex-1 rounded-xl py-3 bg-slate-800/70 hover:bg-slate-800 text-slate-100 font-semibold border border-white/10 transition"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {drawer === 'matchInfo' && (
-                <div className="space-y-4">
-                  <p className="text-slate-300 text-sm">
-                    <span className="text-white font-semibold">Match</span> is a score (0?100) that estimates how well an opportunity fits your business and saved search intent.
-                  </p>
-
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                    <div className="text-white font-semibold mb-2">What it represents</div>
-                    <ul className="text-sm text-slate-300 space-y-2">
-                      <li>? NAICS alignment (your selected NAICS vs solicitation NAICS)</li>
-                      <li>? Keyword relevance (title + description vs your search terms)</li>
-                      <li>? Agency preference (e.g., DoD, DHS, etc.)</li>
-                      <li>? Set-aside fit (if you filter small business, SDVOSB, etc.)</li>
-                      <li>? Recency and deadline urgency (optional weighting)</li>
-                    </ul>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                    <div className="text-white font-semibold mb-2">Why your Avg Match can change</div>
-                    <p className="text-sm text-slate-300">
-                      As new opportunities arrive, your average will shift depending on how many high-fit vs low-fit records appear in your feed and saved lists.
+                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight">
+                      {dash.loading
+                        ? <span className="text-slate-400">Loading…</span>
+                        : <>{greeting}, <span style={{color: hour < 12 ? '#d97706' : hour < 17 ? '#ea580c' : '#7c3aed'}}>{name}</span>.</>}
+                    </h1>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      {hour < 12
+                        ? 'Start your day by reviewing new matches and approaching deadlines.'
+                        : hour < 17
+                        ? 'Afternoon check-in — your pipeline has been updated with the latest SAM.gov postings.'
+                        : 'Evening summary — review what changed today before you sign off.'}
                     </p>
                   </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        router.push('/insights');
-                        closeDrawer();
-                      }}
-                      className="flex-1 rounded-xl py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold transition"
-                    >
-                      Open Insights
-                    </button>
-                    <button
-                      onClick={closeDrawer}
-                      className="flex-1 rounded-xl py-3 bg-slate-800/70 hover:bg-slate-800 text-slate-100 font-semibold border border-white/10 transition"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Notifications Drawer */}
-              {drawer === 'notifications' && (
-                <div>
-                  <p className="text-slate-400 text-sm mb-6">
-                    Stay updated with your latest opportunity matches and deadlines
-                  </p>
-                  <div className="space-y-3">
-                    {dashData.notifications.map((notif, index) => {
-                      const IconComponent = notifIconMap[notif.iconType] || Activity;
-                      return (
-                        <div
-                          key={index}
-                          className="p-4 bg-slate-800/40 hover:bg-slate-800/60 rounded-xl border border-white/10 hover:border-white/20 transition-all cursor-pointer"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="p-2 bg-slate-700/50 rounded-lg">
-                              <IconComponent className={`w-5 h-5 ${notifColorMap[notif.iconType] || 'text-slate-400'}`} />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-white font-semibold text-sm mb-1">{notif.title}</p>
-                              <p className="text-slate-400 text-xs">{notif.time}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-6">
-                    <button
-                      onClick={() => {
-                        closeDrawer();
-                        router.push('/opportunities');
-                      }}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
-                    >
-                      View All Opportunities
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-
-              {/* Goal Setup Drawer */}
-              {drawer === 'goalSetup' && (
-                <div className="space-y-5">
-                  <p className="text-slate-300 text-sm">
-                    Tell us what contracts you're pursuing. We'll use this to compute your <span className="text-white font-semibold">Match Score</span> and personalize your AI analysis.
-                  </p>
-
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 space-y-3">
-                    <div className="text-white font-semibold text-sm">Your business goals <span className="text-slate-400 font-normal">(one per line)</span></div>
-                    <textarea
-                      value={goalInput}
-                      onChange={e => setGoalInput(e.target.value)}
-                      placeholder={"e.g.\nCybersecurity contracts for DHS\n8(a) set-aside opportunities\nIT modernization — NAICS 541512\nDoD construction projects"}
-                      rows={6}
-                      className="w-full rounded-xl bg-slate-800/70 border border-white/10 text-white text-sm p-3 focus:outline-none focus:border-cyan-500/50 resize-none placeholder-slate-500"
-                    />
-                    <p className="text-xs text-slate-400">Include NAICS codes, agencies, set-aside types, or keywords you specialize in.</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                    <div className="text-white font-semibold text-sm mb-3">Quick picks</div>
-                    <div className="flex flex-wrap gap-2">
-                      {['IT & Cybersecurity', 'Construction & Engineering', 'Healthcare & Medical', '8(a) Set-Asides', 'SDVOSB Contracts', 'HUBZone Opportunities', 'WOSB Contracts', 'DoD Contracts', 'GSA Schedules', 'IDIQ Vehicles'].map(t => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setGoalInput(prev => prev ? `${prev}\n${t}` : t)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-700/60 border border-white/10 text-slate-200 text-xs font-semibold hover:bg-slate-700 hover:border-cyan-500/30 transition"
-                        >
-                          <Plus className="w-3 h-3" />{t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={saveGoals}
-                    disabled={goalSaving || !goalInput.trim()}
-                    className="w-full rounded-xl py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 text-white font-semibold transition flex items-center justify-center gap-2"
-                  >
-                    {goalSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><CheckCircle className="w-4 h-4" />Save Goals & Compute Match Score</>}
-                  </button>
-                </div>
-              )}
-
-              {/* Settings Drawer */}
-              {drawer === 'settings' && (
-                <div>
-                  <p className="text-slate-400 text-sm mb-6">
-                    Manage your account preferences and notification settings
-                  </p>
-                  <div className="space-y-4">
-                    {/* Profile Section */}
-                    <div className="p-4 bg-slate-800/40 rounded-xl border border-white/10">
-                      <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-cyan-400" />
-                        Profile
-                      </h3>
-                      <div className="space-y-2 text-sm">
-                        <p className="text-slate-300">Name: <span className="text-white font-semibold">{welcomeName}</span></p>
-                        <p className="text-slate-300">Email: <span className="text-white font-semibold">{session?.user?.email}</span></p>
-                        <button onClick={() => { closeDrawer(); router.push('/account'); }} className="mt-2 text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
-                          Edit Profile ?
-                        </button>
+                  {/* Live stat pills */}
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {[
+                      {label:'Live Opps',   value:dash.totalActiveOpportunities.toLocaleString(), cls:'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300'},
+                      {label:'New Matches', value:dash.thisWeekCount,                              cls:'bg-orange-50 dark:bg-orange-900/30 border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300'},
+                      {label:'Deadlines',   value:dash.upcomingDeadlines.length,                   cls:'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300'},
+                      {label:'Avg Match',   value:dash.avgMatchScore ? `${dash.avgMatchScore}%` : '—', cls:'bg-violet-50 dark:bg-violet-900/30 border-violet-300 dark:border-violet-600 text-violet-700 dark:text-violet-300'},
+                    ].map(s => (
+                      <div key={s.label} className={`text-center px-4 py-2 rounded-xl border ${s.cls}`}>
+                        <p className="text-xl font-black">{dash.loading ? '—' : s.value}</p>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{s.label}</p>
                       </div>
-                    </div>
+                    ))}
+                    {!userPrefs && (
+                      <button onClick={()=>setShowSurvey(true)} className="px-5 py-2.5 rounded-xl text-white text-sm font-black cursor-pointer transition-all shadow-lg hover:scale-105 ml-2" style={{background:'linear-gradient(135deg,#f97316,#dc2626)'}}>
+                        Personalize Feed
+                      </button>
+                    )}
+                    {userPrefs && (
+                      <button onClick={()=>setShowSurvey(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer transition-colors ml-2">
+                        <Settings className="w-3.5 h-3.5" />Edit Profile
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Main Content */}
-      <div className="pg-container py-8">
+                {/* ── Row 2: AI-Powered Insights ── */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
 
-        {/* Header Section */}
-        <div className="mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 animate-in fade-in duration-500">
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2">Welcome to your personalized Analytics Intelligence Hub</h1>
-            <p className="text-slate-400 text-lg">Your gateway to federal contracting opportunities</p>
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <Link href="/search" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:opacity-90 transition-all shadow-lg hover:shadow-xl">
-              <Search className="h-5 w-5" /> New Search
-            </Link>
-            <Link href="/alerts" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors">
-              <Bell className="h-5 w-5" /> Manage Alerts
-            </Link>
-          </div>
-        </div>
+                  {/* Deadline Alert */}
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700">
+                    <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-orange-100 dark:bg-orange-800/50 border border-orange-200 dark:border-orange-700">
+                      <AlertTriangle className="w-4 h-4 text-orange-500 dark:text-orange-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wide mb-0.5">Deadline Alert</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                        {dash.upcomingDeadlines[0]
+                          ? <><span className="font-bold text-slate-900 dark:text-white">{dash.upcomingDeadlines[0].title}</span> closes in <span className="text-orange-600 dark:text-orange-400 font-bold">{dash.upcomingDeadlines[0].deadline}</span> — {dash.upcomingDeadlines[0].value || 'value TBD'}.</>
+                          : 'No urgent deadlines in the next 14 days. Good time to build your pipeline.'}
+                      </p>
+                      {dash.upcomingDeadlines.length > 0 && (
+                        <button onClick={()=>router.push('/opportunities?filter=deadlines')} className="mt-2 text-xs font-black text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 bg-transparent border-none cursor-pointer p-0 transition-colors">
+                          Review all {dash.upcomingDeadlines.length} deadlines →
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-        <div className="mb-12 grid gap-8 rounded-[32px] border border-[var(--color-border)] bg-gradient-to-r from-[var(--color-surface)] via-[var(--color-surface-muted)] to-[var(--color-surface)] p-6 text-[var(--color-text-primary)] shadow-[0_30px_80px_-50px_rgba(14,165,233,0.45)] md:p-10 lg:grid-cols-[1.2fr,0.9fr]">
-          <div className="space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-muted)]/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
-              Live Mock Feed
-              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Beta</span>
-            </div>
-            <div>
-              <p className="text-sm text-[var(--color-text-secondary)]">Hello {welcomeName},</p>
-              <h2 className="mt-2 text-3xl font-black text-[var(--color-text-primary)] sm:text-4xl">Your pipeline is refreshing with new intelligence every few seconds.</h2>
-              <p className="mt-3 max-w-2xl text-sm text-[var(--color-text-secondary)] sm:text-base">
-                We blend saved searches, AI scoring, and deadline risk to keep the dashboard readable. Watch the live counters update as new opportunities stream in.
-              </p>
-            </div>
-            {primarySearch && (
-              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)] shadow-inner">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-xs font-bold uppercase tracking-[0.25em] text-[var(--color-text-tertiary)]">Featured Search</span>
-                  <span className="rounded-full bg-cyan-500/10 px-3 py-0.5 text-xs font-semibold text-cyan-700">
-                    {primarySearch.resultsCount ?? '--'} results · +{primarySearch.newCount ?? 0} new
-                  </span>
+                  {/* Top Match */}
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700">
+                    <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-100 dark:bg-emerald-800/50 border border-emerald-200 dark:border-emerald-700">
+                      <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-0.5">Top Match This Week</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                        {dash.recentOpportunities[0]
+                          ? <><span className="font-bold text-slate-900 dark:text-white">{dash.recentOpportunities[0].title}</span> — <span className="text-emerald-700 dark:text-emerald-400 font-bold">{dash.recentOpportunities[0].match}% fit</span> · {dash.recentOpportunities[0].agency}.</>
+                          : `${dash.thisWeekCount} new opportunities posted this week matching your profile.`}
+                      </p>
+                      <button onClick={()=>router.push('/search')} className="mt-2 text-xs font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-transparent border-none cursor-pointer p-0 transition-colors">
+                        View all matches →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* AI Recommendation */}
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700">
+                    <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-violet-100 dark:bg-violet-800/50 border border-violet-200 dark:border-violet-700">
+                      <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-violet-700 dark:text-violet-400 uppercase tracking-wide mb-0.5">AI Recommendation</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                        {userPrefs?.setAsides?.length
+                          ? <><span className="text-violet-700 dark:text-violet-400 font-bold">{userPrefs.setAsides[0]}</span> set-asides are trending this quarter. <span className="font-bold text-slate-900 dark:text-white">{dash.activeSearchesCount} active search{dash.activeSearchesCount===1?'':'es'}</span> running across {userPrefs.naicsCodes?.length||0} NAICS codes.</>
+                          : 'Complete your business profile to receive AI-powered opportunity matching and set-aside filtering.'}
+                      </p>
+                      <button onClick={()=>setShowAiModal(true)} className="mt-2 text-xs font-black text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 bg-transparent border-none cursor-pointer p-0 transition-colors">
+                        Full AI analysis →
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
-                <p className="mt-2 text-base font-semibold text-[var(--color-text-primary)]">{primarySearch.name}</p>
-                <p className="text-xs text-[var(--color-text-secondary)]">Keywords: “{primarySearch.query}” · NAICS {primarySearch.filters?.naics ?? '—'} · {primarySearch.filters?.setaside ?? 'No set-aside filter'}</p>
+              </div>
+            ) : (
+              /* ── Unauthenticated: bright, readable, full-width ── */
+              <div className="flex flex-wrap items-center justify-between gap-6">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    {dash.dataSource!=='loading' && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-600">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities</span>
+                      </div>
+                    )}
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-2">
+                    {dash.loading ? 'Loading…' : 'Federal Contract Intelligence Dashboard'}
+                  </h1>
+                  <p className="text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-4">
+                    Track live SAM.gov opportunities scored against your certifications and NAICS codes. Sign in to unlock AI match scoring, deadline alerts, and your personalized pipeline.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {['AI-powered match scoring','Set-aside & NAICS filtering','Deadline alerts','Pipeline tracking'].map(f => (
+                      <span key={f} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 shadow-sm">
+                        <CheckCircle className="w-3 h-3 text-emerald-500" />{f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {/* CTA box */}
+                <div className="flex flex-col gap-3 shrink-0 min-w-52 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md">
+                  <p className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide">Get started free</p>
+                  <Link href="/register" className="w-full text-center px-5 py-3 rounded-xl text-white text-sm font-black transition-all hover:scale-105 shadow-lg" style={{background:'linear-gradient(135deg,#f97316,#dc2626)'}}>
+                    Create Free Account
+                  </Link>
+                  <Link href="/login" className="w-full text-center px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                    Sign In
+                  </Link>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center">No credit card required</p>
+                </div>
               </div>
             )}
           </div>
+        </section>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            {heroHighlights.map((item) => {
-              const Icon = item.icon
-              return (
-                <div key={item.label} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-lg">
-                  <div className={`mb-4 h-10 w-10 rounded-xl bg-gradient-to-r ${item.accent} flex items-center justify-center text-white`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-text-tertiary)]">{item.label}</p>
-                  <p className="mt-3 text-3xl font-black text-[var(--color-text-primary)]">{dashData.loading ? '—' : item.value}</p>
-                  <p className="text-xs text-[var(--color-text-secondary)]">Auto-refreshed mock data</p>
-                </div>
-              )
-            })}
+        {/* ── Logged-out info strip (no duplicate buttons) ──────────────────── */}
+        {!isAuth && !dash.loading && (
+          <div className="mb-4 px-5 py-3 rounded-2xl flex flex-wrap items-center gap-3" style={{background:'linear-gradient(135deg,#ea580c,#d97706)'}}>
+            <CheckCircle className="w-4 h-4 text-orange-100 shrink-0" />
+            <p className="text-sm text-white flex-1">
+              <strong>You're viewing public data.</strong> Sign in to filter by your certifications, get AI match scores, and track deadlines.
+            </p>
           </div>
-        </div>
+        )}
 
-        {/* Stats Grid */}
-        <div className="pg-card-grid mb-12 animate-in fade-in duration-500 stagger">
-          {summaryCards.map(({ label, value, icon: Icon, color, subtext, onClick }) => (
-            <div
-              key={label}
-              role={onClick ? 'button' : undefined}
-              tabIndex={onClick ? 0 : undefined}
-              onClick={onClick}
-              onKeyDown={(event) => {
-                if (onClick && (event.key === 'Enter' || event.key === ' ')) {
-                  event.preventDefault()
-                  onClick()
-                }
-              }}
-              className={clsx(
-                'rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-[var(--color-text-primary)] shadow-[0_20px_45px_-25px_rgba(15,23,42,0.35)] transition-all group hover:-translate-y-1 hover:shadow-2xl',
-                onClick ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60' : 'cursor-default',
-              )}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className={clsx('rounded-xl p-3 bg-gradient-to-br', color)}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-                {onClick ? (
-                  <button type="button" className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition" aria-label="View details">
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                ) : (
-                  <div className="text-[var(--color-text-tertiary)] text-sm font-semibold">Live</div>
-                )}
+        {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+          {stats.map(({label,value,sub,bg,onClick}) => (
+            <button key={label} onClick={onClick}
+              style={{background: bg}}
+              className="text-left rounded-2xl border border-white/10 shadow-md hover:shadow-xl p-4 transition-all cursor-pointer group hover:scale-[1.02] active:scale-[0.98] hover:brightness-110">
+              <div className="flex items-center justify-between mb-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-white/40 shadow-sm" />
+                <ChevronRight className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" />
               </div>
-              <div className="text-[var(--color-text-secondary)] text-sm font-semibold tracking-wide">{label}</div>
-              <div className="mt-2 text-3xl font-black text-[var(--color-text-primary)]">
-                {dashData.loading ? <Loader2 className="h-6 w-6 animate-spin" /> : value ?? '—'}
-              </div>
-              {subtext ? <p className="text-[var(--color-text-secondary)] text-sm mt-1">{subtext}</p> : null}
-            </div>
+              <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-1.5">{label}</p>
+              <p className="text-4xl font-black leading-none mb-1.5 text-white">
+                {dash.loading ? <Loader2 className="w-5 h-5 text-white/60 animate-spin" /> : (value??'—')}
+              </p>
+              <p className="text-xs text-white/70">{sub}</p>
+            </button>
           ))}
         </div>
 
-      <div className="pg-container py-8">
-        {/* -- New user empty state: no data yet -- */}
-        {!dashData.loading && dashData.activeSearchesCount === 0 && dashData.savedOppCount === 0 && (
-          <div className="mb-8 rounded-2xl border border-dashed border-white/20 bg-slate-900/40 p-8 text-center animate-fadeInUp">
-            <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
-              <div className="p-4 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-2xl border border-cyan-500/20">
-                <Target className="w-8 h-8 text-cyan-400" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold text-lg mb-1">Welcome — let's get you started</h3>
-                <p className="text-slate-400 text-sm">Your dashboard will show real data once you run your first search and save opportunities. Start by telling us what you're looking for.</p>
-              </div>
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button onClick={() => setDrawer('goalSetup')} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold text-sm transition">
-                  <Target className="w-4 h-4" /> Set My Goals
-                </button>
-                <Link href="/search" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-sm transition">
-                  <Search className="w-4 h-4" /> Run First Search
-                </Link>
-              </div>
-            </div>
+        {/* ── Intelligence Banner ───────────────────────────────────────────── */}
+        <div className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+          <div className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 flex items-center gap-2">
+            <Database className="w-3.5 h-3.5 text-emerald-200" />
+            <span className="text-xs font-black uppercase tracking-widest text-emerald-100">
+              {dash.dataSource==='live' ? 'Personalized · SAM.gov Intelligence' : 'Live · SAM.gov Intelligence'}
+            </span>
           </div>
-        )}
-
-        {/* -- Claude AI Analysis Panel -- */}
-        {(dashData.savedOppCount > 0 || dashData.recentOpportunities.length > 0) && (
-          <div className="mb-8 animate-fadeInUp" style={{ animationDelay: '0.25s' }}>
-            <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-purple-500/20 to-blue-600/20 border border-purple-500/20 rounded-lg">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                  </div>
-                  <div>
-                    <div className="text-white font-semibold text-sm">
-                      {claudeAnalysis ? 'AI Augmented Analyticcs by Precise Govcon Intelligence' : 'Get AI Analysis'}
-                    </div>
-                    <div className="text-slate-400 text-xs">
-                      Precise Govcon Intelligence will analyze your pipeline and surface priorities
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={analyzeWithClaude}
-                    disabled={analysisLoading}
-                    className="text-xs text-purple-400 hover:text-purple-300 font-semibold transition"
-                  >
-                    {analysisLoading ? 'Analyzing…' : 'Refresh'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-          {/* Sidebar */}
-          <div className="space-y-8 animate-in fade-in duration-500 delay-100">
-
-            {/* Recent Alerts */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-                <Bell className="h-5 w-5 text-orange-400" /> Your Alerts
-              </h3>
-              <div className="space-y-3">
-                {recentAlerts.map((alert) => (
-                  <Link key={alert.id} href={`/alerts/${alert.id}`} className="block p-3 rounded-lg bg-slate-700/40 hover:bg-slate-700/60 border border-slate-600 hover:border-slate-500 transition-all group">
-                    <div className="flex items-start justify-between mb-2">
-                      <p className="font-semibold text-sm text-white group-hover:text-cyan-300 transition-colors line-clamp-2">{alert.name}</p>
-                      <span className={clsx('text-xs font-bold px-2 py-0.5 rounded-full', alert.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-500/20 text-slate-400')}>{alert.active ? '● Active' : '⏸ Paused'}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span>{alert.frequency.replace('_', ' ')}</span>
-                      <span className="text-emerald-400 font-semibold">{alert.matchesCount} matches</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">{alert.lastRun ? `Last run ${formatRelative(alert.lastRun)}` : 'Never run'}</p>
-                  </Link>
-                ))}
-              </div>
-              <Link href="/alerts" className="mt-4 flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold transition-colors">
-                <Plus className="h-4 w-4" /> New Alert
-              </Link>
-            </div>
-
-            {/* AI Insights */}
-            <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 backdrop-blur-sm rounded-2xl border border-purple-700/50 p-6 hover:border-purple-600 transition-all">
-              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                <Lightbulb className="h-5 w-5 text-amber-400" /> AI Insights
-              </h3>
-              <p className="text-sm text-slate-300 mb-4">Based on your activity and profile, here are top recommendations:</p>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-300">Your cybersecurity expertise matches 3 high-value DoD contracts</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-300">SDVOSB set-aside opportunities trending up (+45% this month)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <ChevronRight className="h-4 w-4 text-purple-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-300">Cloud services demand peaks in Q3. Start prep now.</span>
-                </li>
-              </ul>
-              <button onClick={() => setShowAiPanel(true)} className="mt-5 w-full py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity">
-                <Brain className="h-4 w-4 inline mr-2" /> Get AI Recommendations
-              </button>
-            </div>
-
-            {/* Activity Feed */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-                <Activity className="h-5 w-5 text-cyan-400" /> Recent Activity
-              </h3>
-              <div className="space-y-4 text-sm">
-                {activityLog.map((log) => (
-                  <div key={log.id} className="flex items-start gap-3 pb-3 border-b border-slate-700 last:border-0">
-                    <div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
-                      {log.type === 'search' && <Search className="h-4 w-4 text-cyan-400" />}
-                      {log.type === 'alert' && <Bell className="h-4 w-4 text-orange-400" />}
-                      {log.type === 'ai' && <Brain className="h-4 w-4 text-purple-400" />}
-                      {log.type === 'share' && <Share2 className="h-4 w-4 text-blue-400" />}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-slate-300 font-medium">{log.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{formatRelative(log.timestamp)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Trends Chart */}
-        <div className="mt-12 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700 p-8 animate-in fade-in duration-500">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-emerald-400" /> Market Trends
+          <div className="p-5">
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 leading-snug">
+            {dash.loading ? 'Loading your feed…'
+              : dash.dataSource==='live'
+                ? 'Your pipeline is live and scoring opportunities in real time.'
+                : 'Public Opportunity Snapshot'}
           </h2>
-          <div className="grid grid-cols-6 gap-3">
-            {trendData.map((point) => (
-              <div key={point.month} className="flex flex-col items-center">
-                <div className="relative w-full h-32 mb-2 flex items-end justify-center gap-1">
-                  <div className="flex-1 bg-gradient-to-t from-cyan-500 to-cyan-400 rounded-t-lg opacity-70" style={{ height: `${(point.opportunities / 520) * 100}%` }} title={`${point.opportunities} opportunities`}></div>
-                  <div className="flex-1 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg" style={{ height: `${(point.matches / 156) * 100}%` }} title={`${point.matches} matches`}></div>
-                </div>
-                <p className="text-xs font-bold text-slate-300">{point.month}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
+            {dash.dataSource==='live'
+              ? `Scored against your ${userPrefs?.setAsides?.join(' & ')||'business'} profile across ${userPrefs?.naicsCodes?.length||0} NAICS codes. Scores update as new solicitations post.`
+              : 'Top searches and market signals update in real time. Sign in to unlock profile-based scoring and tailored recommendations.'}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            {[
+              {label:'Live Opps',     value:dash.totalActiveOpportunities.toLocaleString(), bg:'linear-gradient(135deg,#34d399,#0f766e)'},
+              {label:'Avg Fit Score', value:dash.avgMatchScore!==null?`${dash.avgMatchScore}%`:'—', bg:'linear-gradient(135deg,#38bdf8,#2563eb)'},
+              {label:'Saved Pipeline',value:String(dash.savedOppCount), bg:'linear-gradient(135deg,#f97316,#dc2626)'},
+            ].map(k => (
+              <div key={k.label} className="rounded-xl p-4 shadow-md" style={{background: k.bg}}>
+                <p className="text-xs text-white/80 font-semibold mb-1">{k.label}</p>
+                <p className="text-3xl font-black text-white">{dash.loading?'—':k.value}</p>
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-center gap-6 mt-8 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
-              <span className="text-slate-400">Total Opportunities</span>
+          {primarySearch && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Top Search</span>
+              <span className="px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 text-xs font-bold">{primarySearch.resultsCount??'—'} results · +{primarySearch.newCount??0} new</span>
+              <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-bold">SAM.gov Live</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">{primarySearch.name}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">"{primarySearch.query}"</span>
+              {primarySearch.filters?.naics && <span className="font-mono text-xs text-sky-500">· NAICS {primarySearch.filters.naics}</span>}
+              {primarySearch.filters?.setaside && <span className="text-xs text-emerald-600 dark:text-emerald-400">· {primarySearch.filters.setaside}</span>}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-              <span className="text-slate-400">Your Matches</span>
-            </div>
+          )}
           </div>
         </div>
-      </div>
 
-      {/* AI Panel Overlay */}
-      {showAiPanel && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-gradient-to-r from-purple-900/50 to-pink-900/50 border-b border-slate-700 px-8 py-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                  <Brain className="h-6 w-6 text-white" />
+        {/* ── Main grid ──────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+
+          {/* Left column */}
+          <div className="flex flex-col gap-5">
+
+            {/* AI Analysis */}
+            {analysis && (dash.savedOppCount>0||dash.recentOpportunities.length>0) && (
+              <div className="rounded-2xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700 flex items-center justify-center shrink-0">
+                      <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">Precise GovCon Intelligence</span>
+                        <span className="px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700 text-xs font-bold text-violet-600 dark:text-violet-400">AI</span>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">{analysis.summary}</p>
+                      {analysis.topOpps?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {analysis.topOpps.map((o,i) => (
+                            <span key={i} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold ${o.urgency==='high' ? 'bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400' : o.urgency==='medium' ? 'bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400' : 'bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400'}`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />{o.title}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {analysis.recs?.length > 0 && (
+                        <ul className="flex flex-col gap-1">
+                          {analysis.recs.map((r,i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                              <ChevronRight className="w-3 h-3 shrink-0 mt-0.5 text-violet-500" />{r}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={runAi} disabled={analysisLoading}
+                    className="flex items-center gap-1.5 text-xs font-bold text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-50 transition-colors">
+                    <RefreshCw className={`w-3 h-3 ${analysisLoading?'animate-spin':''}`} />
+                    {analysisLoading?'Analyzing…':'Refresh'}
+                  </button>
                 </div>
-                <h2 className="text-2xl font-bold text-white">AI Assistant</h2>
               </div>
-              <button onClick={() => setShowAiPanel(false)} className="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-8 space-y-6">
-              <div className="bg-slate-700/40 rounded-xl p-6 border border-slate-600">
-                <h3 className="font-bold text-white mb-3 flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-amber-400" /> Smart Recommendations
+            )}
+
+            {/* Latest Matches */}
+            {dash.recentOpportunities.length > 0 && (
+              <div className="rounded-2xl border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-800 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-emerald-100 dark:border-emerald-900 bg-emerald-600">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    Latest Matches
+                  </h3>
+                  <button onClick={()=>setDrawer('recentMatches')} className="text-xs font-bold text-white/80 hover:text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg border-none cursor-pointer transition-colors">View all →</button>
+                </div>
+                {dash.recentOpportunities.slice(0,5).map((o,i) => (
+                  <button key={o.noticeId} onClick={()=>router.push(`/opportunities${qs({noticeId:o.noticeId})}`)}
+                    className={`w-full text-left px-5 py-3.5 ${i < Math.min(4,dash.recentOpportunities.length-1) ? 'border-b border-slate-100 dark:border-slate-700/60' : ''} bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate mb-1">{o.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
+                          <span>{o.agency}</span>
+                          {o.setAside && <span className="text-emerald-600 dark:text-emerald-400 font-bold">{o.setAside}</span>}
+                          {o.naics && <span className="font-mono">{o.naics}</span>}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {typeof o.match==='number' && <Score v={o.match} />}
+                        {o.value && <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{fmtCur(o.value)}</span>}
+                        {o.deadline && <span className="text-xs font-black text-orange-500 bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded">{o.deadline}</span>}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Pipeline Trend */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <span className="text-emerald-600 dark:text-emerald-400">Pipeline</span>
+                  <span className="text-orange-500">Trend</span>
+                  <span className="text-xs font-normal text-slate-400 ml-1">Last 6 months</span>
                 </h3>
-                <ul className="space-y-2 text-sm text-slate-300">
-                  <li className="flex items-start gap-2">
-                    <Award className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold">Pursue DoD IT Contracts</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Your team's DoD 8(a) certification and security clearances align perfectly with 12 active RFPs valued at $45M+ total</p>
+                <div className="flex gap-4">
+                  {[['bg-orange-400','Total Opps'],['bg-emerald-500','Your Matches']].map(([c,l]) => (
+                    <div key={l} className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <div className={`w-3 h-3 rounded-sm ${c}`} />{l}
                     </div>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <TrendingUp className="h-5 w-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold">Timing: Cloud Services Boom</p>
-                      <p className="text-xs text-slate-400 mt-0.5">36% increase in cloud modernization RFPs in Q2. Your cloud expertise is in high demand—prepare proposals now</p>
-                    </div>
-                  </li>
-                </ul>
+                  ))}
+                </div>
               </div>
-              <button onClick={() => setShowAiPanel(false)} className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold hover:opacity-90 transition-opacity">
-                Generate Full Analysis
-              </button>
+              <div className="flex items-end gap-3 h-56 mb-4 flex-1">
+                {trend.map(p => (
+                  <div key={p.month}
+                    onMouseEnter={() => setHoveredTrend(p)}
+                    onMouseLeave={() => setHoveredTrend(prev => prev?.month===p.month ? null : prev)}
+                    className="flex-1 flex flex-col justify-end items-center gap-1 h-full relative cursor-pointer group">
+                    {hoveredTrend?.month === p.month && (
+                      <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none w-48 rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 shadow-2xl p-4">
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-100 mb-2 border-b border-slate-100 dark:border-slate-700 pb-2">{p.month} Details</p>
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" />Total</span>
+                            <strong className="text-xs text-orange-500">{p.opportunities.toLocaleString()}</strong>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />Matches</span>
+                            <strong className="text-xs text-emerald-500">{p.matches.toLocaleString()}</strong>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-1.5 mt-0.5">
+                            <span className="text-xs text-slate-500">Hit Rate</span>
+                            <strong className="text-xs text-amber-500">{((p.matches/p.opportunities)*100).toFixed(1)}%</strong>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="w-full flex items-end gap-1 h-full">
+                      <div className="flex-1 rounded-t-lg transition-all duration-200 shadow-sm group-hover:opacity-90"
+                        style={{height:`${(p.opportunities/520)*100}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #ea580c, #fb923c)' : 'linear-gradient(to top, #c2410c, #f97316)'}} />
+                      <div className="flex-1 rounded-t-lg transition-all duration-200 shadow-sm group-hover:opacity-90"
+                        style={{height:`${(p.matches/156)*100}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #16a34a, #4ade80)' : 'linear-gradient(to top, #15803d, #22c55e)'}} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-500 group-hover:text-slate-800 dark:group-hover:text-white transition-colors">{p.month}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Summary stats strip below chart */}
+              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                {[
+                  {label:'Avg Opps/Mo', value: Math.round(trend.reduce((s,p)=>s+p.opportunities,0)/trend.length).toLocaleString(), color:'text-orange-500'},
+                  {label:'Avg Matches', value: Math.round(trend.reduce((s,p)=>s+p.matches,0)/trend.length).toLocaleString(), color:'text-emerald-500'},
+                  {label:'Avg Hit Rate', value: `${((trend.reduce((s,p)=>s+(p.matches/p.opportunities),0)/trend.length)*100).toFixed(1)}%`, color:'text-amber-500'},
+                ].map(({label,value,color}) => (
+                  <div key={label} className="text-center">
+                    <p className={`text-lg font-black ${color}`}>{value}</p>
+                    <p className="text-xs text-slate-400 font-medium">{label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
+
+          </div>
+
+          {/* Right sidebar */}
+          <div className="flex flex-col gap-5">
+
+            {/* Deadlines */}
+            {dash.upcomingDeadlines.length > 0 && (
+              <div className="rounded-2xl border border-orange-300 dark:border-orange-800 bg-white dark:bg-slate-800 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-orange-200 dark:border-orange-900 bg-orange-500">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-white" />Deadlines
+                  </h3>
+                  <button onClick={()=>setDrawer('deadlines')} className="text-xs font-bold text-white/80 hover:text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg border-none cursor-pointer transition-colors">View all →</button>
+                </div>
+                <div className="p-3 flex flex-col gap-2">
+                  {dash.upcomingDeadlines.map((dl,i) => (
+                    <div key={i} className="rounded-xl border border-orange-100 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-950/20 p-3">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate mb-1.5">{dl.title}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{dl.value||''}</p>
+                        <p className="text-sm font-black text-orange-600 dark:text-orange-400 flex items-center gap-1"><Clock className="w-3 h-3" />{dl.deadline}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Alerts */}
+            <div className="rounded-2xl border border-teal-300 dark:border-teal-800 bg-white dark:bg-slate-800 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-teal-200 dark:border-teal-900 bg-gradient-to-r from-teal-600 to-cyan-600">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-cyan-200" />
+                  <span>Your Alerts</span>
+                  <span className="text-xs font-normal text-teal-200 ml-1">· Search subscriptions</span>
+                </h3>
+              </div>
+              <div className="p-3 flex flex-col gap-2">
+                {dash.activeSearches.length === 0
+                  ? <p className="text-sm text-slate-400 text-center py-4">No active alerts yet.</p>
+                  : dash.activeSearches.slice(0,4).map(s => (
+                    <Link key={s.id} href={`/alerts/${s.id}`}
+                      className="block rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 p-3 transition-colors">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate flex-1">{s.name}</p>
+                        <span className="text-xs font-bold text-emerald-500 shrink-0">● Live</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>Real-time</span>
+                        {(s.newCount??0)>0 && <span className="font-bold text-emerald-500">+{s.newCount} new</span>}
+                      </div>
+                    </Link>
+                  ))
+                }
+                <Link href="/alerts" className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold mt-1 transition-colors shadow-md shadow-emerald-600/20">
+                  <Plus className="w-3.5 h-3.5" />New Alert
+                </Link>
+              </div>
+            </div>
+
+            {/* AI Insights */}
+            <div className="rounded-2xl border border-violet-300 dark:border-violet-800 bg-white dark:bg-slate-800 overflow-hidden">
+              <div className="px-4 py-3 border-b border-violet-200 dark:border-violet-900 bg-violet-600">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  AI Insights
+                </h3>
+              </div>
+              <div className="p-4">
+              <ul className="flex flex-col gap-2 mb-4">
+                {(analysis?.recs || [
+                  `Your ${userPrefs?.setAsides?.[0]||'SDVOSB'} certification matches active DoD solicitations`,
+                  'SDVOSB set-asides trending up this quarter',
+                  'Cloud modernization demand peaks in Q3',
+                ]).slice(0,3).map((r,i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-sm text-slate-600 dark:text-slate-300 leading-snug">
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 text-violet-500" />{r}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={()=>setShowAiModal(true)}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold cursor-pointer transition-colors shadow-md shadow-violet-600/20">
+                <Brain className="w-4 h-4" />Full AI Analysis
+              </button>
+
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+                  <Activity className="w-4 h-4 text-sky-500" />Recent Activity
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {activityLog.slice(0,4).map(log => (
+                    <div key={log.id} className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center shrink-0">
+                        {log.type==='search' && <Search className="w-3 h-3 text-sky-500" />}
+                        {log.type==='alert' && <Bell className="w-3 h-3 text-amber-500" />}
+                        {log.type==='ai' && <Brain className="w-3 h-3 text-violet-500" />}
+                        {log.type==='save' && <Target className="w-3 h-3 text-emerald-500" />}
+                        {log.type==='share' && <Share2 className="w-3 h-3 text-blue-400" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate leading-snug">{log.title}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{fmtRel(log.timestamp)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              </div>
+            </div>
+
           </div>
         </div>
-      )}
-
-      {/* Opportunity Detail Modal */}
-      {selectedOpp && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-slate-700/50 border-b border-slate-600 px-8 py-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Opportunity Details</h2>
-              <button onClick={() => setSelectedOpp(null)} className="p-2 hover:bg-slate-600 rounded-lg text-slate-300 hover:text-white transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-8 space-y-6">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-bold px-3 py-1 rounded-lg bg-orange-500/20 text-orange-300">{selectedOpp.type}</span>
-                  {selectedOpp.setAside && <span className="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-lg">{selectedOpp.setAside}</span>}
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">{selectedOpp.title}</h3>
-                <p className="text-slate-400 mb-4">{selectedOpp.description}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-700/40 rounded-lg p-4">
-                  <p className="text-xs text-slate-400 mb-1">Agency</p>
-                  <p className="font-bold text-white">{selectedOpp.agency}</p>
-                </div>
-                <div className="bg-slate-700/40 rounded-lg p-4">
-                  <p className="text-xs text-slate-400 mb-1">Contract Value</p>
-                  <p className="font-bold text-emerald-400">{formatCurrency(selectedOpp.value)}</p>
-                </div>
-                {selectedOpp.location && <div className="bg-slate-700/40 rounded-lg p-4">
-                  <p className="text-xs text-slate-400 mb-1">Location</p>
-                  <p className="font-bold text-white flex items-center gap-1"><MapPin className="h-4 w-4" /> {selectedOpp.location}</p>
-                </div>}
-                <div className="bg-slate-700/40 rounded-lg p-4">
-                  <p className="text-xs text-slate-400 mb-1">Due Date</p>
-                  <p className="font-bold text-white">{new Date(selectedOpp.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-              </div>
-
-              {selectedOpp.aiSummary && <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-xl p-4 border border-purple-700/50">
-                <p className="text-xs text-purple-300 font-semibold mb-2 flex items-center gap-1"><Brain className="h-4 w-4" /> AI ASSESSMENT</p>
-                <p className="text-sm text-slate-300">{selectedOpp.aiSummary}</p>
-              </div>}
-
-              <div className="flex gap-3 pt-4 border-t border-slate-700">
-                <button className="flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-                  <Download className="h-4 w-4" /> View Solicitation
-                </button>
-                <button className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors flex items-center justify-center gap-2">
-                  <Share2 className="h-4 w-4" /> Share
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
-    </div>
-  );
-}
 
+      {/* AI Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-900 shadow-2xl">
+            <div className="sticky top-0 flex items-center justify-between px-5 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700 flex items-center justify-center">
+                  <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-slate-900 dark:text-white">Precise GovCon Intelligence</p>
+                  <p className="text-xs text-slate-400">AI-powered pipeline analysis</p>
+                </div>
+              </div>
+              <button onClick={()=>setShowAiModal(false)} className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              {analysis && (
+                <>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Summary</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.summary}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Top Priorities</p>
+                    <div className="flex flex-col gap-2">
+                      {analysis.topOpps?.map((o,i) => (
+                        <div key={i} className={`flex items-start gap-2.5 p-3 rounded-xl border ${o.urgency==='high' ? 'border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30' : o.urgency==='medium' ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30' : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30'}`}>
+                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${o.urgency==='high'?'bg-rose-500':o.urgency==='medium'?'bg-amber-500':'bg-emerald-500'}`} />
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white mb-0.5">{o.title}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{o.reason}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Recommended Actions</p>
+                    <ul className="flex flex-col gap-2">
+                      {analysis.recs?.map((r,i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 text-violet-500" />{r}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+              <div className="flex gap-3">
+                <button onClick={runAi} disabled={analysisLoading}
+                  className="flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold cursor-pointer border-none transition-colors disabled:opacity-50 shadow-md shadow-orange-500/20">
+                  <RefreshCw className={`w-3.5 h-3.5 ${analysisLoading?'animate-spin':''}`} />
+                  {analysisLoading?'Analyzing…':'Re-Analyze'}
+                </button>
+                <button onClick={()=>setShowAiModal(false)}
+                  className="flex-1 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

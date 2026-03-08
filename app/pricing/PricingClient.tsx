@@ -12,7 +12,7 @@ const plans = [
     tagline: 'For getting started',
     icon: <Shield className="w-5 h-5 text-slate-500" />,
     monthlyPrice: 24.99,
-    annualPrice: 19.99,
+    annualPrice: 240,
     bestFor: 'New contractors exploring opportunities',
     features: [
       'Search all SAM.gov opportunities',
@@ -30,7 +30,7 @@ const plans = [
     tagline: 'For serious bidding teams',
     icon: <Zap className="w-5 h-5 text-[var(--color-primary)]" />,
     monthlyPrice: 49,
-    annualPrice: 39,
+    annualPrice: 490,
     bestFor: 'Teams actively bidding every week',
     features: [
       'Everything in Basic',
@@ -49,7 +49,7 @@ const plans = [
     tagline: 'For organizations at scale',
     icon: <Users className="w-5 h-5 text-slate-600" />,
     monthlyPrice: 199,
-    annualPrice: 159,
+    annualPrice: 1990,
     bestFor: 'Organizations managing multiple bids',
     features: [
       'Everything in Professional',
@@ -98,6 +98,10 @@ const preciseNumberFormatter = new Intl.NumberFormat('en-US', {
 export default function PricingClient() {
   const [annual, setAnnual] = useState(false)
 
+  const maxAnnualDiscount = Math.max(
+    ...plans.map((plan) => ((plan.monthlyPrice * 12 - plan.annualPrice) / (plan.monthlyPrice * 12)) * 100)
+  )
+
   return (
     <div className="pb-16">
       <section className="pg-container pt-12 md:pt-16">
@@ -105,34 +109,38 @@ export default function PricingClient() {
           <div className="pointer-events-none absolute -top-28 right-[-120px] h-64 w-64 rounded-full bg-[var(--color-accent-soft)] blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 left-[-120px] h-64 w-64 rounded-full bg-[var(--color-accent-soft)] blur-3xl" />
           <div className="relative">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-3 py-1.5">
-              <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">
-                7-Day Free Trial - No Credit Card Required
-              </span>
-            </div>
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-3 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+                    7-Day Free Trial - No Credit Card Required
+                  </span>
+                </div>
 
-            <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-6xl" style={{ fontFamily: 'var(--font-display), system-ui, sans-serif' }}>
-              Simple, transparent pricing
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base md:text-lg">
-              Win more federal contracts without overpaying. Start monthly, switch anytime, and flip to annual when you are ready to lock in savings.
-            </p>
+                <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-[#f97316] md:text-6xl lg:whitespace-nowrap" style={{ fontFamily: 'var(--font-display), system-ui, sans-serif' }}>
+                  Simple, transparent pricing
+                </h1>
+                <p className="mx-auto mt-4 max-w-2xl text-base md:text-lg lg:mx-0">
+                  Win more federal contracts without overpaying. Start monthly, switch anytime, and flip to annual when you are ready to lock in savings.
+                </p>
+              </div>
 
-            <div className="mt-8 inline-flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
-              <button
-                onClick={() => setAnnual(false)}
-                className={`rounded-lg px-5 py-2 text-sm font-semibold transition-all ${!annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setAnnual(true)}
-                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition-all ${annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-              >
-                Annual
-                <span className="rounded-md bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">SAVE 20%</span>
-              </button>
+              <div className="inline-flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+                <button
+                  onClick={() => setAnnual(false)}
+                  className={`rounded-lg px-5 py-2 text-sm font-semibold transition-all ${!annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setAnnual(true)}
+                  className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold transition-all ${annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                >
+                  Annual
+                  <span className="rounded-md bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-white">SAVE UP TO {wholeNumberFormatter.format(maxAnnualDiscount)}%</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -141,12 +149,12 @@ export default function PricingClient() {
       <section className="pg-container mt-10">
         <div className="pg-card-grid">
           {plans.map((plan) => {
-            const annualTotal = plan.annualPrice * 12
+            const annualTotal = plan.annualPrice
             const formattedPrice = annual
               ? wholeNumberFormatter.format(annualTotal)
               : preciseNumberFormatter.format(plan.monthlyPrice)
-            const annualSavings = Math.max((plan.monthlyPrice - plan.annualPrice) * 12, 0)
-            const equivalentMonthly = preciseNumberFormatter.format(plan.annualPrice)
+            const annualSavings = Math.max((plan.monthlyPrice * 12) - annualTotal, 0)
+            const equivalentMonthly = preciseNumberFormatter.format(annualTotal / 12)
 
             return (
               <div
@@ -171,7 +179,7 @@ export default function PricingClient() {
                 </div>
                 {annual ? (
                   <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
-                    Billed annually · Equivalent to ${equivalentMonthly}/mo{annualSavings > 0 ? ` · Save $${wholeNumberFormatter.format(annualSavings)}/yr` : ''}
+                    Billed annually · Equivalent to ${equivalentMonthly}/mo{annualSavings > 0 ? ` · Save $${preciseNumberFormatter.format(annualSavings)}/yr` : ''}
                   </p>
                 ) : (
                   <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
