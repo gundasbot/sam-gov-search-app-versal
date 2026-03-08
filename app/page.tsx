@@ -67,12 +67,12 @@ const SLIDES = [
 ]
 
 const ENTER: Record<string, string> = {
-  ltr: 'translateX(-36px)', rtl: 'translateX(36px)',
-  ttb: 'translateY(-24px)', btt: 'translateY(24px)',
+  ltr: 'translateX(-18px)', rtl: 'translateX(18px)',
+  ttb: 'translateY(-14px)', btt: 'translateY(14px)',
 }
 const EXIT: Record<string, string> = {
-  ltr: 'translateX(36px)',  rtl: 'translateX(-36px)',
-  ttb: 'translateY(24px)',  btt: 'translateY(-24px)',
+  ltr: 'translateX(18px)',  rtl: 'translateX(-18px)',
+  ttb: 'translateY(14px)',  btt: 'translateY(-14px)',
 }
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -99,7 +99,25 @@ const OPPS = [
 // ─── Section label pill ───────────────────────────────────────────────────────
 function Pill({ label }: { label: string }) {
   return (
-    <span style={{ display: 'inline-block', padding: '3px 12px', borderRadius: 100, background: '#f0fdfa', border: '1px solid #99f6e4', fontSize: 12, fontWeight: 700, color: '#0d9488', letterSpacing: '0.07em', textTransform: 'uppercase' as const, marginBottom: 14, fontFamily: F }}>
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px 32px',
+        borderRadius: 10,
+        background: '#0f766e',
+        border: '1px solid #0b5f58',
+        fontSize: 28,
+        fontWeight: 800,
+        color: '#ffffff',
+        letterSpacing: '0.03em',
+        textTransform: 'uppercase' as const,
+        marginBottom: 14,
+        lineHeight: 1.1,
+        fontFamily: F,
+      }}
+    >
       {label}
     </span>
   )
@@ -107,6 +125,12 @@ function Pill({ label }: { label: string }) {
 
 // ─── Hero Slider ──────────────────────────────────────────────────────────────
 function HeroSlider() {
+  const HERO_W: React.CSSProperties = {
+    maxWidth: 1920,
+    margin: '0 auto',
+    padding: '0 clamp(6px, 1vw, 16px)',
+  }
+
   const [cur, setCur]         = useState(0)
   const [phase, setPhase]     = useState<'idle' | 'out' | 'in'>('idle')
   const [playing, setPlaying] = useState(true)
@@ -118,8 +142,8 @@ function HeroSlider() {
     setTimeout(() => {
       setCur(idx)
       setPhase('in')
-      setTimeout(() => setPhase('idle'), 450)
-    }, 270)
+      setTimeout(() => setPhase('idle'), 380)
+    }, 210)
   }, [cur, phase])
 
   const advance = useCallback(() => goTo((cur + 1) % SLIDES.length), [cur, goTo])
@@ -141,107 +165,172 @@ function HeroSlider() {
     opacity: phase === 'out' ? 0 : 1,
     transform: phase === 'out' ? EXIT[s.dir] : phase === 'in' ? ENTER[s.dir] : 'none',
     transition: phase === 'out'
-      ? 'opacity 0.24s ease, transform 0.27s ease'
+      ? 'opacity 0.2s ease-out, transform 0.22s ease-out'
       : phase === 'in'
-      ? 'opacity 0.42s ease 0.04s, transform 0.42s ease 0.04s'
+      ? 'opacity 0.46s cubic-bezier(.22,.61,.36,1), transform 0.46s cubic-bezier(.22,.61,.36,1)'
       : 'none',
   }
 
   return (
     <div style={{ width: '100%' }}>
-      <div style={W}>
+      <div style={HERO_W}>
         <div style={{ background: s.bg, transition: 'background 0.5s ease', position: 'relative', overflow: 'hidden', borderRadius: 18 }}>
 
           {/* ── Animated slide content ── */}
           <div style={anim}>
-            <div style={{ padding: '12px clamp(12px, 2vw, 28px) 20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) clamp(320px, 43vw, 620px)', gap: 24, alignItems: 'center' }}>
+            <div style={{ padding: '10px clamp(8px, 1.3vw, 18px) 18px' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(640px, 0.95fr) minmax(560px, 1.05fr)',
+                  gap: 0,
+                  alignItems: 'stretch',
+                  maxWidth: 1840,
+                  margin: '0 auto',
+                  borderRadius: 22,
+                  overflow: 'hidden',
+                  background: `linear-gradient(120deg, #ffffff 0%, #ffffff 52%, ${s.aLight} 100%)`,
+                  border: `1px solid ${s.aMid}2c`,
+                  boxShadow: '0 16px 36px rgba(15,23,42,0.09)',
+                }}
+              >
 
               {/* Left: copy */}
-              <div style={{ background: '#ffffff', border: `1px solid ${s.aMid}2a`, borderRadius: 16, padding: '16px 18px' }}>
+              <div style={{ padding: '26px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 820 }}>
               {/* Eyebrow */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 100, padding: '4px 11px', background: s.aLight, border: `1px solid ${s.aMid}38`, marginBottom: 14 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, borderRadius: 12, padding: '8px 14px', background: s.aLight, border: `1px solid ${s.aMid}40`, marginBottom: 16, maxWidth: 'fit-content' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.aMid, display: 'inline-block', flexShrink: 0 }} />
-                <span style={{ fontSize: 'clamp(11px, 0.85vw, 14px)', fontWeight: 700, color: s.accent, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: F }}>{s.eyebrow}</span>
+                <span style={{ fontSize: 'clamp(13px, 1vw, 16px)', fontWeight: 700, color: s.accent, letterSpacing: '0.015em', lineHeight: 1.25, fontFamily: F }}>{s.eyebrow}</span>
               </div>
 
               {/* Heading */}
-              <h1 style={{ fontSize: 'clamp(30px, 3.3vw, 48px)', fontWeight: 800, lineHeight: 1.05, color: '#0f172a', margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
+              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: '#0f172a', margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
                 {s.heading}
               </h1>
-              <h1 style={{ fontSize: 'clamp(30px, 3.3vw, 48px)', fontWeight: 800, lineHeight: 1.05, color: s.accent, margin: '0 0 12px', letterSpacing: '-0.02em', fontFamily: F }}>
+              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: s.accent, margin: '0 0 14px', letterSpacing: '-0.02em', fontFamily: F }}>
                 {s.accent1}
               </h1>
 
               {/* Body */}
-              <p style={{ fontSize: 'clamp(16px, 1.2vw, 22px)', color: '#475569', lineHeight: 1.5, maxWidth: 760, margin: '0 0 16px', fontFamily: F }}>
+              <p style={{ fontSize: 'clamp(18px, 1.35vw, 24px)', color: '#334155', lineHeight: 1.55, maxWidth: 760, margin: '0 0 20px', fontFamily: F }}>
                 {s.body}
               </p>
 
               {/* CTA buttons */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
                 <Link
                   href={s.cta.href}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 22px', borderRadius: 10, background: s.accent, color: '#fff', fontSize: 15, fontWeight: 700, boxShadow: `0 3px 14px ${s.aMid}38`, fontFamily: F, textDecoration: 'none' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 24px', borderRadius: 11, background: s.accent, color: '#fff', fontSize: 16, fontWeight: 700, boxShadow: `0 3px 14px ${s.aMid}38`, fontFamily: F, textDecoration: 'none' }}
                 >
                   {s.cta.label} <ArrowRight style={{ width: 14, height: 14 }} />
                 </Link>
                 <Link
                   href={s.ctaAlt.href}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 20px', borderRadius: 10, background: '#fff', color: '#374151', border: '1.5px solid #d1d5db', fontSize: 15, fontWeight: 600, fontFamily: F, textDecoration: 'none' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 22px', borderRadius: 11, background: '#fff', color: '#374151', border: '1.5px solid #d1d5db', fontSize: 16, fontWeight: 600, fontFamily: F, textDecoration: 'none' }}
                 >
                   {s.ctaAlt.label}
                 </Link>
               </div>
 
               {/* Stats */}
-              <div style={{ display: 'flex', gap: 24 }}>
+              <div style={{ display: 'flex', gap: 28 }}>
                 {s.stats.map(st => (
                   <div key={st.l}>
-                    <p style={{ fontSize: 'clamp(34px, 2.8vw, 44px)', fontWeight: 800, color: s.accent, margin: 0, lineHeight: 1, fontFamily: F }}>{st.v}</p>
-                    <p style={{ fontSize: 'clamp(13px, 1vw, 16px)', color: '#94a3b8', margin: '4px 0 0', fontWeight: 600, fontFamily: F }}>{st.l}</p>
+                    <p style={{ fontSize: 'clamp(36px, 2.9vw, 48px)', fontWeight: 800, color: s.accent, margin: 0, lineHeight: 1, fontFamily: F }}>{st.v}</p>
+                    <p style={{ fontSize: 'clamp(14px, 1.05vw, 17px)', color: '#64748b', margin: '4px 0 0', fontWeight: 700, fontFamily: F }}>{st.l}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-              {/* Right: expanded preview card */}
-              <div style={{ background: '#fff', borderRadius: 18, border: `1.5px solid ${s.aMid}1e`, boxShadow: '0 12px 34px rgba(0,0,0,0.08)', padding: 18, overflow: 'hidden' }}>
+              {/* Right: integrated live preview panel */}
+              <div
+                style={{
+                  background: 'transparent',
+                  borderLeft: `1px solid ${s.aMid}24`,
+                  padding: '24px 24px 22px',
+                  overflow: 'hidden',
+                }}
+              >
 
                   {/* Card header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${s.aLight}` }}>
-                <div style={{ width: 32, height: 32, borderRadius: 9, background: s.aLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <SlideIcon style={{ width: 18, height: 18, color: s.accent }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 18, paddingBottom: 13, borderBottom: `1px solid ${s.aMid}26` }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: s.aLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <SlideIcon style={{ width: 20, height: 20, color: s.accent }} />
                 </div>
                 <div>
-                  <p style={{ fontSize: 'clamp(15px, 1.1vw, 19px)', fontWeight: 800, color: '#0f172a', margin: 0, fontFamily: F }}>PreciseGovCon</p>
-                  <p style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#94a3b8', margin: 0, fontFamily: F }}>{s.badge}</p>
+                  <p
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 9px',
+                      borderRadius: 8,
+                      background: '#0f172a',
+                      border: '1px solid #1e293b',
+                      fontSize: 'clamp(16px, 1.12vw, 20px)',
+                      fontWeight: 800,
+                      margin: 0,
+                      lineHeight: 1.05,
+                      letterSpacing: '0.01em',
+                      fontFamily: F,
+                    }}
+                  >
+                    <span style={{ color: '#ffffff' }}>PRECISE </span>
+                    <span style={{ color: '#f97316' }}>GOVCON</span>
+                  </p>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: 'clamp(11px, 0.95vw, 14px)', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 100, padding: '4px 10px', fontFamily: F }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0d9488', display: 'inline-block' }} />
-                  LIVE
-                </div>
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    background: s.aLight,
+                    border: `1px solid ${s.aMid}38`,
+                    fontSize: 'clamp(12px, 0.95vw, 14px)',
+                    fontWeight: 800,
+                    color: '#334155',
+                    lineHeight: 1.15,
+                    fontFamily: F,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {s.badge}
+                </span>
               </div>
 
                   {/* Opportunity rows */}
                   {OPPS.map((opp, i) => (
-                    <div key={i} style={{ padding: '9px 10px', borderRadius: 10, background: i === 0 ? s.aLight : '#f8fafc', border: `1px solid ${i === 0 ? s.aMid + '22' : '#f1f5f9'}`, marginBottom: i < 2 ? 8 : 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <p style={{ fontSize: 'clamp(13px, 1vw, 16px)', fontWeight: 700, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
-                    <span style={{ flexShrink: 0, fontSize: 'clamp(10px, 0.85vw, 13px)', fontWeight: 800, color: opp.match >= 85 ? '#0d9488' : '#0369a1', background: opp.match >= 85 ? '#f0fdfa' : '#f0f9ff', border: `1px solid ${opp.match >= 85 ? '#99f6e4' : '#bae6fd'}`, borderRadius: 6, padding: '1px 6px', fontFamily: F }}>
+                    <div key={i} style={{ padding: '12px 13px', borderRadius: 12, background: i === 0 ? s.aLight : 'rgba(248,250,252,0.85)', border: `1px solid ${i === 0 ? s.aMid + '30' : '#e2e8f0'}`, marginBottom: i < 2 ? 9 : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                    <p style={{ fontSize: 'clamp(15px, 1.08vw, 18px)', fontWeight: 800, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
+                    <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: opp.match >= 85 ? '#0d9488' : '#0369a1', background: opp.match >= 85 ? '#f0fdfa' : '#f0f9ff', border: `1px solid ${opp.match >= 85 ? '#99f6e4' : '#bae6fd'}`, borderRadius: 7, padding: '2px 8px', fontFamily: F }}>
                       {opp.match}%
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ fontSize: 'clamp(11px, 0.95vw, 15px)', color: '#94a3b8', fontWeight: 600, fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>{opp.agency}</span>
-                    <span style={{ flexShrink: 0, fontSize: 'clamp(10px, 0.9vw, 14px)', fontWeight: 700, color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 4, padding: '0 5px', fontFamily: F }}>{opp.deadline}</span>
-                    <span style={{ flexShrink: 0, fontSize: 'clamp(10px, 0.9vw, 14px)', fontWeight: 700, color: s.accent, background: s.aLight, border: `1px solid ${s.aMid}1e`, borderRadius: 4, padding: '0 5px', fontFamily: F }}>{opp.sa}</span>
-                    <span style={{ fontSize: 'clamp(10px, 0.9vw, 14px)', color: '#64748b', fontWeight: 700, marginLeft: 'auto', fontFamily: F }}>{opp.val}</span>
+                    <span style={{ fontSize: 'clamp(13px, 1.02vw, 16px)', color: '#334155', fontWeight: 700, fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>{opp.agency}</span>
+                    <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 5, padding: '1px 7px', fontFamily: F }}>{opp.deadline}</span>
+                    <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: s.accent, background: s.aLight, border: `1px solid ${s.aMid}1e`, borderRadius: 5, padding: '1px 7px', fontFamily: F }}>{opp.sa}</span>
+                    <span style={{ fontSize: 'clamp(12px, 0.9vw, 14px)', color: '#1e293b', fontWeight: 800, marginLeft: 'auto', fontFamily: F }}>{opp.val}</span>
                   </div>
                     </div>
                   ))}
 
-                  <p style={{ fontSize: 'clamp(12px, 1vw, 16px)', color: '#94a3b8', fontWeight: 600, margin: '12px 0 0', textAlign: 'center', fontFamily: F }}>3 of 1,328 live opportunities</p>
+                  <p style={{ fontSize: 'clamp(15px, 1.15vw, 19px)', color: '#15803d', fontWeight: 800, margin: '14px 0 0', textAlign: 'center', fontFamily: F }}>3 of 1,328 live opportunities</p>
+                  <p style={{ fontSize: 'clamp(16px, 1.2vw, 20px)', color: '#39ff14', fontWeight: 700, lineHeight: 1.35, margin: '8px 0 0', textAlign: 'center', fontFamily: F }}>
+                    View more by{' '}
+                    <Link href="/signup" style={{ color: '#39ff14', fontWeight: 900, textDecoration: 'none' }}>
+                      signing up
+                    </Link>
+                    {' '}or{' '}
+                    <Link href="/login" style={{ color: '#39ff14', fontWeight: 900, textDecoration: 'none' }}>
+                      logging in
+                    </Link>
+                    .
+                  </p>
                 </div>
 
               </div>

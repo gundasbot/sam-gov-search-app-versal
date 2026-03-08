@@ -3,8 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 
-export default function ForgotPasswordClient() {
-  const [email, setEmail] = useState("")
+export default function ForgotPasswordClient({ initialEmail = "" }: { initialEmail?: string }) {
+  const [email, setEmail] = useState(initialEmail)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -25,18 +25,18 @@ export default function ForgotPasswordClient() {
 
   return (
     <>
-      <p className="text-sm text-slate-300 mt-2">
+      <p className="text-sm text-[var(--color-text-secondary)] mt-1">
         Enter your email and we&apos;ll send a reset link.
       </p>
 
       {sent ? (
-        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-900/20 p-4 text-sm">
+        <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
           If an account exists for that email, a reset link has been sent.
         </div>
       ) : (
         <form onSubmit={onSubmit} className="mt-5 space-y-3">
           <input
-            className="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 outline-none"
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-orange-400"
             placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -52,8 +52,8 @@ export default function ForgotPasswordClient() {
         </form>
       )}
 
-      <div className="mt-5 text-sm text-slate-300">
-        <Link className="underline" href="/login">
+      <div className="mt-5 text-sm text-[var(--color-text-secondary)]">
+        <Link className="underline hover:text-[var(--color-primary)]" href="/login">
           Back to login
         </Link>
       </div>

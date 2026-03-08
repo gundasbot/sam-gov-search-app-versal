@@ -19,7 +19,7 @@ const PLANS = [
     tagline: 'For getting started',
     bestFor: 'New contractors exploring opportunities',
     monthlyPrice: 24.99,
-    annualPrice: 19.99,
+    annualPrice: 240,
     icon: Shield,
     gradient: 'from-[#dbeafe] via-[#eff6ff] to-white',
     gradientActive: 'from-[#bfdbfe] via-[#dbeafe] to-[#eff6ff]',
@@ -43,7 +43,7 @@ const PLANS = [
     tagline: 'For serious bidding teams',
     bestFor: 'Teams actively bidding every week',
     monthlyPrice: 49,
-    annualPrice: 39,
+    annualPrice: 490,
     icon: Zap,
     gradient: 'from-[#fef3c7] via-[#fde68a] to-[#fbcfe8]',
     gradientActive: 'from-[#fde68a] via-[#fcd34d] to-[#f9a8d4]',
@@ -69,7 +69,7 @@ const PLANS = [
     tagline: 'For organizations at scale',
     bestFor: 'Organizations managing multiple bids',
     monthlyPrice: 199,
-    annualPrice: 159,
+    annualPrice: 1990,
     icon: Crown,
     gradient: 'from-[#ede9fe] via-[#f5d0fe] to-[#cffafe]',
     gradientActive: 'from-[#ddd6fe] via-[#e9d5ff] to-[#a5f3fc]',
@@ -165,9 +165,10 @@ export default function SignUpClient() {
   }
 
   const activePlan    = PLANS.find(p => p.id === selectedPlan)!
-  const annualTotal   = Math.round(activePlan.annualPrice * 12)
+  const annualTotal   = activePlan.annualPrice
   const displayPrice  = annual ? annualTotal : activePlan.monthlyPrice
-  const annualSavings = Math.round((activePlan.monthlyPrice - activePlan.annualPrice) * 12)
+  const annualSavings = Math.round((activePlan.monthlyPrice * 12) - activePlan.annualPrice)
+  const annualMonthlyEquivalent = activePlan.annualPrice / 12
 
   const passwordsMatch    = confirmPassword.length > 0 && password === confirmPassword
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword
@@ -437,7 +438,12 @@ export default function SignUpClient() {
                       <span className="text-sm font-medium text-[var(--color-text-secondary)]">{annual ? '/yr' : '/mo'}</span>
                     </p>
                     {annual && annualSavings > 0
-                      ? <p className={`text-xs font-bold mt-0.5 ${activePlan.accentLight}`}>Save ${annualSavings}/yr · billed annually · ${activePlan.annualPrice}/mo equivalent</p>
+                      ? (
+                        <p className={`mt-1 rounded-md px-2 py-1 text-sm font-extrabold leading-tight ${activePlan.accentLight} bg-white/70 border border-black/10`}>
+                          Save ${annualSavings}/yr
+                          <span className="text-[var(--color-text-secondary)] font-bold"> · ${fmt2.format(annualMonthlyEquivalent)}/mo equivalent</span>
+                        </p>
+                      )
                       : <p className="text-[var(--color-primary)] text-xs font-semibold mt-0.5">Free 7-day trial</p>
                     }
                   </div>
@@ -501,9 +507,10 @@ export default function SignUpClient() {
             {PLANS.map(plan => {
               const Icon    = plan.icon
               const active  = selectedPlan === plan.id
-              const annualPlanTotal = Math.round(plan.annualPrice * 12)
+              const annualPlanTotal = plan.annualPrice
               const price   = annual ? annualPlanTotal : plan.monthlyPrice
-              const savings = Math.round((plan.monthlyPrice - plan.annualPrice) * 12)
+              const savings = Math.round((plan.monthlyPrice * 12) - plan.annualPrice)
+              const monthlyEquivalent = plan.annualPrice / 12
 
               return (
                 <button
@@ -551,8 +558,8 @@ export default function SignUpClient() {
 
                       {/* Annual savings badge OR free trial label */}
                       {annual && savings > 0 ? (
-                        <span className={`inline-flex mt-1.5 items-center rounded-full border px-2 py-0.5 text-[10px] font-black ${plan.savingsBadge}`}>
-                          Save ${savings}/yr · ${plan.annualPrice}/mo equivalent
+                        <span className={`inline-flex mt-1.5 items-center rounded-lg border px-2.5 py-1 text-xs font-extrabold leading-tight ${plan.savingsBadge}`}>
+                          Save ${savings}/yr · ${fmt2.format(monthlyEquivalent)}/mo equivalent
                         </span>
                       ) : (
                         <p className="text-[var(--color-primary)] text-xs font-semibold mt-1">7-Day Free Trial</p>

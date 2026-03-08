@@ -115,8 +115,7 @@ export default async function proxy(request: NextRequest) {
 
   if (elapsedMs > BROWSING_TIME_LIMIT_MS && delayCount >= MAX_DELAYS) {
     // Completely out of time AND delays — redirect to login
-    const loginUrl = new URL('/', request.url)
-    loginUrl.searchParams.set('mode', 'login')
+    const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('callbackUrl', pathname)
     loginUrl.searchParams.set('reason', 'time_expired')
     return NextResponse.redirect(loginUrl)

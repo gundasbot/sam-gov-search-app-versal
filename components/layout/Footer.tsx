@@ -58,7 +58,7 @@ export default function Footer() {
                     className="inline-flex w-fit items-center rounded-md px-2 py-1 text-[1.5rem] font-black leading-none tracking-tight"
                     style={{ backgroundColor: wordmark.colors.background }}
                   >
-                    <span style={{ color: wordmark.colors.precise }}>{wordmark.preciseText}</span>{' '}
+                    <span style={{ color: wordmark.colors.precise, marginRight: '0.28em' }}>{wordmark.preciseText}</span>
                     <span style={{ color: wordmark.colors.govcon }}>{wordmark.govconText}</span>
                   </div>
                   <div className="text-[1.125rem] italic font-semibold tracking-wide text-[var(--color-text-secondary)]">

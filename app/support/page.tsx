@@ -3,7 +3,7 @@
 'use client'
 
 import Script from 'next/script'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -71,20 +71,27 @@ const CATEGORY_COLORS = {
 function SupportContactModal({
   isOpen,
   onClose,
+  defaultCategory,
+  defaultEmail,
+  defaultMessage,
 }: {
   isOpen: boolean
   onClose: () => void
+  defaultCategory?: string
+  defaultEmail?: string
+  defaultMessage?: string
 }) {
-  const [view, setView] = useState<'options' | 'form'>('options')
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const initialCategory = defaultCategory || ''
+  const [view, setView] = useState<'options' | 'form'>(initialCategory ? 'form' : 'options')
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory)
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
-    email: '',
+    email: defaultEmail || '',
     phone: '',
     company: '',
-    inquiryType: '',
-    message: '',
+    inquiryType: initialCategory,
+    message: defaultMessage || '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitOk, setSubmitOk] = useState('')
@@ -95,6 +102,19 @@ function SupportContactModal({
     category: string
     timestamp: string
   } | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const category = defaultCategory || ''
+    setSelectedCategory(category)
+    setView(category ? 'form' : 'options')
+    setForm((prev) => ({
+      ...prev,
+      email: defaultEmail || prev.email,
+      inquiryType: category || prev.inquiryType,
+      message: defaultMessage || prev.message,
+    }))
+  }, [isOpen, defaultCategory, defaultEmail, defaultMessage])
 
   if (!isOpen) return null
 
@@ -697,6 +717,19 @@ function SupportContactModal({
 
 export default function SupportPage() {
   const [supportModalOpen, setSupportModalOpen] = useState(false)
+  const [prefillCategory, setPrefillCategory] = useState('')
+  const [prefillEmail, setPrefillEmail] = useState('')
+  const [prefillMessage, setPrefillMessage] = useState('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const shouldOpen = params.get('openContact') === '1'
+    setPrefillCategory(params.get('category') || '')
+    setPrefillEmail(params.get('email') || '')
+    setPrefillMessage(params.get('message') || '')
+    if (shouldOpen) setSupportModalOpen(true)
+  }, [])
   const topicCards = [
     {
       title: 'Support Center | PreciseGovCon',
@@ -746,6 +779,9 @@ export default function SupportPage() {
       <SupportContactModal
         isOpen={supportModalOpen}
         onClose={() => setSupportModalOpen(false)}
+        defaultCategory={prefillCategory}
+        defaultEmail={prefillEmail}
+        defaultMessage={prefillMessage}
       />
 
       {/* LIGHTER BACKGROUND + NEON GLOWS */}

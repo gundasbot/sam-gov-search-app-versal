@@ -558,6 +558,7 @@ function normalizeOpportunity(raw: any): SamOpportunity {
 export default function OpportunitiesClient() {
   const searchParams = useSearchParams();
   const filterParam = searchParams?.get('filter') ?? null;
+  const searchParamSnapshot = searchParams?.toString() ?? '';
   const { data: session, status: sessionStatus } = useSession();
   const isLoggedIn = sessionStatus === 'authenticated';
 
@@ -611,6 +612,42 @@ export default function OpportunitiesClient() {
   const [dataSource, setDataSource] = useState<'mock' | 'live' | 'ticker'>('mock');
   const [showSignInNudge, setShowSignInNudge] = useState(false);
   const nudgeTimerRef = useRef<number | null>(null);
+
+  // Prefill filters from URL so shared opportunities links restore search context.
+  useEffect(() => {
+    if (!searchParams) return;
+
+    const pick = (...keys: string[]) => {
+      for (const key of keys) {
+        const value = searchParams.get(key);
+        if (value && value.trim()) return value.trim();
+      }
+      return '';
+    };
+
+    const decode = (value: string) => {
+      try {
+        return decodeURIComponent(value).trim();
+      } catch {
+        return value.trim();
+      }
+    };
+
+    const query = decode(pick('q', 'query', 'search', 'keyword'));
+    const agency = decode(pick('agency', 'department'));
+    const naics = decode(pick('naics', 'naicsCode'));
+    const setAside = decode(pick('setAside', 'setaside'));
+    const urgency = decode(pick('urgency'));
+
+    if (query) {
+      setSearchTerm(query);
+      setKeywordSearch(query);
+    }
+    if (agency) setSelectedAgency(agency);
+    if (naics) setSelectedNAICS(naics);
+    if (setAside) setSelectedSetAside(setAside);
+    if (urgency) setSelectedUrgency(urgency);
+  }, [searchParamSnapshot, searchParams]);
 
   const scheduleSignInPrompt = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -1543,10 +1580,10 @@ Provide analysis in JSON format with:
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 pb-40">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 pb-40 [&_.text-xs]:text-sm [&_.text-sm]:text-base [&_.text-base]:text-[1.25rem] [&_.text-lg]:text-[1.4rem]">
       {/* Header with status */}
       <div className="border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
-        <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
+        <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
               <div className="flex items-center gap-2">
@@ -1630,7 +1667,7 @@ Provide analysis in JSON format with:
       {/* Error Banner */}
       {error && (
         <div className="border-b border-red-500/20 bg-red-500/10 backdrop-blur-xl">
-          <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
+          <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <AlertCircle className="w-5 h-5 text-red-400" />
@@ -1659,7 +1696,7 @@ Provide analysis in JSON format with:
       )}
 
       {!isLoggedIn && dataSource === 'ticker' && (
-          <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3">
+          <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3">
             <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-cyan-200">You are viewing a live sample feed</p>
@@ -1683,7 +1720,7 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-      <div className="max-w-[1900px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
+      <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
         {/* 📌 HERO SECTION - What we're showing and how */}
         <div className="mb-2 p-2 sm:p-3 bg-gradient-to-br from-blue-900/30 via-indigo-900/20 to-purple-900/30 rounded-xl border border-blue-500/30">
           <div className="flex items-center gap-3">
