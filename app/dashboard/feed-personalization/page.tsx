@@ -151,21 +151,21 @@ export default function FeedPersonalizationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Header */}
-      <div className="bg-slate-900 text-white py-8 sm:py-12 border-b border-slate-800">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-8 sm:py-10 border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-orange-400 text-sm font-bold uppercase tracking-wide">{greeting}, {firstName(session)}</p>
           <h1 className="text-4xl sm:text-5xl font-black mt-2 flex items-center gap-3">
             <span>{emoji}</span>
             Personalize Your Opportunities Feed
           </h1>
-          <p className="text-xl text-slate-300 mt-4 max-w-2xl leading-relaxed">
+          <p className="text-xl text-slate-300 mt-3 max-w-2xl leading-relaxed">
             Tell us about your business. We'll create a tailored pipeline of federal contracts that match your expertise.
           </p>
 
           {/* Save Status */}
-          <div className="mt-6 flex items-center gap-2">
+          <div className="mt-5 flex items-center gap-2">
             {saved && (
               <div className="inline-flex items-center gap-2 rounded-lg bg-green-500/20 border border-green-500/50 px-4 py-2 text-sm font-semibold text-green-400">
                 <Check className="h-4 w-4" />
@@ -183,12 +183,12 @@ export default function FeedPersonalizationPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="space-y-10">
 
           {/* Set-Asides Section */}
           <section>
-            <div className="mb-6">
+            <div className="mb-8">
               <h2 className="text-3xl font-black text-slate-900">Business Classification</h2>
               <p className="text-lg text-slate-600 mt-2">What types of set-asides does your business qualify for?</p>
             </div>
@@ -208,7 +208,7 @@ export default function FeedPersonalizationPage() {
                     }
                     className={`relative rounded-xl border-2 p-5 text-left transition-all font-semibold text-lg ${
                       isSelected
-                        ? 'border-orange-400 bg-orange-50 text-orange-900 shadow-lg'
+                        ? 'border-orange-400 bg-gradient-to-br from-orange-50 to-amber-50 text-orange-900 shadow-lg'
                         : 'border-slate-300 bg-white text-slate-900 hover:border-orange-300 hover:bg-orange-50/30 hover:shadow-md'
                     }`}
                   >
@@ -227,93 +227,120 @@ export default function FeedPersonalizationPage() {
 
           {/* NAICS Codes Section */}
           <section>
-            <div className="mb-6">
+            <div className="mb-8">
               <h2 className="text-3xl font-black text-slate-900">Industry Classification (NAICS)</h2>
-              <p className="text-lg text-slate-600 mt-2">Search for industries that match your business</p>
+              <p className="text-lg text-slate-600 mt-2">Search for industries that match your business. Type a code, name, or skill.</p>
             </div>
 
-            <div className="bg-white rounded-xl border-2 border-slate-300 overflow-hidden">
+            <div className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-lg">
               {/* Search Input */}
-              <div className="p-6 border-b-2 border-slate-200">
+              <div className="p-6 border-b-2 border-slate-100 bg-gradient-to-br from-slate-50 to-white">
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-500 font-bold" />
                   <input
                     type="text"
-                    placeholder="Search by code (541512) or description (Computer Systems)..."
+                    placeholder="Try: 'Computer', '541512', 'Software', 'Engineering'..."
                     value={naicsSearch}
                     onChange={e => setNaicsSearch(e.target.value)}
-                    className="w-full pl-12 pr-6 py-4 text-lg rounded-lg border-2 border-slate-300 focus:border-violet-400 focus:outline-none font-semibold"
+                    className="w-full pl-12 pr-6 py-4 text-base rounded-xl border-2 border-slate-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none font-semibold transition-all"
                   />
+                  {naicsSearch && (
+                    <button
+                      onClick={() => setNaicsSearch('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
+                {naicsSearch && (
+                  <p className="mt-3 text-sm text-slate-600">
+                    Found <span className="font-bold text-orange-600">{filteredNaics.length}</span> matching industries
+                  </p>
+                )}
               </div>
 
               {/* Selected Codes */}
               {(prefs.naicsCodes || []).length > 0 && (
-                <div className="p-6 bg-violet-50 border-b-2 border-slate-200">
-                  <p className="text-sm font-bold text-violet-900 uppercase tracking-wider mb-3">
-                    Selected ({prefs.naicsCodes!.length})
+                <div className="p-6 bg-gradient-to-r from-orange-50 to-amber-50 border-b-2 border-slate-100">
+                  <p className="text-sm font-bold text-orange-900 uppercase tracking-wider mb-4">
+                    ✓ Selected ({prefs.naicsCodes!.length})
                   </p>
-                  <div className="flex flex-wrap gap-3">
-                    {(prefs.naicsCodes || []).map(code => (
-                      <button
-                        key={code}
-                        onClick={() =>
-                          updatePrefs({
-                            naicsCodes: (prefs.naicsCodes || []).filter(c => c !== code),
-                          })
-                        }
-                        className="inline-flex items-center gap-2 rounded-lg bg-white border-2 border-violet-400 px-4 py-2 text-base font-bold text-violet-700 hover:bg-violet-100 transition-colors"
-                      >
-                        <span>{code}</span>
-                        <X className="h-5 w-5" />
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap gap-2">
+                    {(prefs.naicsCodes || []).map(code => {
+                      const codeObj = NAICS_CODES.find(c => c.code === code)
+                      return (
+                        <button
+                          key={code}
+                          onClick={() =>
+                            updatePrefs({
+                              naicsCodes: (prefs.naicsCodes || []).filter(c => c !== code),
+                            })
+                          }
+                          className="inline-flex items-center gap-2 rounded-lg bg-white border-2 border-orange-400 px-3 py-2 text-sm font-bold text-orange-700 hover:bg-orange-100 transition-all group"
+                          title={codeObj?.title}
+                        >
+                          <span>{code}</span>
+                          <X className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Filtered List */}
-              <div className="p-6 space-y-3 max-h-[500px] overflow-y-auto">
-                {filteredNaics.map(code => {
-                  const isSelected = (prefs.naicsCodes || []).includes(code.code)
-                  return (
-                    <button
-                      key={code.code}
-                      onClick={() =>
-                        updatePrefs({
-                          naicsCodes: isSelected
-                            ? (prefs.naicsCodes || []).filter(c => c !== code.code)
-                            : [...(prefs.naicsCodes || []), code.code],
-                        })
-                      }
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                        isSelected
-                          ? 'border-violet-400 bg-violet-50'
-                          : 'border-slate-300 hover:border-violet-300 hover:bg-violet-50/30'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-slate-900 text-lg">{code.code}</p>
-                          <p className="text-base text-slate-700 mt-1">{code.title}</p>
-                          {code.description && (
-                            <p className="text-sm text-slate-500 mt-2">{code.description}</p>
-                          )}
+              <div className="p-6 space-y-2 max-h-[600px] overflow-y-auto">
+                {filteredNaics.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Search className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500 font-semibold">No industries found matching "{naicsSearch}"</p>
+                    <p className="text-slate-400 text-sm mt-1">Try searching for: Computer, Engineering, Consulting, Software...</p>
+                  </div>
+                ) : (
+                  filteredNaics.map(code => {
+                    const isSelected = (prefs.naicsCodes || []).includes(code.code)
+                    return (
+                      <button
+                        key={code.code}
+                        onClick={() =>
+                          updatePrefs({
+                            naicsCodes: isSelected
+                              ? (prefs.naicsCodes || []).filter(c => c !== code.code)
+                              : [...(prefs.naicsCodes || []), code.code],
+                          })
+                        }
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? 'border-orange-400 bg-gradient-to-r from-orange-50 to-amber-50 shadow-md'
+                            : 'border-slate-200 hover:border-orange-300 hover:bg-orange-50/40 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-900 text-base">{code.code}</p>
+                              {isSelected && <Check className="h-5 w-5 text-orange-600 flex-shrink-0" />}
+                            </div>
+                            <p className="text-slate-800 font-semibold mt-1">{code.title}</p>
+                            {code.description && (
+                              <p className="text-sm text-slate-600 mt-1.5 line-clamp-2">{code.description}</p>
+                            )}
+                          </div>
                         </div>
-                        {isSelected && <Check className="h-6 w-6 text-violet-600 flex-shrink-0 mt-1" />}
-                      </div>
-                    </button>
-                  )
-                })}
+                      </button>
+                    )
+                  })
+                )}
               </div>
             </div>
           </section>
 
           {/* States and Contract Size */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* States */}
             <section>
-              <h2 className="text-3xl font-black text-slate-900 mb-6">Geographic Focus</h2>
+              <h2 className="text-3xl font-black text-slate-900 mb-8">Geographic Focus</h2>
               <div className="grid grid-cols-4 gap-2">
                 {US_STATES.slice(1).map(state => {
                   const isSelected = (prefs.states || []).includes(state.value)
@@ -342,7 +369,7 @@ export default function FeedPersonalizationPage() {
 
             {/* Contract Size */}
             <section>
-              <h2 className="text-3xl font-black text-slate-900 mb-6">Contract Size</h2>
+              <h2 className="text-3xl font-black text-slate-900 mb-8">Contract Size</h2>
               <div className="space-y-3">
                 {CONTRACT_SIZES.map(size => {
                   const isSelected = prefs.contractSizeMin === size.min
@@ -370,7 +397,7 @@ export default function FeedPersonalizationPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between items-center pt-6 border-t-2 border-slate-300">
+          <div className="flex justify-between items-center pt-8 border-t-2 border-slate-300">
             <Link
               href="/dashboard"
               className="px-8 py-4 rounded-lg border-2 border-slate-400 text-slate-700 font-black text-lg hover:bg-slate-100 transition-colors"
