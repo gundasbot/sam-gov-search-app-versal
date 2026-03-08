@@ -305,9 +305,18 @@ export default function SignUpClient() {
                 Get started in 60 seconds - no credit card needed
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2 flex-shrink-0">
-              <Check className="w-5 h-5 text-white" />
-              <span className="text-white text-base font-bold">Free 7-day trial</span>
+            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap justify-end">
+              <div className="hidden sm:flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
+                <Check className="w-5 h-5 text-white" />
+                <span className="text-white text-base font-bold">Free 7-day trial</span>
+              </div>
+              <Link
+                href={`/login${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white/80 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <ArrowRight className="w-4 h-4 rotate-180" />
+                Back to Sign In
+              </Link>
             </div>
           </div>
 

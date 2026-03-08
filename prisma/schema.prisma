@@ -164,6 +164,18 @@ model opportunity_daily_stats {
   created_at   DateTime @default(now())
 }
 
+model otp_codes {
+  id         String    @id @default(cuid())
+  email      String
+  code_hash  String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+
+  @@index([email])
+  @@index([expires_at])
+}
+
 model password_reset_tokens {
   id         String    @id
   email      String

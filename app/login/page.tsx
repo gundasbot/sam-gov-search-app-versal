@@ -259,6 +259,14 @@ function SignInContent() {
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSent, setResendSent] = useState(false)
 
+  // OTP mode state
+  const [authMode, setAuthMode] = useState<'password' | 'otp'>('password')
+  const [otpEmail, setOtpEmail] = useState(emailParam)
+  const [otpCode, setOtpCode] = useState('')
+  const [otpSending, setOtpSending] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpTimeRemaining, setOtpTimeRemaining] = useState(0)
+
   useEffect(() => {
     if (status === 'authenticated') {
       router.replace(safeCallbackUrl)
@@ -331,6 +339,82 @@ function SignInContent() {
     }
   }
 
+  async function handleSendOTP() {
+    if (!otpEmail) return
+    setOtpSending(true)
+    setErrorState(null)
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: otpEmail }),
+      })
+      if (res.ok) {
+        setOtpSent(true)
+        setOtpTimeRemaining(900) // 15 minutes = 900 seconds
+      } else {
+        const data = await res.json()
+        setErrorState(parseError(data.error || 'Failed to send code'))
+      }
+    } catch (err) {
+      setErrorState(parseError('Failed to send code'))
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
+  async function handleVerifyOTP() {
+    if (!otpEmail || !otpCode) return
+    setLoading(true)
+    setErrorState(null)
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: otpEmail, code: otpCode }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorState(parseError(data.error || 'Invalid code'))
+        setLoading(false)
+        return
+      }
+
+      // Use auto-login token from verify-otp response
+      const result = await signIn('credentials', {
+        autoLoginToken: data.autoLoginToken,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setErrorState(parseError(result.error))
+        setLoading(false)
+        return
+      }
+
+      if (!result?.ok) {
+        setErrorState(parseError('GENERIC'))
+        setLoading(false)
+        return
+      }
+
+      router.push(safeCallbackUrl)
+      router.refresh()
+    } catch (err) {
+      setErrorState(parseError('GENERIC'))
+      setLoading(false)
+    }
+  }
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!otpSent || otpTimeRemaining <= 0) return
+    const interval = setInterval(() => {
+      setOtpTimeRemaining((t) => Math.max(0, t - 1))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [otpSent, otpTimeRemaining])
+
   return (
     <div className="aptos-page min-h-screen" style={{ background: '#f1f5f9' }}>
       <style dangerouslySetInnerHTML={{ __html: aptosFontStyle }} />
@@ -394,7 +478,45 @@ function SignInContent() {
                   <div className="h-px flex-1" style={{ background: C.border }} />
                 </div>
 
-                {/* Email form */}
+                {/* Auth mode toggle */}
+                <div className="flex items-center gap-2 rounded-xl border" style={{ borderColor: C.border, background: C.surfaceMuted, padding: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('password')
+                      setErrorState(null)
+                      setOtpCode('')
+                      setOtpSent(false)
+                      setOtpTimeRemaining(0)
+                    }}
+                    className="flex-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+                    style={{
+                      background: authMode === 'password' ? 'var(--color-primary)' : 'transparent',
+                      color: authMode === 'password' ? '#ffffff' : C.textSecondary,
+                    }}
+                  >
+                    Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('otp')
+                      setErrorState(null)
+                      setPassword('')
+                      setOtpEmail(email)
+                    }}
+                    className="flex-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
+                    style={{
+                      background: authMode === 'otp' ? 'var(--color-primary)' : 'transparent',
+                      color: authMode === 'otp' ? '#ffffff' : C.textSecondary,
+                    }}
+                  >
+                    Code
+                  </button>
+                </div>
+
+                {/* Password form */}
+                {authMode === 'password' && (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label htmlFor="email" className="mb-1.5 block text-xs font-bold uppercase tracking-wide" style={{ color: C.textSecondary }}>
@@ -457,6 +579,87 @@ function SignInContent() {
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Access Dashboard <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </form>
+                )}
+
+                {/* OTP form */}
+                {authMode === 'otp' && (
+                <form onSubmit={(e) => { e.preventDefault(); handleVerifyOTP() }} className="space-y-4">
+                  <div>
+                    <label htmlFor="otp-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wide" style={{ color: C.textSecondary }}>
+                      Email
+                    </label>
+                    <input
+                      id="otp-email"
+                      type="email"
+                      value={otpEmail}
+                      onChange={(e) => setOtpEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      disabled={otpSent}
+                      className="h-12 w-full rounded-xl px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-300 disabled:opacity-60"
+                      style={{ background: C.surfaceMuted, color: C.textPrimary, border: `1.5px solid ${C.border}` }}
+                    />
+                  </div>
+
+                  {!otpSent ? (
+                    <button
+                      type="button"
+                      onClick={handleSendOTP}
+                      disabled={otpSending || !otpEmail}
+                      className="h-12 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                      style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
+                    >
+                      {otpSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Send Code <Mail className="h-4 w-4" /></>}
+                    </button>
+                  ) : (
+                    <>
+                      <div style={{ background: '#fef8f0', border: `1.5px solid #fed7aa`, borderRadius: '12px', padding: '12px 16px', textAlign: 'center' }}>
+                        <p style={{ margin: 0, color: '#b45309', fontSize: '13px', fontWeight: 600 }}>
+                          ✓ Code sent to {otpEmail}
+                        </p>
+                        <p style={{ margin: '4px 0 0', color: '#a16207', fontSize: '12px' }}>
+                          Expires in {Math.floor(otpTimeRemaining / 60)}:{String(otpTimeRemaining % 60).padStart(2, '0')}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label htmlFor="otp-code" className="mb-1.5 block text-xs font-bold uppercase tracking-wide" style={{ color: C.textSecondary }}>
+                          6-Digit Code
+                        </label>
+                        <input
+                          id="otp-code"
+                          type="text"
+                          maxLength={6}
+                          inputMode="numeric"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                          placeholder="000000"
+                          className="h-12 w-full rounded-xl px-4 text-lg font-mono text-center outline-none transition-all focus:ring-2 focus:ring-orange-300"
+                          style={{ background: C.surfaceMuted, color: C.textPrimary, border: `1.5px solid ${C.border}`, letterSpacing: '12px' }}
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={loading || otpCode.length !== 6 || otpTimeRemaining === 0}
+                        className="h-12 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
+                      >
+                        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Verify & Sign In <ArrowRight className="h-4 w-4" /></>}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSendOTP}
+                        disabled={otpSending || otpTimeRemaining > 60}
+                        className="w-full text-xs font-semibold hover:underline disabled:opacity-60"
+                        style={{ color: '#ea580c', background: 'none', border: 'none', padding: '8px', cursor: 'pointer' }}
+                      >
+                        {otpTimeRemaining > 60 ? 'Didn\'t receive it?' : 'Resend code'}
+                      </button>
+                    </>
+                  )}
+                </form>
+                )}
 
                 {/* Footer helpers */}
                 <div className="pt-1 flex items-center justify-between text-xs flex-wrap gap-2" style={{ borderTop: `1px solid ${C.border}` }}>
