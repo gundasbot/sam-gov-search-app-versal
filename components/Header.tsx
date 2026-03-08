@@ -162,7 +162,7 @@ export default function Header() {
 
   // Shared nav link classes — tighter at lg, comfortable at xl+
   const navLinkBase = 'flex items-center gap-1.5 whitespace-nowrap rounded-xl font-semibold tracking-tight transition-all'
-  const navLinkSize = 'px-2 py-2 text-[0.85rem] xl:px-3.5 xl:py-2.5 xl:text-[0.95rem] 2xl:px-4 2xl:text-[1rem]'
+  const navLinkSize = 'px-2 py-1.5 text-[0.8rem] xl:px-3 xl:py-2 xl:text-[0.9rem] 2xl:px-3.5 2xl:text-[0.95rem]'
 
   return (
     <>
@@ -245,7 +245,7 @@ export default function Header() {
         }`}
       >
         <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8">
-          <div className="flex h-24 items-center justify-between gap-3 sm:h-24 lg:h-[102px] xl:gap-5">
+          <div className="flex h-20 items-center justify-between gap-3 sm:h-20 lg:h-[88px] xl:gap-5">
 
             {/* ── Logo ── */}
             <Link
@@ -260,17 +260,17 @@ export default function Header() {
                 alt="Precise GovCon"
                 width={56}
                 height={56}
-                className="h-12 w-12 flex-shrink-0 transition-transform group-hover:scale-105 sm:h-12 sm:w-12 lg:h-14 lg:w-14 xl:h-14 xl:w-14"
+                className="h-10 w-10 flex-shrink-0 transition-transform group-hover:scale-105 sm:h-10 sm:w-10 lg:h-12 lg:w-12 xl:h-12 xl:w-12"
               />
               <div className="flex flex-col gap-0.5">
                 <div
-                  className="inline-flex w-fit items-center rounded-md px-2.5 py-1.5 text-base font-black leading-none tracking-tight lg:text-[1.15rem] xl:text-[1.25rem] 2xl:text-[1.35rem]"
+                  className="inline-flex w-fit items-center rounded-md px-2 py-1 text-[0.95rem] font-black leading-none tracking-tight lg:text-[1.05rem] xl:text-[1.1rem] 2xl:text-[1.2rem]"
                   style={{ backgroundColor: wordmark.colors.background }}
                 >
                   <span style={{ color: wordmark.colors.precise }}>{wordmark.preciseText}</span>{' '}
                   <span style={{ color: wordmark.colors.govcon }}>{wordmark.govconText}</span>
                 </div>
-                <div className="hidden max-w-[240px] truncate text-[0.62rem] italic font-semibold tracking-wide text-slate-600 2xl:block 2xl:max-w-none 2xl:text-[0.76rem]">
+                <div className="hidden max-w-[240px] truncate text-[0.56rem] italic font-semibold tracking-wide text-slate-600 2xl:block 2xl:max-w-none 2xl:text-[0.7rem]">
                   Contracting Intelligence and Procurement Experts
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function Header() {
 
             {/* ── Desktop Nav ── */}
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-              <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-2 text-base shadow-sm overflow-x-auto xl:gap-1.5 xl:px-2.5">
+              <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm shadow-sm overflow-x-auto xl:gap-1.5 xl:px-2.5">
                 {[
                   { href: '/search', label: 'Search', icon: <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
@@ -390,7 +390,7 @@ export default function Header() {
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: '/' })}
-                    className="hidden lg:inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[0.9rem] font-bold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 xl:px-3.5 xl:text-[0.95rem] 2xl:px-4 2xl:text-[1rem]"
+                    className="hidden lg:inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[0.85rem] font-bold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 xl:px-3.5 xl:text-[0.9rem] 2xl:px-4 2xl:text-[0.95rem]"
                     aria-label="Sign out"
                   >
                     <LogOut className="w-4 h-4" />
@@ -400,7 +400,7 @@ export default function Header() {
                   <div className="relative" ref={accountRef}>
                     <button type="button"
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAccountOpen(v => !v); setServicesOpen(false) }}
-                      className="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2.5 font-bold text-slate-900 transition-colors hover:bg-slate-200 xl:gap-2 xl:px-3.5 xl:py-3"
+                      className="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-900 transition-colors hover:bg-slate-200 xl:gap-2 xl:px-3.5 xl:py-2.5"
                     >
                       <User className="w-4.5 h-4.5 flex-shrink-0" />
                       <span className="hidden xl:inline truncate max-w-[96px] text-[0.95rem]">{welcomeName}</span>
@@ -449,7 +449,7 @@ export default function Header() {
           </div>
         </div>
       </header>
-      <div aria-hidden className="h-[156px] sm:h-[164px] lg:h-[188px]" />
+      <div aria-hidden className="h-[132px] sm:h-[138px] lg:h-[154px]" />
 
       {/* ── MOBILE MENU ── */}
       {/* Backdrop */}

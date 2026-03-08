@@ -138,7 +138,7 @@ function HeroSlider() {
   const SlideIcon = s.Icon
 
   const anim: React.CSSProperties = {
-    opacity: phase === 'idle' ? 1 : 0,
+    opacity: phase === 'out' ? 0 : 1,
     transform: phase === 'out' ? EXIT[s.dir] : phase === 'in' ? ENTER[s.dir] : 'none',
     transition: phase === 'out'
       ? 'opacity 0.24s ease, transform 0.27s ease'
@@ -154,68 +154,68 @@ function HeroSlider() {
 
           {/* ── Animated slide content ── */}
           <div style={anim}>
-            <div style={{ padding: '18px clamp(14px, 2.2vw, 32px) 30px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) clamp(360px, 46vw, 720px)', gap: 32, alignItems: 'center' }}>
+            <div style={{ padding: '12px clamp(12px, 2vw, 28px) 20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) clamp(320px, 43vw, 620px)', gap: 24, alignItems: 'center' }}>
 
               {/* Left: copy */}
-              <div style={{ background: '#ffffff', border: `1px solid ${s.aMid}2a`, borderRadius: 16, padding: '20px 22px' }}>
+              <div style={{ background: '#ffffff', border: `1px solid ${s.aMid}2a`, borderRadius: 16, padding: '16px 18px' }}>
               {/* Eyebrow */}
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 100, padding: '4px 11px', background: s.aLight, border: `1px solid ${s.aMid}38`, marginBottom: 14 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.aMid, display: 'inline-block', flexShrink: 0 }} />
-                <span style={{ fontSize: 'clamp(13px, 1vw, 16px)', fontWeight: 700, color: s.accent, letterSpacing: '0.07em', textTransform: 'uppercase', fontFamily: F }}>{s.eyebrow}</span>
+                <span style={{ fontSize: 'clamp(11px, 0.85vw, 14px)', fontWeight: 700, color: s.accent, letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: F }}>{s.eyebrow}</span>
               </div>
 
               {/* Heading */}
-              <h1 style={{ fontSize: 'clamp(38px, 4.1vw, 60px)', fontWeight: 800, lineHeight: 1.04, color: '#0f172a', margin: '0 0 2px', letterSpacing: '-0.022em', fontFamily: F }}>
+              <h1 style={{ fontSize: 'clamp(30px, 3.3vw, 48px)', fontWeight: 800, lineHeight: 1.05, color: '#0f172a', margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
                 {s.heading}
               </h1>
-              <h1 style={{ fontSize: 'clamp(38px, 4.1vw, 60px)', fontWeight: 800, lineHeight: 1.04, color: s.accent, margin: '0 0 16px', letterSpacing: '-0.022em', fontFamily: F }}>
+              <h1 style={{ fontSize: 'clamp(30px, 3.3vw, 48px)', fontWeight: 800, lineHeight: 1.05, color: s.accent, margin: '0 0 12px', letterSpacing: '-0.02em', fontFamily: F }}>
                 {s.accent1}
               </h1>
 
               {/* Body */}
-              <p style={{ fontSize: 'clamp(20px, 1.6vw, 28px)', color: '#475569', lineHeight: 1.55, maxWidth: 760, margin: '0 0 22px', fontFamily: F }}>
+              <p style={{ fontSize: 'clamp(16px, 1.2vw, 22px)', color: '#475569', lineHeight: 1.5, maxWidth: 760, margin: '0 0 16px', fontFamily: F }}>
                 {s.body}
               </p>
 
               {/* CTA buttons */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
                 <Link
                   href={s.cta.href}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '13px 28px', borderRadius: 10, background: s.accent, color: '#fff', fontSize: 16, fontWeight: 700, boxShadow: `0 3px 14px ${s.aMid}38`, fontFamily: F, textDecoration: 'none' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 22px', borderRadius: 10, background: s.accent, color: '#fff', fontSize: 15, fontWeight: 700, boxShadow: `0 3px 14px ${s.aMid}38`, fontFamily: F, textDecoration: 'none' }}
                 >
                   {s.cta.label} <ArrowRight style={{ width: 14, height: 14 }} />
                 </Link>
                 <Link
                   href={s.ctaAlt.href}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '13px 26px', borderRadius: 10, background: '#fff', color: '#374151', border: '1.5px solid #d1d5db', fontSize: 16, fontWeight: 600, fontFamily: F, textDecoration: 'none' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 20px', borderRadius: 10, background: '#fff', color: '#374151', border: '1.5px solid #d1d5db', fontSize: 15, fontWeight: 600, fontFamily: F, textDecoration: 'none' }}
                 >
                   {s.ctaAlt.label}
                 </Link>
               </div>
 
               {/* Stats */}
-              <div style={{ display: 'flex', gap: 32 }}>
+              <div style={{ display: 'flex', gap: 24 }}>
                 {s.stats.map(st => (
                   <div key={st.l}>
-                    <p style={{ fontSize: 'clamp(42px, 3.8vw, 56px)', fontWeight: 800, color: s.accent, margin: 0, lineHeight: 1, fontFamily: F }}>{st.v}</p>
-                    <p style={{ fontSize: 'clamp(15px, 1.1vw, 19px)', color: '#94a3b8', margin: '5px 0 0', fontWeight: 600, fontFamily: F }}>{st.l}</p>
+                    <p style={{ fontSize: 'clamp(34px, 2.8vw, 44px)', fontWeight: 800, color: s.accent, margin: 0, lineHeight: 1, fontFamily: F }}>{st.v}</p>
+                    <p style={{ fontSize: 'clamp(13px, 1vw, 16px)', color: '#94a3b8', margin: '4px 0 0', fontWeight: 600, fontFamily: F }}>{st.l}</p>
                   </div>
                 ))}
               </div>
             </div>
 
               {/* Right: expanded preview card */}
-              <div style={{ background: '#fff', borderRadius: 18, border: `1.5px solid ${s.aMid}1e`, boxShadow: '0 12px 34px rgba(0,0,0,0.08)', padding: 24, overflow: 'hidden' }}>
+              <div style={{ background: '#fff', borderRadius: 18, border: `1.5px solid ${s.aMid}1e`, boxShadow: '0 12px 34px rgba(0,0,0,0.08)', padding: 18, overflow: 'hidden' }}>
 
                   {/* Card header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${s.aLight}` }}>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: s.aLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: s.aLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <SlideIcon style={{ width: 18, height: 18, color: s.accent }} />
                 </div>
                 <div>
-                  <p style={{ fontSize: 'clamp(16px, 1.25vw, 22px)', fontWeight: 800, color: '#0f172a', margin: 0, fontFamily: F }}>PreciseGovCon</p>
-                  <p style={{ fontSize: 'clamp(12px, 1vw, 16px)', color: '#94a3b8', margin: 0, fontFamily: F }}>{s.badge}</p>
+                  <p style={{ fontSize: 'clamp(15px, 1.1vw, 19px)', fontWeight: 800, color: '#0f172a', margin: 0, fontFamily: F }}>PreciseGovCon</p>
+                  <p style={{ fontSize: 'clamp(11px, 0.9vw, 13px)', color: '#94a3b8', margin: 0, fontFamily: F }}>{s.badge}</p>
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontSize: 'clamp(11px, 0.95vw, 14px)', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 100, padding: '4px 10px', fontFamily: F }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#0d9488', display: 'inline-block' }} />
@@ -225,10 +225,10 @@ function HeroSlider() {
 
                   {/* Opportunity rows */}
                   {OPPS.map((opp, i) => (
-                    <div key={i} style={{ padding: '11px 12px', borderRadius: 10, background: i === 0 ? s.aLight : '#f8fafc', border: `1px solid ${i === 0 ? s.aMid + '22' : '#f1f5f9'}`, marginBottom: i < 2 ? 8 : 0 }}>
+                    <div key={i} style={{ padding: '9px 10px', borderRadius: 10, background: i === 0 ? s.aLight : '#f8fafc', border: `1px solid ${i === 0 ? s.aMid + '22' : '#f1f5f9'}`, marginBottom: i < 2 ? 8 : 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <p style={{ fontSize: 'clamp(14px, 1.2vw, 20px)', fontWeight: 700, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
-                    <span style={{ flexShrink: 0, fontSize: 'clamp(11px, 1vw, 15px)', fontWeight: 800, color: opp.match >= 85 ? '#0d9488' : '#0369a1', background: opp.match >= 85 ? '#f0fdfa' : '#f0f9ff', border: `1px solid ${opp.match >= 85 ? '#99f6e4' : '#bae6fd'}`, borderRadius: 6, padding: '1px 6px', fontFamily: F }}>
+                    <p style={{ fontSize: 'clamp(13px, 1vw, 16px)', fontWeight: 700, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
+                    <span style={{ flexShrink: 0, fontSize: 'clamp(10px, 0.85vw, 13px)', fontWeight: 800, color: opp.match >= 85 ? '#0d9488' : '#0369a1', background: opp.match >= 85 ? '#f0fdfa' : '#f0f9ff', border: `1px solid ${opp.match >= 85 ? '#99f6e4' : '#bae6fd'}`, borderRadius: 6, padding: '1px 6px', fontFamily: F }}>
                       {opp.match}%
                     </span>
                   </div>
@@ -257,7 +257,7 @@ function HeroSlider() {
               <button
                 key={i}
                 onClick={() => { goTo(i) }}
-                style={{ padding: '12px 20px', fontSize: 'clamp(14px, 1vw, 18px)', fontWeight: 700, color: i === cur ? sl.accent : '#9ca3af', background: 'transparent', border: 'none', borderBottom: `2px solid ${i === cur ? sl.accent : 'transparent'}`, transition: 'all 0.18s', cursor: 'pointer', fontFamily: F }}
+                style={{ padding: '10px 16px', fontSize: 'clamp(13px, 0.95vw, 16px)', fontWeight: 700, color: i === cur ? sl.accent : '#9ca3af', background: 'transparent', border: 'none', borderBottom: `2px solid ${i === cur ? sl.accent : 'transparent'}`, transition: 'all 0.18s', cursor: 'pointer', fontFamily: F }}
               >
                 {sl.tab}
               </button>
