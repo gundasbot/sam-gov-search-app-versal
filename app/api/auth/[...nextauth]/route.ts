@@ -364,8 +364,8 @@ function buildUserPayload(user: any) {
     subscription_status:  user.subscription_status || null,
     billing_interval:     user.billing_interval || null,
     trial_active:         !!user.trial_active,
-    trial_ends_at:        user.trial_ends_at || null,
-    trial_expires_at:     user.trial_expires_at || null,
+    trial_ends_at:        user.trial_ends_at?.toISOString?.() || null,
+    trial_expires_at:     user.trial_expires_at?.toISOString?.() || null,
     stripe_subscription_id: user.stripe_subscription_id || null,
     stripe_customer_id:   user.stripe_customer_id || null,
     tier,
@@ -387,7 +387,7 @@ function copyUserToToken(token: any, source: any) {
   token.subscription_status  = source.subscription_status ?? null
   token.billingInterval      = source.billing_interval ?? null
   token.trial_active         = source.trial_active ?? false
-  token.trial_ends_at        = source.trial_ends_at ?? null
+  token.trial_ends_at        = source.trial_ends_at?.toISOString?.() || null
   token.stripe_subscription_id = source.stripe_subscription_id ?? null
   token.stripe_customer_id   = source.stripe_customer_id ?? null
 
