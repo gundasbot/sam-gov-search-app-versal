@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 export default function ForgotPasswordClient({ initialEmail = "" }: { initialEmail?: string }) {
   const [email, setEmail] = useState(initialEmail)
@@ -25,9 +26,18 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
 
   return (
     <>
-      <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-        Enter your email and we&apos;ll send a reset link.
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          Enter your email and we&apos;ll send a reset link.
+        </p>
+        <Link
+          href={`/login${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to login
+        </Link>
+      </div>
 
       {sent ? (
         <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
@@ -51,12 +61,6 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
           </button>
         </form>
       )}
-
-      <div className="mt-5 text-sm text-[var(--color-text-secondary)]">
-        <Link className="underline hover:text-[var(--color-primary)]" href="/login">
-          Back to login
-        </Link>
-      </div>
     </>
   )
 }
