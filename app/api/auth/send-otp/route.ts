@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({} as any))
     const email = String(body.email ?? '').trim().toLowerCase()
-    if (!email) return jsonError('Email is required', 400)
+    if (!email) {
+      console.log('send-otp: Email is required')
+      return jsonError('Email is required', 400)
+    }
+
+    console.log('send-otp: Checking user for email:', email)
 
     // Check if user exists and email is verified
     const users = await sql`
@@ -31,15 +36,18 @@ export async function POST(req: NextRequest) {
     ` as any[]
 
     if (!users.length) {
-      // Return silent success to prevent account enumeration
-      return NextResponse.json({ ok: true })
+      console.log('send-otp: User not found for email:', email)
+      // Return error so frontend can debug
+      return jsonError('Account not found', 404)
     }
 
     const user = users[0]
+    console.log('send-otp: User found:', user.id, 'email_verified:', user.email_verified)
 
     // User must have verified their email to use OTP
     if (!user.email_verified) {
-      return NextResponse.json({ ok: true })
+      console.log('send-otp: Email not verified for user:', user.id)
+      return jsonError('Email not verified', 400)
     }
 
     // Generate 6-digit code
@@ -47,6 +55,8 @@ export async function POST(req: NextRequest) {
     const codeHash = sha256(code)
     const otpId = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+
+    console.log('send-otp: Generated code:', code, 'for email:', email)
 
     // Delete any existing unexpired codes for this email (only keep latest)
     await sql`
@@ -60,12 +70,16 @@ export async function POST(req: NextRequest) {
       VALUES (${otpId}, ${email}, ${codeHash}, ${expiresAt.toISOString()})
     `
 
+    console.log('send-otp: Stored OTP code in database for email:', email)
+
     const from = process.env.EMAIL_FROM || 'Precise GovCon <no-reply@precisegovcon.com>'
     const name = String(user.first_name || 'there')
 
+    console.log('send-otp: Sending email from:', from, 'to:', email)
+
     // Send OTP code via email
     try {
-      await resend.emails.send({
+      const emailResult = await resend.emails.send({
         from,
         to: email,
         subject: `Your Precise GovCon Sign-In Code: ${code}`,
@@ -88,15 +102,17 @@ export async function POST(req: NextRequest) {
           </div>
         `,
       })
+      console.log('send-otp: Email sent successfully:', emailResult)
     } catch (emailErr) {
-      console.error('Failed to send OTP email:', emailErr)
+      console.error('send-otp: Failed to send OTP email:', emailErr)
       // Don't fail the request - code was stored successfully
     }
 
+    console.log('send-otp: Returning success for email:', email)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('send-otp error:', err)
-    // Return silent success to prevent account enumeration
-    return NextResponse.json({ ok: true })
+    // Return actual error message for debugging
+    return jsonError('Failed to send OTP', 500, err?.message)
   }
 }
