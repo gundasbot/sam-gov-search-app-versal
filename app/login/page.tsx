@@ -278,14 +278,6 @@ function SignInContent() {
     setErrorState(parseError(errorParam))
   }, [errorParam])
 
-  if (status === 'authenticated') {
-    return (
-      <div className="pg-container flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
-      </div>
-    )
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -417,6 +409,12 @@ function SignInContent() {
 
   return (
     <div className="aptos-page min-h-screen" style={{ background: '#f1f5f9' }}>
+      {status === 'authenticated' ? (
+        <div className="pg-container flex min-h-screen items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
+        </div>
+      ) : (
+      <>
       <style dangerouslySetInnerHTML={{ __html: aptosFontStyle }} />
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
 
@@ -764,6 +762,8 @@ function SignInContent() {
 
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }
