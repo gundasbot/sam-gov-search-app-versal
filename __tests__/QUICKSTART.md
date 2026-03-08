@@ -4,7 +4,7 @@
 
 ### 1. Install Jest and Testing Dependencies
 ```bash
-npm install --save-dev jest @types/jest ts-jest jest-environment-node @testing-library/react
+npm install --save-dev jest @types/jest ts-jest jest-environment-node
 ```
 
 This will install:
@@ -12,7 +12,6 @@ This will install:
 - `@types/jest` - TypeScript types for Jest
 - `ts-jest` - TypeScript support in Jest
 - `jest-environment-node` - Node.js test environment
-- `@testing-library/react` - React testing utilities
 
 ### 2. Verify Files Are In Place
 ```bash

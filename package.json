@@ -45,7 +45,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@testing-library/react": "^15",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29",
     "@types/jsonwebtoken": "^9.0.10",
