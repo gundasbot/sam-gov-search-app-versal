@@ -26,13 +26,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     media.addEventListener('change', applyTheme)
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered with scope:', registration.scope)
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error)
-        })
+      if (process.env.NODE_ENV === 'production') {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('Service Worker registered with scope:', registration.scope)
+          })
+          .catch((error) => {
+            console.error('Service Worker registration failed:', error)
+          })
+      } else {
+        // Dev safeguard: old SW caches can return stale _next chunks and cause ChunkLoadError.
+        navigator.serviceWorker.getRegistrations()
+          .then((registrations) => {
+            registrations.forEach((registration) => {
+              registration.unregister()
+            })
+          })
+          .catch(() => {
+            // Ignore unregister failures in development.
+          })
+      }
     }
     return () => media.removeEventListener('change', applyTheme)
   }, [])

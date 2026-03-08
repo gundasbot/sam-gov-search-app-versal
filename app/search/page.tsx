@@ -3883,136 +3883,131 @@ ${filteredResults.map(opp => `  <opportunity>
 
           {/* Search Card - compact with full width */}
           <div className="flex-1 flex flex-col">
-            <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
-              <div className="p-6">
-                {/* Main search form */}
-                <div className="w-full">
-                  {/* ── SEARCH HERO SECTION ── */}
-                  <div className="mb-5">
-                    {/* Hero label */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="relative flex h-2.5 w-2.5">
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-border)]"></span>
-                      </div>
-                      <span className="text-sm font-bold uppercase tracking-widest text-[var(--color-primary)]">Search Federal Opportunities</span>
-                      <span className="ml-1 text-xs font-semibold text-slate-500">— SAM.gov Live Data</span>
-                    </div>
+            <div className="overflow-hidden rounded-2xl shadow-xl" style={{border:'2px solid #f97316'}}>
 
-                    {/* Search input row */}
-                    <div className="flex flex-col md:flex-row gap-2.5">
-                      <div className="flex-1 relative">
-                        <div className="relative">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[var(--color-primary)] pointer-events-none z-10" />
-                          <input
-                            type="text"
-                            value={keywords}
-                            onChange={(e) => setKeywords(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                            placeholder='Enter keyword, NAICS code, agency name, or solicitation # — then press Enter or click Search'
-                            autoFocus
-                            className="relative w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] py-3 pl-11 pr-4 text-base font-medium text-[var(--color-text-primary)] placeholder-[var(--color-text-subtle)] transition-all outline-none focus:border-[var(--color-primary)]/35 focus:ring-2 focus:ring-[var(--color-accent-soft)]"
-                          />
-                        </div>
-                      </div>
-                      <button onClick={() => runSearch()} disabled={loading}
-                        className="pg-btn pg-btn-primary px-6 py-3 text-white font-bold text-sm rounded-lg transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap">
-                        {loading ? <><Loader2 className="h-5 w-5 animate-spin" />Searching...</> : <><Search className="h-5 w-5" />Search</>}
-                      </button>
-                      <button onClick={resetAll} className="pg-btn pg-btn-tertiary px-4 py-3 font-semibold text-sm rounded-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap shadow-sm" aria-label="Reset all fields">
-                        <RefreshCw className="h-4 w-4" />Reset All
-                      </button>
-                      <button onClick={() => handleOpenSaveModal('save')} className="pg-btn pg-btn-secondary px-4 py-3 font-semibold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
-                        <Save className="h-4 w-4" />Save Search
-                      </button>
-                      <button onClick={() => handleOpenSaveModal('alert')} className="pg-btn pg-btn-tertiary px-4 py-3 font-semibold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
-                        <Bell className="h-4 w-4" />Get Alerts
-                      </button>
-                    </div>
+              {/* ── HERO SEARCH STRIP — white + orange, fully light ── */}
+              <div className="px-6 pt-5 pb-5 bg-white" style={{borderBottom:'2px solid #fed7aa'}}>
 
-                    <div className="mt-2">
-                      <p className="text-xs sm:text-sm font-medium text-[var(--color-text-subtle)]">
-                        {(data?.totalRecords ?? 2143921).toLocaleString()} active opportunities
-                      </p>
+                {/* Title row */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
+                      <Search className="h-5 w-5 text-white" />
                     </div>
-
-                    {/* Hint row */}
-                    <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-                      <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
-                        💡 Try: <button onClick={() => { setKeywords('data analytics'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">data analytics</button>,{' '}
-                        <button onClick={() => { setKeywords('cybersecurity'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">cybersecurity</button>,{' '}
-                        <button onClick={() => { setKeywords('IT services'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">IT services</button>,{' '}
-                        <button onClick={() => { setKeywords('541511'); runSearch() }} className="text-[var(--color-primary)] font-extrabold hover:underline text-base">541511</button>
-                      </p>
-                      {results.length > 0 && keywords && (
-                        <span className="text-xs font-bold text-[var(--color-primary)] bg-[var(--color-surface-muted)] px-2 py-1 rounded-full border border-[var(--color-border)]">
-                          ✓ Showing results for "{keywords}"
-                        </span>
-                      )}
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-widest text-orange-500 leading-none mb-0.5">Search Federal Opportunities</p>
+                      <p className="text-xl font-black text-slate-900 leading-tight">SAM.gov Live Intelligence</p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-300">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-xs font-bold text-green-700">Live</span>
+                    </div>
+                    <span className="text-sm font-black text-slate-800">
+                      {(data?.totalRecords ?? 2143921).toLocaleString()} <span className="font-medium text-slate-500">active opps</span>
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Loading message with user input */}
+                {/* ── BIG search input + neon green Search button ── */}
+                <div className="flex gap-3 items-stretch mb-3">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 pointer-events-none z-10" />
+                    <input
+                      type="text"
+                      value={keywords}
+                      onChange={(e) => setKeywords(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+                      placeholder='Enter keyword, NAICS code, agency name, or solicitation #'
+                      autoFocus
+                      className="w-full rounded-2xl border-2 border-orange-300 bg-orange-50 py-5 pl-14 pr-5 text-lg font-semibold text-slate-900 placeholder-slate-400 transition-all outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 shadow-sm"
+                    />
+                  </div>
+                  {/* Neon green Search button */}
+                  <button onClick={() => runSearch()} disabled={loading}
+                    className="px-10 rounded-2xl font-black text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 whitespace-nowrap hover:scale-105 active:scale-95 min-w-36 text-slate-900 shadow-lg"
+                    style={{background:'#22c55e', boxShadow:'0 4px 20px rgba(34,197,94,0.4)'}}>
+                    {loading
+                      ? <><Loader2 className="h-6 w-6 animate-spin" />Searching</>
+                      : <><Search className="h-6 w-6" />Search</>}
+                  </button>
+                </div>
+
+                {/* Secondary actions + quick chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button onClick={resetAll}
+                    className="px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all">
+                    <RefreshCw className="h-3.5 w-3.5" />Reset
+                  </button>
+                  <button onClick={() => handleOpenSaveModal('save')}
+                    className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm">
+                    <Save className="h-3.5 w-3.5" />Save Search
+                  </button>
+                  <button onClick={() => handleOpenSaveModal('alert')}
+                    className="px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all">
+                    <Bell className="h-3.5 w-3.5" />Get Alerts
+                  </button>
+                  <div className="flex-1" />
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Try:</span>
+                  {['data analytics','cybersecurity','IT services','541511'].map(term => (
+                    <button key={term} onClick={() => { setKeywords(term); runSearch() }}
+                      className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 hover:border-orange-400 transition-colors">
+                      {term}
+                    </button>
+                  ))}
+                  {results.length > 0 && keywords && (
+                    <span className="text-xs font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-full border border-green-300">
+                      ✓ "{keywords}"
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-slate-800">
+                <div className="w-full">
+
+                  {/* Loading message */}
                   {loading && (
-                    <div className="mb-4 p-3.5 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-xl">
-                      <div className="flex items-center gap-3 text-[var(--color-primary)]">
+                    <div className="mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl">
+                      <div className="flex items-center gap-3 text-emerald-700 dark:text-emerald-400">
                         <Loader2 className="h-5 w-5 animate-spin" />
                         <span className="text-base font-semibold">
-                          Searching {keywords ? `"${keywords}"` : ''} opportunities, please wait... ({searchDuration}s)
+                          Searching {keywords ? `"${keywords}"` : ''} opportunities... ({searchDuration}s)
                         </span>
                       </div>
                     </div>
                   )}
 
-                  {/* Two-column date layout - each column has date field + quick-fill buttons */}
+                  {/* ── Date filters ── */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    
-                    {/* LEFT COLUMN: Solicitation Posted Date */}
-                    <div className="space-y-4">
-                      {/* Posted Date Input Field */}
-                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-5 w-5 text-[var(--color-primary)]" />
-                          <label className="text-lg font-bold text-[var(--color-primary)]">
-                            Solicitation Posted Date
-                          </label>
-                        </div>
-                        <input
-                          type="date"
-                          value={postedAfter}
-                          onChange={(e) => setPostedAfter(e.target.value)}
-                          className="w-full rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                        />
-                        <p className="text-sm text-[var(--color-primary)] mt-2 font-semibold">
-                          Find solicitations posted on or after this date
-                        </p>
-                      </div>
 
-                      {/* Posted Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
-                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-5 w-5 text-[var(--color-primary)]" />
-                          <span className="text-base font-bold text-[var(--color-primary)]">
-                            Posted within the last:
-                          </span>
+                    {/* LEFT: Posted Date — emerald accent */}
+                    <div className="space-y-3">
+                      <div className="rounded-xl border-2 border-emerald-200 dark:border-emerald-700 overflow-hidden">
+                        <div className="px-4 py-2.5 flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/40">
+                          <Calendar className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
+                          <span className="text-sm font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">Solicitation Posted Date</span>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { label: '12 months', days: -365 },
-                            { label: '9 months', days: -274 },
-                            { label: '6 months', days: -182 },
-                            { label: '3 months', days: -91 },
-                            { label: '30 days', days: -30 },
-                            { label: '2 weeks', days: -14 },
-                          ].map(({ label, days }) => (
-                            <button
-                              key={label}
-                              onClick={() => {
-                                const d = new Date()
-                                d.setDate(d.getDate() + days)
-                                setPostedAfter(d.toISOString().split('T')[0])
-                              }}
-                              className="pg-btn pg-btn-tertiary rounded-lg px-3 py-2 text-sm font-semibold transition-colors shadow-sm"
-                            >
+                        <div className="p-4 bg-white dark:bg-slate-800">
+                          <input
+                            type="date"
+                            value={postedAfter}
+                            onChange={(e) => setPostedAfter(e.target.value)}
+                            className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900 outline-none"
+                          />
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Find solicitations posted on or after this date</p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="px-4 py-2 flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+                          <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                          <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide">Posted within the last:</span>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-slate-800 flex flex-wrap gap-2">
+                          {[{label:'12 months',days:-365},{label:'9 months',days:-274},{label:'6 months',days:-182},{label:'3 months',days:-91},{label:'30 days',days:-30},{label:'2 weeks',days:-14}].map(({label,days}) => (
+                            <button key={label} onClick={() => { const d=new Date(); d.setDate(d.getDate()+days); setPostedAfter(d.toISOString().split('T')[0]) }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300 transition-all">
                               {label}
                             </button>
                           ))}
@@ -4020,52 +4015,32 @@ ${filteredResults.map(opp => `  <opportunity>
                       </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Solicitation Due Date */}
-                    <div className="space-y-4">
-                      {/* Due Date Input Field */}
-                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-5 w-5 text-[var(--color-text-secondary)]" />
-                          <label className="text-lg font-bold text-[var(--color-text-secondary)]">
-                            Solicitation Due Date
-                          </label>
+                    {/* RIGHT: Due Date — amber accent */}
+                    <div className="space-y-3">
+                      <div className="rounded-xl border-2 border-amber-200 dark:border-amber-700 overflow-hidden">
+                        <div className="px-4 py-2.5 flex items-center gap-2 bg-amber-100 dark:bg-amber-900/40">
+                          <Clock className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                          <span className="text-sm font-black text-amber-800 dark:text-amber-300 uppercase tracking-wide">Solicitation Due Date</span>
                         </div>
-                        <input
-                          type="date"
-                          value={responseDeadlineBefore}
-                          onChange={(e) => setResponseDeadlineBefore(e.target.value)}
-                          className="w-full rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                        />
-                        <p className="text-sm text-[var(--color-text-secondary)] mt-2 font-semibold">
-                          Find solicitations with response due date between today and any of these quick fill dates
-                        </p>
+                        <div className="p-4 bg-white dark:bg-slate-800">
+                          <input
+                            type="date"
+                            value={responseDeadlineBefore}
+                            onChange={(e) => setResponseDeadlineBefore(e.target.value)}
+                            className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-all focus:border-amber-400 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-900 outline-none"
+                          />
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Find solicitations with response due date up to the selected date</p>
+                        </div>
                       </div>
-
-                      {/* Due Date Quick-Fill Buttons - DIRECTLY BELOW in same column */}
-                      <div className="bg-[var(--color-surface-muted)] p-4 rounded-xl border border-[var(--color-border)]">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Clock className="h-5 w-5 text-[var(--color-text-secondary)]" />
-                          <span className="text-base font-bold text-[var(--color-text-secondary)]">
-                            Due within the next:
-                          </span>
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="px-4 py-2 flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+                          <Clock className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                          <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide">Due within the next:</span>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { label: '2 weeks', days: 14 },
-                            { label: '30 days', days: 30 },
-                            { label: '45 days', days: 45 },
-                            { label: '60 days', days: 60 },
-                            { label: '90 days', days: 90 },
-                          ].map(({ label, days }) => (
-                            <button
-                              key={label}
-                              onClick={() => {
-                                const d = new Date()
-                                d.setDate(d.getDate() + days)
-                                setResponseDeadlineBefore(d.toISOString().split('T')[0])
-                              }}
-                              className="pg-btn pg-btn-tertiary rounded-lg px-3 py-2 text-sm font-semibold transition-colors shadow-sm"
-                            >
+                        <div className="p-3 bg-white dark:bg-slate-800 flex flex-wrap gap-2">
+                          {[{label:'2 weeks',days:14},{label:'30 days',days:30},{label:'45 days',days:45},{label:'60 days',days:60},{label:'90 days',days:90}].map(({label,days}) => (
+                            <button key={label} onClick={() => { const d=new Date(); d.setDate(d.getDate()+days); setResponseDeadlineBefore(d.toISOString().split('T')[0]) }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-amber-50 hover:border-amber-400 hover:text-amber-700 dark:hover:bg-amber-900/30 dark:hover:text-amber-300 transition-all">
                               {label}
                             </button>
                           ))}
@@ -4075,27 +4050,24 @@ ${filteredResults.map(opp => `  <opportunity>
 
                   </div>
 
-                  {/* Stop button when loading */}
+                  {/* Stop button — red, only when loading */}
                   {loading && (
                     <div className="mt-4 flex justify-center">
-                      <button
-                        onClick={stopSearch}
-                        className="px-8 py-4 bg-red-600 text-white font-bold text-lg rounded-xl hover:bg-red-700 transition-colors shadow-md flex items-center gap-3"
-                      >
-                        <StopCircle className="h-6 w-6" />
-                        Stop Search
+                      <button onClick={stopSearch}
+                        className="px-8 py-4 bg-red-500 hover:bg-red-600 text-white font-bold text-lg rounded-xl transition-colors shadow-md flex items-center gap-3">
+                        <StopCircle className="h-6 w-6" />Stop Search
                       </button>
                     </div>
                   )}
 
                   {/* Error display */}
                   {error && (
-                    <div className="mt-4 p-5 bg-red-50 border-2 border-red-300 rounded-xl">
+                    <div className="mt-4 p-5 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-xl">
                       <div className="flex items-start gap-3">
-                        <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" />
                         <div>
-                          <h4 className="font-bold text-red-800 text-lg mb-1">Search Error</h4>
-                          <p className="text-red-700 text-base">{error}</p>
+                          <h4 className="font-bold text-red-700 dark:text-red-400 text-lg mb-1">Search Error</h4>
+                          <p className="text-red-600 dark:text-red-300 text-base">{error}</p>
                         </div>
                       </div>
                     </div>
@@ -4630,4 +4602,3 @@ export default function SearchPage() {
     </Suspense>
   )
 }
-

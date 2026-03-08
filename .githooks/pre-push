@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Block push if deploy verification fails.
+echo "[pre-push] Running deploy verification (typecheck + build)..."
+npm run verify:deploy
+RESULT=$?
+
+if [ $RESULT -ne 0 ]; then
+  echo "[pre-push] Push blocked: deploy verification failed."
+  exit $RESULT
+fi
+
+echo "[pre-push] Verification passed. Proceeding with push."
+exit 0

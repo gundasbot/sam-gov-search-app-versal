@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { BRAND_CONFIG } from '@/lib/brand-config'
 
 interface AccessControlModalProps {
   isOpen: boolean
@@ -186,6 +187,7 @@ export default function AccessControlModal({
 }: AccessControlModalProps) {
   const router = useRouter()
   const { status, update } = useSession()
+  const { wordmark } = BRAND_CONFIG
   const redirectTarget = redirectTo || '/search'
 
   const [isLoading, setIsLoading] = useState(false)
@@ -510,7 +512,14 @@ export default function AccessControlModal({
               </span>
             </div>
             <h2 className="text-3xl lg:text-4xl font-black text-[var(--color-text-primary)] mb-3">
-              Welcome to <span className="font-black text-slate-900">PRECISE</span><span className="font-black text-[var(--color-primary)]">GOVCON</span>
+              Welcome to{' '}
+              <span
+                className="inline-flex items-center rounded-md px-2 py-1"
+                style={{ backgroundColor: wordmark.colors.background }}
+              >
+                <span className="font-black" style={{ color: wordmark.colors.precise }}>{wordmark.preciseText}</span>
+                <span className="font-black" style={{ color: wordmark.colors.govcon }}>{wordmark.govconText}</span>
+              </span>
             </h2>
             <p className="text-xl font-black tracking-tight text-[var(--color-text-secondary)]">
               Find, track and win more government contracts. Sign in or start your free trial below.

@@ -158,7 +158,7 @@ export default function ActiveTrackingPage() {
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-slate-100">
       {/* Wide header like Insights */}
       <section className="border-b border-white/5 bg-slate-900/30 backdrop-blur-xl sticky top-0 z-10">
-        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold mb-1">Active pipeline</h1>
@@ -238,7 +238,7 @@ export default function ActiveTrackingPage() {
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-12 gap-8">
           {/* Chart */}
           <section className="col-span-12 lg:col-span-7 bg-slate-900/60 border border-white/10 rounded-2xl p-5">

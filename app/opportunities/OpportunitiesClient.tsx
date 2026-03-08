@@ -590,6 +590,7 @@ export default function OpportunitiesClient() {
 
   // 📌 NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [groupMode, setGroupMode] = useState<GroupMode>('urgency');
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [showPrefsReminder, setShowPrefsReminder] = useState(false);
@@ -661,6 +662,18 @@ export default function OpportunitiesClient() {
 
   const [userAchievement, setUserAchievement] = useState('');
   const [userTip, setUserTip] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const applyViewportMode = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobileViewport(mobile);
+      if (mobile) setViewMode('compact');
+    };
+    applyViewportMode();
+    window.addEventListener('resize', applyViewportMode);
+    return () => window.removeEventListener('resize', applyViewportMode);
+  }, []);
 
   // 📌 IMPROVED: Accurate stats calculation based on actual data
   const stats = useMemo(() => {
@@ -1835,14 +1848,14 @@ Provide analysis in JSON format with:
         </div>
 
         {/* View Controls */}
-        <div className="mb-2 flex flex-row items-center justify-between gap-3 p-2 bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)]">
+        <div className="mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-2 bg-slate-800/40 rounded-xl border border-slate-700">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-[var(--color-text-secondary)]">View:</span>
-            <div className="flex items-center gap-2 p-1 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]">
+            <span className="text-sm font-semibold text-slate-300">View:</span>
+            <div className="flex items-center gap-2 p-1 bg-slate-900/50 rounded-lg overflow-x-auto">
               <button
                 onClick={() => setViewMode('list')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-bold ${
-                  viewMode === 'list' ? 'bg-[var(--color-accent-soft)] text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                  viewMode === 'list' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <List className="w-4 h-4" /> List
@@ -1850,7 +1863,7 @@ Provide analysis in JSON format with:
               <button
                 onClick={() => { setViewMode('grid'); setGroupMode('none'); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-bold ${
-                  viewMode === 'grid' ? 'bg-[var(--color-accent-soft)] text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                  viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Grid3x3 className="w-4 h-4" /> Board
@@ -1858,7 +1871,7 @@ Provide analysis in JSON format with:
               <button
                 onClick={() => setViewMode('compact')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-bold ${
-                  viewMode === 'compact' ? 'bg-[var(--color-accent-soft)] text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                  viewMode === 'compact' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Layers className="w-4 h-4" /> Compact
@@ -1867,12 +1880,12 @@ Provide analysis in JSON format with:
           </div>
 
           {viewMode !== 'grid' && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-[var(--color-text-secondary)]">Group By:</span>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <span className="text-sm font-semibold text-slate-300">Group By:</span>
               <select
                 value={groupMode}
                 onChange={(e) => setGroupMode(e.target.value as GroupMode)}
-                className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-secondary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                className="px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-auto"
               >
                 <option value="none">No Grouping</option>
                 <option value="urgency">Deadline Urgency</option>
@@ -1928,7 +1941,7 @@ Provide analysis in JSON format with:
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
             {[
-                { label: 'CRITICAL', range: '<=3 days', days: 3, color: 'bg-red-600' },
+              { label: 'CRITICAL', range: 'Γëñ3 days', days: 3, color: 'bg-red-600' },
               { label: 'URGENT', range: '4-5 days', days: 5, color: 'bg-orange-600' },
               { label: 'HIGH', range: '6-7 days', days: 7, color: 'bg-amber-600' },
               { label: 'ACT SOON', range: '8-10 days', days: 10, color: 'bg-yellow-600' },
@@ -1992,13 +2005,13 @@ Provide analysis in JSON format with:
         {/* GRID VIEW ΓÇö 8 columns side by side, each full-width column = one category */}
         {viewMode === 'grid' && (() => {
           const COLS = [
-            { key: 'CRITICAL',    min: 0,  max: 3,     label: 'CRITICAL',    range: '<=3 days',    hdr: '#dc2626', bg: '#1c0606' },
-            { key: 'URGENT',      min: 4,  max: 5,     label: 'URGENT',      range: '4-5 days',    hdr: '#ea580c', bg: '#1c0d04' },
-            { key: 'HIGH',        min: 6,  max: 7,     label: 'HIGH',        range: '6-7 days',    hdr: '#d97706', bg: '#1c1404' },
-            { key: 'ACT SOON',    min: 8,  max: 10,    label: 'ACT SOON',    range: '8-10 days',   hdr: '#ca8a04', bg: '#1c1804' },
-            { key: 'NORMAL',      min: 11, max: 14,    label: 'NORMAL',      range: '11-14 days',  hdr: '#65a30d', bg: '#0b1803' },
-            { key: 'COMFORTABLE', min: 15, max: 21,    label: 'COMFORTABLE', range: '15-21 days',  hdr: '#16a34a', bg: '#031809' },
-            { key: 'AMPLE',       min: 22, max: 30,    label: 'AMPLE',       range: '22-30 days',  hdr: '#059669', bg: '#02140f' },
+            { key: 'CRITICAL',    min: 0,  max: 3,     label: 'CRITICAL',    range: 'Γëñ3 days',    hdr: '#dc2626', bg: '#1c0606' },
+            { key: 'URGENT',      min: 4,  max: 5,     label: 'URGENT',      range: '4ΓÇô5 days',   hdr: '#ea580c', bg: '#1c0d04' },
+            { key: 'HIGH',        min: 6,  max: 7,     label: 'HIGH',        range: '6ΓÇô7 days',   hdr: '#d97706', bg: '#1c1404' },
+            { key: 'ACT SOON',    min: 8,  max: 10,    label: 'ACT SOON',    range: '8ΓÇô10 days',  hdr: '#ca8a04', bg: '#1c1804' },
+            { key: 'NORMAL',      min: 11, max: 14,    label: 'NORMAL',      range: '11ΓÇô14 days', hdr: '#65a30d', bg: '#0b1803' },
+            { key: 'COMFORTABLE', min: 15, max: 21,    label: 'COMFORTABLE', range: '15ΓÇô21 days', hdr: '#16a34a', bg: '#031809' },
+            { key: 'AMPLE',       min: 22, max: 30,    label: 'AMPLE',       range: '22ΓÇô30 days', hdr: '#059669', bg: '#02140f' },
             { key: 'PLENTY',      min: 31, max: 99999, label: 'PLENTY',      range: '31+ days',        hdr: '#0d9488', bg: '#021718' },
           ];
 
@@ -2019,12 +2032,14 @@ Provide analysis in JSON format with:
           COLS.forEach(c => buckets[c.key].sort((a, b) => a.bd - b.bd));
 
           return (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(8, 1fr)',
-              gap: '4px',
-              width: '100%',
-            }}>
+            <div style={{ width: '100%', overflowX: isMobileViewport ? 'auto' : 'visible', paddingBottom: isMobileViewport ? '4px' : '0' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobileViewport ? 'repeat(8, minmax(160px, 1fr))' : 'repeat(8, 1fr)',
+                gap: '4px',
+                minWidth: isMobileViewport ? '1280px' : '0',
+                width: '100%',
+              }}>
               {COLS.map(col => {
                 const all    = buckets[col.key];
                 // When urgency filters are active, only show cards for selected columns
@@ -2167,6 +2182,7 @@ Provide analysis in JSON format with:
                   </div>
                 );
               })}
+              </div>
             </div>
           );
         })()}
@@ -2211,7 +2227,7 @@ Provide analysis in JSON format with:
                         <div className="flex items-center gap-3">
                           {/* Urgency Badge */}
                           {!isPlaceholder && (
-                            <div className="flex flex-col gap-2 w-[190px] flex-shrink-0">
+                            <div className="flex flex-col gap-2 w-[132px] sm:w-[190px] shrink-0">
                               <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current inline-flex items-center justify-between`}>
                                 <span>{urgencyLabel}</span>
                                 <span className="ml-2">{businessDays !== null ? `${businessDays}bd` : 'Γê₧'}</span>

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
+import { useEffect, useState, Suspense } from 'react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle, Mail, KeyRound } from 'lucide-react'
 
 const stats = [
   { value: '900+', label: 'Live opportunities' },
@@ -12,7 +12,6 @@ const stats = [
   { value: '24/7', label: 'Search automation' },
 ]
 
-// Hardcoded — never inherit theme CSS vars so dark mode can't ruin contrast
 const C = {
   textPrimary:   '#111827',
   textSecondary: '#374151',
@@ -22,40 +21,237 @@ const C = {
   surfaceMuted:  '#f9fafb',
 }
 
+type ErrorType = 'EMAIL_NOT_VERIFIED' | 'ACCOUNT_NOT_FOUND' | 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'GENERIC'
+
+interface ErrorState {
+  type: ErrorType
+  message: string
+  suggestion: string
+}
+
+function parseError(error: string): ErrorState {
+  if (error === 'EMAIL_NOT_VERIFIED' || error.toLowerCase().includes('not verified')) {
+    return {
+      type: 'EMAIL_NOT_VERIFIED',
+      message: "Your email address hasn't been verified yet.",
+      suggestion: 'Check your inbox for a verification email, or request a new one below.',
+    }
+  }
+  if (error === 'Account not found' || error.toLowerCase().includes('not found')) {
+    return {
+      type: 'ACCOUNT_NOT_FOUND',
+      message: 'No account found with that email address.',
+      suggestion: 'Double-check your email or create a new account to get started.',
+    }
+  }
+  if (error.toLowerCase().includes('suspended')) {
+    return {
+      type: 'SUSPENDED',
+      message: 'Your account has been suspended.',
+      suggestion: 'Contact support@precisegovcon.com to resolve this.',
+    }
+  }
+  if (
+    error.toLowerCase().includes('invalid') ||
+    error.toLowerCase().includes('credentials') ||
+    error.toLowerCase().includes('password')
+  ) {
+    return {
+      type: 'INVALID_CREDENTIALS',
+      message: 'The password you entered is incorrect.',
+      suggestion: 'Try again, reset your password, or request a one-time sign-in code.',
+    }
+  }
+  return {
+    type: 'GENERIC',
+    message: 'Something went wrong signing you in.',
+    suggestion: 'Please try again. If the problem persists, contact support.',
+  }
+}
+
+function ErrorBlock({
+  errorState,
+  email,
+  onResendOrOTC,
+  resendLoading,
+  resendSent,
+}: {
+  errorState: ErrorState
+  email: string
+  onResendOrOTC: () => void
+  resendLoading: boolean
+  resendSent: boolean
+}) {
+  return (
+    <div
+      className="mt-4 rounded-2xl p-4"
+      style={{ background: '#fef2f2', border: '1.5px solid #fecaca' }}
+    >
+      <div className="flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold" style={{ color: '#991b1b' }}>
+            {errorState.message}
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed" style={{ color: '#b91c1c' }}>
+            {errorState.suggestion}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+
+        {errorState.type === 'EMAIL_NOT_VERIFIED' && (
+          <>
+            <button
+              type="button"
+              onClick={onResendOrOTC}
+              disabled={resendLoading || resendSent}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: '#dc2626', color: '#ffffff' }}
+            >
+              {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+              {resendSent ? '✓ Email sent!' : 'Resend verification email'}
+            </button>
+            <Link
+              href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
+              style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              Reset password
+            </Link>
+          </>
+        )}
+
+        {errorState.type === 'INVALID_CREDENTIALS' && (
+          <>
+            <Link
+              href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
+              style={{ background: '#dc2626', color: '#ffffff' }}
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              Reset password
+            </Link>
+            <button
+              type="button"
+              onClick={onResendOrOTC}
+              disabled={resendLoading || resendSent}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}
+            >
+              {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+              {resendSent ? '✓ Code sent!' : 'Send one-time code'}
+            </button>
+          </>
+        )}
+
+        {errorState.type === 'ACCOUNT_NOT_FOUND' && (
+          <Link
+            href="/signup"
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg, #f97316, #f59e0b)', color: '#ffffff' }}
+          >
+            <ArrowRight className="h-3.5 w-3.5" />
+            Create a free account
+          </Link>
+        )}
+
+        {(errorState.type === 'SUSPENDED' || errorState.type === 'GENERIC') && (
+          <a
+            href="mailto:support@precisegovcon.com"
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
+            style={{ background: '#dc2626', color: '#ffffff' }}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Contact support
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function SignInContent() {
   const router = useRouter()
+  const { status } = useSession()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  const safeCallbackUrl = callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')
+    ? callbackUrl
+    : '/dashboard'
   const emailParam = searchParams.get('email') || ''
 
   const [email, setEmail] = useState(emailParam)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [errorState, setErrorState] = useState<ErrorState | null>(null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
   const microsoftEntraEnabled = false
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace(safeCallbackUrl)
+    }
+  }, [status, router, safeCallbackUrl])
+
+  if (status === 'authenticated') {
+    return (
+      <div className="pg-container flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
+      </div>
+    )
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setError('')
+    setErrorState(null)
+    setResendSent(false)
+
     const result = await signIn('credentials', { email, password, redirect: false })
+
     if (result?.error) {
-      setError('Invalid email or password. Please try again.')
+      setErrorState(parseError(result.error))
       setLoading(false)
       return
     }
-    router.push(callbackUrl)
+
+    router.push(safeCallbackUrl)
     router.refresh()
   }
 
   async function handleOAuth(provider: 'google' | 'azure-ad') {
     if (provider === 'azure-ad' && !microsoftEntraEnabled) {
-      setError('Microsoft Entra SSO is being finalized. Please sign in with email or Google Workspace for now.')
+      setErrorState({
+        type: 'GENERIC',
+        message: 'Microsoft Entra SSO is being finalized.',
+        suggestion: 'Please sign in with email or Google Workspace for now.',
+      })
       return
     }
     setLoading(true)
-    await signIn(provider, { callbackUrl })
+    await signIn(provider, { callbackUrl: safeCallbackUrl })
+  }
+
+  async function handleResendOrOTC() {
+    if (!email) return
+    setResendLoading(true)
+    try {
+      await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      setResendSent(true)
+    } catch {
+      setResendSent(true) // optimistic — don't confuse the user
+    } finally {
+      setResendLoading(false)
+    }
   }
 
   return (
@@ -100,7 +296,6 @@ function SignInContent() {
               ))}
             </div>
 
-            {/* Testimonial — flex-1 fills remaining height */}
             <div
               className="mt-8 flex-1 rounded-2xl p-5"
               style={{ background: C.surfaceMuted, border: `1px solid ${C.border}` }}
@@ -118,7 +313,6 @@ function SignInContent() {
               <p className="mt-3 text-xs font-bold" style={{ color: C.textSecondary }}>Marcus T. · CEO, Federal Solutions Group</p>
             </div>
 
-            {/* CTA */}
             <div
               className="mt-6 rounded-2xl p-5"
               style={{ background: '#fff7ed', border: '1.5px solid #fed7aa' }}
@@ -172,10 +366,14 @@ function SignInContent() {
                 Use your workspace credentials or a connected identity provider to continue.
               </p>
 
-              {error && (
-                <div className="mt-4 rounded-xl px-4 py-3 text-sm font-semibold" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
-                  {error}
-                </div>
+              {errorState && (
+                <ErrorBlock
+                  errorState={errorState}
+                  email={email}
+                  onResendOrOTC={handleResendOrOTC}
+                  resendLoading={resendLoading}
+                  resendSent={resendSent}
+                />
               )}
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">

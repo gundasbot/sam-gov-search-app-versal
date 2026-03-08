@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { 
   CheckCircle, 
   Shield, 
@@ -148,15 +149,15 @@ export default function SetAsideCertificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50">
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00djJoLTJ2LTJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full text-emerald-200 text-sm font-bold mb-6 border border-emerald-500/30">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full text-slate-100 text-sm font-bold mb-6 border border-emerald-500/30">
                 <Award className="w-4 h-4" />
                 <span>Unlock Set-Aside Opportunities</span>
               </div>
@@ -165,11 +166,11 @@ export default function SetAsideCertificationsPage() {
                 Expand Your Federal Pipeline with Set-Aside Certifications
               </h1>
               
-              <p className="text-2xl text-emerald-100 font-semibold mb-4 leading-relaxed">
+              <p className="text-2xl text-white font-semibold mb-4 leading-relaxed">
                 Billions in contracts reserved for small businesses. Are you eligible? We will help you find out and get certified.
               </p>
               
-              <p className="text-lg text-emerald-200 font-medium mb-8">
+              <p className="text-lg text-slate-100 font-medium mb-8">
                 Set-aside certifications (8(a), SDVOSB, HUBZone, WOSB/EDWOSB) give you access to less competitive opportunities. We provide eligibility screening, application support, and ongoing compliance guidance.
               </p>
               
@@ -181,22 +182,29 @@ export default function SetAsideCertificationsPage() {
                   <Calendar className="w-6 h-6" />
                   Check Your Eligibility
                 </a>
+                <Link
+                  href="/services"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900/40 backdrop-blur-sm text-white border-2 border-white/40 rounded-2xl font-bold text-lg hover:bg-slate-900/55 transition-all"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                  View All Services
+                </Link>
                 <a 
                   href="#certifications" 
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-2xl font-bold text-lg hover:bg-white/30 transition-all"
                 >
                   Learn About Programs
                   <ArrowRight className="w-5 h-5" />
                 </a>
               </div>
               
-              <div className="flex flex-wrap items-center gap-6 text-emerald-100">
+              <div className="flex flex-wrap items-center gap-6 text-white">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-emerald-300" />
+                  <DollarSign className="w-5 h-5 text-slate-200" />
                   <span className="font-semibold">$100B+ set aside annually</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-emerald-300" />
+                  <Shield className="w-5 h-5 text-slate-200" />
                   <span className="font-semibold">Less competition</span>
                 </div>
               </div>
@@ -227,7 +235,7 @@ export default function SetAsideCertificationsPage() {
 
       {/* Set-Aside Programs */}
       <section className="py-20 bg-white" id="certifications">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
               Federal Set-Aside Programs We Support
@@ -325,7 +333,7 @@ export default function SetAsideCertificationsPage() {
 
       {/* What We Do */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-emerald-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
               End-to-End Certification Support
@@ -376,7 +384,7 @@ export default function SetAsideCertificationsPage() {
 
       {/* Interactive Eligibility Checker */}
       <section className="py-20 bg-white" id="eligibility-checker">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="bg-gradient-to-br from-white to-emerald-50 rounded-3xl p-8 md:p-12 border-2 border-emerald-200 shadow-2xl">
             <div className="text-center mb-10">
               <h2 className="text-4xl font-black text-gray-900 mb-4">Check Your Eligibility</h2>
@@ -452,7 +460,7 @@ export default function SetAsideCertificationsPage() {
 
       {/* Success Stories */}
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black text-gray-900 mb-4">
               Certification Success Stories
@@ -513,11 +521,11 @@ export default function SetAsideCertificationsPage() {
 
       {/* Pricing CTA */}
       <section className="py-20 bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="w-full px-3 sm:px-5 lg:px-6 text-center">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
             Ready to Unlock Set-Aside Opportunities?
           </h2>
-          <p className="text-2xl text-emerald-100 font-semibold mb-12">
+          <p className="text-2xl text-white font-semibold mb-12">
             Start with a free eligibility assessment
           </p>
 
@@ -570,17 +578,17 @@ export default function SetAsideCertificationsPage() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center text-emerald-100 font-semibold">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center text-white font-semibold">
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-emerald-300" />
+              <CheckCircle className="w-6 h-6 text-slate-200" />
               <span>Free eligibility check</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-emerald-300" />
+              <CheckCircle className="w-6 h-6 text-slate-200" />
               <span>Expert guidance</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-emerald-300" />
+              <CheckCircle className="w-6 h-6 text-slate-200" />
               <span>Compliance support included</span>
             </div>
           </div>
@@ -589,7 +597,7 @@ export default function SetAsideCertificationsPage() {
 
       {/* FAQ */}
       <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
           <h2 className="text-4xl font-black text-gray-900 mb-12 text-center">
             Common Questions
           </h2>

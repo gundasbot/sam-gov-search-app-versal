@@ -10,15 +10,15 @@ export const metadata = {
 
 export default function CompliancePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50">
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-teal-800 to-emerald-900 py-20">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00djJoLTJ2LTJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40" />
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full px-3 sm:px-5 lg:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full text-emerald-200 text-sm font-bold mb-6 border border-emerald-500/30">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full text-slate-100 text-sm font-bold mb-6 border border-emerald-500/30">
                 <Shield className="w-4 h-4" />
                 <span>Federal Compliance & Audit Readiness</span>
               </div>
@@ -27,11 +27,11 @@ export default function CompliancePage() {
                 Stay Compliant, Stay Competitive
               </h1>
               
-              <p className="text-2xl text-emerald-100 font-semibold mb-4 leading-relaxed">
+              <p className="text-2xl text-white font-semibold mb-4 leading-relaxed">
                 Federal compliance is complex. We make it simple with automated tracking, renewal reminders, and expert guidance.
               </p>
               
-              <p className="text-lg text-emerald-200 font-medium mb-8">
+              <p className="text-lg text-slate-100 font-medium mb-8">
                 From SAM registration renewals to FAR/DFARS compliance, we monitor deadlines, flag issues, and keep you audit-ready so you never lose contracting eligibility.
               </p>
               
@@ -45,20 +45,20 @@ export default function CompliancePage() {
                 </Link>
                 <Link
                   href="/pricing"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-2xl font-bold text-lg hover:bg-white/30 transition-all"
                 >
                   View Services
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </div>
               
-              <div className="flex flex-wrap items-center gap-6 text-emerald-100">
+              <div className="flex flex-wrap items-center gap-6 text-white">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-emerald-300" />
+                  <CheckCircle className="w-5 h-5 text-slate-200" />
                   <span className="font-semibold">Zero compliance violations</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-emerald-300" />
+                  <Shield className="w-5 h-5 text-slate-200" />
                   <span className="font-semibold">Audit-ready docs</span>
                 </div>
               </div>
@@ -87,7 +87,7 @@ export default function CompliancePage() {
 
       {/* What We Monitor */}
       <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
               Comprehensive Compliance Monitoring
@@ -153,11 +153,11 @@ export default function CompliancePage() {
 
       {/* Pricing CTA */}
       <section className="py-20 bg-gradient-to-br from-emerald-900 via-teal-800 to-emerald-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="w-full px-3 sm:px-5 lg:px-6 text-center">
           <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
             Never Miss a Compliance Deadline Again
           </h2>
-          <p className="text-2xl text-emerald-100 font-semibold mb-12">
+          <p className="text-2xl text-white font-semibold mb-12">
             Get automated tracking and expert support for all federal requirements
           </p>
           

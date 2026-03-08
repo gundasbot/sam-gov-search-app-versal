@@ -18,7 +18,7 @@ const sora = Sora({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.precisegovcon.com'),  // Fixed: www to match live domain
+  metadataBase: new URL('https://www.precisegovcon.com'),
   title: {
     default: 'Government Contract Search | PreciseGovCon',
     template: '%s | PreciseGovCon'
@@ -33,11 +33,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'PreciseGovCon' }],
   creator: 'PreciseGovCon',
   publisher: 'PreciseGovCon',
-  alternates: {
-    canonical: '/',  // Fixes: Canonicals Missing warning
-  },
-  // Add your Google Search Console verification code here when ready:
-  // verification: { google: 'YOUR_CODE_HERE' },
+  alternates: { canonical: '/' },
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -52,7 +48,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     siteName: 'PreciseGovCon',
-    url: 'https://www.precisegovcon.com',  // Fixed: www
+    url: 'https://www.precisegovcon.com',
     images: [{ url: '/logo.png', width: 1024, height: 1024, alt: 'PreciseGovCon' }],
   },
   twitter: {
@@ -93,9 +89,7 @@ const organizationJsonLd = {
     contactType: 'customer support',
     availableLanguage: 'English',
   },
-  sameAs: [
-    'https://twitter.com/precisegovcon',
-  ],
+  sameAs: ['https://twitter.com/precisegovcon'],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -116,11 +110,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className="pg-uniform min-h-screen text-[0.95rem] sm:text-base
+        className="pg-uniform min-h-screen text-base sm:text-[1.06rem]
           selection:bg-primary-500 selection:text-white
           supports-[overflow-anchor:clip]:overflow-anchor-auto"
         style={{
-          fontFamily: 'var(--font-ui), system-ui, sans-serif',
+          fontFamily: "Aptos, 'Segoe UI', var(--font-ui), system-ui, sans-serif",
           WebkitTextSizeAdjust: '100%',
           textSizeAdjust: '100%',
           isolation: 'isolate'

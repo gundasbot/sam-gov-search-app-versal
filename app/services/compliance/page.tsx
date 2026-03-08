@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function CompliancePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gray-50">
+      <div className="w-full px-3 sm:px-5 lg:px-6 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Compliance Services
@@ -97,7 +97,7 @@ export default function CompliancePage() {
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-gray-600 mb-6">
-            Contact us to learn more about our Federal Compliance Services | PreciseGovConand how we can help your organization stay compliant.
+            Contact us to learn more about our compliance services and how we can help your organization stay compliant.
           </p>
           <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
             Contact Sales
@@ -107,4 +107,3 @@ export default function CompliancePage() {
     </div>
   )
 }
-
