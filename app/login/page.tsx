@@ -428,10 +428,10 @@ function SignInContent() {
             <div className="rounded-3xl bg-white shadow-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
 
               {/* Card header bar */}
-              <div className="px-6 py-4" style={{ background: 'linear-gradient(135deg,#1e293b 0%,#1e3a5f 100%)', borderBottom: '2px solid #f97316' }}>
-                <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#fdba74' }}>Account Access</p>
+              <div className="px-6 py-4" style={{ background: 'linear-gradient(135deg,#f97316 0%,#ea580c 100%)', borderBottom: '2px solid #f97316' }}>
+                <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#ffffff' }}>Account Access</p>
                 <h2 className="text-2xl font-black text-white mt-0.5">Sign in to Precise GovCon</h2>
-                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: 'rgba(34,197,94,0.2)', color: '#86efac', border: '1px solid rgba(34,197,94,0.3)' }}>
+                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: 'rgba(255,255,255,0.25)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.4)' }}>
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                   AES-256 encrypted
                 </div>
@@ -479,7 +479,7 @@ function SignInContent() {
                 </div>
 
                 {/* Auth mode toggle */}
-                <div className="flex items-center gap-2 rounded-xl border" style={{ borderColor: C.border, background: C.surfaceMuted, padding: '4px' }}>
+                <div className="flex items-center gap-2 rounded-xl border" style={{ borderColor: C.border, background: C.surfaceMuted, padding: '6px' }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -489,7 +489,7 @@ function SignInContent() {
                       setOtpSent(false)
                       setOtpTimeRemaining(0)
                     }}
-                    className="flex-1 rounded-lg px-3 py-1 text-xs font-bold transition-all"
+                    className="flex-1 rounded-lg px-3 py-2.5 text-sm font-bold transition-all"
                     style={{
                       background: authMode === 'password' ? 'var(--color-primary)' : 'transparent',
                       color: authMode === 'password' ? '#ffffff' : C.textSecondary,
@@ -505,7 +505,7 @@ function SignInContent() {
                       setPassword('')
                       setOtpEmail(email)
                     }}
-                    className="flex-1 rounded-lg px-3 py-1 text-xs font-bold transition-all"
+                    className="flex-1 rounded-lg px-3 py-2.5 text-sm font-bold transition-all"
                     style={{
                       background: authMode === 'otp' ? 'var(--color-primary)' : 'transparent',
                       color: authMode === 'otp' ? '#ffffff' : C.textSecondary,
@@ -662,15 +662,23 @@ function SignInContent() {
                 )}
 
                 {/* Footer helpers */}
-                <div className="pt-0.5 flex items-center justify-between text-xs flex-wrap gap-2" style={{ borderTop: `1px solid ${C.border}` }}>
-                  <div className="flex items-center gap-1.5" style={{ color: C.textSecondary }}>
-                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" style={{ color: '#f97316' }} />
-                    MFA enforced for admin roles
-                  </div>
-                  <div className="flex gap-3 font-semibold text-xs">
-                    <Link href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} style={{ color: '#ea580c' }}>Reset</Link>
-                    <Link href="/support?openContact=1&category=Account%20%26%20Access" style={{ color: '#0f766e' }}>Support</Link>
-                  </div>
+                <div className="pt-3 flex items-center justify-center gap-3 flex-wrap" style={{ borderTop: `1px solid ${C.border}` }}>
+                  <Link
+                    href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5"
+                    style={{ background: '#dc2626', color: '#ffffff', border: '1px solid #991b1b' }}
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    Reset Password
+                  </Link>
+                  <Link
+                    href="/support?openContact=1&category=Account%20%26%20Access"
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5"
+                    style={{ background: '#0284c7', color: '#ffffff', border: '1px solid #0369a1' }}
+                  >
+                    <Mail className="h-4 w-4" />
+                    Support
+                  </Link>
                 </div>
               </div>
             </div>
