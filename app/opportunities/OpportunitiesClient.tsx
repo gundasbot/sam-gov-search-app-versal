@@ -72,8 +72,6 @@ interface SamOpportunity {
 type ViewMode = 'list' | 'grid' | 'compact';
 type GroupMode = 'none' | 'department' | 'urgency' | 'setaside';
 
-const USE_MOCK_OPPORTUNITIES = true;
-
 // 📌 IMPROVED: Static placeholder data for immediate display
 const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (_, i) => ({
   noticeId: `placeholder-${i}`,
@@ -92,127 +90,75 @@ const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (
   }
 }));
 
+// ─── Helper: calendar days offset → Date ISO string ───────────────────────────
+const _d = (calDays: number) => new Date(Date.now() + calDays * 86400000).toISOString();
+
+// ─── 40 mock opportunities — 5 per urgency column (8 cols × 5 rows) ───────────
+// Column business-day ranges → approximate calendar days used:
+//   CRITICAL  ≤3 bd  → +1..+2 cal days
+//   URGENT    4-5 bd → +5..+6
+//   HIGH      6-7 bd → +8..+9
+//   ACT SOON  8-10 bd→ +11..+14
+//   NORMAL    11-14 → +15..+19
+//   COMFORTABLE 15-21→+21..+29
+//   AMPLE     22-30 → +31..+42
+//   PLENTY    31+   → +45..+60
 const MOCK_OPPORTUNITIES: SamOpportunity[] = [
-  {
-    noticeId: 'FA-8900-DEF',
-    title: 'Defensive Cyber Operations Surge',
-    solicitationNumber: 'FA-8900-DEF-2026',
-    department: 'Department of the Air Force',
-    postedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 5 * 86400000).toISOString(),
-    naicsCode: '541512',
-    classificationCode: 'D318',
-    typeOfSetAsideDescription: 'SDVOSB',
-    typeOfSetAside: 'SDVOSBC',
-    setAside: 'SDVOSBC',
-    uiLink: '#',
-    fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE AIR FORCE',
-    placeOfPerformance: {
-      city: { name: 'Langley AFB' },
-      state: { code: 'VA', name: 'Virginia' },
-    },
-    pointOfContact: [{ fullname: 'Capt. Jordan Blake', email: 'jordan.blake@us.af.mil' }],
-  },
-  {
-    noticeId: '70RD-CLOUD-24',
-    title: 'DHS Secure Cloud Migration Pod',
-    solicitationNumber: '70RD2026CLD',
-    department: 'Department of Homeland Security',
-    postedDate: new Date(Date.now() - 4 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 9 * 86400000).toISOString(),
-    naicsCode: '541519',
-    classificationCode: 'D307',
-    typeOfSetAsideDescription: 'Small Business',
-    typeOfSetAside: 'SBA',
-    setAside: 'SBA',
-    uiLink: '#',
-    fullParentPathName: 'DEPT OF HOMELAND SECURITY:OFFICE OF THE CTO',
-    placeOfPerformance: {
-      city: { name: 'Washington' },
-      state: { code: 'DC', name: 'District of Columbia' },
-    },
-    pointOfContact: [{ fullname: 'Priya Shah', email: 'priya.shah@hq.dhs.gov' }],
-  },
-  {
-    noticeId: '36C10B-ANL-007',
-    title: 'VA Analytics Modernization Phase II',
-    solicitationNumber: '36C10B-2026-ANL',
-    department: 'Department of Veterans Affairs',
-    postedDate: new Date(Date.now() - 1 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 12 * 86400000).toISOString(),
-    naicsCode: '541611',
-    classificationCode: 'R699',
-    typeOfSetAsideDescription: 'SDVOSB',
-    typeOfSetAside: 'SDVOSBC',
-    setAside: 'SDVOSBC',
-    uiLink: '#',
-    fullParentPathName: 'DEPT OF VETERANS AFFAIRS:TECHNOLOGY ACQUISITION CENTER',
-    placeOfPerformance: {
-      city: { name: 'Austin' },
-      state: { code: 'TX', name: 'Texas' },
-    },
-    pointOfContact: [{ fullname: 'Nina Torres', email: 'nina.torres@va.gov' }],
-  },
-  {
-    noticeId: 'N66001-AI-2026',
-    title: 'Naval AI Decision Support Toolkit',
-    solicitationNumber: 'N66001-26-AI-DST',
-    department: 'Department of the Navy',
-    postedDate: new Date(Date.now() - 3 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 7 * 86400000).toISOString(),
-    naicsCode: '541715',
-    classificationCode: 'AJ13',
-    typeOfSetAsideDescription: '8(a) Program',
-    typeOfSetAside: '8A',
-    setAside: '8A',
-    uiLink: '#',
-    fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE NAVY',
-    placeOfPerformance: {
-      city: { name: 'San Diego' },
-      state: { code: 'CA', name: 'California' },
-    },
-    pointOfContact: [{ fullname: 'Andrea Lee', email: 'andrea.lee@navy.mil' }],
-  },
-  {
-    noticeId: 'HQ0034-ZT-OPS',
-    title: 'Pentagon Zero Trust Operations Cell',
-    solicitationNumber: 'HQ0034-26-ZT',
-    department: 'Department of Defense',
-    postedDate: new Date(Date.now() - 5 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 15 * 86400000).toISOString(),
-    naicsCode: '541512',
-    classificationCode: 'D302',
-    typeOfSetAsideDescription: 'Small Business',
-    typeOfSetAside: 'SBA',
-    setAside: 'SBA',
-    uiLink: '#',
-    fullParentPathName: 'OFFICE OF THE SECRETARY OF DEFENSE',
-    placeOfPerformance: {
-      city: { name: 'Arlington' },
-      state: { code: 'VA', name: 'Virginia' },
-    },
-    pointOfContact: [{ fullname: 'Derrick Miles', email: 'derrick.miles@osd.mil' }],
-  },
-  {
-    noticeId: 'GS-00F-NextGen',
-    title: 'GSA NextGen Support Desk Expansion',
-    solicitationNumber: 'GS-00F-NXT-2026',
-    department: 'General Services Administration',
-    postedDate: new Date(Date.now() - 6 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 20 * 86400000).toISOString(),
-    naicsCode: '541513',
-    classificationCode: 'D305',
-    typeOfSetAsideDescription: 'Woman Owned Small Business',
-    typeOfSetAside: 'WOSB',
-    setAside: 'WOSB',
-    uiLink: '#',
-    fullParentPathName: 'GENERAL SERVICES ADMINISTRATION:FAS',
-    placeOfPerformance: {
-      city: { name: 'Kansas City' },
-      state: { code: 'MO', name: 'Missouri' },
-    },
-    pointOfContact: [{ fullname: 'Morgan Ellis', email: 'morgan.ellis@gsa.gov' }],
-  },
+  // ── CRITICAL (≤3 business days) ────────────────────────────────────────────
+  { noticeId: 'MOCK-CR-001', title: 'Emergency IT Security Patch Deployment', solicitationNumber: 'W56HZV-26-CR001', department: 'Department of the Army', postedDate: _d(-3), responseDeadLine: _d(1), naicsCode: '541512', classificationCode: 'D302', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE ARMY', placeOfPerformance: { city: { name: 'Fort Belvoir' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Maj. Chris Dolan', email: 'chris.dolan@army.mil' }] },
+  { noticeId: 'MOCK-CR-002', title: 'Rapid Response Cyber Incident Assessment', solicitationNumber: 'FA8771-26-CR002', department: 'Department of the Air Force', postedDate: _d(-2), responseDeadLine: _d(1), naicsCode: '541519', classificationCode: 'D318', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE AIR FORCE', placeOfPerformance: { city: { name: 'Pentagon' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Lt. Sara Novak', email: 'sara.novak@us.af.mil' }] },
+  { noticeId: 'MOCK-CR-003', title: 'Bridge Inspection Emergency Services', solicitationNumber: 'DTFH61-26-CR003', department: 'Department of Transportation', postedDate: _d(-4), responseDeadLine: _d(2), naicsCode: '237310', classificationCode: 'C211', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF TRANSPORTATION:FHWA', placeOfPerformance: { city: { name: 'Richmond' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Terrence Hill', email: 'terrence.hill@dot.gov' }] },
+  { noticeId: 'MOCK-CR-004', title: 'GSA Fleet Emergency Maintenance', solicitationNumber: 'GS07Q26-CR004', department: 'General Services Administration', postedDate: _d(-1), responseDeadLine: _d(2), naicsCode: '811111', classificationCode: 'J015', typeOfSetAsideDescription: 'VOSB', typeOfSetAside: 'VSA', setAside: 'VSA', uiLink: '#', fullParentPathName: 'GENERAL SERVICES ADMINISTRATION:PBS', placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } }, pointOfContact: [{ fullname: 'Paula Grant', email: 'paula.grant@gsa.gov' }] },
+  { noticeId: 'MOCK-CR-005', title: 'VA Medical Records Urgent Digitization', solicitationNumber: '36C10B-26-CR005', department: 'Department of Veterans Affairs', postedDate: _d(-2), responseDeadLine: _d(2), naicsCode: '519210', classificationCode: 'D307', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'DEPT OF VETERANS AFFAIRS:VHA', placeOfPerformance: { city: { name: 'Atlanta' }, state: { code: 'GA', name: 'Georgia' } }, pointOfContact: [{ fullname: 'Marcus Webb', email: 'marcus.webb@va.gov' }] },
+
+  // ── URGENT (4-5 business days) ──────────────────────────────────────────────
+  { noticeId: 'MOCK-UR-001', title: 'Defensive Cyber Operations Surge', solicitationNumber: 'FA8900-26-UR001', department: 'Department of the Air Force', postedDate: _d(-2), responseDeadLine: _d(5), naicsCode: '541512', classificationCode: 'D318', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE AIR FORCE', placeOfPerformance: { city: { name: 'Langley AFB' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Capt. Jordan Blake', email: 'jordan.blake@us.af.mil' }] },
+  { noticeId: 'MOCK-UR-002', title: 'DHS Network Operations Center Staffing', solicitationNumber: '70RD26-UR002', department: 'Department of Homeland Security', postedDate: _d(-3), responseDeadLine: _d(5), naicsCode: '541519', classificationCode: 'D308', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF HOMELAND SECURITY:CISA', placeOfPerformance: { city: { name: 'Arlington' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Priya Shah', email: 'priya.shah@cisa.gov' }] },
+  { noticeId: 'MOCK-UR-003', title: 'Navy Shore Infrastructure Assessment', solicitationNumber: 'N4008526-UR003', department: 'Department of the Navy', postedDate: _d(-1), responseDeadLine: _d(6), naicsCode: '541330', classificationCode: 'C212', typeOfSetAsideDescription: '8(a) Program', typeOfSetAside: '8A', setAside: '8A', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE NAVY', placeOfPerformance: { city: { name: 'Norfolk' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Cmdr. Lisa Park', email: 'lisa.park@navy.mil' }] },
+  { noticeId: 'MOCK-UR-004', title: 'HHS Public Health Data Pipeline', solicitationNumber: 'HHS-26-UR004', department: 'Health and Human Services', postedDate: _d(-4), responseDeadLine: _d(6), naicsCode: '541511', classificationCode: 'D301', typeOfSetAsideDescription: 'WOSB', typeOfSetAside: 'WOSB', setAside: 'WOSB', uiLink: '#', fullParentPathName: 'DEPT OF HEALTH AND HUMAN SERVICES:CDC', placeOfPerformance: { city: { name: 'Atlanta' }, state: { code: 'GA', name: 'Georgia' } }, pointOfContact: [{ fullname: 'Dr. Renee Coles', email: 'renee.coles@cdc.gov' }] },
+  { noticeId: 'MOCK-UR-005', title: 'DOJ Litigation Support Services', solicitationNumber: 'DJ-26-UR005', department: 'Department of Justice', postedDate: _d(-2), responseDeadLine: _d(6), naicsCode: '561110', classificationCode: 'R408', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF JUSTICE:CIVIL DIVISION', placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } }, pointOfContact: [{ fullname: 'Alan Torres', email: 'alan.torres@usdoj.gov' }] },
+
+  // ── HIGH (6-7 business days) ────────────────────────────────────────────────
+  { noticeId: 'MOCK-HI-001', title: 'Pentagon Zero Trust Architecture Build-Out', solicitationNumber: 'HQ0034-26-HI001', department: 'Department of Defense', postedDate: _d(-5), responseDeadLine: _d(8), naicsCode: '541512', classificationCode: 'D302', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'OFFICE OF THE SECRETARY OF DEFENSE', placeOfPerformance: { city: { name: 'Arlington' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Derrick Miles', email: 'derrick.miles@osd.mil' }] },
+  { noticeId: 'MOCK-HI-002', title: 'Naval AI Decision Support Toolkit', solicitationNumber: 'N66001-26-HI002', department: 'Department of the Navy', postedDate: _d(-3), responseDeadLine: _d(8), naicsCode: '541715', classificationCode: 'AJ13', typeOfSetAsideDescription: '8(a) Program', typeOfSetAside: '8A', setAside: '8A', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE NAVY', placeOfPerformance: { city: { name: 'San Diego' }, state: { code: 'CA', name: 'California' } }, pointOfContact: [{ fullname: 'Andrea Lee', email: 'andrea.lee@navy.mil' }] },
+  { noticeId: 'MOCK-HI-003', title: 'USDA Rural Broadband Planning Support', solicitationNumber: 'USDA-26-HI003', department: 'Department of Agriculture', postedDate: _d(-4), responseDeadLine: _d(9), naicsCode: '517311', classificationCode: 'D399', typeOfSetAsideDescription: 'HUBZone', typeOfSetAside: 'HZC', setAside: 'HZC', uiLink: '#', fullParentPathName: 'DEPT OF AGRICULTURE:RD', placeOfPerformance: { city: { name: 'Kansas City' }, state: { code: 'MO', name: 'Missouri' } }, pointOfContact: [{ fullname: 'Brent Alford', email: 'brent.alford@usda.gov' }] },
+  { noticeId: 'MOCK-HI-004', title: 'EPA Environmental Data Analytics Platform', solicitationNumber: 'EPA-26-HI004', department: 'Environmental Protection Agency', postedDate: _d(-2), responseDeadLine: _d(9), naicsCode: '541611', classificationCode: 'R499', typeOfSetAsideDescription: 'WOSB', typeOfSetAside: 'WOSB', setAside: 'WOSB', uiLink: '#', fullParentPathName: 'ENVIRONMENTAL PROTECTION AGENCY', placeOfPerformance: { city: { name: 'Research Triangle' }, state: { code: 'NC', name: 'North Carolina' } }, pointOfContact: [{ fullname: 'Fiona Clarke', email: 'fiona.clarke@epa.gov' }] },
+  { noticeId: 'MOCK-HI-005', title: 'SSA Legacy System Modernization Phase I', solicitationNumber: 'SSA-26-HI005', department: 'Social Security Administration', postedDate: _d(-6), responseDeadLine: _d(9), naicsCode: '541511', classificationCode: 'D301', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'SOCIAL SECURITY ADMINISTRATION', placeOfPerformance: { city: { name: 'Baltimore' }, state: { code: 'MD', name: 'Maryland' } }, pointOfContact: [{ fullname: 'Quentin Ross', email: 'quentin.ross@ssa.gov' }] },
+
+  // ── ACT SOON (8-10 business days) ──────────────────────────────────────────
+  { noticeId: 'MOCK-AS-001', title: '3rd QTR FY26 – Bread, Eggs, Dairy – Petersburg', solicitationNumber: 'SPE300-26-AS001', department: 'Department of Defense', postedDate: _d(-3), responseDeadLine: _d(12), naicsCode: '311991', classificationCode: 'S208', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEFENSE LOGISTICS AGENCY', placeOfPerformance: { city: { name: 'Petersburg' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Sgt. Dana Poole', email: 'dana.poole@dla.mil' }] },
+  { noticeId: 'MOCK-AS-002', title: 'Janitorial Services – 6 Locations Western MA', solicitationNumber: 'GS04P26-AS002', department: 'General Services Administration', postedDate: _d(-4), responseDeadLine: _d(12), naicsCode: '561720', classificationCode: 'S201', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'GENERAL SERVICES ADMINISTRATION:PBS', placeOfPerformance: { city: { name: 'Springfield' }, state: { code: 'MA', name: 'Massachusetts' } }, pointOfContact: [{ fullname: 'Cassandra Wills', email: 'cassandra.wills@gsa.gov' }] },
+  { noticeId: 'MOCK-AS-003', title: 'CBP Land Port of Entry IT Infrastructure', solicitationNumber: 'CBP-26-AS003', department: 'Department of Homeland Security', postedDate: _d(-5), responseDeadLine: _d(13), naicsCode: '238210', classificationCode: 'D399', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'DEPT OF HOMELAND SECURITY:CBP', placeOfPerformance: { city: { name: 'Laredo' }, state: { code: 'TX', name: 'Texas' } }, pointOfContact: [{ fullname: 'Ignacio Vega', email: 'ignacio.vega@cbp.dhs.gov' }] },
+  { noticeId: 'MOCK-AS-004', title: 'MNCC ICA – IT Consulting Advisory', solicitationNumber: 'N6264126-AS004', department: 'Department of the Navy', postedDate: _d(-2), responseDeadLine: _d(13), naicsCode: '541611', classificationCode: 'R408', typeOfSetAsideDescription: 'VOSB', typeOfSetAside: 'VSA', setAside: 'VSA', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE NAVY:MNCC', placeOfPerformance: { city: { name: 'Millington' }, state: { code: 'TN', name: 'Tennessee' } }, pointOfContact: [{ fullname: 'Chief Petty Officer Kim', email: 'mncc.ica@navy.mil' }] },
+  { noticeId: 'MOCK-AS-005', title: 'H– Replace Pump Station 840 Generator – GOGA', solicitationNumber: 'W912P326-AS005', department: 'Department of the Interior', postedDate: _d(-6), responseDeadLine: _d(14), naicsCode: '238220', classificationCode: 'Z1AZ', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF THE INTERIOR:NPS:GOGA', placeOfPerformance: { city: { name: 'San Francisco' }, state: { code: 'CA', name: 'California' } }, pointOfContact: [{ fullname: 'Ranger T. Nguyen', email: 't.nguyen@nps.gov' }] },
+
+  // ── NORMAL (11-14 business days) ────────────────────────────────────────────
+  { noticeId: 'MOCK-NR-001', title: 'Hood Certification and Testing Services', solicitationNumber: 'W91YTZ26-NR001', department: 'Department of the Army', postedDate: _d(-5), responseDeadLine: _d(16), naicsCode: '541380', classificationCode: 'AJ13', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE ARMY:AMC', placeOfPerformance: { city: { name: 'Fort Cavazos' }, state: { code: 'TX', name: 'Texas' } }, pointOfContact: [{ fullname: 'Col. James Reyes', email: 'james.reyes@army.mil' }] },
+  { noticeId: 'MOCK-NR-002', title: 'VA Analytics Modernization Phase II', solicitationNumber: '36C10B26-NR002', department: 'Department of Veterans Affairs', postedDate: _d(-1), responseDeadLine: _d(16), naicsCode: '541611', classificationCode: 'R699', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'DEPT OF VETERANS AFFAIRS:TAC', placeOfPerformance: { city: { name: 'Austin' }, state: { code: 'TX', name: 'Texas' } }, pointOfContact: [{ fullname: 'Nina Torres', email: 'nina.torres@va.gov' }] },
+  { noticeId: 'MOCK-NR-003', title: 'DHS Secure Cloud Migration Pod', solicitationNumber: '70RD2026-NR003', department: 'Department of Homeland Security', postedDate: _d(-4), responseDeadLine: _d(17), naicsCode: '541519', classificationCode: 'D307', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF HOMELAND SECURITY:OCTO', placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } }, pointOfContact: [{ fullname: 'Priya Shah', email: 'priya.shah@hq.dhs.gov' }] },
+  { noticeId: 'MOCK-NR-004', title: 'DOE National Lab Cybersecurity Audit', solicitationNumber: 'DE-SOL26-NR004', department: 'Department of Energy', postedDate: _d(-7), responseDeadLine: _d(18), naicsCode: '541512', classificationCode: 'D302', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF ENERGY:NNSA', placeOfPerformance: { city: { name: 'Albuquerque' }, state: { code: 'NM', name: 'New Mexico' } }, pointOfContact: [{ fullname: 'Dr. Helen Park', email: 'helen.park@doe.gov' }] },
+  { noticeId: 'MOCK-NR-005', title: 'Cultural Resources Inspection Services', solicitationNumber: 'P14AC26-NR005', department: 'Department of the Interior', postedDate: _d(-3), responseDeadLine: _d(19), naicsCode: '541990', classificationCode: 'R499', typeOfSetAsideDescription: 'WOSB Sole Source', typeOfSetAside: 'WOSBSS', setAside: 'WOSBSS', uiLink: '#', fullParentPathName: 'DEPT OF THE INTERIOR:BLM', placeOfPerformance: { city: { name: 'Boise' }, state: { code: 'ID', name: 'Idaho' } }, pointOfContact: [{ fullname: 'Sylvia Running Bear', email: 'sylvia.runningbear@blm.gov' }] },
+
+  // ── COMFORTABLE (15-21 business days) ───────────────────────────────────────
+  { noticeId: 'MOCK-CF-001', title: 'Renewal of Fort Point Restrooms, GOGA', solicitationNumber: 'W912DR26-CF001', department: 'Department of the Interior', postedDate: _d(-3), responseDeadLine: _d(22), naicsCode: '236220', classificationCode: 'Y1AA', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF THE INTERIOR:NPS:GOGA', placeOfPerformance: { city: { name: 'San Francisco' }, state: { code: 'CA', name: 'California' } }, pointOfContact: [{ fullname: 'Park Dir. O. Brennan', email: 'o.brennan@nps.gov' }] },
+  { noticeId: 'MOCK-CF-002', title: 'GSA NextGen Support Desk Expansion', solicitationNumber: 'GS00F26-CF002', department: 'General Services Administration', postedDate: _d(-6), responseDeadLine: _d(23), naicsCode: '541513', classificationCode: 'D305', typeOfSetAsideDescription: 'WOSB', typeOfSetAside: 'WOSB', setAside: 'WOSB', uiLink: '#', fullParentPathName: 'GENERAL SERVICES ADMINISTRATION:FAS', placeOfPerformance: { city: { name: 'Kansas City' }, state: { code: 'MO', name: 'Missouri' } }, pointOfContact: [{ fullname: 'Morgan Ellis', email: 'morgan.ellis@gsa.gov' }] },
+  { noticeId: 'MOCK-CF-003', title: 'TSA Airport Security Technology Refresh', solicitationNumber: 'HSTS0326-CF003', department: 'Department of Homeland Security', postedDate: _d(-8), responseDeadLine: _d(24), naicsCode: '334511', classificationCode: 'N060', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF HOMELAND SECURITY:TSA', placeOfPerformance: { city: { name: 'Springfield' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Dana Kowalski', email: 'dana.kowalski@tsa.dhs.gov' }] },
+  { noticeId: 'MOCK-CF-004', title: 'FEMA Disaster Recovery Planning Tool', solicitationNumber: 'HSFEHQ26-CF004', department: 'Department of Homeland Security', postedDate: _d(-4), responseDeadLine: _d(26), naicsCode: '541611', classificationCode: 'R408', typeOfSetAsideDescription: 'HUBZone', typeOfSetAside: 'HZC', setAside: 'HZC', uiLink: '#', fullParentPathName: 'DEPT OF HOMELAND SECURITY:FEMA', placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } }, pointOfContact: [{ fullname: 'Grace Whitmore', email: 'grace.whitmore@fema.dhs.gov' }] },
+  { noticeId: 'MOCK-CF-005', title: 'IRS Tax Systems Data Quality Review', solicitationNumber: 'TIRNO26-CF005', department: 'Department of the Treasury', postedDate: _d(-5), responseDeadLine: _d(28), naicsCode: '541611', classificationCode: 'R408', typeOfSetAsideDescription: '8(a)', typeOfSetAside: '8A', setAside: '8A', uiLink: '#', fullParentPathName: 'DEPT OF THE TREASURY:IRS', placeOfPerformance: { city: { name: 'New Carrollton' }, state: { code: 'MD', name: 'Maryland' } }, pointOfContact: [{ fullname: 'Victor Huang', email: 'victor.huang@irs.gov' }] },
+
+  // ── AMPLE (22-30 business days) ─────────────────────────────────────────────
+  { noticeId: 'MOCK-AM-001', title: 'NSN, Q-47 Demolish Fishing Pier', solicitationNumber: 'W912P326-AM001', department: 'Department of Defense', postedDate: _d(-3), responseDeadLine: _d(33), naicsCode: '237990', classificationCode: 'Z2EZ', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:USACE', placeOfPerformance: { city: { name: 'Point Reyes' }, state: { code: 'CA', name: 'California' } }, pointOfContact: [{ fullname: 'Lt. Col. Frank Osei', email: 'frank.osei@usace.army.mil' }] },
+  { noticeId: 'MOCK-AM-002', title: 'VA Electronic Health Record Integration', solicitationNumber: '36C24B26-AM002', department: 'Department of Veterans Affairs', postedDate: _d(-7), responseDeadLine: _d(35), naicsCode: '541511', classificationCode: 'D301', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'DEPT OF VETERANS AFFAIRS:OIT', placeOfPerformance: { city: { name: 'Salt Lake City' }, state: { code: 'UT', name: 'Utah' } }, pointOfContact: [{ fullname: 'Dr. Carla Simmons', email: 'carla.simmons@va.gov' }] },
+  { noticeId: 'MOCK-AM-003', title: 'FBI Biometric Data Center Expansion', solicitationNumber: 'DJF-26-AM003', department: 'Department of Justice', postedDate: _d(-5), responseDeadLine: _d(36), naicsCode: '238210', classificationCode: 'D399', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF JUSTICE:FBI', placeOfPerformance: { city: { name: 'Clarksburg' }, state: { code: 'WV', name: 'West Virginia' } }, pointOfContact: [{ fullname: 'Special Agent Taylor', email: 'taylor@fbi.gov' }] },
+  { noticeId: 'MOCK-AM-004', title: 'NASA Ground Systems Software Upgrade', solicitationNumber: 'NNK26-AM004', department: 'National Aeronautics and Space Administration', postedDate: _d(-10), responseDeadLine: _d(38), naicsCode: '541715', classificationCode: 'AJ14', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'NASA:KSC', placeOfPerformance: { city: { name: 'Cape Canaveral' }, state: { code: 'FL', name: 'Florida' } }, pointOfContact: [{ fullname: 'Dr. Mia Chen', email: 'mia.chen@nasa.gov' }] },
+  { noticeId: 'MOCK-AM-005', title: 'DLA Consolidated Warehousing Services', solicitationNumber: 'SPE8EX26-AM005', department: 'Department of Defense', postedDate: _d(-4), responseDeadLine: _d(40), naicsCode: '493110', classificationCode: 'S299', typeOfSetAsideDescription: 'HUBZone', typeOfSetAside: 'HZC', setAside: 'HZC', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEFENSE LOGISTICS AGENCY', placeOfPerformance: { city: { name: 'Susquehanna' }, state: { code: 'PA', name: 'Pennsylvania' } }, pointOfContact: [{ fullname: 'Warren Briggs', email: 'warren.briggs@dla.mil' }] },
+
+  // ── PLENTY (31+ business days) ──────────────────────────────────────────────
+  { noticeId: 'MOCK-PL-001', title: 'Weld Rod – Long-Term Supply Contract', solicitationNumber: 'SPE7MX26-PL001', department: 'Department of Defense', postedDate: _d(-5), responseDeadLine: _d(46), naicsCode: '332999', classificationCode: 'H019', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEFENSE LOGISTICS AGENCY', placeOfPerformance: { city: { name: 'Philadelphia' }, state: { code: 'PA', name: 'Pennsylvania' } }, pointOfContact: [{ fullname: 'Acquisitions Officer Dunn', email: 'dunn@dla.mil' }] },
+  { noticeId: 'MOCK-PL-002', title: 'USNS William McLean Display Unit Refit', solicitationNumber: 'N0002426-PL002', department: 'Department of the Navy', postedDate: _d(-6), responseDeadLine: _d(48), naicsCode: '336611', classificationCode: 'J019', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE NAVY:NAVSEA', placeOfPerformance: { city: { name: 'Dahlgren' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Cmdr. Elaine Obi', email: 'elaine.obi@navsea.navy.mil' }] },
+  { noticeId: 'MOCK-PL-003', title: 'ID FS NEZPR117 221(1) National Forest Service', solicitationNumber: 'AG7SI26-PL003', department: 'Department of Agriculture', postedDate: _d(-8), responseDeadLine: _d(50), naicsCode: '113310', classificationCode: 'F006', typeOfSetAsideDescription: 'Small Business', typeOfSetAside: 'SBA', setAside: 'SBA', uiLink: '#', fullParentPathName: 'DEPT OF AGRICULTURE:FOREST SERVICE', placeOfPerformance: { city: { name: 'Nezperce' }, state: { code: 'ID', name: 'Idaho' } }, pointOfContact: [{ fullname: 'Ranger S. Blackwood', email: 's.blackwood@fs.fed.us' }] },
+  { noticeId: 'MOCK-PL-004', title: 'F014– BIC Multiple Award IDIQ – Tech Services', solicitationNumber: 'GS35F26-PL004', department: 'General Services Administration', postedDate: _d(-10), responseDeadLine: _d(55), naicsCode: '541519', classificationCode: 'D399', typeOfSetAsideDescription: 'SDVOSB', typeOfSetAside: 'SDVOSBC', setAside: 'SDVOSBC', uiLink: '#', fullParentPathName: 'GENERAL SERVICES ADMINISTRATION:FAS:ITS', placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } }, pointOfContact: [{ fullname: 'Cynthia Tran', email: 'cynthia.tran@gsa.gov' }] },
+  { noticeId: 'MOCK-PL-005', title: 'Army Readiness Training Simulation Platform', solicitationNumber: 'W900KK26-PL005', department: 'Department of the Army', postedDate: _d(-12), responseDeadLine: _d(60), naicsCode: '611699', classificationCode: 'B502', typeOfSetAsideDescription: '8(a)', typeOfSetAside: '8A', setAside: '8A', uiLink: '#', fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE ARMY:TRADOC', placeOfPerformance: { city: { name: 'Fort Eustis' }, state: { code: 'VA', name: 'Virginia' } }, pointOfContact: [{ fullname: 'Col. Patricia Oaks', email: 'patricia.oaks@army.mil' }] },
 ]
 
 // 📌 NEW: User profile interface
@@ -565,6 +511,9 @@ export default function OpportunitiesClient() {
   const { data: session, status: sessionStatus } = useSession();
   const isLoggedIn = sessionStatus === 'authenticated';
 
+  // ✅ Auth-aware mock flag: guests always see mock data; signed-in users hit real SAM.gov API
+  const USE_MOCK_OPPORTUNITIES = !isLoggedIn;
+
   const [allOpportunities, setAllOpportunities] = useState<SamOpportunity[]>([]);
   const [displayedOpportunities, setDisplayedOpportunities] = useState<SamOpportunity[]>(PLACEHOLDER_OPPORTUNITIES);
   const [filteredOpportunities, setFilteredOpportunities] = useState<SamOpportunity[]>([]);
@@ -652,38 +601,22 @@ export default function OpportunitiesClient() {
     if (urgency) setSelectedUrgency(urgency);
   }, [searchParamSnapshot, searchParams]);
 
-  const scheduleSignInPrompt = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    if (nudgeTimerRef.current) {
-      window.clearTimeout(nudgeTimerRef.current);
-      nudgeTimerRef.current = null;
-    }
-    if (isLoggedIn) return;
-    nudgeTimerRef.current = window.setTimeout(() => setShowSignInNudge(true), 60000);
-  }, [isLoggedIn]);
+  // Sign-in nudge: no auto-popup — the board banner handles the CTA for guests
+  const scheduleSignInPrompt = useCallback(() => { /* disabled — no popup */ }, []);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      setShowSignInNudge(false);
-      if (nudgeTimerRef.current) {
-        window.clearTimeout(nudgeTimerRef.current);
-        nudgeTimerRef.current = null;
-      }
-      return;
-    }
-    scheduleSignInPrompt();
+    if (isLoggedIn) setShowSignInNudge(false);
     return () => {
       if (nudgeTimerRef.current) {
         window.clearTimeout(nudgeTimerRef.current);
         nudgeTimerRef.current = null;
       }
     };
-  }, [isLoggedIn, scheduleSignInPrompt]);
+  }, [isLoggedIn]);
 
   const handleDismissSignInNudge = useCallback(() => {
     setShowSignInNudge(false);
-    scheduleSignInPrompt();
-  }, [scheduleSignInPrompt]);
+  }, []);
 
   // 📌 FIXED: Get user name from session
   const userName = session?.user?.name?.split(' ')[0] || '';
@@ -904,7 +837,7 @@ export default function OpportunitiesClient() {
   const analyzeOpportunity = async (opportunity: SamOpportunity) => {
     try {
       setAnalyzingOpps(prev => new Set(prev).add(opportunity.noticeId));
-      if (USE_MOCK_OPPORTUNITIES) {
+      if (!isLoggedIn) {
         await new Promise(resolve => setTimeout(resolve, 400));
         return {
           matchScore: 88,
@@ -1024,13 +957,12 @@ Provide analysis in JSON format with:
 
   const handleLoadMore = useCallback(() => {
     if (loadingMore) return;
-    
     setLoadingMore(true);
     setTimeout(() => {
-      setDisplayCount(prev => Math.min(prev + 30, displayedOpportunities.length));
+      setDisplayCount(prev => prev + 50);
       setLoadingMore(false);
-    }, 500);
-  }, [loadingMore, displayedOpportunities.length]);
+    }, 400);
+  }, [loadingMore]);
 
   const handleExportOpportunities = () => {
     const header = ['Title', 'Department', 'NAICS', 'Posted Date', 'Deadline', 'Type', 'Link'].join(',');
@@ -1174,7 +1106,7 @@ Provide analysis in JSON format with:
 
   // Load saved opportunity IDs from DB on mount so bookmarks are persistent
   useEffect(() => {
-    if (USE_MOCK_OPPORTUNITIES || !isLoggedIn) return;
+    if (!isLoggedIn) return;
     fetch('/api/saved-opportunities')
       .then(r => r.ok ? r.json() : { savedOpportunities: [] })
       .then(data => {
@@ -1184,73 +1116,25 @@ Provide analysis in JSON format with:
       .catch(err => console.error('Failed to load saved opportunities:', err));
   }, [isLoggedIn]);
 
+  // Unsigned users: load mock data so the board has real-looking cards to display
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (isLoggedIn) return;
-    let isMounted = true;
-
-    async function loadTickerFeed() {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/ticker', { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error('Failed to load ticker opportunities');
-        }
-        const payload = await response.json();
-        const tickerOpps = (payload.opportunities || []).map((opp: any) => normalizeOpportunity(opp));
-        if (!isMounted) return;
-        setAllOpportunities(tickerOpps);
-        setFilteredOpportunities(tickerOpps);
-        setDisplayedOpportunities(tickerOpps);
-        setTotalRecords(tickerOpps.length);
-        setLastUpdated('Live ticker feed');
-        setDataLoaded(true);
-        setError(null);
-        setDataSource('ticker');
-      } catch (err) {
-        console.error('Failed to load ticker feed:', err);
-        if (!isMounted) return;
-        setError('Live ticker feed unavailable. Sign in for the full catalog.');
-        if (USE_MOCK_OPPORTUNITIES) {
-          setAllOpportunities(MOCK_OPPORTUNITIES);
-          setFilteredOpportunities(MOCK_OPPORTUNITIES);
-          setDisplayedOpportunities(MOCK_OPPORTUNITIES);
-          setTotalRecords(MOCK_OPPORTUNITIES.length);
-          setLastUpdated('Sample data');
-          setDataLoaded(true);
-          setDataSource('mock');
-        }
-      } finally {
-        if (!isMounted) return;
-        setLoading(false);
-        setRefreshIndicator(false);
-      }
-    }
-
-    loadTickerFeed();
-
-    return () => {
-      isMounted = false;
-    };
+    setLoading(false);
+    setDataLoaded(true);
+    setDataSource('mock');
+    setAllOpportunities(MOCK_OPPORTUNITIES);
+    setFilteredOpportunities(MOCK_OPPORTUNITIES);
+    setDisplayedOpportunities(MOCK_OPPORTUNITIES);
+    setTotalRecords(MOCK_OPPORTUNITIES.length);
+    setLastUpdated('Sample data — sign in for live opportunities');
   }, [isLoggedIn, sessionStatus]);
 
-    // Fetch ALL opportunities from SAM.gov
+    // Fetch ALL opportunities from SAM.gov (authenticated users only)
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (!isLoggedIn) return;
     if (dataSource === 'live') return;
-    if (USE_MOCK_OPPORTUNITIES) {
-      setAllOpportunities(MOCK_OPPORTUNITIES)
-      setFilteredOpportunities(MOCK_OPPORTUNITIES)
-      setDisplayedOpportunities(MOCK_OPPORTUNITIES)
-      setTotalRecords(MOCK_OPPORTUNITIES.length)
-      setLastUpdated('Using mock data')
-      setDataLoaded(true)
-      setLoading(false)
-      setRefreshIndicator(false)
-      setDataSource('mock')
-      return
-    }
 
     let isMounted = true;
     const abortController = new AbortController();
@@ -1391,9 +1275,10 @@ Provide analysis in JSON format with:
   }, [dataLoaded, dataSource, isLoggedIn, sessionStatus]);
 
   // Apply filters whenever dependencies change
+  const DEFAULT_DISPLAY_COUNT = 96; // Ensure all columns fill for unsigned-in users
   useEffect(() => {
     if (dataLoaded && allOpportunities.length > 0) {
-      const filtered = applyFilters(
+      let filtered = applyFilters(
         allOpportunities,
         filterParam,
         searchTerm,
@@ -1406,14 +1291,38 @@ Provide analysis in JSON format with:
         selectedUrgencyFilters,
         showAllOpportunities
       );
-      setFilteredOpportunities(filtered);
-      setDisplayedOpportunities(filtered);
-      setDisplayCount(250);
+
+      if (isLoggedIn) {
+        // ✅ Soft-sort: preference-matched opportunities float to top, rest follow
+        // Never hard-filter — always show all results so users see the full feed
+        if (opportunityPreferences) {
+          const scoreOpp = (opp: SamOpportunity) => {
+            let score = 0;
+            if (opportunityPreferences.naicsCodes?.length > 0 &&
+                opportunityPreferences.naicsCodes.some((code: string) => opp.naicsCode?.includes(code))) score += 3;
+            if (opportunityPreferences.setAsides?.length > 0 &&
+                opportunityPreferences.setAsides.some((code: string) => (opp.typeOfSetAside || '').includes(code))) score += 2;
+            if (opportunityPreferences.states?.length > 0 &&
+                opportunityPreferences.states.some((state: string) => (opp.placeOfPerformance?.state?.code || '').includes(state))) score += 1;
+            return score;
+          };
+          filtered = [...filtered].sort((a, b) => scoreOpp(b) - scoreOpp(a));
+        }
+        setFilteredOpportunities(filtered);
+        setDisplayedOpportunities(filtered);
+        // Use page-size display count — Load More reveals the rest
+        setDisplayCount(50);
+      } else if (!isLoggedIn) {
+        // Guests always see exactly 40 mock cards — 5 per urgency column, 8 columns
+        setFilteredOpportunities(MOCK_OPPORTUNITIES);
+        setDisplayedOpportunities(MOCK_OPPORTUNITIES);
+        setDisplayCount(40);
+      }
     }
   }, [
     allOpportunities, filterParam, searchTerm, selectedType, selectedSetAside, 
     dataLoaded, activeFilter, applyFilters, selectedAgency, selectedNAICS, 
-    selectedUrgency, selectedUrgencyFilters, showAllOpportunities
+    selectedUrgency, selectedUrgencyFilters, showAllOpportunities, isLoggedIn, opportunityPreferences
   ]);
 
   // 📌 NEW: Personalized stats
@@ -1591,7 +1500,7 @@ Provide analysis in JSON format with:
   // Show full-screen loading when first fetching and no real data yet
   if (loading && allOpportunities.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-950 via-blue-950 to-slate-900">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin mx-auto mb-6 text-cyan-400" />
           <h2 className="text-2xl font-bold text-white mb-2">Loading Federal Opportunities</h2>
@@ -1604,10 +1513,10 @@ Provide analysis in JSON format with:
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 pb-40 [&_.text-xs]:text-sm [&_.text-sm]:text-base [&_.text-base]:text-[1.25rem] [&_.text-lg]:text-[1.4rem]">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-blue-950 to-slate-900 pb-40 [&_.text-xs]:text-sm [&_.text-sm]:text-base [&_.text-base]:text-[1.25rem] [&_.text-lg]:text-[1.4rem]">
       {/* Header with status */}
       <div className="border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
-        <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
+        <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
               <div className="flex items-center gap-2">
@@ -1670,7 +1579,7 @@ Provide analysis in JSON format with:
                   }
                   setSurveyOpen(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 px-4 py-2.5 text-sm font-bold text-white transition shadow-lg hover:shadow-xl"
+                className="inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 px-4 py-2.5 text-sm font-bold text-white transition shadow-lg hover:shadow-xl"
               >
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Update Preferences</span>
@@ -1691,9 +1600,9 @@ Provide analysis in JSON format with:
       {/* Error Banner */}
       {error && (
         <div className="border-b border-red-500/20 bg-red-500/10 backdrop-blur-xl">
-          <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
+          <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <AlertCircle className="w-5 h-5 text-red-400" />
               </div>
               <div className="flex-1">
@@ -1710,7 +1619,7 @@ Provide analysis in JSON format with:
                   setRefreshIndicator(true);
                   window.location.reload();
                 }}
-                className="flex-shrink-0 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-xs text-red-300 font-medium transition-colors"
+                className="shrink-0 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-xs text-red-300 font-medium transition-colors"
               >
                 Retry Now
               </button>
@@ -1719,34 +1628,11 @@ Provide analysis in JSON format with:
         </div>
       )}
 
-      {!isLoggedIn && dataSource === 'ticker' && (
-          <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3">
-            <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-cyan-200">You are viewing a live sample feed</p>
-                <p className="text-xs text-cyan-100/80">Sign in to unlock the full SAM.gov catalog, saved searches, and AI scoring.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowSignInNudge(true)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-bold shadow-lg"
-                >
-                  Sign In for Full Access
-                </button>
-                <button
-                  onClick={handleDismissSignInNudge}
-                  className="px-3 py-2 rounded-xl border border-white/20 text-xs text-white/70"
-                >
-                  Keep Browsing
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+{/* ticker sample feed banner removed */}
 
-      <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
+      <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
         {/* 📌 HERO SECTION - What we're showing and how */}
-        <div className="mb-2 p-2 sm:p-3 bg-gradient-to-br from-blue-900/30 via-indigo-900/20 to-purple-900/30 rounded-xl border border-blue-500/30">
+        <div className="mb-2 p-2 sm:p-3 bg-linear-to-br from-blue-900/30 via-indigo-900/20 to-purple-900/30 rounded-xl border border-blue-500/30">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-3 sm:mb-4">
@@ -1755,19 +1641,19 @@ Provide analysis in JSON format with:
                   alt="Company Logo" 
                   width={56}
                   height={56}
-                  className="w-8 h-8 object-contain flex-shrink-0"
+                  className="w-8 h-8 object-contain shrink-0"
                 />
-                <h1 className="text-base sm:text-lg font-bold leading-tight text-[var(--color-text-primary)]">
+                <h1 className="text-base sm:text-lg font-bold leading-tight text-(--color-text-primary)">
                   {(() => {
                     const h = new Date().getHours();
                     const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
                     return (
                       <>
-                        <span className="text-[var(--color-text-primary)]">{g}, </span>
+                        <span className="text-(--color-text-primary)">{g}, </span>
                         <span className="text-[#ff7a18] font-extrabold">{userName || 'there'}</span>
-                        <span className="text-[var(--color-text-primary)]">! Welcome to your curated opportunities provided by </span>
+                        <span className="text-(--color-text-primary)">! Welcome to your curated opportunities provided by </span>
                         <span className="text-[#ff7a18] font-extrabold">Precise GovCon</span>
-                        <span className="text-[var(--color-text-primary)] font-semibold"> TM</span>
+                        <span className="text-(--color-text-primary) font-semibold"> TM</span>
                       </>
                     );
                   })()}
@@ -1789,7 +1675,7 @@ Provide analysis in JSON format with:
             </button>
             
             <div className="flex items-start justify-between gap-4 pr-12">
-              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+              <div className="w-12 h-12 shrink-0 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
                 <Image src="/logo.png" alt="Precise GovCon" width={40} height={40} className="w-9 h-9 object-contain" />
               </div>
               <div className="flex-1">
@@ -1801,7 +1687,7 @@ Provide analysis in JSON format with:
                 </p>
                 <button
                   onClick={() => setSurveyOpen(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
                 >
                   <Sparkles className="w-5 h-5" />
                   Get AI-powered curated opportunities
@@ -1813,7 +1699,7 @@ Provide analysis in JSON format with:
 
         {/* Survey Success Banner */}
         {userProfile.hasCompletedSurvey && !bannerDismissed && (
-          <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 relative">
+          <div className="mb-6 p-4 sm:p-6 bg-linear-to-br from-emerald-500/10 via-cyan-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 relative">
             <button
               onClick={handleDismissBanner}
               className="absolute top-4 right-4 p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
@@ -1833,7 +1719,7 @@ Provide analysis in JSON format with:
                 </p>
                 <button
                   onClick={() => setSurveyOpen(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
                 >
                   <Settings className="w-5 h-5" />
                   Update Preferences
@@ -2036,7 +1922,9 @@ Provide analysis in JSON format with:
         {/* Results Header */}
         <div ref={resultsRef} className="mb-2 flex items-center justify-between">
           <h3 className="text-xl font-bold text-white">
-            {displayedOpportunities.length === 0 ? (
+            {!isLoggedIn ? (
+              <>Showing <span className="text-cyan-400">40</span> preview opportunities &mdash; sign in for <span className="text-cyan-400">1,400+</span> live results</>
+            ) : displayedOpportunities.length === 0 ? (
               'No opportunities match your criteria'
             ) : (
               <>
@@ -2066,14 +1954,14 @@ Provide analysis in JSON format with:
         {/* GRID VIEW ΓÇö 8 columns side by side, each full-width column = one category */}
         {viewMode === 'grid' && (() => {
           const COLS = [
-            { key: 'CRITICAL',    min: 0,  max: 3,     label: 'CRITICAL',    range: 'Γëñ3 days',    hdr: '#dc2626', bg: '#1c0606' },
-            { key: 'URGENT',      min: 4,  max: 5,     label: 'URGENT',      range: '4ΓÇô5 days',   hdr: '#ea580c', bg: '#1c0d04' },
-            { key: 'HIGH',        min: 6,  max: 7,     label: 'HIGH',        range: '6ΓÇô7 days',   hdr: '#d97706', bg: '#1c1404' },
-            { key: 'ACT SOON',    min: 8,  max: 10,    label: 'ACT SOON',    range: '8ΓÇô10 days',  hdr: '#ca8a04', bg: '#1c1804' },
-            { key: 'NORMAL',      min: 11, max: 14,    label: 'NORMAL',      range: '11ΓÇô14 days', hdr: '#65a30d', bg: '#0b1803' },
-            { key: 'COMFORTABLE', min: 15, max: 21,    label: 'COMFORTABLE', range: '15ΓÇô21 days', hdr: '#16a34a', bg: '#031809' },
-            { key: 'AMPLE',       min: 22, max: 30,    label: 'AMPLE',       range: '22ΓÇô30 days', hdr: '#059669', bg: '#02140f' },
-            { key: 'PLENTY',      min: 31, max: 99999, label: 'PLENTY',      range: '31+ days',        hdr: '#0d9488', bg: '#021718' },
+            { key: 'CRITICAL',    min: 0,  max: 3,     label: 'CRITICAL',    range: '≤3 days',    hdr: '#dc2626', bg: '#1c0606' },
+            { key: 'URGENT',      min: 4,  max: 5,     label: 'URGENT',      range: '4-5 days',   hdr: '#ea580c', bg: '#1c0d04' },
+            { key: 'HIGH',        min: 6,  max: 7,     label: 'HIGH',        range: '6-7 days',   hdr: '#d97706', bg: '#1c1404' },
+            { key: 'ACT SOON',    min: 8,  max: 10,    label: 'ACT SOON',    range: '8-10 days',  hdr: '#ca8a04', bg: '#1c1804' },
+            { key: 'NORMAL',      min: 11, max: 14,    label: 'NORMAL',      range: '11-14 days', hdr: '#65a30d', bg: '#0b1803' },
+            { key: 'COMFORTABLE', min: 15, max: 21,    label: 'COMFORTABLE', range: '15-21 days', hdr: '#16a34a', bg: '#031809' },
+            { key: 'AMPLE',       min: 22, max: 30,    label: 'AMPLE',       range: '22-30 days', hdr: '#059669', bg: '#02140f' },
+            { key: 'PLENTY',      min: 31, max: 99999, label: 'PLENTY',      range: '31+ days',   hdr: '#0d9488', bg: '#021718' },
           ];
 
           type Tagged = SamOpportunity & { bd: number };
@@ -2092,6 +1980,16 @@ Provide analysis in JSON format with:
           });
           COLS.forEach(c => buckets[c.key].sort((a, b) => a.bd - b.bd));
 
+          // Find the max column length (after filtering and showMoreBands logic)
+          const urgencyActive = selectedUrgencyFilters.size > 0;
+          const colLengths = COLS.map(col => {
+            const all = buckets[col.key];
+            const colSelected = !urgencyActive || selectedUrgencyFilters.has(col.label) || selectedUrgencyFilters.has(col.key);
+            const filteredAll = urgencyActive && !colSelected ? [] : all;
+            return (showMoreBands?.[col.key] ? filteredAll.length : Math.min(filteredAll.length, 12));
+          });
+          const maxColLength = Math.max(...colLengths);
+
           return (
             <div style={{ width: '100%', overflowX: isMobileViewport ? 'auto' : 'visible', paddingBottom: isMobileViewport ? '4px' : '0' }}>
               <div style={{
@@ -2101,14 +1999,17 @@ Provide analysis in JSON format with:
                 minWidth: isMobileViewport ? '1280px' : '0',
                 width: '100%',
               }}>
-              {COLS.map(col => {
+              {COLS.map((col, colIdx) => {
                 const all    = buckets[col.key];
-                // When urgency filters are active, only show cards for selected columns
-                const urgencyActive = selectedUrgencyFilters.size > 0;
                 const colSelected   = !urgencyActive || selectedUrgencyFilters.has(col.label) || selectedUrgencyFilters.has(col.key);
                 const filteredAll   = urgencyActive && !colSelected ? [] : all;
                 const shown  = showMoreBands?.[col.key] ? filteredAll : filteredAll.slice(0, 12);
                 const hidden = filteredAll.length - shown.length;
+                // Pad with placeholders to align columns
+                const paddedShown = [...shown];
+                while (paddedShown.length < maxColLength) {
+                  paddedShown.push({} as Tagged);
+                }
                 return (
                   <div key={col.key} style={{
                     display: 'flex', flexDirection: 'column', minWidth: 0,
@@ -2138,7 +2039,24 @@ Provide analysis in JSON format with:
                     </div>
 
                     {/* Cards ΓÇö every card is full width of this column, stacks down */}
-                    {shown.map(opp => {
+                    {paddedShown.map((opp, idx) => {
+                      if (!opp) {
+                        // Render invisible placeholder for alignment
+                        return (
+                          <div key={`placeholder-${col.key}-${idx}`} style={{
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '5px',
+                            padding: '8px 9px',
+                            marginBottom: '2px',
+                            width: '100%',
+                            minHeight: '56px', // Approximate height of a card
+                            boxSizing: 'border-box',
+                            pointerEvents: 'none',
+                            visibility: 'hidden',
+                          }} />
+                        );
+                      }
                       const dl       = getEffectiveDeadline(opp);
                       const isSaved  = savedOpportunities.has(opp.noticeId);
                       const isViewed = viewedOpportunities.has(opp.noticeId);
@@ -2257,7 +2175,7 @@ Provide analysis in JSON format with:
               {groupMode !== 'none' && (
                 <div className="mb-4 flex items-center gap-3">
                   <h4 className="text-lg font-bold text-white">{groupName}</h4>
-                  <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent"></div>
+                  <div className="flex-1 h-px bg-linear-to-r from-slate-700 to-transparent"></div>
                   <span className="text-sm text-slate-400 font-semibold">{sortedOpportunities.length} opportunities</span>
                 </div>
               )}
@@ -2281,14 +2199,14 @@ Provide analysis in JSON format with:
                     return (
                       <div
                         key={opp.noticeId}
-                        className={`group p-3 bg-gradient-to-r ${urgencyGradient} rounded-lg border-2 hover:shadow-lg transition-all ${
+                        className={`group p-3 bg-linear-to-r ${urgencyGradient} rounded-lg border-2 hover:shadow-lg transition-all ${
                           isPlaceholder ? 'animate-pulse' : ''
                         } ${isViewed ? 'opacity-75' : ''}`}
                       >
                         <div className="flex items-center gap-3">
                           {/* Urgency Badge */}
                           {!isPlaceholder && (
-                            <div className="flex flex-col gap-2 w-[132px] sm:w-[190px] shrink-0">
+                            <div className="flex flex-col gap-2 w-33 sm:w-47.5 shrink-0">
                               <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current inline-flex items-center justify-between`}>
                                 <span>{urgencyLabel}</span>
                                 <span className="ml-2">{businessDays !== null ? `${businessDays}bd` : 'Γê₧'}</span>
@@ -2298,7 +2216,7 @@ Provide analysis in JSON format with:
 
                           {/* Response Deadline */}
                           {!isPlaceholder && (
-                            <div className="mb-0 p-2 bg-slate-900/40 rounded-lg border border-slate-700 flex-shrink-0">
+                            <div className="mb-0 p-2 bg-slate-900/40 rounded-lg border border-slate-700 shrink-0">
                               <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
                                 <Calendar className="w-3 h-3" />
                                 <span>Response Deadline</span>
@@ -2352,7 +2270,7 @@ Provide analysis in JSON format with:
                           </div>
 
                           {/* Actions */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             {!isPlaceholder && (
                               <>
                                 <button
@@ -2367,7 +2285,7 @@ Provide analysis in JSON format with:
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={() => handleViewOpportunity(opp.noticeId)}
-                                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all text-xs flex items-center gap-2"
+                                  className="px-4 py-2 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all text-xs flex items-center gap-2"
                                 >
                                   View
                                   <ExternalLink className="w-3 h-3" />
@@ -2404,7 +2322,7 @@ Provide analysis in JSON format with:
                     return (
                       <div
                         key={opp.noticeId}
-                        className={`group p-4 sm:p-6 bg-gradient-to-br ${urgencyGradient} rounded-xl border-2 hover:shadow-xl transition-all ${
+                        className={`group p-4 sm:p-6 bg-linear-to-br ${urgencyGradient} rounded-xl border-2 hover:shadow-xl transition-all ${
                           isPlaceholder ? 'animate-pulse' : ''
                         } ${isViewed ? 'opacity-75' : ''}`}
                       >
@@ -2438,7 +2356,7 @@ Provide analysis in JSON format with:
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-1.5 sm:gap-y-2 text-xs sm:text-sm text-slate-300">
                               <span className="flex items-center gap-2">
-                                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                                 {isPlaceholder ? (
                                   <span className="inline-block h-4 w-48 bg-slate-700 rounded"></span>
                                 ) : (
@@ -2447,14 +2365,14 @@ Provide analysis in JSON format with:
                               </span>
                               {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
                                 <span className="flex items-center gap-2">
-                                  <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                                  <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                                   <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
                                     {opp.typeOfSetAsideDescription}
                                   </span>
                                 </span>
                               )}
                               <span className="flex items-center gap-2">
-                                <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                                <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                                 {isPlaceholder ? (
                                   <span className="inline-block h-4 w-24 bg-slate-700 rounded"></span>
                                 ) : (
@@ -2462,7 +2380,7 @@ Provide analysis in JSON format with:
                                 )}
                               </span>
                               <span className="flex items-center gap-2">
-                                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                                 {isPlaceholder ? (
                                   <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
                                 ) : (
@@ -2478,7 +2396,7 @@ Provide analysis in JSON format with:
                           </div>
 
                           {!isPlaceholder && (
-                            <div className="text-right flex-shrink-0 min-w-[56px]">
+                            <div className="text-right shrink-0 min-w-14">
                               {businessDays !== null ? (
                                 <>
                                   <div className={`text-xl sm:text-2xl font-bold ${urgencyTextColor} mb-0.5`}>
@@ -2533,7 +2451,7 @@ Provide analysis in JSON format with:
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => handleViewOpportunity(opp.noticeId)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all text-sm shadow-sm hover:shadow-md"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all text-sm shadow-sm hover:shadow-md"
                               >
                                 View on SAM.gov
                                 <ExternalLink className="w-4 h-4" />
@@ -2591,19 +2509,19 @@ Provide analysis in JSON format with:
           <div className="mt-12 mb-24 text-center">
             <div className="mb-6">
               <p className="text-slate-300 text-base mb-2 font-semibold">
-                Showing {displayCount} of {displayedOpportunities.length.toLocaleString()} opportunities
+                Showing <span className="text-cyan-400 font-bold">{Math.min(displayCount, displayedOpportunities.length).toLocaleString()}</span> of <span className="text-cyan-400 font-bold">{displayedOpportunities.length.toLocaleString()}</span> opportunities
               </p>
-              <div className="h-1 w-64 mx-auto bg-slate-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-300"
-                  style={{ width: `${(displayCount / displayedOpportunities.length) * 100}%` }}
+              <div className="h-2 w-72 mx-auto bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-linear-to-r from-emerald-500 to-cyan-500 transition-all duration-500"
+                  style={{ width: `${Math.min(100, (displayCount / displayedOpportunities.length) * 100)}%` }}
                 />
               </div>
             </div>
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
-              className="group px-10 py-5 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 hover:from-orange-600 hover:via-orange-700 hover:to-orange-800 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto text-lg shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
+              className="group px-10 py-5 bg-linear-to-r from-orange-500 via-orange-600 to-orange-700 hover:from-orange-600 hover:via-orange-700 hover:to-orange-800 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto text-lg shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95"
             >
               {loadingMore ? (
                 <>
@@ -2615,11 +2533,16 @@ Provide analysis in JSON format with:
                   <span>Load More Opportunities</span>
                   <ChevronDown className="w-6 h-6 group-hover:translate-y-1 transition-transform" />
                   <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold">
-                    +{(displayedOpportunities.length - displayCount).toLocaleString()} more
+                    +{Math.min(50, displayedOpportunities.length - displayCount).toLocaleString()} more
                   </span>
                 </>
               )}
             </button>
+            {!isLoggedIn && (
+              <p className="mt-4 text-slate-500 text-sm">
+                Sign in to access <span className="text-cyan-400 font-semibold">1,400+ live opportunities</span> from SAM.gov updated daily
+              </p>
+            )}
           </div>
         )}
 
@@ -2628,7 +2551,11 @@ Provide analysis in JSON format with:
           <div className="mt-8 mb-8 text-center">
             <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-slate-400">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <span>You've viewed all {displayedOpportunities.length.toLocaleString()} opportunities</span>
+              <span>
+                {isLoggedIn
+                  ? `You've viewed all ${displayedOpportunities.length.toLocaleString()} active opportunities`
+                  : `Showing ${displayedOpportunities.length} preview opportunities — sign in for 1,400+ live results`}
+              </span>
             </div>
           </div>
         )}
@@ -2649,7 +2576,7 @@ Provide analysis in JSON format with:
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8"
               onClick={e => { if (e.target === e.currentTarget) setSelectedOpp(null); }}
             >
-              <div className={`relative w-full max-w-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 border-2 rounded-2xl shadow-2xl overflow-hidden ${urgencyGradient.replace('from-','border-').split(' ')[0]}`}
+              <div className={`relative w-full max-w-3xl bg-linear-to-br from-slate-900 via-slate-900 to-blue-950 border-2 rounded-2xl shadow-2xl overflow-hidden ${urgencyGradient.replace('from-','border-').split(' ')[0]}`}
                 style={{borderColor: undefined}}>
                 {/* Coloured urgency bar at top */}
                 <div className={`w-full py-1 ${urgencyBadge.split(' ')[0]}`} />
@@ -2657,7 +2584,7 @@ Provide analysis in JSON format with:
                 {/* Header: logo + title area */}
                 <div className="flex items-start gap-4 p-6 pb-4 border-b border-white/10">
                   {/* Company logo */}
-                  <div className="w-14 h-14 flex-shrink-0 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+                  <div className="w-14 h-14 shrink-0 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
                     <Image
                       src="/logo.png"
                       alt="Precise GovCon"
@@ -2675,7 +2602,7 @@ Provide analysis in JSON format with:
                   </div>
                   <button
                     onClick={() => setSelectedOpp(null)}
-                    className="flex-shrink-0 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                    className="shrink-0 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -2880,7 +2807,7 @@ Provide analysis in JSON format with:
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => handleViewOpportunity(opp.noticeId)}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg text-sm"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg text-sm"
                   >
                     View on SAM.gov
                     <ExternalLink className="w-4 h-4" />
@@ -2907,7 +2834,7 @@ Provide analysis in JSON format with:
         {/* Preferences Reminder Modal */}
         {showPrefsReminder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-            <div className="w-full max-w-md bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-500/30 rounded-3xl p-8 shadow-2xl text-center">
+            <div className="w-full max-w-md bg-linear-to-br from-slate-900 to-blue-950 border border-cyan-500/30 rounded-3xl p-8 shadow-2xl text-center">
               <button onClick={() => setShowPrefsReminder(false)}
                 className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all">
                 <X className="w-5 h-5" />
@@ -2967,12 +2894,10 @@ Provide analysis in JSON format with:
       </div>
     </div>
 
-    {/* ΓöÇΓöÇ Floating action strip ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
-    {/* Positioned at bottom-right, lifted high enough to never overlap
-        the app's native Menu / Support buttons that sit at the very bottom */}
-    <div style={{
+    {/* ── Floating action strip — authenticated users only ── */}
+    {isLoggedIn && <div style={{
       position: 'fixed',
-      bottom: '100px',   // ΓåÉ clears the Menu + Support buttons below
+      bottom: '160px',   // raised above the "Start Free Trial" card
       right: '20px',
       display: 'flex',
       flexDirection: 'column',
@@ -3258,43 +3183,8 @@ Provide analysis in JSON format with:
           />
         </button>
       </div>
-    </div>
-    {showSignInNudge && (
-      <div className="fixed inset-0 z-[90]">
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={handleDismissSignInNudge} />
-        <div className="relative z-10 h-full flex items-center justify-center px-4">
-          <div className="w-full max-w-lg bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 border border-cyan-500/40 rounded-3xl shadow-2xl p-8 text-center space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm font-semibold text-cyan-200">Limited preview</p>
-              <button onClick={handleDismissSignInNudge} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <Image src="/logo.png" alt="Precise GovCon" width={48} height={48} className="w-10 h-10 object-contain" />
-            </div>
-            <h3 className="text-2xl font-black text-white">Sign in for full GovCon intelligence</h3>
-            <p className="text-slate-300 text-sm">
-              Browse thousands more opportunities, enable saved searches, and unlock AI match scoring when you sign in.
-            </p>
-            <div className="space-y-3">
-              <a
-                href="/login"
-                className="block w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold shadow-lg"
-              >
-                Sign In / Create Account
-              </a>
-              <button
-                onClick={handleDismissSignInNudge}
-                className="block w-full py-3 rounded-xl border border-white/20 text-slate-200 font-semibold"
-              >
-                Continue Browsing
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+    </div>}
+    {/* Limited preview modal removed for unsigned-in users */}
     </>
   );
 }

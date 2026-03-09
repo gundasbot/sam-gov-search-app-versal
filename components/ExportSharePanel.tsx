@@ -1,20 +1,10 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import {
-  Download,
-  Share2,
-  Copy,
-  Check,
-  FileText,
-  FileJson,
-  Table2,
-  Mail,
-  Printer,
-  Link,
-  ChevronDown,
-  X,
-  FileSpreadsheet,
+  Download, Share2, Copy, Check, FileText, FileJson,
+  Table2, Mail, Printer, Link, ChevronDown, FileSpreadsheet,
 } from 'lucide-react'
 
 type Opp = {
@@ -43,7 +33,7 @@ type Opp = {
 
 interface ExportSharePanelProps {
   results: Opp[]
-  searchLabel?: string // e.g. "Data Analytics — 6 months — Active"
+  searchLabel?: string
 }
 
 function escapeXml(str: string) {
@@ -80,6 +70,9 @@ function dateStamp() {
 }
 
 export default function ExportSharePanel({ results, searchLabel }: ExportSharePanelProps) {
+  const { status } = useSession()
+  const isLoggedIn = status === 'authenticated'
+
   const [showDownload, setShowDownload] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -87,15 +80,19 @@ export default function ExportSharePanel({ results, searchLabel }: ExportSharePa
   const downloadRef = useRef<HTMLDivElement>(null)
   const shareRef = useRef<HTMLDivElement>(null)
 
+  if (!isLoggedIn) return null
+
   const count = results.length
   const label = searchLabel || `${count} opportunities`
+
+  if (count === 0) return null
 
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(null), 2500)
   }
 
-  // ─── CSV ───────────────────────────────────────────────────────────────────
+  // ─── CSV ────────────────────────────────────────────────────────────────────
   function downloadCsv() {
     const headers = [
       'Title', 'Solicitation #', 'Agency', 'Type', 'Set-Aside',
@@ -126,12 +123,12 @@ export default function ExportSharePanel({ results, searchLabel }: ExportSharePa
     setShowDownload(false)
   }
 
-  // ─── JSON ──────────────────────────────────────────────────────────────────
+  // ─── JSON ───────────────────────────────────────────────────────────────────
   function downloadJson() {
     const payload = {
-      exportDate: new Date().toISOString(),
-      searchLabel: label,
-      totalCount: count,
+      exportedAt: new Date().toISOString(),
+      search: label,
+      total: count,
       opportunities: results.map(o => ({
         noticeId: o.noticeId,
         title: o.title,
@@ -141,52 +138,53 @@ export default function ExportSharePanel({ results, searchLabel }: ExportSharePa
         setAside: o.typeOfSetAsideDescription || o.typeOfSetAside || o.setAside,
         naicsCode: o.naicsCode,
         postedDate: o.postedDate,
-        responseDeadline: o.responseDeadLine,
+        responseDeadLine: o.responseDeadLine,
         state: o.placeOfPerformance?.state?.code,
         city: o.placeOfPerformance?.city?.name,
         uiLink: o.uiLink,
       })),
     }
-    triggerDownload(JSON.stringify(payload, null, 2), `opportunities-${dateStamp()}.json`, 'application/json')
+    triggerDownload(
+      JSON.stringify(payload, null, 2),
+      `opportunities-${dateStamp()}.json`,
+      'application/json'
+    )
     showToast('JSON downloaded')
     setShowDownload(false)
   }
 
-  // ─── TXT ──────────────────────────────────────────────────────────────────
+  // ─── TXT ────────────────────────────────────────────────────────────────────
   function downloadTxt() {
-    const lines = results.map((o, i) => [
-      `──────────────────────────────────────────`,
-      `#${i + 1}  ${o.title || 'Untitled'}`,
-      `──────────────────────────────────────────`,
-      `Agency:     ${o.department || o.fullParentPathName || 'N/A'}`,
-      `Sol #:      ${o.solicitationNumber || 'N/A'}`,
-      `Type:       ${o.type || 'N/A'}`,
-      `Set-Aside:  ${o.typeOfSetAsideDescription || o.typeOfSetAside || o.setAside || 'N/A'}`,
-      `NAICS:      ${o.naicsCode || 'N/A'}`,
-      `Posted:     ${formatDate(o.postedDate) || 'N/A'}`,
-      `Deadline:   ${formatDate(o.responseDeadLine) || 'N/A'}`,
-      `Location:   ${[o.placeOfPerformance?.city?.name, o.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || 'N/A'}`,
-      `Link:       ${o.uiLink || 'N/A'}`,
-      '',
-    ].join('\n'))
-
-    const header = [
-      `GOVCON OPPORTUNITIES EXPORT`,
+    const lines = [
+      `GovCon Opportunities Export`,
       `Generated: ${new Date().toLocaleString()}`,
       `Search: ${label}`,
-      `Total: ${count} opportunities`,
+      `Total: ${count}`,
       '',
-      '',
-    ].join('\n')
-
-    triggerDownload(header + lines.join('\n'), `opportunities-${dateStamp()}.txt`, 'text/plain')
-    showToast('TXT downloaded')
+      ...results.map((o, i) => [
+        `${i + 1}. ${o.title || 'Untitled'}`,
+        `   Agency:    ${o.department || o.fullParentPathName || o.organizationName || 'N/A'}`,
+        `   Sol #:     ${o.solicitationNumber || 'N/A'}`,
+        `   Set-Aside: ${o.typeOfSetAsideDescription || o.typeOfSetAside || o.setAside || 'None'}`,
+        `   NAICS:     ${o.naicsCode || 'N/A'}`,
+        `   Posted:    ${formatDate(o.postedDate) || 'N/A'}`,
+        `   Deadline:  ${formatDate(o.responseDeadLine) || 'N/A'}`,
+        `   Location:  ${[o.placeOfPerformance?.city?.name, o.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || 'N/A'}`,
+        `   Link:      ${o.uiLink || 'N/A'}`,
+        '',
+      ].join('\n')),
+    ]
+    triggerDownload(lines.join('\n'), `opportunities-${dateStamp()}.txt`, 'text/plain;charset=utf-8')
+    showToast('Text file downloaded')
     setShowDownload(false)
   }
 
-  // ─── XML ──────────────────────────────────────────────────────────────────
+  // ─── XML ────────────────────────────────────────────────────────────────────
   function downloadXml() {
-    const rows = results.map(o => `  <opportunity>
+    const xml = [
+      `<?xml version="1.0" encoding="UTF-8"?>`,
+      `<opportunities exportedAt="${new Date().toISOString()}" search="${escapeXml(label)}" total="${count}">`,
+      ...results.map(o => `  <opportunity>
     <noticeId>${escapeXml(o.noticeId || '')}</noticeId>
     <title>${escapeXml(o.title || '')}</title>
     <solicitationNumber>${escapeXml(o.solicitationNumber || '')}</solicitationNumber>
@@ -195,34 +193,26 @@ export default function ExportSharePanel({ results, searchLabel }: ExportSharePa
     <setAside>${escapeXml(o.typeOfSetAsideDescription || o.typeOfSetAside || o.setAside || '')}</setAside>
     <naicsCode>${escapeXml(o.naicsCode || '')}</naicsCode>
     <postedDate>${escapeXml(o.postedDate || '')}</postedDate>
-    <responseDeadline>${escapeXml(o.responseDeadLine || '')}</responseDeadline>
+    <responseDeadLine>${escapeXml(o.responseDeadLine || '')}</responseDeadLine>
     <state>${escapeXml(o.placeOfPerformance?.state?.code || '')}</state>
     <city>${escapeXml(o.placeOfPerformance?.city?.name || '')}</city>
     <uiLink>${escapeXml(o.uiLink || '')}</uiLink>
-  </opportunity>`).join('\n')
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<export>
-  <exportDate>${new Date().toISOString()}</exportDate>
-  <searchLabel>${escapeXml(label)}</searchLabel>
-  <totalCount>${count}</totalCount>
-  <opportunities>
-${rows}
-  </opportunities>
-</export>`
-    triggerDownload(xml, `opportunities-${dateStamp()}.xml`, 'application/xml')
+  </opportunity>`),
+      `</opportunities>`,
+    ].join('\n')
+    triggerDownload(xml, `opportunities-${dateStamp()}.xml`, 'application/xml;charset=utf-8')
     showToast('XML downloaded')
     setShowDownload(false)
   }
 
-  // ─── PRINT ────────────────────────────────────────────────────────────────
+  // ─── PRINT ──────────────────────────────────────────────────────────────────
   function printResults() {
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <title>GovCon Opportunities — ${label}</title>
   <style>
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 20px; }
+    body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; }
     h1 { font-size: 16px; margin-bottom: 4px; }
     .meta { color: #555; font-size: 10px; margin-bottom: 16px; }
     table { width: 100%; border-collapse: collapse; }
@@ -271,7 +261,7 @@ ${rows}
     setShowShare(false)
   }
 
-  // ─── COPY LINKS ───────────────────────────────────────────────────────────
+  // ─── COPY LINKS ─────────────────────────────────────────────────────────────
   async function copyLinks() {
     const lines = results
       .filter(o => o.uiLink)
@@ -284,7 +274,7 @@ ${rows}
     setShowShare(false)
   }
 
-  // ─── COPY PAGE URL ────────────────────────────────────────────────────────
+  // ─── COPY PAGE URL ──────────────────────────────────────────────────────────
   async function copyPageUrl() {
     await navigator.clipboard.writeText(window.location.href)
     setCopied(true)
@@ -293,7 +283,7 @@ ${rows}
     setShowShare(false)
   }
 
-  // ─── EMAIL ────────────────────────────────────────────────────────────────
+  // ─── EMAIL ──────────────────────────────────────────────────────────────────
   function emailResults() {
     const subject = encodeURIComponent(`GovCon Opportunities — ${label}`)
     const top10 = results.slice(0, 10)
@@ -308,12 +298,11 @@ ${rows}
     setShowShare(false)
   }
 
-  if (count === 0) return null
-
+  // ─── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <div className="relative flex items-center gap-2">
 
-      {/* ── DOWNLOAD dropdown ── */}
+      {/* Download dropdown */}
       <div className="relative" ref={downloadRef}>
         <button
           onClick={() => { setShowDownload(p => !p); setShowShare(false) }}
@@ -327,22 +316,24 @@ ${rows}
         {showDownload && (
           <div className="absolute left-0 top-full mt-2 w-52 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
             <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Download {count.toLocaleString()} results as</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Download {count.toLocaleString()} results as
+              </p>
             </div>
             {[
               { icon: <FileSpreadsheet className="h-4 w-4 text-emerald-600" />, label: 'CSV Spreadsheet', sub: 'Excel / Google Sheets', fn: downloadCsv },
-              { icon: <FileJson className="h-4 w-4 text-amber-600" />, label: 'JSON', sub: 'Structured data', fn: downloadJson },
-              { icon: <FileText className="h-4 w-4 text-blue-600" />, label: 'Plain Text', sub: 'Readable list', fn: downloadTxt },
-              { icon: <Table2 className="h-4 w-4 text-purple-600" />, label: 'XML', sub: 'Structured markup', fn: downloadXml },
-            ].map(({ icon, label, sub, fn }) => (
+              { icon: <FileJson className="h-4 w-4 text-amber-600" />,          label: 'JSON',            sub: 'Structured data',      fn: downloadJson },
+              { icon: <FileText className="h-4 w-4 text-blue-600" />,           label: 'Plain Text',      sub: 'Readable list',         fn: downloadTxt  },
+              { icon: <Table2 className="h-4 w-4 text-purple-600" />,           label: 'XML',             sub: 'Structured markup',     fn: downloadXml  },
+            ].map(({ icon, label: lbl, sub, fn }) => (
               <button
-                key={label}
+                key={lbl}
                 onClick={fn}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors text-left"
               >
                 {icon}
                 <div>
-                  <div className="text-sm font-bold text-gray-900">{label}</div>
+                  <div className="text-sm font-bold text-gray-900">{lbl}</div>
                   <div className="text-xs text-gray-500">{sub}</div>
                 </div>
               </button>
@@ -351,7 +342,7 @@ ${rows}
         )}
       </div>
 
-      {/* ── SHARE dropdown ── */}
+      {/* Share dropdown */}
       <div className="relative" ref={shareRef}>
         <button
           onClick={() => { setShowShare(p => !p); setShowDownload(false) }}
@@ -365,22 +356,24 @@ ${rows}
         {showShare && (
           <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
             <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Share {count.toLocaleString()} results</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Share {count.toLocaleString()} results
+              </p>
             </div>
             {[
-              { icon: <Link className="h-4 w-4 text-blue-600" />, label: 'Copy Page URL', sub: 'Share this search', fn: copyPageUrl },
-              { icon: copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-slate-600" />, label: 'Copy All SAM.gov Links', sub: `${results.filter(o => o.uiLink).length} links`, fn: copyLinks },
-              { icon: <Mail className="h-4 w-4 text-orange-600" />, label: 'Email Results', sub: 'Top 10 via email client', fn: emailResults },
-              { icon: <Printer className="h-4 w-4 text-gray-600" />, label: 'Print / Save PDF', sub: 'Full formatted table', fn: printResults },
-            ].map(({ icon, label, sub, fn }) => (
+              { icon: <Link className="h-4 w-4 text-blue-600" />,                                                               label: 'Copy Page URL',        sub: 'Share this search',                              fn: copyPageUrl },
+              { icon: copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-slate-600" />,   label: 'Copy All SAM.gov Links', sub: `${results.filter(o => o.uiLink).length} links`,  fn: copyLinks   },
+              { icon: <Mail className="h-4 w-4 text-orange-600" />,                                                             label: 'Email Results',        sub: 'Top 10 via email client',                        fn: emailResults },
+              { icon: <Printer className="h-4 w-4 text-gray-600" />,                                                           label: 'Print / Save PDF',     sub: 'Full formatted table',                           fn: printResults },
+            ].map(({ icon, label: lbl, sub, fn }) => (
               <button
-                key={label}
+                key={lbl}
                 onClick={fn}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 transition-colors text-left"
               >
                 {icon}
                 <div>
-                  <div className="text-sm font-bold text-gray-900">{label}</div>
+                  <div className="text-sm font-bold text-gray-900">{lbl}</div>
                   <div className="text-xs text-gray-500">{sub}</div>
                 </div>
               </button>
@@ -396,7 +389,7 @@ ${rows}
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[200] flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="fixed bottom-6 right-6 z-200 flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold">
           <Check className="h-4 w-4 text-emerald-400" />
           {toast}
         </div>
