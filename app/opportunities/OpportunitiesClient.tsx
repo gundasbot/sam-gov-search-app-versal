@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import OpportunityPreferencesSurvey from '@/components/OpportunityPreferencesSurvey';
+import Toast from '@/components/Toast';
 import {
   TrendingUp, Building2, Calendar, Award, Target, Briefcase,
   ExternalLink, Search, RefreshCw, XCircle,
@@ -556,6 +557,8 @@ function normalizeOpportunity(raw: any): SamOpportunity {
 
 
 export default function OpportunitiesClient() {
+    // Toast state
+    const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const searchParams = useSearchParams();
   const filterParam = searchParams?.get('filter') ?? null;
   const searchParamSnapshot = searchParams?.toString() ?? '';
@@ -2940,6 +2943,14 @@ Provide analysis in JSON format with:
         )}
 
         {/* Opportunity Preferences Survey */}
+        {toast && (
+          <Toast
+            message={toast.msg}
+            type={toast.type}
+            onClose={() => setToast(null)}
+            duration={4000}
+          />
+        )}
         <OpportunityPreferencesSurvey 
           isOpen={surveyOpen}
           onClose={() => setSurveyOpen(false)}

@@ -19,7 +19,8 @@ export const PROCUREMENT_TYPES = [
 export const PROCUREMENT_TYPE_OPTIONS = PROCUREMENT_TYPES
 
 // Complete Set-Aside Values from SAM.gov API Documentation
-export const SET_ASIDE_CODES = [
+export type SetAsideCodeItem = { value: string; label: string };
+export const SET_ASIDE_CODES: SetAsideCodeItem[] = [
   { value: '', label: 'All Set-Asides' },
   { value: 'SBA', label: 'Total Small Business Set-Aside (FAR 19.5)' },
   { value: 'SBP', label: 'Partial Small Business Set-Aside (FAR 19.5)' },

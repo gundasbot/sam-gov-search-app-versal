@@ -81,9 +81,10 @@ interface Opportunity {
 interface OpportunityModalProps {
   opportunity: Opportunity;
   onClose: () => void;
+  isOpen: boolean;
 }
 
-export default function OpportunityModal({ opportunity, onClose }: OpportunityModalProps) {
+export default function OpportunityModal({ opportunity, onClose, isOpen }: OpportunityModalProps) {
   // Format date helper
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'TBD';
