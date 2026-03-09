@@ -1058,7 +1058,7 @@ Provide analysis in JSON format with:
   const handleRefresh = async () => {
     setLoadingMore(true);
     try {
-      const res = await fetch('/api/sam/opportunities?refresh=1', { method: 'POST' });
+      const res = await fetch('/api/sam/opportunities?refresh=1', { method: 'GET' });
       if (res.ok) {
         const data = await res.json();
         setAllOpportunities(data.opportunities || []);
@@ -1779,7 +1779,7 @@ Provide analysis in JSON format with:
 
         {/* Welcome Banner */}
         {showWelcomeBanner && !userProfile.hasCompletedSurvey && (
-          <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-cyan-500/10 rounded-2xl border border-white/10 relative">
+          <div className="mb-6 p-4 sm:p-6 bg-white rounded-2xl border border-slate-200 relative">
             <button
               onClick={handleDismissBanner}
               className="absolute top-4 right-4 p-2 hover:bg-red-500/20 rounded-lg transition-colors text-slate-400 hover:text-red-400"
