@@ -447,7 +447,7 @@ export default function DashboardOnboardingPage() {
                     style={{background:'#f1f5f9',color:'#475569',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>None</button>
                 </div>
                 <div style={{maxHeight:250,overflowY:'auto',padding:'5px 7px',display:'flex',flexDirection:'column',gap:3}}>
-                  {SET_ASIDE_CODES.filter(c=>c.value).map(code=>(
+                  {SET_ASIDE_CODES.filter((c): c is typeof c & { value: string } => Boolean(c.value)).map(code=>(
                     <SetAsideChip key={code.value} value={code.value} label={code.label||code.value}
                       selected={(prefs.setAsides||[]).includes(code.value)}
                       onClick={()=>up({setAsides:tog(prefs.setAsides||[],code.value)})}/>

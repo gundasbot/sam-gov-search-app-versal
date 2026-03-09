@@ -353,12 +353,12 @@ export default function OpportunityPreferencesSurvey({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl border border-white/10">
+      <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-3xl bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl border border-white/10">
         {/* Header */}
         <div className="border-b border-white/10 bg-slate-900/80 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 p-2.5">
+              <div className="rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 p-2.5">
                 <Sparkles className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -380,7 +380,7 @@ export default function OpportunityPreferencesSurvey({
               <div
                 key={i}
                 className={`h-2 flex-1 rounded-full transition ${
-                  i + 1 <= step ? 'bg-gradient-to-r from-cyan-500 to-blue-600' : 'bg-white/10'
+                  i + 1 <= step ? 'bg-linear-to-r from-cyan-500 to-blue-600' : 'bg-white/10'
                 }`}
               />
             ))}
@@ -899,7 +899,7 @@ export default function OpportunityPreferencesSurvey({
                     </div>
 
                     {/* ✅ FIXED: Improved color coding text */}
-                    <div className="mt-6 p-4 bg-gradient-to-r from-red-500/10 via-yellow-500/10 to-green-500/10 border border-white/20 rounded-xl">
+                    <div className="mt-6 p-4 bg-linear-to-r from-red-500/10 via-yellow-500/10 to-green-500/10 border border-white/20 rounded-xl">
                       <p className="text-sm text-white font-semibold">
                         💡 <span className="text-slate-200">Color Coding:</span> Once SAM.gov data loads, opportunities will be color-coded by response deadline:
                       </p>
@@ -1091,7 +1091,7 @@ export default function OpportunityPreferencesSurvey({
               <button
                 type="button"
                 onClick={handleNext}
-                className="rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-3 font-bold text-white transition hover:from-cyan-700 hover:to-blue-700"
+                className="rounded-xl bg-linear-to-r from-cyan-600 to-blue-600 px-8 py-3 font-bold text-white transition hover:from-cyan-700 hover:to-blue-700"
               >
                 Next
               </button>
@@ -1099,7 +1099,7 @@ export default function OpportunityPreferencesSurvey({
               <button
                 type="button"
                 onClick={handleComplete}
-                className="rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 px-8 py-3 font-bold text-white transition hover:from-emerald-700 hover:to-cyan-700 flex items-center gap-2"
+                className="rounded-xl bg-linear-to-r from-emerald-600 to-cyan-600 px-8 py-3 font-bold text-white transition hover:from-emerald-700 hover:to-cyan-700 flex items-center gap-2"
               >
                 <CheckCircle className="h-5 w-5" />
                 Complete Setup
