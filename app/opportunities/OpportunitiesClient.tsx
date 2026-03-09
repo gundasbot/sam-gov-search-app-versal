@@ -1052,9 +1052,30 @@ Provide analysis in JSON format with:
     window.URL.revokeObjectURL(url);
   };
 
-  const handleRefresh = () => {
-    setRefreshIndicator(true);
-    window.location.reload();
+  const handleRefresh = async () => {
+    setLoadingMore(true);
+    try {
+      const res = await fetch('/api/sam/opportunities?refresh=1', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setAllOpportunities(data.opportunities || []);
+        setDisplayCount(250);
+        setShowAllOpportunities(false);
+        setShowMoreBands({});
+        setSelectedUrgencyFilters(new Set());
+        setActiveFilter(null);
+        setKeywordSearch('');
+        setSearchTerm('');
+        setToast({ type: 'success', msg: 'Feed refreshed from SAM.gov.' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setToast({ type: 'error', msg: 'Failed to refresh feed.' });
+      }
+    } catch {
+      setToast({ type: 'error', msg: 'Failed to refresh feed.' });
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const handlePillClick = (type: 'active' | 'setasides' | 'expiring' | 'departments') => {

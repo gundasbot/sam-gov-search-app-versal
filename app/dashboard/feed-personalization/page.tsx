@@ -10,6 +10,23 @@ import {
 import { NAICS_CODES } from '@/lib/naics-codes'
 import { SET_ASIDE_CODES, US_STATES } from '@/lib/sam-gov-constants'
 
+// Aptos font stack
+const aptosFontStyle = `
+  .aptos-page, .aptos-page * {
+    font-family: 'Aptos', 'Aptos Display', 'Calibri', ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+  }
+  .aptos-page h1, .aptos-page h2, .aptos-page h3, .aptos-page h4,
+  .aptos-page .font-black, .aptos-page .font-extrabold, .aptos-page .font-bold {
+    font-weight: 800 !important;
+    letter-spacing: -0.01em;
+  }
+  .aptos-page p, .aptos-page span, .aptos-page a, .aptos-page label {
+    font-weight: 600;
+  }
+  .aptos-page input::placeholder { font-weight: 400; }
+`
+
 // Time-of-day greeting
 function getGreeting(): { greeting: string; emoji: string } {
   const hour = new Date().getHours()
@@ -127,6 +144,22 @@ export default function FeedPersonalizationPage() {
     })
   }, [autoSave])
 
+  // Get trending/popular NAICS codes for quick selection
+  const trendingNaics = useMemo(() => {
+    // Popular codes that match common federal contractor types
+    const popularCodes = [
+      '541512', // Computer Systems Design Services
+      '541511', // Custom Computer Programming Services
+      '541330', // Engineering Services
+      '541611', // Administrative Management Consulting
+      '541715', // R&D in Physical, Engineering, Life Sciences
+      '518210', // Data Processing, Hosting Services
+      '336411', // Aircraft Manufacturing
+      '541519', // Other Computer Related Services
+    ]
+    return NAICS_CODES.filter(c => popularCodes.includes(c.code))
+  }, [])
+
   // Filter NAICS codes - ONLY from library
   const filteredNaics = useMemo(() => {
     if (!naicsSearch.trim()) return NAICS_CODES.slice(0, 50)
@@ -151,16 +184,18 @@ export default function FeedPersonalizationPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+    <div className="aptos-page w-full min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+      <style dangerouslySetInnerHTML={{ __html: aptosFontStyle }} />
+
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white border-b border-slate-700 dark:border-slate-800">
         <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <p className="text-orange-400 text-sm font-bold uppercase tracking-wide">{greeting}, {firstName(session)}</p>
-              <h1 className="text-4xl sm:text-5xl font-black mt-2 flex items-center gap-3">
+              <h1 className="text-4xl sm:text-5xl font-black mt-3 flex items-center gap-3">
                 <span>{emoji}</span>
-                Preferences
+                <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 bg-clip-text text-transparent">Preferences</span>
               </h1>
               <p className="text-xl text-slate-300 mt-3 max-w-3xl leading-relaxed">
                 Customize your opportunity feed to match your business, location, and expertise
@@ -186,14 +221,14 @@ export default function FeedPersonalizationPage() {
         </div>
       </div>
 
-      {/* Content - Exact same width as dashboard */}
+      {/* Content - Exact same width as header */}
       <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
         <div className="space-y-12">
 
           {/* Set-Asides Section */}
           <section>
             <div className="mb-8">
-              <h2 className="text-3xl font-black text-slate-900">Business Classification</h2>
+              <h2 className="text-3xl font-black text-slate-900 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Business Classification</h2>
               <p className="text-lg text-slate-600 mt-2">What business classifications apply to your company?</p>
             </div>
 
@@ -232,9 +267,46 @@ export default function FeedPersonalizationPage() {
           {/* NAICS Codes Section */}
           <section>
             <div className="mb-8">
-              <h2 className="text-3xl font-black text-slate-900">Industry Expertise (NAICS)</h2>
+              <h2 className="text-3xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Industry Expertise (NAICS)</h2>
               <p className="text-lg text-slate-600 mt-2">Select industry codes that describe your business. Search by code, keywords, or industry name.</p>
             </div>
+
+            {/* Trending NAICS Codes */}
+            {!naicsSearch && (
+              <div className="mb-10">
+                <p className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">🔥 Popular Industries</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {trendingNaics.map(code => {
+                    const isSelected = (prefs.naicsCodes || []).includes(code.code)
+                    return (
+                      <button
+                        key={code.code}
+                        onClick={() =>
+                          updatePrefs({
+                            naicsCodes: isSelected
+                              ? (prefs.naicsCodes || []).filter(c => c !== code.code)
+                              : [...(prefs.naicsCodes || []), code.code],
+                          })
+                        }
+                        className={`text-left p-3 rounded-lg border-2 transition-all text-sm ${
+                          isSelected
+                            ? 'border-orange-400 bg-orange-50 shadow-sm'
+                            : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-slate-900">{code.code}</p>
+                            <p className="text-slate-700 font-semibold text-xs mt-1 line-clamp-2">{code.title}</p>
+                          </div>
+                          {isSelected && <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Search Input */}
             <div className="mb-8">
@@ -342,7 +414,7 @@ export default function FeedPersonalizationPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* States */}
             <section>
-              <h2 className="text-3xl font-black text-slate-900 mb-8">Geographic Focus</h2>
+              <h2 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent mb-8">Geographic Focus</h2>
               <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                 {US_STATES.slice(1).map(state => {
                   const isSelected = (prefs.states || []).includes(state.value)
@@ -371,7 +443,7 @@ export default function FeedPersonalizationPage() {
 
             {/* Contract Size */}
             <section>
-              <h2 className="text-3xl font-black text-slate-900 mb-8">Contract Size Range</h2>
+              <h2 className="text-3xl font-black bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent mb-8">Contract Size Range</h2>
               <div className="space-y-3">
                 {CONTRACT_SIZES.map(size => {
                   const isSelected = prefs.contractSizeMin === size.min

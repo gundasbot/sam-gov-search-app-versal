@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import OpportunityModal from '../../components/OpportunityModal'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -9,7 +10,7 @@ import {
   Search, Bell, TrendingUp, Zap, Plus, ArrowRight, Loader2, CheckCircle,
   AlertCircle, X, Share2, Settings, ChevronRight, Activity, Clock,
   Target, Award, Rocket, MapPin, Building2, AlertTriangle, Lightbulb,
-  RefreshCw, Sparkles, Shield, CheckSquare, Square, Database, Brain,
+  RefreshCw, Shield, CheckSquare, Square, Database, Brain,
   BarChart3, Calendar, FileText
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -188,14 +189,18 @@ function makePublicData(): DashboardData {
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function fmtRel(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const m = Math.floor(diff/60000)
-  if (m < 2) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m/60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h/24)
-  return d === 1 ? 'Yesterday' : `${d} days ago`
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diff = now.getTime() - date.getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 2) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return 'Yesterday';
+  if (d < 7) return `${d} days ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function fmtCur(v?: number) {
@@ -348,10 +353,10 @@ function Survey({ name, onComplete, onDismiss }: {
   const steps = [
     // Step 0: Welcome
     <div key="w" className="text-center py-4">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-100 to-emerald-100 border border-sky-200 flex items-center justify-center mx-auto mb-5 shadow-lg">
+      <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-sky-100 to-emerald-100 border border-sky-200 flex items-center justify-center mx-auto mb-5 shadow-lg">
         <Building2 className="w-7 h-7 text-sky-500" />
       </div>
-      <h2 className="text-3xl font-black mb-3 bg-gradient-to-r from-orange-500 via-sky-500 to-emerald-500 bg-clip-text text-transparent">
+      <h2 className="text-3xl font-black mb-3 bg-linear-to-r from-orange-500 via-sky-500 to-emerald-500 bg-clip-text text-transparent">
         Welcome, {name}
       </h2>
       <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed max-w-sm mx-auto">
@@ -359,7 +364,7 @@ function Survey({ name, onComplete, onDismiss }: {
       </p>
       <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto mt-5">
         {([['Set-Asides', Shield, 'text-emerald-600'], ['NAICS', Target, 'text-sky-600'], ['Agencies', Building2, 'text-violet-600']] as const).map(([l, Icon, c]) => (
-          <div key={l} className="rounded-xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 p-3 text-center shadow">
+          <div key={l} className="rounded-xl bg-linear-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 p-3 text-center shadow">
             <Icon className={`w-4 h-4 ${c} mx-auto mb-1`} />
             <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{l}</p>
           </div>
@@ -567,7 +572,7 @@ function Survey({ name, onComplete, onDismiss }: {
 
   return (
     <div onClick={() => onDismiss(hideFuture)}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+      className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
       <div onClick={e => e.stopPropagation()}
         className="relative w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
         {/* Progress bar */}
@@ -583,12 +588,12 @@ function Survey({ name, onComplete, onDismiss }: {
           {/* Step dots */}
           <div className="flex items-center gap-1.5 mb-5">
             {Array.from({length:TOTAL}).map((_,i) => (
-              <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-sky-500 flex-[2]' : 'bg-slate-200 dark:bg-slate-700 flex-1'}`} />
+              <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i <= step ? 'bg-sky-500 flex-2' : 'bg-slate-200 dark:bg-slate-700 flex-1'}`} />
             ))}
             <span className="text-xs text-slate-400 font-bold ml-1 shrink-0">{step+1}/{TOTAL}</span>
           </div>
 
-          <div className="min-h-[280px]">{steps[step]}</div>
+          <div className="min-h-70">{steps[step]}</div>
 
           <label className="inline-flex items-center gap-2 mt-4 cursor-pointer text-slate-500 dark:text-slate-400 text-xs font-medium">
             <input type="checkbox" checked={hideFuture} onChange={e => setHideFuture(e.target.checked)} className="w-3.5 h-3.5 cursor-pointer" />
@@ -618,6 +623,10 @@ function Survey({ name, onComplete, onDismiss }: {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  // Dashboard refresh state and modal
+  const [refreshing, setRefreshing] = useState(false);
+  const [showOpportunityModal, setShowOpportunityModal] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<SavedOpportunity | null>(null);
   const router = useRouter()
   const { data: session } = useSession()
   const name = useMemo(() => firstName(session), [session])
@@ -799,6 +808,18 @@ export default function DashboardPage() {
     finally { setGoalSaving(false) }
   }, [goalInput])
 
+  // Refresh handler for dashboard
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Simulate refresh delay
+      await new Promise(res => setTimeout(res, 1200));
+      window.location.reload();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(()=>setToast(null),3500)
@@ -822,7 +843,7 @@ export default function DashboardPage() {
 
   if (!mounted) {
     return (
-      <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 px-3 sm:px-4 lg:px-6 xl:px-8 pt-4 pb-8">
+      <div className="mx-auto w-full max-w-480 min-h-screen bg-linear-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 px-3 sm:px-4 lg:px-6 xl:px-8 pt-4 pb-8">
         <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
           <p className="text-slate-500 dark:text-slate-400 font-semibold">Loading dashboard...</p>
         </div>
@@ -840,11 +861,19 @@ export default function DashboardPage() {
   const notifColorMap: Record<string, string> = { deadline:'text-amber-500', match:'text-emerald-500', alert:'text-rose-500', ai:'text-violet-500' }
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 text-slate-900 dark:text-slate-100">
+    <div className="mx-auto w-full max-w-480 min-h-screen bg-linear-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 text-slate-900 dark:text-slate-100">
+      {/* Opportunity Modal Integration */}
+      {showOpportunityModal && selectedOpportunity && (
+        <OpportunityModal
+          isOpen={showOpportunityModal}
+          onClose={() => setShowOpportunityModal(false)}
+          opportunity={selectedOpportunity}
+        />
+      )}
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[60] w-full max-w-md px-4 pointer-events-none">
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-60 w-full max-w-md px-4 pointer-events-none">
           <div className={`flex items-center gap-3 rounded-xl border backdrop-blur-md px-4 py-3 shadow-2xl pointer-events-auto ${toast.type==='success' ? 'border-emerald-500/40 bg-emerald-950/95 text-emerald-400' : 'border-rose-500/40 bg-rose-950/95 text-rose-400'}`}>
             {toast.type==='success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
             <p className="flex-1 text-sm font-semibold">{toast.msg}</p>
@@ -1046,7 +1075,7 @@ export default function DashboardPage() {
       <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pb-10">
 
         {/* ── Hero section ─────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden rounded-2xl mb-4 shadow-md border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-white via-slate-50 to-sky-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900">
+        <section className="relative overflow-hidden rounded-2xl mb-4 shadow-md border border-slate-200 dark:border-slate-700 bg-linear-to-br from-white via-slate-50 to-sky-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900">
           <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6">
             {isAuth ? (
               <div className="flex flex-col gap-5">
@@ -1054,29 +1083,29 @@ export default function DashboardPage() {
                 {/* ── Row 1: Greeting + live stats ── */}
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border"
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-black uppercase tracking-wider px-3 py-2 rounded-full border-2"
                         style={{
-                          background: hour < 12 ? 'rgba(251,191,36,0.15)' : hour < 17 ? 'rgba(249,115,22,0.15)' : 'rgba(139,92,246,0.15)',
-                          borderColor: hour < 12 ? 'rgba(251,191,36,0.5)' : hour < 17 ? 'rgba(249,115,22,0.5)' : 'rgba(139,92,246,0.5)',
-                          color: hour < 12 ? '#b45309' : hour < 17 ? '#c2410c' : '#7c3aed'
+                          background: hour < 12 ? '#fbbf24' : hour < 17 ? '#f97316' : '#7c3aed',
+                          borderColor: hour < 12 ? '#fbbf24' : hour < 17 ? '#f97316' : '#7c3aed',
+                          color: 'white'
                         }}>
                         {hour < 12 ? 'Morning Briefing' : hour < 17 ? 'Afternoon Update' : 'Evening Review'}
                       </span>
                       {dash.dataSource!=='loading' && (
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-600">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Live · SAM.gov</span>
-                          {dash.lastRefreshed && <span className="text-xs text-slate-400">· {fmtRel(dash.lastRefreshed.toISOString())}</span>}
+                        <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-emerald-500 border-2 border-emerald-500">
+                          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                          <span className="text-sm font-black text-white">Live · SAM.gov</span>
+                          {dash.lastRefreshed && <span className="text-sm font-semibold text-white">· {fmtRel(dash.lastRefreshed.toISOString())}</span>}
                         </div>
                       )}
                     </div>
-                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight">
+                    <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight">
                       {dash.loading
                         ? <span className="text-slate-400">Loading…</span>
-                        : <>{greeting}, <span style={{color: hour < 12 ? '#d97706' : hour < 17 ? '#ea580c' : '#7c3aed'}}>{name}</span>.</>}
+                        : <>{greeting}, <span style={{color: hour < 12 ? '#fbbf24' : hour < 17 ? '#f97316' : '#7c3aed'}}>{name}</span>.</>}
                     </h1>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    <p className="text-lg font-semibold text-slate-700 dark:text-slate-300 mt-2">
                       {hour < 12
                         ? 'Start your day by reviewing new matches and approaching deadlines.'
                         : hour < 17
@@ -1098,16 +1127,10 @@ export default function DashboardPage() {
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{s.label}</p>
                       </div>
                     ))}
-                    {!userPrefs && (
-                      <button onClick={()=>router.push('/dashboard/onboarding?next=/dashboard')} className="px-5 py-2.5 rounded-xl text-white text-sm font-black cursor-pointer transition-all shadow-lg hover:scale-105 ml-2" style={{background:'linear-gradient(135deg,#f97316,#dc2626)'}}>
-                        Personalize Feed
-                      </button>
-                    )}
-                    {userPrefs && (
-                      <button onClick={()=>router.push('/dashboard/onboarding?next=/dashboard')} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer transition-colors ml-2">
-                        <Settings className="w-3.5 h-3.5" />Edit Profile
-                      </button>
-                    )}
+                    <button type="button" onClick={()=>router.push('/dashboard/onboarding?next=/dashboard')} className="inline-flex items-center gap-2.5 px-7 py-3 rounded-xl text-white font-black text-base cursor-pointer transition-all shadow-lg hover:shadow-xl hover:scale-105 ml-2 group" style={{background:'linear-gradient(135deg,#f97316 0%,#ea580c 50%,#dc2626 100%)'}}>
+                      {userPrefs ? 'Update Preferences' : 'Set Up Preferences'}
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </button>
                   </div>
                 </div>
 
@@ -1227,9 +1250,28 @@ export default function DashboardPage() {
         {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
           {stats.map(({label,value,sub,bg,onClick}) => (
-            <button key={label} onClick={onClick}
+            <button
+              key={label}
+              onClick={label === 'Saved Opps' && dash.savedOpportunities.length > 0
+                ? () => {
+                    setSelectedOpportunity(dash.savedOpportunities[0]);
+                    setShowOpportunityModal(true);
+                  }
+                : label === 'Deadlines' && dash.upcomingDeadlines.length > 0
+                ? () => {
+                    setSelectedOpportunity({
+                      ...dash.savedOpportunities.find(o => o.deadline && o.deadline.includes('day'))!,
+                      // fallback to first if not found
+                    });
+                    setShowOpportunityModal(true);
+                  }
+                : label === 'Refresh'
+                ? handleRefresh
+                : onClick}
               style={{background: bg}}
-              className="text-left rounded-2xl border border-white/10 shadow-md hover:shadow-xl p-4 transition-all cursor-pointer group hover:scale-[1.02] active:scale-[0.98] hover:brightness-110">
+              className="text-left rounded-2xl border border-white/10 shadow-md hover:shadow-xl p-4 transition-all cursor-pointer group hover:scale-[1.02] active:scale-[0.98] hover:brightness-110"
+              disabled={label === 'Refresh' && refreshing}
+            >
               <div className="flex items-center justify-between mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-white/40 shadow-sm" />
                 <ChevronRight className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" />
@@ -1243,51 +1285,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* ── Intelligence Banner ───────────────────────────────────────────── */}
-        <div className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
-          <div className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 flex items-center gap-2">
-            <Database className="w-3.5 h-3.5 text-emerald-200" />
-            <span className="text-xs font-black uppercase tracking-widest text-emerald-100">
-              {dash.dataSource==='live' ? 'Personalized · SAM.gov Intelligence' : 'Live · SAM.gov Intelligence'}
-            </span>
-          </div>
-          <div className="p-5">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 leading-snug">
-            {dash.loading ? 'Loading your feed…'
-              : dash.dataSource==='live'
-                ? 'Your pipeline is live and scoring opportunities in real time.'
-                : 'Public Opportunity Snapshot'}
-          </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
-            {dash.dataSource==='live'
-              ? `Scored against your ${userPrefs?.setAsides?.join(' & ')||'business'} profile across ${userPrefs?.naicsCodes?.length||0} NAICS codes. Scores update as new solicitations post.`
-              : 'Top searches and market signals update in real time. Sign in to unlock profile-based scoring and tailored recommendations.'}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-            {[
-              {label:'Live Opps',     value:dash.totalActiveOpportunities.toLocaleString(), bg:'linear-gradient(135deg,#34d399,#0f766e)'},
-              {label:'Avg Fit Score', value:dash.avgMatchScore!==null?`${dash.avgMatchScore}%`:'—', bg:'linear-gradient(135deg,#38bdf8,#2563eb)'},
-              {label:'Saved Pipeline',value:String(dash.savedOppCount), bg:'linear-gradient(135deg,#f97316,#dc2626)'},
-            ].map(k => (
-              <div key={k.label} className="rounded-xl p-4 shadow-md" style={{background: k.bg}}>
-                <p className="text-xs text-white/80 font-semibold mb-1">{k.label}</p>
-                <p className="text-3xl font-black text-white">{dash.loading?'—':k.value}</p>
-              </div>
-            ))}
-          </div>
-          {primarySearch && (
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Top Search</span>
-              <span className="px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 text-xs font-bold">{primarySearch.resultsCount??'—'} results · +{primarySearch.newCount??0} new</span>
-              <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xs font-bold">SAM.gov Live</span>
-              <span className="text-sm font-bold text-slate-900 dark:text-white">{primarySearch.name}</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">"{primarySearch.query}"</span>
-              {primarySearch.filters?.naics && <span className="font-mono text-xs text-sky-500">· NAICS {primarySearch.filters.naics}</span>}
-              {primarySearch.filters?.setaside && <span className="text-xs text-emerald-600 dark:text-emerald-400">· {primarySearch.filters.setaside}</span>}
-            </div>
-          )}
-          </div>
-        </div>
+        {/* Intelligence Banner removed as per patch guide */}
 
         {/* ── Main grid ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
@@ -1467,7 +1465,7 @@ export default function DashboardPage() {
 
             {/* Alerts */}
             <div className="rounded-2xl border border-teal-300 dark:border-teal-800 bg-white dark:bg-slate-800 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-teal-200 dark:border-teal-900 bg-gradient-to-r from-teal-600 to-cyan-600">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-teal-200 dark:border-teal-900 bg-linear-to-r from-teal-600 to-cyan-600">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Bell className="w-4 h-4 text-cyan-200" />
                   <span>Your Alerts</span>
@@ -1552,7 +1550,7 @@ export default function DashboardPage() {
 
       {/* AI Modal */}
       {showAiModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
           <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-900 shadow-2xl">
             <div className="sticky top-0 flex items-center justify-between px-5 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
               <div className="flex items-center gap-3">

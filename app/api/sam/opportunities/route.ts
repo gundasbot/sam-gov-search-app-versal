@@ -1,4 +1,5 @@
 // app/api/sam/opportunities/route.ts
+// ✅ FIX: Date format normalization — accepts any format, always sends MM/DD/YYYY to SAM.gov
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -8,7 +9,6 @@ const SAM_API_KEY = process.env.SAMGOVAPIKEY || process.env.SAM_API_KEY || ''
 const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search'
 
 // ─── In-process cache (survives across requests in same Node process) ──────────
-// Key = query string, Value = { data, expiresAt }
 const CACHE = new Map<string, { data: any; expiresAt: number }>()
 const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -19,7 +19,6 @@ function getCached(key: string) {
   return entry.data
 }
 function setCache(key: string, data: any) {
-  // Limit cache size to 50 entries — evict oldest
   if (CACHE.size >= 50) {
     const firstKey = CACHE.keys().next().value
     if (firstKey) CACHE.delete(firstKey)
@@ -27,7 +26,49 @@ function setCache(key: string, data: any) {
   CACHE.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS })
 }
 
+// ✅ NEW: Force-clear the in-memory cache (called by ?refresh=true)
+function clearCache() {
+  CACHE.clear()
+  console.log('🗑️ SAM cache cleared')
+}
+
 // ─── Date helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * ✅ FIX: Normalize ANY date string into MM/DD/YYYY for SAM.gov.
+ * Handles:
+ *   - YYYY/MM/DD  (what the dashboard was sending — caused 400)
+ *   - YYYY-MM-DD  (ISO format)
+ *   - MM/DD/YYYY  (already correct)
+ *   - ISO datetime strings
+ */
+function toSAMDate(input: string): string {
+  const s = input.trim()
+
+  // Already MM/DD/YYYY? Pass through.
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s
+
+  // YYYY/MM/DD or YYYY-MM-DD
+  const ymdMatch = s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/)
+  if (ymdMatch) {
+    return `${ymdMatch[2]}/${ymdMatch[3]}/${ymdMatch[1]}`
+  }
+
+  // ISO datetime (2026-03-08T00:00:00.000Z)
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T/)
+  if (isoMatch) {
+    return `${isoMatch[2]}/${isoMatch[3]}/${isoMatch[1]}`
+  }
+
+  // Fallback: try Date parsing
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) return formatMMDDYYYY(d)
+
+  // Last resort: return as-is (will likely 400, but at least we tried)
+  console.warn(`⚠️ Could not normalize date: "${s}"`)
+  return s
+}
+
 function formatMMDDYYYY(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
@@ -46,8 +87,6 @@ function clampInt(n: number, min: number, max: number): number {
 }
 
 // ─── SAM.gov set-aside code normalizer ────────────────────────────────────────
-// SAM.gov returns inconsistent values: "null" (string), null, "", code, or description
-// This maps both codes AND description fragments to canonical codes
 const SET_ASIDE_DESC_MAP: Record<string, string> = {
   'total small business':       'SBA',
   'partial small business':     'SBP',
@@ -62,7 +101,6 @@ const SET_ASIDE_DESC_MAP: Record<string, string> = {
   'economically disadvantaged': 'EDWOSB',
   'edwosb sole source':         'EDWOSBSS',
   'veteran-owned small business': 'VSA',
-  // ✅ KEY FIX: "Veteran-Owned Small Business Sole source" maps to VSS
   'veteran-owned small business sole source': 'VSS',
   'vosb sole source':           'VSS',
   'local area set-aside':       'LAS',
@@ -73,7 +111,6 @@ function normalizeSetAside(code: any, desc: any): { code: string; description: s
   const rawCode = (code == null || String(code).toLowerCase() === 'null') ? '' : String(code).trim()
   const rawDesc = (desc == null || String(desc).toLowerCase() === 'null') ? '' : String(desc).trim()
 
-  // If we have a valid code already, use it
   const KNOWN_CODES = new Set([
     'SBA','SBP','8A','8AN','HZC','HZS','SDVOSBC','SDVOSBS',
     'WOSB','WOSBSS','EDWOSB','EDWOSBSS','VSA','VSS',
@@ -84,7 +121,6 @@ function normalizeSetAside(code: any, desc: any): { code: string; description: s
     return { code: rawCode.toUpperCase(), description: rawDesc }
   }
 
-  // Try to derive code from description
   if (rawDesc) {
     const lower = rawDesc.toLowerCase()
     for (const [fragment, mappedCode] of Object.entries(SET_ASIDE_DESC_MAP)) {
@@ -94,7 +130,6 @@ function normalizeSetAside(code: any, desc: any): { code: string; description: s
     }
   }
 
-  // No set-aside
   return { code: '', description: rawDesc || '' }
 }
 
@@ -116,17 +151,25 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
 
+    // ✅ NEW: Support ?refresh=true to bust the server-side cache
+    if (searchParams.get('refresh') === 'true') {
+      clearCache()
+    }
+
     // ── Pagination ──────────────────────────────────────────────────────────
-    // PERFORMANCE FIX: cap at 100 for search page, allow up to 250 for bulk loads
-    // The search page was sending limit=1000 which causes 60s timeouts on SAM.gov
     const requestedLimit = Number(searchParams.get('limit') || 100)
-    const limit = clampInt(requestedLimit, 1, 250)  // Hard cap at 250, never 1000
+    const limit = clampInt(requestedLimit, 1, 250)
     const offset = clampInt(Number(searchParams.get('offset') || 0), 0, 1_000_000)
 
     // ── Search params ───────────────────────────────────────────────────────
     const keyword  = (searchParams.get('keyword') || searchParams.get('q') || '').trim()
-    const postedFrom = (searchParams.get('postedFrom') || '').trim() || daysAgo(180) // default 6mo
-    const postedTo   = (searchParams.get('postedTo') || '').trim() || formatMMDDYYYY(new Date())
+
+    // ✅ FIX: Always normalize dates through toSAMDate()
+    const rawPostedFrom = (searchParams.get('postedFrom') || '').trim()
+    const rawPostedTo   = (searchParams.get('postedTo') || '').trim()
+    const postedFrom = rawPostedFrom ? toSAMDate(rawPostedFrom) : daysAgo(180)
+    const postedTo   = rawPostedTo   ? toSAMDate(rawPostedTo)   : formatMMDDYYYY(new Date())
+
     const setAside   = (searchParams.get('setAside') || searchParams.get('typeOfSetAside') || '').trim()
     const naics      = (searchParams.get('naics') || '').trim()
     const agency     = (searchParams.get('agency') || '').trim()
@@ -144,8 +187,7 @@ export async function GET(req: Request) {
       postedTo,
     })
 
-    // Only add ptype=o for general searches (not when filtering by specific types)
-    if (!searchParams.get('ptype')) params.append('ptype', 'o,k,r,s,g,i') // all active types
+    if (!searchParams.get('ptype')) params.append('ptype', 'o,k,r,s,g,i')
 
     if (keyword)   params.append('q', keyword)
     if (naics)     params.append('naics', naics)
@@ -155,8 +197,6 @@ export async function GET(req: Request) {
     if (state)     params.append('state', state)
     if (status === 'active') params.append('status', 'active')
 
-    // ✅ Set-aside: pass directly to SAM.gov so it filters server-side
-    // This is faster than fetching 1000 records and filtering client-side
     if (setAside && setAside.toUpperCase() !== 'ALL') {
       params.append('typeOfSetAside', setAside)
     }
@@ -174,7 +214,6 @@ export async function GET(req: Request) {
     console.log('📡 SAM.gov fetch (limit=%d):', limit, apiUrl.replace(SAM_API_KEY, 'KEY'))
 
     // ── Fetch with timeout ───────────────────────────────────────────────────
-    // PERFORMANCE FIX: timeout scales with limit — 100 records = 15s max, 250 = 25s max
     const timeoutMs = Math.min(10_000 + limit * 100, 25_000)
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -189,9 +228,11 @@ export async function GET(req: Request) {
       const text = await response.text()
       const isSuspended = response.status === 500 && /SUSPENDED/i.test(text)
       const is504 = response.status === 504 || text.includes('Gateway Time-out')
-      
+
       console.error(`❌ SAM.gov ${response.status}${is504 ? ' (timeout — reduce limit)' : ''}`)
-      
+      console.error(`   URL: ${apiUrl.replace(SAM_API_KEY, 'KEY')}`)
+      console.error(`   Response: ${text.slice(0, 200)}`)
+
       return NextResponse.json(
         {
           ok: false,
@@ -227,13 +268,12 @@ export async function GET(req: Request) {
         fullParentPathName:   opp.fullParentPathName ?? '',
         postedDate:           opp.postedDate ?? opp.publishDate ?? null,
         updatedPostedDate:    opp.updatedPostedDate ?? null,
-        responseDeadLine:     opp.responseDeadLine ?? opp.responseDate ?? null,      // camelCase match for OpportunitiesClient
-        responseDeadline:     opp.responseDeadLine ?? opp.responseDate ?? null,      // also snake-friendly
+        responseDeadLine:     opp.responseDeadLine ?? opp.responseDate ?? null,
+        responseDeadline:     opp.responseDeadLine ?? opp.responseDate ?? null,
         updatedResponseDeadLine: opp.updatedResponseDeadLine ?? null,
-        // ✅ FIXED: preserve both code and description, never collapse to one field
         typeOfSetAside:            setAsideCode,
         typeOfSetAsideDescription: setAsideDesc,
-        setAside:                  setAsideCode,   // alias for OpportunitiesClient hasSetAside()
+        setAside:                  setAsideCode,
         naicsCode:  Array.isArray(opp.naics) ? opp.naics[0] : (opp.naicsCode ?? opp.naics ?? null),
         naics:      Array.isArray(opp.naics) ? opp.naics.join(', ') : (opp.naicsCode ?? opp.naics ?? null),
         classificationCode: opp.classificationCode ?? null,
@@ -258,7 +298,6 @@ export async function GET(req: Request) {
       cached:       false,
     }
 
-    // Cache successful responses
     setCache(cacheKey, result)
 
     return NextResponse.json(result, { status: 200, headers: NO_CACHE_HEADERS })
