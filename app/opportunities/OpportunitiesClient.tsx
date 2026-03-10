@@ -2008,7 +2008,7 @@ Provide analysis in JSON format with:
                 // Pad with placeholders to align columns
                 const paddedShown = [...shown];
                 while (paddedShown.length < maxColLength) {
-                  paddedShown.push({} as Tagged);
+                  paddedShown.push({ ...( {} as SamOpportunity ), bd: -1 });
                 }
                 return (
                   <div key={col.key} style={{
