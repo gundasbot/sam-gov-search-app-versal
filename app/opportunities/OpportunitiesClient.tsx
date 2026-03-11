@@ -593,7 +593,6 @@ export default function OpportunitiesClient() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [refreshIndicator, setRefreshIndicator] = useState(false);
-  const [refreshCooldown, setRefreshCooldown] = useState(0); // seconds remaining
 
   // 📌 NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -1042,34 +1041,11 @@ Provide analysis in JSON format with:
     window.URL.revokeObjectURL(url);
   };
 
-  // Cooldown countdown ticker
-  useEffect(() => {
-    if (refreshCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setRefreshCooldown(prev => (prev <= 1 ? 0 : prev - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [refreshCooldown]);
-
   const handleRefresh = async () => {
-    if (refreshCooldown > 0) {
-      setToast({ type: 'error', msg: `Please wait ${refreshCooldown}s before refreshing again.` });
-      return;
-    }
     setLoadingMore(true);
     setRefreshIndicator(true);
     try {
-      const postedFrom = new Date();
-      postedFrom.setDate(postedFrom.getDate() - 30);
-      const pf = `${String(postedFrom.getMonth()+1).padStart(2,'0')}/${String(postedFrom.getDate()).padStart(2,'0')}/${postedFrom.getFullYear()}`;
-      const res = await fetch(`/api/sam/opportunities?refresh=1&limit=250&status=active&postedFrom=${encodeURIComponent(pf)}`, { method: 'GET' });
-      if (res.status === 429) {
-        const data = await res.json().catch(() => ({}));
-        const wait = data.retryAfter || 60;
-        setRefreshCooldown(wait);
-        setToast({ type: 'error', msg: `Rate limited — please wait ${wait}s.` });
-        return;
-      }
+      const res = await fetch('/api/sam/opportunities?refresh=1', { method: 'GET' });
       if (res.ok) {
         const data = await res.json();
         setAllOpportunities(data.opportunities || []);
@@ -1081,7 +1057,6 @@ Provide analysis in JSON format with:
         setKeywordSearch('');
         setSearchTerm('');
         setToast({ type: 'success', msg: 'Feed refreshed from SAM.gov.' });
-        setRefreshCooldown(60); // 60s client-side cooldown after successful fetch
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setToast({ type: 'error', msg: 'Failed to refresh feed.' });
@@ -1485,19 +1460,18 @@ Provide analysis in JSON format with:
     return groups;
   }, [visibleOpportunities, groupMode]);
 
-  // Reminder to set preferences — 3 min for logged-in users, 90 sec for guests
+  // Reminder to set preferences — only shown to guests (logged-in users are never interrupted)
   useEffect(() => {
     if (sessionStatus === 'loading') return;
-    if (isLoggedIn && userProfile.hasCompletedSurvey) return;
+    if (isLoggedIn) return; // ← never auto-pop for authenticated users
     const alreadyShown = sessionStorage.getItem('prefsReminderShown');
     if (alreadyShown) return;
-    const delay = isLoggedIn ? 3 * 60 * 1000 : 90 * 1000;
     const timer = setTimeout(() => {
       setShowPrefsReminder(true);
       sessionStorage.setItem('prefsReminderShown', '1');
-    }, delay);
+    }, 90 * 1000); // 90 sec for guests only
     return () => clearTimeout(timer);
-  }, [isLoggedIn, sessionStatus, userProfile.hasCompletedSurvey]);
+  }, [isLoggedIn, sessionStatus]);
 
   // Show full-screen loading when first fetching and no real data yet
   if (loading && allOpportunities.length === 0) {
@@ -1903,11 +1877,11 @@ Provide analysis in JSON format with:
               </button>
               <button
                 onClick={handleRefresh}
-                disabled={loadingMore || refreshCooldown > 0}
+                disabled={loadingMore}
                 style={{
-                  background: refreshCooldown > 0 ? '#e5e7eb' : '#fff',
-                  color: refreshCooldown > 0 ? '#9ca3af' : '#ff7a18',
-                  border: `2px solid ${refreshCooldown > 0 ? '#d1d5db' : '#ff7a18'}`,
+                  background: '#fff',
+                  color: '#ff7a18',
+                  border: '2px solid #ff7a18',
                   fontWeight: 900,
                   fontSize: '0.9rem',
                   borderRadius: '10px',
@@ -1915,17 +1889,16 @@ Provide analysis in JSON format with:
                   marginLeft: '8px',
                   transition: 'all 0.2s',
                   textShadow: 'none',
-                  cursor: (loadingMore || refreshCooldown > 0) ? 'not-allowed' : 'pointer',
-                  opacity: (loadingMore || refreshCooldown > 0) ? 0.7 : 1,
+                  cursor: loadingMore ? 'not-allowed' : 'pointer',
+                  opacity: loadingMore ? 0.7 : 1,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
                 }}
                 className="font-bold transition-all"
-                title={refreshCooldown > 0 ? `Available in ${refreshCooldown}s` : 'Refresh from SAM.gov'}
               >
                 <RefreshCw className={`w-6 h-6 ${loadingMore ? 'animate-spin' : ''}`} />
-                {loadingMore ? 'Refreshing...' : refreshCooldown > 0 ? `Wait ${refreshCooldown}s` : 'Refresh'}
+                {loadingMore ? 'Refreshing...' : 'Refresh'}
               </button>
               {selectedUrgencyFilters.size > 0 && (
                 <button
@@ -3294,8 +3267,7 @@ Provide analysis in JSON format with:
         {/* Refresh */}
         <button
           onClick={handleRefresh}
-          disabled={refreshCooldown > 0}
-          title={refreshCooldown > 0 ? `Available in ${refreshCooldown}s` : 'Refresh from SAM.gov'}
+          title="Refresh from SAM.gov"
           style={{
             display: 'flex', alignItems: 'center', gap: '7px',
             padding: '10px 15px',
@@ -3319,8 +3291,8 @@ Provide analysis in JSON format with:
             e.currentTarget.style.boxShadow = '0 0 14px rgba(139,92,246,0.2), 0 4px 14px rgba(0,0,0,0.5)';
           }}
         >
-          <RefreshCw size={16} className={refreshCooldown > 0 ? '' : ''} />
-          {refreshCooldown > 0 ? `${refreshCooldown}s` : 'Refresh'}
+          <RefreshCw size={16} />
+          Refresh
         </button>
 
         {/* Share ΓÇö toggles the tray above */}
