@@ -1,17 +1,25 @@
-// app/api/sam/live-ticker/route.ts - Enhanced with graceful 429 handling
+// app/api/sam/live-ticker/route.ts
 import { NextResponse } from 'next/server';
 
 const SAM_API_KEY = process.env.SAMGOVAPIKEY || process.env.SAM_API_KEY || '';
 const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search';
 
-// SAM.gov requires MM/dd/yyyy format
-function getDateDaysAgo(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${mm}/${dd}/${yyyy}`; // Return in MM/dd/yyyy format
+// ─── In-process cache (shared across all requests in the same Node process) ───
+// This is more reliable than next: { revalidate } which can be bypassed
+const CACHE_TTL_MS   = 15 * 60 * 1000  // 15 minutes — ticker is cosmetic, freshness matters less than quota
+const FETCH_COOLDOWN = 60 * 1000        // 60s minimum between live fetches regardless of cache state
+
+let tickerCache: { data: any; expiresAt: number } | null = null
+let lastFetchAt = 0
+
+function formatMMDDYYYY(d: Date): string {
+  return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`
+}
+
+function daysAgo(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return formatMMDDYYYY(d)
 }
 
 function truncate(str: string, maxLength: number): string {
@@ -19,81 +27,71 @@ function truncate(str: string, maxLength: number): string {
   return str.substring(0, maxLength - 3) + '...';
 }
 
+const NO_STORE = { 'Cache-Control': 'no-store' } as const
+
 export async function GET() {
   if (!SAM_API_KEY) {
-    console.error('? No SAM API key found. Check .env.local');
-    return NextResponse.json({
-      count: 0,
-      opportunities: [],
-      rateLimitExceeded: false,
-      error: 'SAM API key not configured'
-    }, { status: 200 }); // Return 200 to prevent app errors
+    return NextResponse.json({ count: 0, opportunities: [], error: 'SAM API key not configured' }, { status: 200 });
+  }
+
+  // ── Serve from cache if still fresh ──────────────────────────────────────
+  if (tickerCache && Date.now() < tickerCache.expiresAt) {
+    console.log('⚡ Ticker cache HIT');
+    return NextResponse.json({ ...tickerCache.data, cached: true }, { headers: NO_STORE });
+  }
+
+  // ── Cooldown: don't re-fetch if last fetch was within 60s ─────────────────
+  const sinceLastFetch = Date.now() - lastFetchAt
+  if (lastFetchAt > 0 && sinceLastFetch < FETCH_COOLDOWN) {
+    const waitSec = Math.ceil((FETCH_COOLDOWN - sinceLastFetch) / 1000)
+    console.warn(`⏱️ Ticker cooldown: ${waitSec}s remaining`)
+    // Return stale data if available, otherwise empty
+    const stale = tickerCache?.data ?? { count: 0, opportunities: [], rateLimitExceeded: false }
+    return NextResponse.json({ ...stale, cached: true, cooldown: waitSec }, { headers: NO_STORE });
   }
 
   try {
-    const today = new Date();
-    const todayFormatted = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
-    
-    // Fetch latest 20 opportunities with CORRECT date format
+    const today = new Date()
     const params = new URLSearchParams({
       api_key: SAM_API_KEY,
       limit: '20',
       ptype: 'o',
-      postedFrom: getDateDaysAgo(7), // MM/dd/yyyy format
-      postedTo: todayFormatted, // MM/dd/yyyy format
+      postedFrom: daysAgo(7),
+      postedTo: formatMMDDYYYY(today),
     });
 
     const apiUrl = `${SAM_BASE_URL}?${params.toString()}`;
-    console.log('?? Fetching ticker from SAM.gov...');
-    console.log('Date range:', getDateDaysAgo(7), 'to', todayFormatted);
+    console.log('📡 Fetching ticker from SAM.gov...');
+    lastFetchAt = Date.now()
 
     const response = await fetch(apiUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      next: { revalidate: 300 } // Cache for 5 minutes to reduce API calls
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      cache: 'no-store', // skip Next.js fetch cache — we handle caching ourselves
     });
 
-    // Handle 429 Rate Limit errors gracefully
+    // ── 429 Rate limit ────────────────────────────────────────────────────
     if (response.status === 429) {
       const errorData = await response.json().catch(() => ({}));
-      const nextAccessTime = errorData.nextAccessTime || 'Unknown';
-      
-      console.warn('?? SAM API Rate Limit Exceeded');
-      console.warn('Next access time:', nextAccessTime);
-      
+      console.warn('🚫 Ticker: SAM.gov rate limit hit. Next access:', errorData.nextAccessTime);
+      // Extend cooldown to 10 min on rate limit to stop hammering
+      lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
       return NextResponse.json({
-        count: 0,
-        opportunities: [],
-        rateLimitExceeded: true,
-        nextAccessTime: nextAccessTime,
-        message: 'SAM.gov API quota exceeded. Service will resume after quota resets.',
-        error: null
-      }, { 
-        status: 200,
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
-        }
-      });
+        count: 0, opportunities: [], rateLimitExceeded: true,
+        nextAccessTime: errorData.nextAccessTime,
+        message: 'SAM.gov quota exceeded — will retry later.',
+      }, { status: 200, headers: NO_STORE });
     }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('? SAM API Error (Ticker):', response.status, errorText);
-      
-      // Return graceful error instead of throwing
+      console.error('❌ Ticker SAM error:', response.status);
       return NextResponse.json({
-        count: 0,
-        opportunities: [],
-        rateLimitExceeded: false,
+        count: 0, opportunities: [], rateLimitExceeded: false,
         error: `SAM.gov API error (${response.status})`,
-        message: 'Unable to fetch live opportunities at this time.'
-      }, { status: 200 });
+      }, { status: 200, headers: NO_STORE });
     }
 
     const data = await response.json();
-    console.log('? Ticker received:', data.totalRecords || 0, 'total records');
+    console.log('✅ Ticker received:', data.totalRecords || 0, 'total records');
 
     const opportunities = (data.opportunitiesData || []).map((opp: any) => ({
       id: opp.noticeId || '',
@@ -109,29 +107,25 @@ export async function GET() {
       state: opp.placeOfPerformance?.state?.code || opp.officeAddress?.state || '',
     }));
 
-    console.log('? Transformed', opportunities.length, 'ticker items');
+    console.log('✅ Transformed', opportunities.length, 'ticker items');
 
-    return NextResponse.json({
+    const payload = {
       count: data.totalRecords || opportunities.length,
       opportunities,
       rateLimitExceeded: false,
-      error: null
-    }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
-      }
-    });
+      error: null,
+    };
+
+    // Cache it
+    tickerCache = { data: payload, expiresAt: Date.now() + CACHE_TTL_MS }
+
+    return NextResponse.json({ ...payload, cached: false }, { headers: NO_STORE });
 
   } catch (error) {
-    console.error('? Error fetching ticker data:', error);
-    
-    // Return graceful error response instead of 500
+    console.error('❌ Ticker fetch error:', error);
     return NextResponse.json({
-      count: 0,
-      opportunities: [],
-      rateLimitExceeded: false,
+      count: 0, opportunities: [], rateLimitExceeded: false,
       error: error instanceof Error ? error.message : 'Failed to fetch ticker data',
-      message: 'Unable to fetch live opportunities at this time.'
-    }, { status: 200 });
+    }, { status: 200, headers: NO_STORE });
   }
 }

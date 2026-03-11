@@ -10,7 +10,26 @@ const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search'
 
 // ─── In-process cache (survives across requests in same Node process) ──────────
 const CACHE = new Map<string, { data: any; expiresAt: number }>()
-const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes — SAM.gov data rarely changes more often than this
+
+// ── Per-key cooldown: prevents hammering the same query even after cache clear ──
+// Minimum gap between live SAM.gov fetches for the same query = 60 seconds
+const FETCH_COOLDOWN_MS = 60 * 1000
+const LAST_FETCH = new Map<string, number>()
+
+function isOnCooldown(key: string): boolean {
+  const last = LAST_FETCH.get(key)
+  if (!last) return false
+  return (Date.now() - last) < FETCH_COOLDOWN_MS
+}
+function markFetched(key: string) {
+  LAST_FETCH.set(key, Date.now())
+  // Prune old entries to avoid memory leak
+  if (LAST_FETCH.size > 100) {
+    const oldest = LAST_FETCH.keys().next().value
+    if (oldest) LAST_FETCH.delete(oldest)
+  }
+}
 
 function getCached(key: string) {
   const entry = CACHE.get(key)
@@ -26,7 +45,8 @@ function setCache(key: string, data: any) {
   CACHE.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS })
 }
 
-// ✅ NEW: Force-clear the in-memory cache (called by ?refresh=true)
+// ✅ Force-clear the in-memory cache (called by ?refresh=true)
+// Does NOT reset the cooldown — prevents rapid re-fetching after clear
 function clearCache() {
   CACHE.clear()
   console.log('🗑️ SAM cache cleared')
@@ -152,13 +172,16 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
 
     // ✅ NEW: Support ?refresh=true to bust the server-side cache
-    if (searchParams.get('refresh') === 'true') {
+    const refreshParam = searchParams.get('refresh');
+    if (refreshParam === 'true' || refreshParam === '1') {
       clearCache()
     }
 
     // ── Pagination ──────────────────────────────────────────────────────────
     const requestedLimit = Number(searchParams.get('limit') || 20)
-    const limit = clampInt(requestedLimit, 1, 20)
+    // ✅ FIX: Raised cap from 20 → 1000 so client requests (e.g. limit=250) are honoured.
+    // SAM.gov itself supports up to 1000 per request.
+    const limit = clampInt(requestedLimit, 1, 1000)
     const offset = clampInt(Number(searchParams.get('offset') || 0), 0, 1_000_000)
 
     // ── Search params ───────────────────────────────────────────────────────
@@ -167,7 +190,8 @@ export async function GET(req: Request) {
     // ✅ FIX: Always normalize dates through toSAMDate()
     const rawPostedFrom = (searchParams.get('postedFrom') || '').trim()
     const rawPostedTo   = (searchParams.get('postedTo') || '').trim()
-    const postedFrom = rawPostedFrom ? toSAMDate(rawPostedFrom) : daysAgo(180)
+    // 30-day window by default: recent enough that most results still have future deadlines
+    const postedFrom = rawPostedFrom ? toSAMDate(rawPostedFrom) : daysAgo(30)
     const postedTo   = rawPostedTo   ? toSAMDate(rawPostedTo)   : formatMMDDYYYY(new Date())
 
     const setAside   = (searchParams.get('setAside') || searchParams.get('typeOfSetAside') || '').trim()
@@ -210,8 +234,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ ...cached, cached: true }, { status: 200, headers: NO_CACHE_HEADERS })
     }
 
+    // ── Cooldown guard: if this exact query was fetched within the last 60s,
+    // return a 429 instead of hammering SAM.gov (e.g. rapid Refresh clicks) ──
+    if (isOnCooldown(cacheKey)) {
+      const secondsLeft = Math.ceil((FETCH_COOLDOWN_MS - (Date.now() - (LAST_FETCH.get(cacheKey) ?? 0))) / 1000)
+      console.warn(`⏱️ SAM rate-limit cooldown: ${secondsLeft}s remaining for this query`)
+      return NextResponse.json(
+        { ok: false, error: 'rate_limited', message: `Please wait ${secondsLeft}s before refreshing again.`, retryAfter: secondsLeft },
+        { status: 429, headers: { ...NO_CACHE_HEADERS, 'Retry-After': String(secondsLeft) } }
+      )
+    }
+
     const apiUrl = `${SAM_BASE_URL}?${params.toString()}`
     console.log('📡 SAM.gov fetch (limit=%d):', limit, apiUrl.replace(SAM_API_KEY, 'KEY'))
+    markFetched(cacheKey)
 
     // ── Fetch without timeout ────────────────────────────────────────────────
     const response = await fetch(apiUrl, {

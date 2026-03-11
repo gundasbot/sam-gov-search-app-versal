@@ -1,3 +1,4 @@
+// app/api/sam/taxonomy/route.ts (or wherever this lives)
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -5,8 +6,13 @@ export const dynamic = 'force-dynamic'
 const SAM_API_KEY = process.env.SAMGOVAPIKEY || process.env.SAM_API_KEY || ''
 const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search'
 
-const CACHE_TTL_MS = 15 * 60 * 1000
-let cache: { expiresAt: number; payload: any } | null = null
+// ─── Cache ────────────────────────────────────────────────────────────────────
+// Taxonomy (NAICS codes + keywords) changes very slowly — 4 hours is fine
+const CACHE_TTL_MS   = 4 * 60 * 60 * 1000  // 4 hours
+const FETCH_COOLDOWN = 5 * 60 * 1000        // 5 min cooldown between fetches
+
+let cache: { payload: any; expiresAt: number } | null = null
+let lastFetchAt = 0
 
 const STOPWORDS = new Set([
   'the', 'and', 'for', 'with', 'from', 'that', 'this', 'into', 'your', 'are', 'our', 'you',
@@ -48,13 +54,29 @@ function keywordCountsFromText(text: string, counts: Map<string, number>) {
   }
 }
 
+const NO_STORE = { 'Cache-Control': 'no-store' } as const
+
 export async function GET(req: NextRequest) {
   if (!SAM_API_KEY) {
     return NextResponse.json({ ok: false, error: 'SAM API key not configured' }, { status: 500 })
   }
 
+  // ── Serve fresh cache ─────────────────────────────────────────────────────
   if (cache && Date.now() < cache.expiresAt) {
-    return NextResponse.json({ ...cache.payload, cached: true })
+    return NextResponse.json({ ...cache.payload, cached: true }, { headers: NO_STORE })
+  }
+
+  // ── Cooldown: taxonomy is low-priority, don't refetch within 5 min ────────
+  const sinceLastFetch = Date.now() - lastFetchAt
+  if (lastFetchAt > 0 && sinceLastFetch < FETCH_COOLDOWN) {
+    const waitSec = Math.ceil((FETCH_COOLDOWN - sinceLastFetch) / 1000)
+    console.warn(`⏱️ Taxonomy cooldown: ${waitSec}s remaining`)
+    // Return stale cache if available — taxonomy data isn't urgent
+    if (cache) return NextResponse.json({ ...cache.payload, cached: true, stale: true }, { headers: NO_STORE })
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited', message: `Taxonomy refresh available in ${waitSec}s`, retryAfter: waitSec },
+      { status: 429, headers: { ...NO_STORE, 'Retry-After': String(waitSec) } }
+    )
   }
 
   const limit = Math.min(250, Math.max(50, Number(req.nextUrl.searchParams.get('limit') || 200)))
@@ -63,19 +85,34 @@ export async function GET(req: NextRequest) {
     api_key: SAM_API_KEY,
     limit: String(limit),
     offset: '0',
-    postedFrom: daysAgo(120),
+    postedFrom: daysAgo(30),   // was 120 days — no need to go back 4 months for keyword trends
     postedTo: formatMMDDYYYY(new Date()),
     ptype: 'o,k,r,s,g,i',
     status: 'active',
   })
 
+  lastFetchAt = Date.now()
   const url = `${SAM_BASE_URL}?${params.toString()}`
+  console.log('📡 Taxonomy fetch from SAM.gov (limit=%d)', limit)
 
   const response = await fetch(url, {
     method: 'GET',
     headers: { Accept: 'application/json' },
     cache: 'no-store',
   })
+
+  if (response.status === 429) {
+    const errorData = await response.json().catch(() => ({}))
+    console.warn('🚫 Taxonomy: SAM.gov rate limit hit')
+    // Push lastFetchAt forward so we respect the 429 backoff
+    lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
+    // Return stale cache if we have it
+    if (cache) return NextResponse.json({ ...cache.payload, cached: true, rateLimited: true }, { headers: NO_STORE })
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited', message: 'SAM.gov quota exceeded', nextAccessTime: errorData.nextAccessTime },
+      { status: 200, headers: NO_STORE }
+    )
+  }
 
   if (!response.ok) {
     const text = await response.text()
@@ -93,9 +130,7 @@ export async function GET(req: NextRequest) {
 
   for (const opp of opportunities) {
     const code = String(opp?.naicsCode ?? opp?.naics ?? '').trim()
-    if (code) {
-      naicsCounts.set(code, (naicsCounts.get(code) || 0) + 1)
-    }
+    if (code) naicsCounts.set(code, (naicsCounts.get(code) || 0) + 1)
 
     const title = String(opp?.title || '')
     const desc = String(opp?.description || '')
@@ -105,10 +140,7 @@ export async function GET(req: NextRequest) {
   const naics = Array.from(naicsCounts.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 120)
-    .map(([code, count]) => ({
-      value: code,
-      label: `${code} - SAM trending (${count})`,
-    }))
+    .map(([code, count]) => ({ value: code, label: `${code} - SAM trending (${count})` }))
 
   const keywords = Array.from(keywordCounts.entries())
     .filter(([kw]) => kw.length >= 4)
@@ -126,5 +158,5 @@ export async function GET(req: NextRequest) {
 
   cache = { payload, expiresAt: Date.now() + CACHE_TTL_MS }
 
-  return NextResponse.json({ ...payload, cached: false })
+  return NextResponse.json({ ...payload, cached: false }, { headers: NO_STORE })
 }

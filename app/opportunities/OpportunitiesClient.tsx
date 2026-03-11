@@ -593,6 +593,7 @@ export default function OpportunitiesClient() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [refreshIndicator, setRefreshIndicator] = useState(false);
+  const [refreshCooldown, setRefreshCooldown] = useState(0); // seconds remaining
 
   // 📌 NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -1041,10 +1042,34 @@ Provide analysis in JSON format with:
     window.URL.revokeObjectURL(url);
   };
 
+  // Cooldown countdown ticker
+  useEffect(() => {
+    if (refreshCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setRefreshCooldown(prev => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [refreshCooldown]);
+
   const handleRefresh = async () => {
+    if (refreshCooldown > 0) {
+      setToast({ type: 'error', msg: `Please wait ${refreshCooldown}s before refreshing again.` });
+      return;
+    }
     setLoadingMore(true);
+    setRefreshIndicator(true);
     try {
-      const res = await fetch('/api/sam/opportunities?refresh=1', { method: 'GET' });
+      const postedFrom = new Date();
+      postedFrom.setDate(postedFrom.getDate() - 30);
+      const pf = `${String(postedFrom.getMonth()+1).padStart(2,'0')}/${String(postedFrom.getDate()).padStart(2,'0')}/${postedFrom.getFullYear()}`;
+      const res = await fetch(`/api/sam/opportunities?refresh=1&limit=250&status=active&postedFrom=${encodeURIComponent(pf)}`, { method: 'GET' });
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({}));
+        const wait = data.retryAfter || 60;
+        setRefreshCooldown(wait);
+        setToast({ type: 'error', msg: `Rate limited — please wait ${wait}s.` });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setAllOpportunities(data.opportunities || []);
@@ -1056,6 +1081,7 @@ Provide analysis in JSON format with:
         setKeywordSearch('');
         setSearchTerm('');
         setToast({ type: 'success', msg: 'Feed refreshed from SAM.gov.' });
+        setRefreshCooldown(60); // 60s client-side cooldown after successful fetch
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setToast({ type: 'error', msg: 'Failed to refresh feed.' });
@@ -1064,6 +1090,7 @@ Provide analysis in JSON format with:
       setToast({ type: 'error', msg: 'Failed to refresh feed.' });
     } finally {
       setLoadingMore(false);
+      setRefreshIndicator(false);
     }
   };
 
@@ -1233,6 +1260,13 @@ Provide analysis in JSON format with:
   // Apply filters whenever dependencies change
   const DEFAULT_DISPLAY_COUNT = 96; // Ensure all columns fill for unsigned-in users
   useEffect(() => {
+    // For logged-out users, use mock data and treat as loaded
+    if (!isLoggedIn && !dataLoaded && allOpportunities.length === 0) {
+      setAllOpportunities(MOCK_OPPORTUNITIES);
+      setDataLoaded(true);
+      setLastUpdated('Just now');
+      return;
+    }
     if (dataLoaded) {
       let filtered = applyFilters(
         allOpportunities,
@@ -1573,7 +1607,8 @@ Provide analysis in JSON format with:
                   }
                   setSurveyOpen(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 px-4 py-2.5 text-sm font-bold text-white transition shadow-lg hover:shadow-xl"
+                disabled={!isLoggedIn}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 px-4 py-2.5 text-sm font-bold text-white transition shadow-lg hover:shadow-xl disabled:opacity-50"
               >
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Update Preferences</span>
@@ -1850,19 +1885,16 @@ Provide analysis in JSON format with:
                   }
                 }}
                 style={{
-                  background: showAllOpportunities ? '#ff7a18' : '#ff7a18',
+                  background: showAllOpportunities ? '#c45e10' : '#ff7a18',
                   color: '#fff',
-                  boxShadow: showAllOpportunities
-                    ? '0 0 16px 4px #ff7a18, 0 2px 8px #0008'
-                    : '0 0 8px 2px #ff7a1888',
+                  boxShadow: 'none',
                   border: '2px solid #ff7a18',
                   fontWeight: 900,
-                  fontSize: '1.1rem',
-                  borderRadius: '12px',
-                  padding: '16px 32px',
+                  fontSize: '0.9rem',
+                  borderRadius: '10px',
+                  padding: '8px 18px',
                   transition: 'all 0.2s',
                   textShadow: 'none',
-                  outline: showAllOpportunities ? '2px solid #ff7a18' : undefined,
                   cursor: 'pointer',
                 }}
                 className="font-bold transition-all"
@@ -1871,29 +1903,29 @@ Provide analysis in JSON format with:
               </button>
               <button
                 onClick={handleRefresh}
-                disabled={loadingMore}
+                disabled={loadingMore || refreshCooldown > 0}
                 style={{
-                  background: '#fff',
-                  color: '#ff7a18',
-                  border: '2px solid #ff7a18',
+                  background: refreshCooldown > 0 ? '#e5e7eb' : '#fff',
+                  color: refreshCooldown > 0 ? '#9ca3af' : '#ff7a18',
+                  border: `2px solid ${refreshCooldown > 0 ? '#d1d5db' : '#ff7a18'}`,
                   fontWeight: 900,
-                  fontSize: '1.1rem',
-                  borderRadius: '12px',
-                  padding: '16px 32px',
+                  fontSize: '0.9rem',
+                  borderRadius: '10px',
+                  padding: '8px 18px',
                   marginLeft: '8px',
                   transition: 'all 0.2s',
                   textShadow: 'none',
-                  outline: loadingMore ? '2px solid #ff7a18' : undefined,
-                  cursor: loadingMore ? 'not-allowed' : 'pointer',
-                  opacity: loadingMore ? 0.7 : 1,
+                  cursor: (loadingMore || refreshCooldown > 0) ? 'not-allowed' : 'pointer',
+                  opacity: (loadingMore || refreshCooldown > 0) ? 0.7 : 1,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '10px',
+                  gap: '8px',
                 }}
                 className="font-bold transition-all"
+                title={refreshCooldown > 0 ? `Available in ${refreshCooldown}s` : 'Refresh from SAM.gov'}
               >
                 <RefreshCw className={`w-6 h-6 ${loadingMore ? 'animate-spin' : ''}`} />
-                {loadingMore ? 'Refreshing...' : 'Refresh'}
+                {loadingMore ? 'Refreshing...' : refreshCooldown > 0 ? `Wait ${refreshCooldown}s` : 'Refresh'}
               </button>
               {selectedUrgencyFilters.size > 0 && (
                 <button
@@ -2585,68 +2617,70 @@ Provide analysis in JSON format with:
 
         {/* Load More Button and End-of-Results Counter */}
         <div className="mt-12 mb-24 text-center relative">
-          <div className="mb-6">
-            <p className="text-slate-300 text-base mb-2 font-semibold">
-              Showing {visibleOpportunities.length.toLocaleString()} of {displayedOpportunities.length.toLocaleString()} opportunities
-            </p>
+          <div className="mb-6 flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-slate-300 text-base font-semibold mb-0">
+                Showing {visibleOpportunities.length.toLocaleString()} of {(showAllOpportunities ? allOpportunities.length : displayedOpportunities.length).toLocaleString()} opportunities
+              </p>
+              {/* Show All Opportunities button if there are hidden opportunities */}
+              {(!showAllOpportunities && allOpportunities.length > displayedOpportunities.length) && (
+                <button
+                  onClick={() => {
+                    setShowAllOpportunities(true);
+                    setDisplayCount(allOpportunities.length);
+                  }}
+                  className="mt-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg text-base"
+                  style={{ minWidth: '220px' }}
+                >
+                  Show All {allOpportunities.length.toLocaleString()} Opportunities
+                </button>
+              )}
+              {/* Load More Button - Always visible when there are more opportunities */}
+              {hasMore && (
+                <div className="my-8 text-center">
+                  <button
+                    onClick={() => {
+                      if (!loadingMore) {
+                        setDisplayCount(prev => {
+                          const max = showAllOpportunities ? allOpportunities.length : displayedOpportunities.length;
+                          return Math.min(prev + 24, max);
+                        });
+                      }
+                    }}
+                    disabled={loadingMore || !hasMore}
+                    className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-base mx-auto"
+                    style={{
+                      minWidth: '280px',
+                    }}
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load More Opportunities
+                        <ChevronDown className="w-5 h-5" />
+                        <span className="ml-2 px-3 py-1 bg-white/20 rounded-full text-sm">
+                          {((showAllOpportunities ? allOpportunities.length : displayedOpportunities.length) - visibleOpportunities.length).toLocaleString()} left
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="h-1 w-64 mx-auto bg-slate-700 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-300"
-                style={{ width: `${(visibleOpportunities.length / displayedOpportunities.length) * 100}%` }}
+                style={{ width: `${(visibleOpportunities.length / (showAllOpportunities ? allOpportunities.length : displayedOpportunities.length)) * 100}%` }}
               />
             </div>
           </div>
           {/* Persistent Show More Opportunities button at the bottom */}
-          {dataLoaded && hasMore && (
-            <button
-              onClick={() => {
-                if (!loadingMore) {
-                  setDisplayCount(prev => {
-                    // Always use the correct source for more cards
-                    const max = showAllOpportunities ? allOpportunities.length : displayedOpportunities.length;
-                    // If there are more cards in the source, increase count
-                    return Math.min(prev + 10, max);
-                  });
-                }
-              }}
-              disabled={loadingMore || !hasMore}
-              style={{
-                position: 'relative',
-                margin: '0 auto',
-                maxWidth: 420,
-                background: '#ff7a18',
-                color: '#fff',
-                fontWeight: 900,
-                fontSize: '1.1rem',
-                borderRadius: '18px',
-                padding: '18px 0',
-                border: '2px solid #ff7a18',
-                transition: 'all 0.2s',
-                outline: showAllOpportunities ? '2px solid #ff7a18' : undefined,
-                cursor: loadingMore ? 'not-allowed' : 'pointer',
-                opacity: loadingMore ? 0.7 : 1,
-                display: 'block',
-                fontFamily: 'Aptos, Inter, Arial, sans-serif',
-              }}
-              className="font-bold transition-all mx-auto"
-            >
-              {loadingMore ? (
-                <>
-                  <Loader2 className="w-6 h-6 animate-spin inline-block mr-2 align-middle" />
-                  Loading More Opportunities...
-                </>
-              ) : (
-                <>
-                  Show More Opportunities
-                  <ChevronDown className="w-6 h-6 inline-block ml-2 align-middle" />
-                  <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-semibold ml-2">
-                    +{((showAllOpportunities ? allOpportunities.length : displayedOpportunities.length) - visibleOpportunities.length).toLocaleString()} more
-                  </span>
-                </>
-              )}
-            </button>
-          )}
-          {!dataLoaded || visibleOpportunities.length === displayedOpportunities.length ? (
+          {/* Button is now unified above */}
+          {!dataLoaded || visibleOpportunities.length === (showAllOpportunities ? allOpportunities.length : displayedOpportunities.length) ? (
             <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-slate-400 mt-8">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               <span>
@@ -2662,7 +2696,7 @@ Provide analysis in JSON format with:
           ) : null}
         </div>
 
-        {/* ΓöÇΓöÇ Opportunity Detail Modal ΓöÇΓöÇ */}
+        {/* Opportunity Detail Modal */}
         {selectedOpp && (() => {
           const opp = selectedOpp;
           const dl = getEffectiveDeadline(opp);
@@ -3260,7 +3294,8 @@ Provide analysis in JSON format with:
         {/* Refresh */}
         <button
           onClick={handleRefresh}
-          title="Refresh from SAM.gov"
+          disabled={refreshCooldown > 0}
+          title={refreshCooldown > 0 ? `Available in ${refreshCooldown}s` : 'Refresh from SAM.gov'}
           style={{
             display: 'flex', alignItems: 'center', gap: '7px',
             padding: '10px 15px',
@@ -3284,8 +3319,8 @@ Provide analysis in JSON format with:
             e.currentTarget.style.boxShadow = '0 0 14px rgba(139,92,246,0.2), 0 4px 14px rgba(0,0,0,0.5)';
           }}
         >
-          <RefreshCw size={16} />
-          Refresh
+          <RefreshCw size={16} className={refreshCooldown > 0 ? '' : ''} />
+          {refreshCooldown > 0 ? `${refreshCooldown}s` : 'Refresh'}
         </button>
 
         {/* Share ΓÇö toggles the tray above */}
