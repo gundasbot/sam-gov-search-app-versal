@@ -140,14 +140,14 @@ async function fetchSAMOpportunities(prefs: {
 }): Promise<any[]> {
   const SAM_KEY = process.env.SAMGOVAPIKEY || process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY || ''
 
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const ninetyDaysAgo = new Date()
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
   const params = new URLSearchParams({
     api_key: SAM_KEY,
-    limit: '100',
+    limit: '250',
     offset: '0',
-    postedFrom: formatMMDDYYYY(thirtyDaysAgo),
+    postedFrom: formatMMDDYYYY(ninetyDaysAgo),
     postedTo: formatMMDDYYYY(new Date()),
     status: 'active',
     ptype: 'o,k,r,s,g,i',
@@ -232,7 +232,7 @@ async function scoreWithClaude(
       : null,
   ].filter(Boolean).join('\n')
 
-  const oppList = opps.slice(0, 40).map((o, i) => {
+  const oppList = opps.slice(0, 100).map((o, i) => {
     const deadline = o.responseDeadLine || o.archiveDate || 'TBD'
     const daysLeft = deadline !== 'TBD'
       ? Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000)
@@ -254,7 +254,7 @@ Today: ${today}
 CONTRACTOR PROFILE:
 ${prefsText}
 
-OPPORTUNITIES TO ANALYZE (${opps.slice(0, 40).length} total):
+OPPORTUNITIES TO ANALYZE (${opps.slice(0, 100).length} total):
 ${oppList}
 
 Respond ONLY with a valid JSON object in this exact shape — no markdown, no preamble:
@@ -283,12 +283,12 @@ Scoring rules:
 - 50-69: Partial NAICS or related sector, no set-aside match
 - Below 50: Weak match, include only if fewer than 10 strong matches exist
 - urgencyFlag "high" = deadline within 7 days; "medium" = 8-21 days; "low" = 22+ days or no deadline
-- Only include top 10 opportunities in scoredOpportunities, ordered by matchScore descending`
+- Only include top 25 opportunities in scoredOpportunities, ordered by matchScore descending`
 
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     })
 

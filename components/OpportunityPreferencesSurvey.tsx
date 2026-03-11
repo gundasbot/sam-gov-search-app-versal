@@ -2,67 +2,32 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Settings, Target, Building2, Award, DollarSign, MapPin, Calendar, CheckCircle, Sparkles, Filter, Code, Shield, Search, Loader2, ExternalLink, AlertCircle } from 'lucide-react';
+import { X, Settings, Target, Building2, Award, DollarSign, MapPin, Calendar, CheckCircle, Filter, Code, Shield, Search, Loader2 } from 'lucide-react';
 
-// ✅ EXPANDED: Enhanced NAICS code database with DATA-related codes
-const NAICS_CODES_DATABASE = [
-  // Data & Analytics specific
-  { code: "518210", description: "Data Processing, Hosting, and Related Services" },
-  { code: "519130", description: "Internet Publishing and Broadcasting and Web Search Portals" },
-  { code: "541511", description: "Custom Computer Programming Services" },
-  { code: "541512", description: "Computer Systems Design Services" },
-  { code: "541513", description: "Computer Facilities Management Services" },
-  { code: "541519", description: "Other Computer Related Services - Data Analytics" },
-  { code: "541611", description: "Administrative Management and General Management Consulting Services" },
-  { code: "541612", description: "Human Resources Consulting Services" },
-  { code: "541613", description: "Marketing Consulting Services" },
-  { code: "541618", description: "Other Management Consulting Services - Data Strategy" },
-  { code: "541620", description: "Environmental Consulting Services" },
-  { code: "541690", description: "Other Scientific and Technical Consulting Services - Data Science" },
-  { code: "541720", description: "Research and Development in the Social Sciences and Humanities" },
-  { code: "541990", description: "All Other Professional, Scientific, and Technical Services" },
-  // Construction & Infrastructure
-  { code: "236220", description: "Commercial and Institutional Building Construction" },
-  { code: "541330", description: "Engineering Services" },
-  // Support Services
-  { code: "561210", description: "Facilities Support Services" },
-  { code: "561720", description: "Janitorial Services" },
-  { code: "562910", description: "Remediation Services" },
-  { code: "611430", description: "Professional and Management Development Training" },
-  // Healthcare
-  { code: "621111", description: "Offices of Physicians (except Mental Health Specialists)" },
-  { code: "621399", description: "Offices of All Other Miscellaneous Health Practitioners" },
-  { code: "621511", description: "Medical Laboratories" },
-  { code: "621999", description: "All Other Miscellaneous Ambulatory Health Care Services" },
-  { code: "624190", description: "Other Individual and Family Services" },
-  // Other
-  { code: "711310", description: "Promoters of Performing Arts, Sports, and Similar Events" },
-  { code: "811310", description: "Commercial and Industrial Machinery and Equipment Repair and Maintenance" },
-  { code: "922190", description: "Other Justice, Public Order, and Safety Activities" },
+// ─── Live code search — /api/codes/taxonomy ─────────────────────────────────
+// Both NAICS and PSC are mined from real SAM.gov opportunity data.
+// Single fetch, 24-hour server-side cache, graceful fallback.
+// Route: app/api/codes/taxonomy/route.ts
+
+interface CodeItem { code: string; description: string; count?: number }
+
+// Small offline fallback (used only if the taxonomy route is unreachable)
+const NAICS_SEED: CodeItem[] = [
+  { code: '518210', description: 'Data Processing, Hosting, and Related Services' },
+  { code: '541511', description: 'Custom Computer Programming Services' },
+  { code: '541512', description: 'Computer Systems Design Services' },
+  { code: '541519', description: 'Other Computer Related Services' },
+  { code: '541611', description: 'Administrative Management Consulting Services' },
+  { code: '541715', description: 'R&D in Physical, Engineering, and Life Sciences' },
 ];
 
-// Enhanced PSC code database  
-const PSC_CODES_DATABASE = [
-  // IT & Data Services
-  { code: "D302", description: "IT and Telecom - Systems Development" },
-  { code: "D307", description: "IT and Telecom - Cyber Security and Data Backup" },
-  { code: "D310", description: "IT and Telecom - Information Technology - Data Management" },
-  { code: "D399", description: "IT and Telecom - Other Data Services" },
-  // Engineering & Technical
-  { code: "R425", description: "Engineering and Technical Services" },
-  // Maintenance
-  { code: "J070", description: "Maintenance, Repair, and Rebuilding of Equipment" },
-  // Facilities
-  { code: "S201", description: "Housekeeping - Custodial Janitorial" },
-  { code: "S206", description: "Housekeeping - Landscaping/Groundskeeping" },
-  // Environmental
-  { code: "F108", description: "Environmental Systems Protection" },
-  { code: "F999", description: "Other Environmental Services" },
-  // Medical
-  { code: "Q201", description: "Medical - General Health Services" },
-  { code: "Q301", description: "Medical - Dental Services" },
-  // Support
-  { code: "R499", description: "Support Services - Other" },
+const PSC_SEED: CodeItem[] = [
+  { code: 'D302', description: 'IT and Telecom — Systems Development' },
+  { code: 'D307', description: 'IT and Telecom — Cyber Security and Data Backup' },
+  { code: 'D310', description: 'IT and Telecom — Data Management' },
+  { code: 'D399', description: 'IT and Telecom — Other ADP Services' },
+  { code: 'R425', description: 'Professional Support — Engineering/Technical' },
+  { code: 'R499', description: 'Professional Support — Other' },
 ];
 
 // Set-aside options with descriptions
@@ -157,11 +122,9 @@ export default function OpportunityPreferencesSurvey({
   onComplete,
 }: OpportunityPreferencesSurveyProps) {
   const [step, setStep] = useState(1);
-  const totalSteps = 8;
+  const totalSteps = 9;
 
   // ✅ NEW: Error states
-  const [naicsDuplicateError, setNaicsDuplicateError] = useState(false);
-  const [pscDuplicateError, setPscDuplicateError] = useState(false);
 
   const [preferences, setPreferences] = useState<OpportunityPreferences>({
     keywords: [],
@@ -185,43 +148,74 @@ export default function OpportunityPreferencesSurvey({
   const [pscSearch, setPscSearch] = useState("");
   const [showNaicsSuggestions, setShowNaicsSuggestions] = useState(false);
   const [showPscSuggestions, setShowPscSuggestions] = useState(false);
-  const [filteredNaicsSuggestions, setFilteredNaicsSuggestions] = useState<typeof NAICS_CODES_DATABASE>([]);
-  const [filteredPscSuggestions, setFilteredPscSuggestions] = useState<typeof PSC_CODES_DATABASE>([]);
+  const [filteredNaicsSuggestions, setFilteredNaicsSuggestions] = useState<CodeItem[]>([]);
+  const [filteredPscSuggestions, setFilteredPscSuggestions] = useState<CodeItem[]>([]);
+  const [naicsLoading, setNaicsLoading] = useState(false);
+  const [pscLoading, setPscLoading] = useState(false);
+  const [naicsDataSource, setNaicsDataSource] = useState<string>('');
+  const [pscDataSource, setPscDataSource] = useState<string>('');
+  // Store code->description maps for displaying selected items
+  const [naicsDescMap, setNaicsDescMap] = useState<Record<string, string>>({});
+  const [pscDescMap, setPscDescMap] = useState<Record<string, string>>({});
+
+  // Error state for duplicate NAICS and PSC codes
+  const [naicsDuplicateError, setNaicsDuplicateError] = useState(false);
+  const [pscDuplicateError, setPscDuplicateError] = useState(false);
   const [agencyMode, setAgencyMode] = useState<'all' | 'specific'>('all');
   const [stateMode, setStateMode] = useState<'all' | 'specific'>('all');
 
   const naicsInputRef = useRef<HTMLInputElement>(null);
   const pscInputRef = useRef<HTMLInputElement>(null);
 
-  // NAICS suggestions filtering
+  // NAICS live search — debounced, calls /api/codes/taxonomy?type=naics
   useEffect(() => {
-    const q = naicsSearch.trim().toLowerCase();
-    if (!q) {
-      setFilteredNaicsSuggestions([]);
-      setShowNaicsSuggestions(false);
-      return;
-    }
-    const filtered = NAICS_CODES_DATABASE.filter(naics =>
-      naics.code.includes(q) || naics.description.toLowerCase().includes(q)
-    ).slice(0, 8);
-    setFilteredNaicsSuggestions(filtered);
-    setShowNaicsSuggestions(filtered.length > 0);
-  }, [naicsSearch]);
+    const q = naicsSearch.trim();
+    if (!q) { setFilteredNaicsSuggestions([]); setShowNaicsSuggestions(false); return; }
+    const timer = setTimeout(async () => {
+      setNaicsLoading(true);
+      try {
+        const res = await fetch(`/api/codes/taxonomy?type=naics&q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error('fetch failed');
+        const data = await res.json();
+        const results: CodeItem[] = (data.results || []).filter((c: CodeItem) => !preferences.naicsCodes.includes(c.code));
+        setFilteredNaicsSuggestions(results);
+        setShowNaicsSuggestions(results.length > 0);
+        setNaicsDataSource(data.source || '');
+      } catch {
+        const ql = q.toLowerCase();
+        const results = NAICS_SEED.filter(c => (c.code.includes(ql) || c.description.toLowerCase().includes(ql)) && !preferences.naicsCodes.includes(c.code));
+        setFilteredNaicsSuggestions(results);
+        setShowNaicsSuggestions(results.length > 0);
+        setNaicsDataSource('fallback');
+      } finally { setNaicsLoading(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [naicsSearch, preferences.naicsCodes]);
 
-  // PSC suggestions filtering
+  // PSC live search — debounced, calls /api/codes/taxonomy?type=psc
   useEffect(() => {
-    const q = pscSearch.trim().toLowerCase();
-    if (!q) {
-      setFilteredPscSuggestions([]);
-      setShowPscSuggestions(false);
-      return;
-    }
-    const filtered = PSC_CODES_DATABASE.filter(psc =>
-      psc.code.toLowerCase().includes(q) || psc.description.toLowerCase().includes(q)
-    ).slice(0, 8);
-    setFilteredPscSuggestions(filtered);
-    setShowPscSuggestions(filtered.length > 0);
-  }, [pscSearch]);
+    const q = pscSearch.trim();
+    if (!q) { setFilteredPscSuggestions([]); setShowPscSuggestions(false); return; }
+    const timer = setTimeout(async () => {
+      setPscLoading(true);
+      try {
+        const res = await fetch(`/api/codes/taxonomy?type=psc&q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error('fetch failed');
+        const data = await res.json();
+        const results: CodeItem[] = (data.results || []).filter((c: CodeItem) => !preferences.pscCodes.includes(c.code));
+        setFilteredPscSuggestions(results);
+        setShowPscSuggestions(results.length > 0);
+        setPscDataSource(data.source || '');
+      } catch {
+        const ql = q.toLowerCase();
+        const results = PSC_SEED.filter(c => (c.code.toLowerCase().includes(ql) || c.description.toLowerCase().includes(ql)) && !preferences.pscCodes.includes(c.code));
+        setFilteredPscSuggestions(results);
+        setShowPscSuggestions(results.length > 0);
+        setPscDataSource('fallback');
+      } finally { setPscLoading(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [pscSearch, preferences.pscCodes]);
 
   // ✅ FIXED: Add handlers with duplicate detection
   const handleAddNaicsCode = (code: string) => {
@@ -239,11 +233,14 @@ export default function OpportunityPreferencesSurvey({
     naicsInputRef.current?.focus();
   };
 
-  const handleAddPscCode = (code: string) => {
+  const handleAddPscCode = (code: string, description?: string) => {
     if (preferences.pscCodes.includes(code)) {
       setPscDuplicateError(true);
       setTimeout(() => setPscDuplicateError(false), 3000);
       return;
+    }
+    if (description) {
+      setPscDescMap(prev => ({ ...prev, [code]: description }));
     }
     setPreferences(prev => ({
       ...prev,
@@ -352,23 +349,23 @@ export default function OpportunityPreferencesSurvey({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-3xl bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl border border-white/10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor:"rgba(0,0,0,0.75)",backdropFilter:"blur(6px)"}}>
+      <div className="w-full max-w-6xl flex flex-col rounded-2xl shadow-2xl" style={{background:"#ffffff",border:"1px solid #e2e8f0",maxHeight:"96vh"}}>
         {/* Header */}
-        <div className="border-b border-white/10 bg-slate-900/80 p-6">
+        <div className="shrink-0 p-6" style={{background:"#f8fafc",borderBottom:"1px solid #e2e8f0"}}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 p-2.5">
-                <Sparkles className="h-6 w-6 text-white" />
+              <div className="rounded-xl p-2.5" style={{background:"linear-gradient(135deg,#0891b2,#2563eb)"}}>
+                <Settings className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">Opportunity Preferences</h2>
-                <p className="text-sm text-slate-300">Customize your federal opportunity feed</p>
+                <h2 className="text-2xl font-bold" style={{color:"#0f172a"}}>Opportunity Preferences</h2>
+                <p className="text-sm" style={{color:"#64748b"}}>Customize your federal opportunity feed</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-xl p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+              className="rounded-xl p-2 transition hover:bg-slate-100" style={{color:"#64748b"}}
             >
               <X className="h-6 w-6" />
             </button>
@@ -380,36 +377,36 @@ export default function OpportunityPreferencesSurvey({
               <div
                 key={i}
                 className={`h-2 flex-1 rounded-full transition ${
-                  i + 1 <= step ? 'bg-linear-to-r from-cyan-500 to-blue-600' : 'bg-white/10'
+                  i + 1 <= step ? 'bg-linear-to-r from-cyan-500 to-blue-600' : 'bg-slate-200'
                 }`}
               />
             ))}
           </div>
-          <div className="mt-2 text-center text-sm text-slate-400">
+          <div className="mt-2 text-center text-sm" style={{color:"#64748b"}}>
             Step {step} of {totalSteps}
           </div>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto p-8" style={{ maxHeight: 'calc(90vh - 220px)' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto p-8" style={{background:"#ffffff"}}>
           <form onSubmit={(e) => e.preventDefault()}>
             {/* Step 1: Keywords */}
             {step === 1 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <Search className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">Keywords</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>Keywords</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Tell us what you're looking for. We'll use these words to prioritize matching opportunities.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="mb-3 text-sm font-semibold text-white">Keywords / Phrases</div>
+                <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+                  <div className="mb-3 text-sm font-semibold" style={{color:"#1e293b"}}>Keywords / Phrases</div>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -417,30 +414,30 @@ export default function OpportunityPreferencesSurvey({
                       onChange={(e) => setKeywordInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddKeyword())}
                       placeholder="e.g., Data Analytics, Cloud Computing..."
-                      className="flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-slate-400 outline-none focus:border-cyan-500"
+                      className="flex-1 rounded-xl px-4 py-3 outline-none transition" style={{background:"#ffffff",border:"1.5px solid #cbd5e1",color:"#0f172a"}} onFocus={(e)=>{(e.target as HTMLInputElement).style.borderColor="#0891b2";(e.target as HTMLInputElement).style.boxShadow="0 0 0 3px rgba(8,145,178,0.15)"}} onBlur={(e)=>{(e.target as HTMLInputElement).style.borderColor="#cbd5e1";(e.target as HTMLInputElement).style.boxShadow="none"}}
                     />
                     <button
                       type="button"
                       onClick={handleAddKeyword}
-                      className="rounded-xl bg-cyan-600 px-6 py-3 font-semibold text-white transition hover:bg-cyan-700"
+                      className="rounded-xl px-6 py-3 font-semibold text-white transition" style={{background:"#0891b2"}}
                     >
                       Add
                     </button>
                   </div>
-                  <p className="mt-2 text-xs text-slate-400">Tip: Use comma-separated phrases for best results.</p>
+                  <p className="mt-2 text-xs" style={{color:"#64748b"}}>Tip: Use comma-separated phrases for best results.</p>
 
                   {preferences.keywords.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {preferences.keywords.map((keyword, index) => (
                         <div
                           key={`${keyword}-${index}`}
-                          className="inline-flex items-center gap-2 rounded-full bg-cyan-500/20 px-3 py-1.5 text-sm text-cyan-300 border border-cyan-500/30"
+                          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium" style={{background:"#e0f2fe",color:"#0369a1",border:"1px solid #bae6fd"}}
                         >
                           <span>{keyword}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveKeyword(keyword)}
-                            className="text-cyan-400 hover:text-cyan-300"
+                            className="transition" style={{color:"#0891b2"}}
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -456,31 +453,28 @@ export default function OpportunityPreferencesSurvey({
             {step === 2 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <Code className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">NAICS Codes</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>NAICS Codes</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Add NAICS codes relevant to your business to refine results.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="mb-3 text-sm font-semibold text-white">
-                    Search & Add NAICS
+                <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold" style={{color:"#1e293b"}}>Search & Add NAICS</span>
+                    {naicsDataSource && (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{background: naicsDataSource === "live" ? "#dcfce7" : naicsDataSource === "cache" ? "#dbeafe" : "#fef9c3", color: naicsDataSource === "live" ? "#166534" : naicsDataSource === "cache" ? "#1e40af" : "#713f12"}}>
+                        {naicsDataSource === "live" ? "● Live" : naicsDataSource === "cache" ? "● Cached" : "● Offline"}
+                      </span>
+                    )}
                   </div>
 
-                  {/* ✅ NEW: Duplicate error message */}
-                  {naicsDuplicateError && (
-                    <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-amber-400" />
-                      <span className="text-sm text-amber-300 font-semibold">
-                        You've already added this NAICS code!
-                      </span>
-                    </div>
-                  )}
+
 
                   <div className="relative">
                     <input
@@ -488,25 +482,36 @@ export default function OpportunityPreferencesSurvey({
                       type="text"
                       value={naicsSearch}
                       onChange={(e) => setNaicsSearch(e.target.value)}
-                      onFocus={() => naicsSearch && setShowNaicsSuggestions(true)}
+                      onFocus={e => {
+                        if (naicsSearch) setShowNaicsSuggestions(true);
+                        (e.target as HTMLInputElement).style.borderColor = "#0891b2";
+                        (e.target as HTMLInputElement).style.boxShadow = "0 0 0 3px rgba(8,145,178,0.15)";
+                      }}
                       placeholder="Search NAICS by code or description..."
-                      className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 pr-10 text-white placeholder-slate-400 outline-none focus:border-cyan-500"
+                      className="w-full rounded-xl px-4 py-3 pr-10 outline-none transition"
+                      style={{background:"#ffffff",border:"1.5px solid #cbd5e1",color:"#0f172a"}}
+                      onBlur={e => {
+                        (e.target as HTMLInputElement).style.borderColor = "#cbd5e1";
+                        (e.target as HTMLInputElement).style.boxShadow = "none";
+                      }}
                     />
-                    <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    {naicsLoading
+                      ? <Loader2 className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin" style={{color:"#0891b2"}} />
+                      : <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2" style={{color:"#94a3b8"}} />}
 
                     {/* Suggestions dropdown */}
                     {showNaicsSuggestions && filteredNaicsSuggestions.length > 0 && (
-                      <div className="absolute z-10 mt-2 w-full rounded-xl border border-white/20 bg-slate-800 shadow-2xl">
+                      <div className="absolute z-10 mt-2 w-full rounded-xl shadow-xl" style={{background:"#ffffff",border:"1px solid #e2e8f0"}}>
                         <div className="max-h-96 overflow-y-auto p-2">
                           {filteredNaicsSuggestions.map((item) => (
                             <button
                               key={item.code}
                               type="button"
                               onClick={() => handleAddNaicsCode(item.code)}
-                              className="w-full rounded-lg p-3 text-left transition hover:bg-white/10"
+                              className="w-full rounded-lg p-3 text-left transition hover:bg-slate-50"
                             >
-                              <div className="font-semibold text-cyan-400">{item.code}</div>
-                              <div className="text-sm text-slate-300">{item.description}</div>
+                              <div className="font-semibold" style={{color:"#0369a1"}}>{item.code}</div>
+                              <div className="text-sm" style={{color:"#64748b"}}>{item.description}</div>
                             </button>
                           ))}
                         </div>
@@ -517,31 +522,28 @@ export default function OpportunityPreferencesSurvey({
                   {/* Selected NAICS codes */}
                   {preferences.naicsCodes.length > 0 && (
                     <div className="mt-4">
-                      <div className="mb-2 text-sm font-semibold text-white">Selected NAICS</div>
+                      <div className="mb-2 text-sm font-semibold" style={{color:"#1e293b"}}>Selected NAICS</div>
                       <div className="space-y-2">
-                        {preferences.naicsCodes.map((code) => {
-                          const naicsInfo = NAICS_CODES_DATABASE.find(n => n.code === code);
-                          return (
+                        {preferences.naicsCodes.map((code) => (
                             <div
                               key={code}
-                              className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                              className="flex items-center justify-between rounded-lg p-3" style={{background:"#f1f5f9",border:"1px solid #e2e8f0"}}
                             >
                               <div>
-                                <div className="font-semibold text-cyan-400">{code}</div>
-                                {naicsInfo && (
-                                  <div className="text-sm text-slate-300">{naicsInfo.description}</div>
+                                <div className="font-semibold" style={{color:"#0369a1"}}>{code}</div>
+                                {naicsDescMap[code] && (
+                                  <div className="text-sm" style={{color:"#64748b"}}>{naicsDescMap[code]}</div>
                                 )}
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveNaicsCode(code)}
-                                className="rounded-lg p-2 text-slate-400 hover:bg-red-500/20 hover:text-red-400"
+                                className="rounded-lg p-2 transition hover:bg-red-50" style={{color:"#94a3b8"}}
                               >
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
-                          );
-                        })}
+                        ))}
                       </div>
                     </div>
                   )}
@@ -553,31 +555,28 @@ export default function OpportunityPreferencesSurvey({
             {step === 3 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <Shield className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">PSC Codes</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>PSC Codes</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Product/Service codes to further narrow your search.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="mb-3 text-sm font-semibold text-white">
-                    Search & Add PSC
+                <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold" style={{color:"#1e293b"}}>Search & Add PSC</span>
+                    {pscDataSource && (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{background: pscDataSource === "live" ? "#dcfce7" : pscDataSource === "cache" ? "#dbeafe" : "#fef9c3", color: pscDataSource === "live" ? "#166534" : pscDataSource === "cache" ? "#1e40af" : "#713f12"}}>
+                        {pscDataSource === "live" ? "● Live" : pscDataSource === "cache" ? "● Cached" : "● Offline"}
+                      </span>
+                    )}
                   </div>
 
-                  {/* ✅ NEW: Duplicate error message */}
-                  {pscDuplicateError && (
-                    <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-amber-400" />
-                      <span className="text-sm text-amber-300 font-semibold">
-                        You've already added this PSC code!
-                      </span>
-                    </div>
-                  )}
+
 
                   <div className="relative">
                     <input
@@ -585,25 +584,36 @@ export default function OpportunityPreferencesSurvey({
                       type="text"
                       value={pscSearch}
                       onChange={(e) => setPscSearch(e.target.value)}
-                      onFocus={() => pscSearch && setShowPscSuggestions(true)}
+                      onFocus={e => {
+                        if (pscSearch) setShowPscSuggestions(true);
+                        (e.target as HTMLInputElement).style.borderColor = "#0891b2";
+                        (e.target as HTMLInputElement).style.boxShadow = "0 0 0 3px rgba(8,145,178,0.15)";
+                      }}
                       placeholder="Search PSC by code or description..."
-                      className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 pr-10 text-white placeholder-slate-400 outline-none focus:border-cyan-500"
+                      className="w-full rounded-xl px-4 py-3 pr-10 outline-none transition"
+                      style={{background:"#ffffff",border:"1.5px solid #cbd5e1",color:"#0f172a"}}
+                      onBlur={e => {
+                        (e.target as HTMLInputElement).style.borderColor = "#cbd5e1";
+                        (e.target as HTMLInputElement).style.boxShadow = "none";
+                      }}
                     />
-                    <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    {pscLoading
+                      ? <Loader2 className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin" style={{color:"#0891b2"}} />
+                      : <Search className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2" style={{color:"#94a3b8"}} />}
 
                     {/* Suggestions dropdown */}
                     {showPscSuggestions && filteredPscSuggestions.length > 0 && (
-                      <div className="absolute z-10 mt-2 w-full rounded-xl border border-white/20 bg-slate-800 shadow-2xl">
+                      <div className="absolute z-10 mt-2 w-full rounded-xl shadow-xl" style={{background:"#ffffff",border:"1px solid #e2e8f0"}}>
                         <div className="max-h-96 overflow-y-auto p-2">
                           {filteredPscSuggestions.map((item) => (
                             <button
                               key={item.code}
                               type="button"
-                              onClick={() => handleAddPscCode(item.code)}
-                              className="w-full rounded-lg p-3 text-left transition hover:bg-white/10"
+                              onClick={() => handleAddPscCode(item.code, item.description)}
+                              className="w-full rounded-lg p-3 text-left transition hover:bg-slate-50"
                             >
-                              <div className="font-semibold text-cyan-400">{item.code}</div>
-                              <div className="text-sm text-slate-300">{item.description}</div>
+                              <div className="font-semibold" style={{color:"#0369a1"}}>{item.code}</div>
+                              <div className="text-sm" style={{color:"#64748b"}}>{item.description}</div>
                             </button>
                           ))}
                         </div>
@@ -614,31 +624,28 @@ export default function OpportunityPreferencesSurvey({
                   {/* Selected PSC codes */}
                   {preferences.pscCodes.length > 0 && (
                     <div className="mt-4">
-                      <div className="mb-2 text-sm font-semibold text-white">Selected PSC</div>
+                      <div className="mb-2 text-sm font-semibold" style={{color:"#1e293b"}}>Selected PSC</div>
                       <div className="space-y-2">
-                        {preferences.pscCodes.map((code) => {
-                          const pscInfo = PSC_CODES_DATABASE.find(p => p.code === code);
-                          return (
+                        {preferences.pscCodes.map((code) => (
                             <div
                               key={code}
-                              className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                              className="flex items-center justify-between rounded-lg p-3" style={{background:"#f1f5f9",border:"1px solid #e2e8f0"}}
                             >
                               <div>
-                                <div className="font-semibold text-cyan-400">{code}</div>
-                                {pscInfo && (
-                                  <div className="text-sm text-slate-300">{pscInfo.description}</div>
+                                <div className="font-semibold" style={{color:"#0369a1"}}>{code}</div>
+                                {pscDescMap[code] && (
+                                  <div className="text-sm" style={{color:"#64748b"}}>{pscDescMap[code]}</div>
                                 )}
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleRemovePscCode(code)}
-                                className="rounded-lg p-2 text-slate-400 hover:bg-red-500/20 hover:text-red-400"
+                                className="rounded-lg p-2 transition hover:bg-red-50" style={{color:"#94a3b8"}}
                               >
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
-                          );
-                        })}
+                        ))}
                       </div>
                     </div>
                   )}
@@ -650,12 +657,12 @@ export default function OpportunityPreferencesSurvey({
             {step === 4 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <Award className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">Set-Asides</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>Set-Asides</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Select applicable set-aside types for your business.
                     </p>
                   </div>
@@ -669,22 +676,21 @@ export default function OpportunityPreferencesSurvey({
                         key={option.code}
                         type="button"
                         onClick={() => toggleSetAside(option.code)}
-                        className={`rounded-2xl border p-4 text-left transition ${
-                          isSelected
-                            ? 'border-cyan-500/40 bg-cyan-500/10'
-                            : 'border-white/10 bg-white/5 hover:bg-white/10'
-                        }`}
+                        className="rounded-2xl border p-4 text-left transition"
+                        style={isSelected
+                          ? {background:'#ecfeff',border:'2px solid #0891b2'}
+                          : {background:'#f8fafc',border:'1.5px solid #e2e8f0'}}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`rounded-xl p-2 ${isSelected ? 'bg-cyan-500 text-white' : 'bg-white/10 text-cyan-300'}`}>
+                          <div className="rounded-xl p-2" style={isSelected ? {background:'#0891b2',color:'white'} : {background:'#e0f2fe',color:'#0369a1'}}>
                             <Award className="h-4 w-4" />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-sm font-semibold text-white">{option.label}</div>
-                              {isSelected && <CheckCircle className="h-4 w-4 text-cyan-300" />}
+                              <div className="text-sm font-semibold" style={{color:"#0f172a"}}>{option.label}</div>
+                              {isSelected && <CheckCircle className="h-4 w-4" style={{color:"#0891b2"}} />}
                             </div>
-                            <div className="mt-1 text-xs text-slate-300">{option.description}</div>
+                            <div className="mt-1 text-xs" style={{color:"#64748b"}}>{option.description}</div>
                           </div>
                         </div>
                       </button>
@@ -698,19 +704,19 @@ export default function OpportunityPreferencesSurvey({
             {step === 5 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <Building2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">Contract Types & Agencies</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>Contract Types & Agencies</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Choose preferred contract types and federal agencies.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="mb-3 text-sm font-semibold text-white">Contract Types</div>
+                <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+                  <div className="mb-3 text-sm font-semibold" style={{color:"#1e293b"}}>Contract Types</div>
                   <div className="grid grid-cols-2 gap-3">
                     {CONTRACT_TYPE_OPTIONS.map((type) => {
                       const isSelected = preferences.contractTypes.includes(type.value);
@@ -726,26 +732,25 @@ export default function OpportunityPreferencesSurvey({
                                 : [...prev.contractTypes.filter(t => t !== 'ALL'), type.value],
                             }));
                           }}
-                          className={`rounded-xl border p-3 text-left transition text-sm ${
-                            isSelected
-                              ? 'border-cyan-500/40 bg-cyan-500/10'
-                              : 'border-white/10 bg-white/5 hover:bg-white/10'
-                          }`}
+                          className="rounded-xl border p-3 text-left transition text-sm"
+                          style={isSelected
+                            ? {background:'#ecfeff',border:'2px solid #0891b2'}
+                            : {background:'#f8fafc',border:'1.5px solid #e2e8f0'}}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-white">{type.label}</span>
-                            {isSelected && <CheckCircle className="h-4 w-4 text-cyan-300" />}
+                            <span className="font-semibold" style={{color:"#0f172a"}}>{type.label}</span>
+                            {isSelected && <CheckCircle className="h-4 w-4" style={{color:"#0891b2"}} />}
                           </div>
-                          <div className="mt-1 text-xs text-slate-300">{type.description}</div>
+                          <div className="mt-1 text-xs" style={{color:"#64748b"}}>{type.description}</div>
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
                   <div className="mb-4 flex items-center justify-between">
-                    <div className="text-sm font-semibold text-white">Federal Agencies</div>
+                    <div className="text-sm font-semibold" style={{color:"#0f172a"}}>Federal Agencies</div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -753,22 +758,20 @@ export default function OpportunityPreferencesSurvey({
                           setAgencyMode("all");
                           setPreferences(prev => ({ ...prev, agencies: [] }));
                         }}
-                        className={`rounded-full px-3 py-1.5 text-sm transition ${
-                          agencyMode === "all"
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                        }`}
+                        className="rounded-full px-3 py-1.5 text-sm transition"
+                        style={agencyMode === "all"
+                          ? {background:'#0891b2',color:'white'}
+                          : {background:'#f1f5f9',color:'#334155',borderRadius:'999px',padding:'6px 12px',fontSize:'14px'}}
                       >
                         All Agencies
                       </button>
                       <button
                         type="button"
                         onClick={() => setAgencyMode("specific")}
-                        className={`rounded-full px-3 py-1.5 text-sm transition ${
-                          agencyMode === "specific"
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                        }`}
+                        className="rounded-full px-3 py-1.5 text-sm transition"
+                        style={agencyMode === "specific"
+                          ? {background:'#0891b2',color:'white'}
+                          : {background:'#f1f5f9',color:'#334155',borderRadius:'999px',padding:'6px 12px',fontSize:'14px'}}
                       >
                         Specific
                       </button>
@@ -779,7 +782,7 @@ export default function OpportunityPreferencesSurvey({
                     <div className="space-y-4">
                       {Object.entries(AGENCY_CATEGORIES).map(([category, agencies]) => (
                         <div key={category}>
-                          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          <div className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{color:"#94a3b8"}}>
                             {category}
                           </div>
                           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -790,18 +793,17 @@ export default function OpportunityPreferencesSurvey({
                                   key={agency.name}
                                   type="button"
                                   onClick={() => toggleAgency(agency.name)}
-                                  className={`rounded-lg border p-3 text-left transition text-sm ${
-                                    isSelected
-                                      ? 'border-cyan-500/40 bg-cyan-500/10'
-                                      : 'border-white/10 bg-white/5 hover:bg-white/10'
-                                  }`}
+                                  className="rounded-lg border p-3 text-left transition text-sm"
+                                  style={isSelected
+                                    ? {background:'#ecfeff',border:'2px solid #0891b2'}
+                                    : {background:'#f8fafc',border:'1.5px solid #e2e8f0'}}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <div className="font-semibold text-white">{agency.abbreviation}</div>
-                                      <div className="text-xs text-slate-300">{agency.name}</div>
+                                      <div className="font-semibold" style={{color:"#0f172a"}}>{agency.abbreviation}</div>
+                                      <div className="text-xs" style={{color:"#64748b"}}>{agency.name}</div>
                                     </div>
-                                    {isSelected && <CheckCircle className="h-4 w-4 text-cyan-300" />}
+                                    {isSelected && <CheckCircle className="h-4 w-4" style={{color:"#0891b2"}} />}
                                   </div>
                                 </button>
                               );
@@ -819,20 +821,20 @@ export default function OpportunityPreferencesSurvey({
             {step === 6 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <Target className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">Status & Timeline</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>Status & Timeline</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Choose which opportunities to include and how urgent they should be.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <div className="mb-3 text-sm font-semibold text-white">Opportunity Status</div>
+                  <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+                    <div className="mb-3 text-sm font-semibold" style={{color:"#1e293b"}}>Opportunity Status</div>
                     <div className="space-y-3">
                       {OPPORTUNITY_STATUS_OPTIONS.map((opt) => {
                         const active = preferences.opportunityStatus === opt.value;
@@ -841,22 +843,21 @@ export default function OpportunityPreferencesSurvey({
                             key={opt.value}
                             type="button"
                             onClick={() => setPreferences(prev => ({ ...prev, opportunityStatus: opt.value }))}
-                            className={`w-full rounded-2xl border p-4 text-left transition ${
-                              active
-                                ? 'border-cyan-500/40 bg-cyan-500/10'
-                                : 'border-white/10 bg-white/5 hover:bg-white/10'
-                            }`}
+                            className="w-full rounded-2xl border p-4 text-left transition"
+                            style={active
+                              ? {background:'#ecfeff',border:'2px solid #0891b2'}
+                              : {background:'#f8fafc',border:'1.5px solid #e2e8f0'}}
                           >
                             <div className="flex items-start gap-3">
-                              <div className={`rounded-xl p-2 ${active ? 'bg-cyan-500 text-white' : 'bg-white/10 text-cyan-300'}`}>
+                              <div className="rounded-xl p-2" style={active ? {background:'#0891b2',color:'white'} : {background:'#e0f2fe',color:'#0369a1'}}>
                                 <Target className="h-4 w-4" />
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center justify-between gap-3">
-                                  <div className="text-sm font-semibold text-white">{opt.label}</div>
-                                  {active && <CheckCircle className="h-4 w-4 text-cyan-300" />}
+                                  <div className="text-sm font-semibold" style={{color:"#0f172a"}}>{opt.label}</div>
+                                  {active && <CheckCircle className="h-4 w-4" style={{color:"#0891b2"}} />}
                                 </div>
-                                <div className="mt-1 text-xs text-slate-300">{opt.description}</div>
+                                <div className="mt-1 text-xs" style={{color:"#64748b"}}>{opt.description}</div>
                               </div>
                             </div>
                           </button>
@@ -865,8 +866,8 @@ export default function OpportunityPreferencesSurvey({
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                    <div className="mb-3 text-sm font-semibold text-white">Timeline Preference</div>
+                  <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+                    <div className="mb-3 text-sm font-semibold" style={{color:"#1e293b"}}>Timeline Preference</div>
                     <div className="space-y-3">
                       {TIMELINE_OPTIONS.map((opt) => {
                         const active = preferences.timeline === opt.value;
@@ -875,22 +876,21 @@ export default function OpportunityPreferencesSurvey({
                             key={opt.value}
                             type="button"
                             onClick={() => setPreferences(prev => ({ ...prev, timeline: opt.value }))}
-                            className={`w-full rounded-2xl border p-4 text-left transition ${
-                              active
-                                ? 'border-cyan-500/40 bg-cyan-500/10'
-                                : 'border-white/10 bg-white/5 hover:bg-white/10'
-                            }`}
+                            className="w-full rounded-2xl border p-4 text-left transition"
+                            style={active
+                              ? {background:'#ecfeff',border:'2px solid #0891b2'}
+                              : {background:'#f8fafc',border:'1.5px solid #e2e8f0'}}
                           >
                             <div className="flex items-start gap-3">
-                              <div className={`rounded-xl p-2 ${active ? 'bg-cyan-500 text-white' : 'bg-white/10 text-cyan-300'}`}>
+                              <div className="rounded-xl p-2" style={active ? {background:'#0891b2',color:'white'} : {background:'#e0f2fe',color:'#0369a1'}}>
                                 <Calendar className="h-4 w-4" />
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center justify-between gap-3">
-                                  <div className="text-sm font-semibold text-white">{opt.label}</div>
-                                  {active && <CheckCircle className="h-4 w-4 text-cyan-300" />}
+                                  <div className="text-sm font-semibold" style={{color:"#0f172a"}}>{opt.label}</div>
+                                  {active && <CheckCircle className="h-4 w-4" style={{color:"#0891b2"}} />}
                                 </div>
-                                <div className="mt-1 text-xs text-slate-300">{opt.description}</div>
+                                <div className="mt-1 text-xs" style={{color:"#64748b"}}>{opt.description}</div>
                               </div>
                             </div>
                           </button>
@@ -899,22 +899,22 @@ export default function OpportunityPreferencesSurvey({
                     </div>
 
                     {/* ✅ FIXED: Improved color coding text */}
-                    <div className="mt-6 p-4 bg-linear-to-r from-red-500/10 via-yellow-500/10 to-green-500/10 border border-white/20 rounded-xl">
-                      <p className="text-sm text-white font-semibold">
-                        💡 <span className="text-slate-200">Color Coding:</span> Once SAM.gov data loads, opportunities will be color-coded by response deadline:
+                    <div className="mt-6 p-4 rounded-xl" style={{background:"linear-gradient(to right,#fef2f2,#fefce8,#f0fdf4)",border:"1px solid #e2e8f0"}}>
+                      <p className="text-sm font-semibold" style={{color:"#1e293b"}}>
+                        💡 <span className="" style={{color:"#334155"}}>Color Coding:</span> Once SAM.gov data loads, opportunities will be color-coded by response deadline:
                       </p>
-                      <div className="mt-3 space-y-2 text-xs">
+                      <div className="mt-3 space-y-2 text-xs" style={{color:"#334155"}}>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                          <span className="text-slate-200"><span className="font-bold text-red-400">Red</span> = Critical (≤3 business days)</span>
+                          <span className="" style={{color:"#334155"}}><span className="font-bold text-red-400">Red</span> = Critical (≤3 business days)</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                          <span className="text-slate-200"><span className="font-bold text-yellow-400">Yellow</span> = Act Soon (≤10 business days)</span>
+                          <span className="" style={{color:"#334155"}}><span className="font-bold text-yellow-400">Yellow</span> = Act Soon (≤10 business days)</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          <span className="text-slate-200"><span className="font-bold text-green-400">Green</span> = Ample Time ({'>'}30 business days)</span>
+                          <span className="" style={{color:"#334155"}}><span className="font-bold text-green-400">Green</span> = Ample Time ({'>'}30 business days)</span>
                         </div>
                       </div>
                     </div>
@@ -927,20 +927,20 @@ export default function OpportunityPreferencesSurvey({
             {step === 7 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">Geography</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>Geography</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Select states of performance to focus on local opportunities.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
                   <div className="mb-4 flex items-center justify-between">
-                    <div className="text-sm font-semibold text-white">State Selection</div>
+                    <div className="text-sm font-semibold" style={{color:"#0f172a"}}>State Selection</div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -948,11 +948,10 @@ export default function OpportunityPreferencesSurvey({
                           setStateMode("all");
                           setPreferences(prev => ({ ...prev, states: ["ALL"] }));
                         }}
-                        className={`rounded-full px-3 py-1.5 text-sm transition ${
-                          stateMode === "all"
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                        }`}
+                        className="rounded-full px-3 py-1.5 text-sm transition"
+                        style={stateMode === "all"
+                          ? {background:'#0891b2',color:'white'}
+                          : {background:'#f1f5f9',color:'#334155',borderRadius:'999px',padding:'6px 12px',fontSize:'14px'}}
                       >
                         All States
                       </button>
@@ -962,11 +961,10 @@ export default function OpportunityPreferencesSurvey({
                           setStateMode("specific");
                           setPreferences(prev => ({ ...prev, states: prev.states.includes("ALL") ? [] : prev.states }));
                         }}
-                        className={`rounded-full px-3 py-1.5 text-sm transition ${
-                          stateMode === "specific"
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                        }`}
+                        className="rounded-full px-3 py-1.5 text-sm transition"
+                        style={stateMode === "specific"
+                          ? {background:'#0891b2',color:'white'}
+                          : {background:'#f1f5f9',color:'#334155',borderRadius:'999px',padding:'6px 12px',fontSize:'14px'}}
                       >
                         Specific States
                       </button>
@@ -982,11 +980,10 @@ export default function OpportunityPreferencesSurvey({
                             key={state}
                             type="button"
                             onClick={() => toggleState(state)}
-                            className={`rounded-lg border p-2 text-center text-sm font-semibold transition ${
-                              isSelected
-                                ? 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
-                                : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
-                            }`}
+                            className="rounded-lg border p-2 text-center text-sm font-semibold transition"
+                            style={isSelected
+                              ? {background:'#ecfeff',border:'2px solid #0891b2',color:'#0369a1',borderRadius:'8px',padding:'8px',textAlign:'center',fontSize:'14px',fontWeight:600}
+                              : {background:'#f8fafc',border:'1.5px solid #e2e8f0',color:'#334155',borderRadius:'8px',padding:'8px',textAlign:'center',fontSize:'14px',fontWeight:600}}
                           >
                             {state}
                           </button>
@@ -1002,19 +999,19 @@ export default function OpportunityPreferencesSurvey({
             {step === 8 && (
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-white/10 p-2 text-cyan-300">
+                  <div className="rounded-xl p-2" style={{background:"#e0f2fe",color:"#0369a1"}}>
                     <Filter className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">Exclude Keywords</h3>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <h3 className="text-xl font-semibold" style={{color:"#0f172a"}}>Exclude Keywords</h3>
+                    <p className="mt-1 text-sm" style={{color:"#475569"}}>
                       Filter out opportunities containing these words or phrases.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="mb-3 text-sm font-semibold text-white">Exclude Keywords</div>
+                <div className="rounded-2xl p-5" style={{background:"#f8fafc",border:"1px solid #e2e8f0"}}>
+                  <div className="mb-3 text-sm font-semibold" style={{color:"#1e293b"}}>Exclude Keywords</div>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -1022,12 +1019,12 @@ export default function OpportunityPreferencesSurvey({
                       onChange={(e) => setExcludeKeywordInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddExcludeKeyword())}
                       placeholder="e.g., Construction, Janitorial..."
-                      className="flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-slate-400 outline-none focus:border-cyan-500"
+                      className="flex-1 rounded-xl px-4 py-3 outline-none transition" style={{background:"#ffffff",border:"1.5px solid #cbd5e1",color:"#0f172a"}} onFocus={(e)=>{(e.target as HTMLInputElement).style.borderColor="#0891b2";(e.target as HTMLInputElement).style.boxShadow="0 0 0 3px rgba(8,145,178,0.15)"}} onBlur={(e)=>{(e.target as HTMLInputElement).style.borderColor="#cbd5e1";(e.target as HTMLInputElement).style.boxShadow="none"}}
                     />
                     <button
                       type="button"
                       onClick={handleAddExcludeKeyword}
-                      className="rounded-xl bg-cyan-600 px-6 py-3 font-semibold text-white transition hover:bg-cyan-700"
+                      className="rounded-xl px-6 py-3 font-semibold text-white transition" style={{background:"#0891b2"}}
                     >
                       Add
                     </button>
@@ -1038,13 +1035,13 @@ export default function OpportunityPreferencesSurvey({
                       {preferences.excludeKeywords.map((keyword) => (
                         <div
                           key={keyword}
-                          className="inline-flex items-center gap-2 rounded-full bg-red-500/20 px-3 py-1.5 text-sm text-red-300 border border-red-500/30"
+                          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium" style={{background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca"}}
                         >
                           <span>{keyword}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveExcludeKeyword(keyword)}
-                            className="text-red-400 hover:text-red-300"
+                            className="transition" style={{color:"#dc2626"}}
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -1054,32 +1051,40 @@ export default function OpportunityPreferencesSurvey({
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-5">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-cyan-500/20 p-2">
-                      <Sparkles className="h-5 w-5 text-cyan-300" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-white">Pro tip</div>
-                      <p className="mt-1 text-sm text-cyan-100">
-                        You can update these preferences anytime by clicking "Update Preferences" button.
-                      </p>
-                    </div>
-                  </div>
+                {/* Pro tip removed (no emojis/sparkles) */}
+              </div>
+            )}
+
+            {/* Step 9: Review & Edit */}
+            {step === 9 && (
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold" style={{color:'#0f172a'}}>Review & Edit Preferences</h3>
+                <div className="space-y-2">
+                  <div><b>Keywords:</b> {preferences.keywords.join(', ') || 'None'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(1)}>Edit</button></div>
+                  <div><b>NAICS:</b> {preferences.naicsCodes.join(', ') || 'None'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(2)}>Edit</button></div>
+                  <div><b>PSC:</b> {preferences.pscCodes.join(', ') || 'None'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(3)}>Edit</button></div>
+                  <div><b>Set-Asides:</b> {preferences.setAsideTypes.join(', ') || 'None'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(4)}>Edit</button></div>
+                  <div><b>Contract Types:</b> {preferences.contractTypes.join(', ') || 'None'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(5)}>Edit</button></div>
+                  <div><b>Agencies:</b> {preferences.agencies.join(', ') || 'All'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(5)}>Edit</button></div>
+                  <div><b>Status:</b> {preferences.opportunityStatus || 'Any'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(6)}>Edit</button></div>
+                  <div><b>Timeline:</b> {preferences.timeline || 'Any'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(6)}>Edit</button></div>
+                  <div><b>States:</b> {preferences.states.join(', ') || 'All'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(7)}>Edit</button></div>
+                  <div><b>Exclude Keywords:</b> {preferences.excludeKeywords.join(', ') || 'None'} <button type="button" className="ml-2 text-blue-600 underline text-xs" onClick={()=>setStep(8)}>Edit</button></div>
                 </div>
+                <div className="mt-4 text-sm text-gray-500">Review your selections. Click Edit to update any section, or Complete Setup to save and update your feed.</div>
               </div>
             )}
           </form>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-white/10 bg-slate-900/80 p-6">
+        <div className="shrink-0 p-6" style={{background:"#f8fafc",borderTop:"1px solid #e2e8f0"}}>
           <div className="flex items-center justify-between gap-4">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={handleBack}
-                className="rounded-xl border border-white/20 bg-white/5 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
+                className="rounded-xl px-6 py-3 font-semibold transition" style={{background:"#f1f5f9",border:"1.5px solid #cbd5e1",color:"#334155"}}
               >
                 Back
               </button>
@@ -1087,11 +1092,11 @@ export default function OpportunityPreferencesSurvey({
               <div />
             )}
 
-            {step < totalSteps ? (
+            {step < 9 ? (
               <button
                 type="button"
                 onClick={handleNext}
-                className="rounded-xl bg-linear-to-r from-cyan-600 to-blue-600 px-8 py-3 font-bold text-white transition hover:from-cyan-700 hover:to-blue-700"
+                className="rounded-xl px-8 py-3 font-bold text-white transition" style={{background:"linear-gradient(135deg,#0891b2,#2563eb)"}}
               >
                 Next
               </button>
@@ -1099,7 +1104,7 @@ export default function OpportunityPreferencesSurvey({
               <button
                 type="button"
                 onClick={handleComplete}
-                className="rounded-xl bg-linear-to-r from-emerald-600 to-cyan-600 px-8 py-3 font-bold text-white transition hover:from-emerald-700 hover:to-cyan-700 flex items-center gap-2"
+                className="rounded-xl px-8 py-3 font-bold text-white transition flex items-center gap-2" style={{background:"linear-gradient(135deg,#059669,#0891b2)"}}
               >
                 <CheckCircle className="h-5 w-5" />
                 Complete Setup

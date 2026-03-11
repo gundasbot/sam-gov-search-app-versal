@@ -9,7 +9,7 @@ export default function UrgencyLegend() {
 
   const urgencyLevels = [
     { 
-      days: '≤3', 
+      days: '3 or fewer', 
       label: 'CRITICAL', 
       color: 'from-red-500 to-red-600', 
       textColor: 'text-red-500', 
@@ -87,7 +87,7 @@ export default function UrgencyLegend() {
       {/* Floating Legend Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 p-4 bg-gradient-to-br from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2 group hover:pr-6"
+        className="fixed bottom-6 right-6 z-40 p-4 bg-linear-to-br from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center gap-2 group hover:pr-6"
         title="Show urgency color legend"
       >
         <Info className="w-5 h-5" />
@@ -99,11 +99,11 @@ export default function UrgencyLegend() {
       {/* Legend Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-2xl border-2 border-cyan-500/30 max-w-3xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-linear-to-br from-slate-900 to-slate-800 rounded-2xl shadow-2xl border-2 border-cyan-500/30 max-w-3xl w-full max-h-[90vh] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-700">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg">
+                <div className="p-2 bg-linear-to-br from-cyan-500 to-blue-600 rounded-lg">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <div>
@@ -132,7 +132,7 @@ export default function UrgencyLegend() {
                   {urgencyLevels.map((level, index) => (
                     <div
                       key={index}
-                      className={`flex-1 bg-gradient-to-r ${level.color} flex items-center justify-center text-white font-bold text-xs transition-all hover:flex-[1.2]`}
+                      className={`flex-1 bg-linear-to-r ${level.color} flex items-center justify-center text-white font-bold text-xs transition-all hover:flex-[1.2]`}
                       title={level.label}
                     >
                       <span className="opacity-0 hover:opacity-100">{level.icon}</span>
@@ -151,11 +151,11 @@ export default function UrgencyLegend() {
                 {urgencyLevels.map((level, index) => (
                   <div
                     key={index}
-                    className={`p-4 bg-gradient-to-r ${level.color} bg-opacity-10 rounded-xl border-2 ${level.borderColor} border-opacity-40 hover:border-opacity-70 transition-all hover:shadow-lg`}
+                    className={`p-4 bg-linear-to-r ${level.color} bg-opacity-10 rounded-xl border-2 ${level.borderColor} border-opacity-40 hover:border-opacity-70 transition-all hover:shadow-lg`}
                   >
                     <div className="flex items-start gap-3">
                       {/* Icon */}
-                      <span className="text-3xl flex-shrink-0">{level.icon}</span>
+                      <span className="text-3xl shrink-0">{level.icon}</span>
                       
                       {/* Content */}
                       <div className="flex-1 min-w-0">
@@ -181,7 +181,7 @@ export default function UrgencyLegend() {
                 {/* Business Days Explanation */}
                 <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
                   <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <Info className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
                     <div className="text-sm text-slate-300">
                       <p className="font-semibold text-cyan-400 mb-1">Why Business Days?</p>
                       <p>Federal contracting operates on business days (Monday-Friday). This gives you a more accurate picture of the actual working time you have to prepare your response.</p>
@@ -192,7 +192,7 @@ export default function UrgencyLegend() {
                 {/* Example */}
                 <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl flex-shrink-0">💡</span>
+                    <span className="text-2xl shrink-0">💡</span>
                     <div className="text-sm text-slate-300">
                       <p className="font-semibold text-purple-400 mb-1">Example</p>
                       <p>If today is Monday and the deadline is next Friday, that's <strong className="text-white">9 calendar days</strong> but only <strong className="text-emerald-400">5 business days</strong> (excluding the weekend).</p>
@@ -209,7 +209,7 @@ export default function UrgencyLegend() {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center gap-2"
+                className="px-6 py-3 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center gap-2"
               >
                 Got it!
                 <span className="text-xl">👍</span>

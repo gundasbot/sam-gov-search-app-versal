@@ -17,7 +17,15 @@ const defaultPreferences: CookiePreferences = {
   preferences: false,
 }
 
-function Toggle({ checked, onChange, disabled = false }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
+function Toggle({
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  checked: boolean
+  onChange: () => void
+  disabled?: boolean
+}) {
   return (
     <button
       type="button"
@@ -45,8 +53,10 @@ export default function CookieConsent() {
   const [showSettings, setShowSettings] = useState(false)
   const [preferences, setPreferences] = useState<CookiePreferences>(() => {
     if (typeof window === 'undefined') return defaultPreferences
+
     const consent = localStorage.getItem('cookie-consent')
     if (!consent) return defaultPreferences
+
     try {
       return JSON.parse(consent) as CookiePreferences
     } catch {
@@ -56,6 +66,7 @@ export default function CookieConsent() {
 
   useEffect(() => {
     const consent = localStorage.getItem('cookie-consent')
+
     if (!consent) {
       const timer = window.setTimeout(() => setShowBanner(true), 650)
       return () => window.clearTimeout(timer)
@@ -68,6 +79,7 @@ export default function CookieConsent() {
 
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+
     return () => {
       document.body.style.overflow = prevOverflow
     }
@@ -82,16 +94,27 @@ export default function CookieConsent() {
     if (prefs.analytics) {
       console.log('Analytics initialized')
     }
+
     if (prefs.marketing) {
       console.log('Marketing initialized')
     }
   }
 
   const acceptAll = () =>
-    savePreferences({ necessary: true, analytics: true, marketing: true, preferences: true })
+    savePreferences({
+      necessary: true,
+      analytics: true,
+      marketing: true,
+      preferences: true,
+    })
 
   const rejectAll = () =>
-    savePreferences({ necessary: true, analytics: false, marketing: false, preferences: false })
+    savePreferences({
+      necessary: true,
+      analytics: false,
+      marketing: false,
+      preferences: false,
+    })
 
   const saveCustom = () => savePreferences(preferences)
 
@@ -100,7 +123,7 @@ export default function CookieConsent() {
   return (
     <>
       {!showSettings && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[1200] px-3 pb-3 sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-[420px] sm:px-0 sm:pb-0">
+        <div className="pointer-events-none fixed bottom-0 left-0 z-[1200] px-3 pb-3 sm:bottom-4 sm:left-4 sm:w-[420px] sm:px-0 sm:pb-0">
           <div className="pointer-events-auto animate-cookie-in rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-modal)]">
             <div className="relative p-4 sm:p-5">
               <button
@@ -118,20 +141,14 @@ export default function CookieConsent() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-semibold text-[var(--color-text-primary)]">Cookie preferences</h3>
+                  <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+                    Cookie preferences
+                  </h3>
+
                   <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
                     We use cookies to improve functionality and measure performance. You can accept all,
                     reject optional cookies, or customize by category.
                   </p>
-
-                  <div className="mt-2 text-sm">
-                    <a
-                      href="/privacy"
-                      className="font-semibold text-[var(--color-primary)] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
-                    >
-                      Read privacy policy
-                    </a>
-                  </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 px-2 sm:gap-2.5 sm:px-1">
                     <button
@@ -173,7 +190,9 @@ export default function CookieConsent() {
                 <div className="rounded-lg bg-[var(--color-primary)]/12 p-2 text-[var(--color-primary)]">
                   <Shield className="h-4 w-4" />
                 </div>
-                <h2 className="text-lg font-semibold text-[var(--color-text-primary)] sm:text-xl">Cookie settings</h2>
+                <h2 className="text-lg font-semibold text-[var(--color-text-primary)] sm:text-xl">
+                  Cookie settings
+                </h2>
               </div>
 
               <button
@@ -196,8 +215,12 @@ export default function CookieConsent() {
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Necessary cookies</h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Required for authentication, session safety, and core functionality.</p>
+                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                        Necessary cookies
+                      </h3>
+                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                        Required for authentication, session safety, and core functionality.
+                      </p>
                     </div>
                     <Toggle checked={true} onChange={() => {}} disabled />
                   </div>
@@ -207,13 +230,21 @@ export default function CookieConsent() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
-                        <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" /> Analytics cookies
+                        <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
+                        Analytics cookies
                       </h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Help us understand feature usage and improve performance.</p>
+                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                        Help us understand feature usage and improve performance.
+                      </p>
                     </div>
                     <Toggle
                       checked={preferences.analytics}
-                      onChange={() => setPreferences((p) => ({ ...p, analytics: !p.analytics }))}
+                      onChange={() =>
+                        setPreferences((p) => ({
+                          ...p,
+                          analytics: !p.analytics,
+                        }))
+                      }
                     />
                   </div>
                 </div>
@@ -221,12 +252,21 @@ export default function CookieConsent() {
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Marketing cookies</h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Used to measure campaigns and improve ad relevance.</p>
+                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                        Marketing cookies
+                      </h3>
+                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                        Used to measure campaigns and improve ad relevance.
+                      </p>
                     </div>
                     <Toggle
                       checked={preferences.marketing}
-                      onChange={() => setPreferences((p) => ({ ...p, marketing: !p.marketing }))}
+                      onChange={() =>
+                        setPreferences((p) => ({
+                          ...p,
+                          marketing: !p.marketing,
+                        }))
+                      }
                     />
                   </div>
                 </div>
@@ -234,12 +274,21 @@ export default function CookieConsent() {
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Preference cookies</h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Remember your app settings and display preferences.</p>
+                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                        Preference cookies
+                      </h3>
+                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                        Remember your app settings and display preferences.
+                      </p>
                     </div>
                     <Toggle
                       checked={preferences.preferences}
-                      onChange={() => setPreferences((p) => ({ ...p, preferences: !p.preferences }))}
+                      onChange={() =>
+                        setPreferences((p) => ({
+                          ...p,
+                          preferences: !p.preferences,
+                        }))
+                      }
                     />
                   </div>
                 </div>
@@ -255,6 +304,7 @@ export default function CookieConsent() {
                 >
                   Cancel
                 </button>
+
                 <button
                   type="button"
                   onClick={rejectAll}
@@ -262,6 +312,7 @@ export default function CookieConsent() {
                 >
                   Reject All
                 </button>
+
                 <button
                   type="button"
                   onClick={saveCustom}
@@ -290,7 +341,7 @@ export default function CookieConsent() {
         @keyframes modalIn {
           from {
             opacity: 0;
-            transform: translateY(8px) scale(0.98);
+            transform: translateY(16px) scale(0.98);
           }
           to {
             opacity: 1;
@@ -299,11 +350,11 @@ export default function CookieConsent() {
         }
 
         .animate-cookie-in {
-          animation: cookieIn 220ms ease-out;
+          animation: cookieIn 0.28s ease-out;
         }
 
         .animate-modal-in {
-          animation: modalIn 220ms ease-out;
+          animation: modalIn 0.22s ease-out;
         }
       `}</style>
     </>

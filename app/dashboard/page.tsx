@@ -1079,7 +1079,6 @@ export default function DashboardPage() {
           <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6">
             {isAuth ? (
               <div className="flex flex-col gap-5">
-
                 {/* ── Row 1: Greeting + live stats ── */}
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -1113,7 +1112,6 @@ export default function DashboardPage() {
                         : 'Evening summary — review what changed today before you sign off.'}
                     </p>
                   </div>
-
                   {/* Live stat pills */}
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     {[
@@ -1133,70 +1131,8 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </div>
-
-                {/* ── Row 2: AI-Powered Insights ── */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-
-                  {/* Deadline Alert */}
-                  <div className="flex items-start gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700">
-                    <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-orange-100 dark:bg-orange-800/50 border border-orange-200 dark:border-orange-700">
-                      <AlertTriangle className="w-4 h-4 text-orange-500 dark:text-orange-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wide mb-0.5">Deadline Alert</p>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                        {dash.upcomingDeadlines[0]
-                          ? <><span className="font-bold text-slate-900 dark:text-white">{dash.upcomingDeadlines[0].title}</span> closes in <span className="text-orange-600 dark:text-orange-400 font-bold">{dash.upcomingDeadlines[0].deadline}</span> — {dash.upcomingDeadlines[0].value || 'value TBD'}.</>
-                          : 'No urgent deadlines in the next 14 days. Good time to build your pipeline.'}
-                      </p>
-                      {dash.upcomingDeadlines.length > 0 && (
-                        <button onClick={()=>router.push('/opportunities?filter=deadlines')} className="mt-2 text-xs font-black text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 bg-transparent border-none cursor-pointer p-0 transition-colors">
-                          Review all {dash.upcomingDeadlines.length} deadlines →
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Top Match */}
-                  <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700">
-                    <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-100 dark:bg-emerald-800/50 border border-emerald-200 dark:border-emerald-700">
-                      <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-0.5">Top Match This Week</p>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                        {dash.recentOpportunities[0]
-                          ? <><span className="font-bold text-slate-900 dark:text-white">{dash.recentOpportunities[0].title}</span> — <span className="text-emerald-700 dark:text-emerald-400 font-bold">{dash.recentOpportunities[0].match}% fit</span> · {dash.recentOpportunities[0].agency}.</>
-                          : `${dash.thisWeekCount} new opportunities posted this week matching your profile.`}
-                      </p>
-                      <button onClick={()=>router.push('/search')} className="mt-2 text-xs font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 bg-transparent border-none cursor-pointer p-0 transition-colors">
-                        View all matches →
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* AI Recommendation */}
-                  <div className="flex items-start gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700">
-                    <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-violet-100 dark:bg-violet-800/50 border border-violet-200 dark:border-violet-700">
-                      <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-black text-violet-700 dark:text-violet-400 uppercase tracking-wide mb-0.5">AI Recommendation</p>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                        {userPrefs?.setAsides?.length
-                          ? <><span className="text-violet-700 dark:text-violet-400 font-bold">{userPrefs.setAsides[0]}</span> set-asides are trending this quarter. <span className="font-bold text-slate-900 dark:text-white">{dash.activeSearchesCount} active search{dash.activeSearchesCount===1?'':'es'}</span> running across {userPrefs.naicsCodes?.length||0} NAICS codes.</>
-                          : 'Complete your business profile to receive AI-powered opportunity matching and set-aside filtering.'}
-                      </p>
-                      <button onClick={()=>setShowAiModal(true)} className="mt-2 text-xs font-black text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 bg-transparent border-none cursor-pointer p-0 transition-colors">
-                        Full AI analysis →
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
               </div>
             ) : (
-              /* ── Unauthenticated: bright, readable, full-width ── */
               <div className="flex flex-wrap items-center justify-between gap-6">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-3">
@@ -1208,7 +1144,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-2">
-                    {dash.loading ? 'Loading…' : 'Federal Contract Intelligence Dashboard'}
+                    {dash.loading ? 'Loading…' : 'Welcome to the Federal Contract Intelligence Dashboard'}
                   </h1>
                   <p className="text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-4">
                     Track live SAM.gov opportunities scored against your certifications and NAICS codes. Sign in to unlock AI match scoring, deadline alerts, and your personalized pipeline.

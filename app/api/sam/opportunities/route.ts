@@ -157,8 +157,8 @@ export async function GET(req: Request) {
     }
 
     // ── Pagination ──────────────────────────────────────────────────────────
-    const requestedLimit = Number(searchParams.get('limit') || 100)
-    const limit = clampInt(requestedLimit, 1, 250)
+    const requestedLimit = Number(searchParams.get('limit') || 20)
+    const limit = clampInt(requestedLimit, 1, 20)
     const offset = clampInt(Number(searchParams.get('offset') || 0), 0, 1_000_000)
 
     // ── Search params ───────────────────────────────────────────────────────
@@ -213,25 +213,26 @@ export async function GET(req: Request) {
     const apiUrl = `${SAM_BASE_URL}?${params.toString()}`
     console.log('📡 SAM.gov fetch (limit=%d):', limit, apiUrl.replace(SAM_API_KEY, 'KEY'))
 
-    // ── Fetch with timeout ───────────────────────────────────────────────────
-    const timeoutMs = Math.min(10_000 + limit * 100, 25_000)
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
-
+    // ── Fetch without timeout ────────────────────────────────────────────────
     const response = await fetch(apiUrl, {
       cache: 'no-store',
       headers: { Accept: 'application/json' },
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timer))
+    })
 
     if (!response.ok) {
-      const text = await response.text()
-      const isSuspended = response.status === 500 && /SUSPENDED/i.test(text)
-      const is504 = response.status === 504 || text.includes('Gateway Time-out')
+      const text = await response.text();
+      const isSuspended = response.status === 500 && /SUSPENDED/i.test(text);
+      const is504 = response.status === 504 || text.includes('Gateway Time-out');
 
-      console.error(`❌ SAM.gov ${response.status}${is504 ? ' (timeout — reduce limit)' : ''}`)
-      console.error(`   URL: ${apiUrl.replace(SAM_API_KEY, 'KEY')}`)
-      console.error(`   Response: ${text.slice(0, 200)}`)
+      console.error('❌ SAM.gov API ERROR');
+      console.error(`Status: ${response.status}`);
+      console.error(`StatusText: ${response.statusText}`);
+      console.error(`URL: ${apiUrl.replace(SAM_API_KEY, 'KEY')}`);
+      console.error('Headers:', Object.fromEntries(response.headers.entries()));
+      console.error('Response Body:', text);
+      if (is504) {
+        console.error('504 Gateway Timeout detected. Try reducing the limit, checking your API key, or contacting SAM.gov support.');
+      }
 
       return NextResponse.json(
         {
