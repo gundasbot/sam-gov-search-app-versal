@@ -3897,25 +3897,74 @@ ${filteredResults.map(opp => `  <opportunity>
               {/* ── HERO SEARCH STRIP — white + orange, fully light ── */}
               <div className="px-6 pt-5 pb-5 bg-white" style={{borderBottom:'2px solid #fed7aa'}}>
 
-                {/* Title row */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
-                      <Search className="h-5 w-5 text-white" />
+                {/* First-Time Visit Guide */}
+                {typeof window !== 'undefined' && !window.localStorage.getItem('searchGuideDismissed') && (
+                  <div id="first-time-guide" className="mb-6 rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-orange-100 via-yellow-50 to-orange-200 shadow-lg p-6 flex flex-col md:flex-row items-center gap-6 relative animate-fade-in">
+                    <div className="flex-1">
+                      <h2 className="text-2xl md:text-3xl font-black text-orange-600 mb-2 flex items-center gap-2">
+                        <Sparkles className="h-7 w-7 text-yellow-400 animate-bounce" />
+                        First Time Here?
+                      </h2>
+                      <ol className="list-decimal list-inside text-lg font-semibold text-orange-900 space-y-1 pl-2">
+                        <li>Type what you want to find (keywords, NAICS, agency, etc.)</li>
+                        <li>Click <span className="inline-block bg-green-400 text-white px-2 py-0.5 rounded font-black">Search</span> or press <span className="font-black">Enter</span></li>
+                        <li>Use filters to narrow results, then <span className="text-orange-600 font-black">Save</span> or <span className="text-orange-600 font-black">Get Alerts</span></li>
+                      </ol>
                     </div>
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-widest text-orange-500 leading-none mb-0.5">Search Federal Opportunities</p>
-                      <p className="text-xl font-black text-slate-900 leading-tight">SAM.gov Live Intelligence</p>
+                    <button
+                      className="absolute top-3 right-3 text-orange-400 hover:text-orange-600 text-xl font-black bg-white/70 rounded-full p-2 border border-orange-200 shadow"
+                      onClick={() => { window.localStorage.setItem('searchGuideDismissed', '1'); document.getElementById('first-time-guide')?.remove(); }}
+                      aria-label="Dismiss guide"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Amplified Search Bar Section */}
+                <div className="rounded-3xl border-4 border-orange-400 bg-gradient-to-br from-yellow-50 via-orange-100 to-orange-200 shadow-[0_0_40px_10px_rgba(255,158,13,0.15)] px-8 py-8 mb-6 relative animate-glow">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-yellow-400 flex items-center justify-center shadow-2xl animate-pulse-slow">
+                        <Search className="h-9 w-9 text-white drop-shadow-lg" />
+                      </div>
+                      <div>
+                        <h1 className="text-3xl md:text-4xl font-black text-orange-600 drop-shadow-lg mb-1 tracking-tight animate-pop">Search Federal Opportunities</h1>
+                        <p className="text-lg font-bold text-orange-900/90 tracking-tight animate-fade-in">Find, track, and win government contracts. Start your search below!</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-300">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-xs font-bold text-green-700">Live</span>
+                      </div>
+                      <span className="text-base font-black text-slate-800">
+                        {(data?.totalRecords ?? 2143921).toLocaleString()} <span className="font-medium text-slate-500">active opps</span>
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-300">
-                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-xs font-bold text-green-700">Live</span>
+                  <div className="flex gap-3 items-stretch mb-3 mt-2">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-8 w-8 text-orange-300 pointer-events-none z-10 animate-glow" />
+                      <input
+                        type="text"
+                        value={keywords}
+                        onChange={(e) => setKeywords(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+                        placeholder='Type keywords, NAICS, agency, or solicitation #'
+                        autoFocus
+                        className="w-full rounded-2xl border-2 border-orange-400 bg-white/90 py-6 pl-20 pr-6 text-2xl font-black text-orange-900 placeholder-orange-400 shadow-lg focus:border-orange-500 focus:ring-4 focus:ring-orange-200 outline-none transition-all animate-glow"
+                        style={{ boxShadow: '0 0 0 4px #fed7aa55, 0 4px 32px 0 #ffedd5' }}
+                      />
                     </div>
-                    <span className="text-sm font-black text-slate-800">
-                      {(data?.totalRecords ?? 2143921).toLocaleString()} <span className="font-medium text-slate-500">active opps</span>
-                    </span>
+                    <button onClick={() => runSearch()} disabled={loading}
+                      className="px-12 rounded-2xl font-black text-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 whitespace-nowrap hover:scale-105 active:scale-95 min-w-44 text-white shadow-xl bg-gradient-to-r from-green-400 via-green-500 to-green-600 animate-glow"
+                      style={{ boxShadow: '0 0 0 4px #bbf7d0, 0 4px 32px 0 #bbf7d0' }}
+                    >
+                      {loading
+                        ? <><Loader2 className="h-7 w-7 animate-spin" />Searching</>
+                        : <><Search className="h-7 w-7" />Search</>}
+                    </button>
                   </div>
                 </div>
 
