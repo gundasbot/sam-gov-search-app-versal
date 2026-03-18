@@ -111,7 +111,7 @@ export default function PricingClient() {
           <div className="relative">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-3 py-1.5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[--color-border] bg-[--color-accent-soft] px-3 py-1.5">
                   <span className="h-2 w-2 rounded-full bg-[var(--color-primary)]" />
                   <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">
                     7-Day Free Trial - No Credit Card Required
@@ -126,7 +126,7 @@ export default function PricingClient() {
                 </p>
               </div>
 
-              <div className="inline-flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+              <div className="inline-flex items-center gap-3 rounded-xl border border-[--color-border] bg-[--color-surface] p-1">
                 <button
                   onClick={() => setAnnual(false)}
                   className={`rounded-lg px-5 py-2 text-sm font-semibold transition-all ${!annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
@@ -159,7 +159,7 @@ export default function PricingClient() {
             return (
               <div
                 key={plan.id}
-                className={`relative overflow-hidden rounded-2xl border p-6 transition-all bg-[var(--color-surface)] ${plan.highlight ? 'border-[var(--color-primary)] shadow-[var(--shadow-lg)] ring-1 ring-[var(--color-primary)]/20 bg-[var(--color-accent-soft)]' : 'border-[var(--color-border)] shadow-[var(--shadow-sm)]'}`}
+                className={`relative overflow-hidden rounded-2xl border p-6 transition-all bg-[--color-surface] ${plan.highlight ? 'border-[--color-primary] shadow-[--shadow-lg] ring-1 ring-[--color-primary]/20 bg-[--color-accent-soft]' : 'border-[--color-border] shadow-[--shadow-sm]'}`}
               >
                 {plan.highlight && (
                   <span className="mb-4 inline-flex rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-white">
@@ -169,41 +169,41 @@ export default function PricingClient() {
 
                 <div className="mb-1 flex items-center gap-2">
                   {plan.icon}
-                  <h2 className="text-lg font-bold text-[var(--color-text-primary)]">{plan.name}</h2>
+                  <h2 className="text-lg font-bold text-[--color-text-primary]">{plan.name}</h2>
                 </div>
-                <p className="mb-4 text-sm text-[var(--color-text-secondary)]">{plan.tagline}</p>
+                <p className="mb-4 text-sm text-[--color-text-secondary]">{plan.tagline}</p>
 
                 <div className="mb-1 flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold text-[var(--color-text-primary)]">${formattedPrice}</span>
-                  <span className="text-sm text-[var(--color-text-secondary)]">{annual ? '/yr' : '/mo'}</span>
+                  <span className="text-4xl font-extrabold text-[--color-text-primary]">${formattedPrice}</span>
+                  <span className="text-sm text-[--color-text-secondary]">{annual ? '/yr' : '/mo'}</span>
                 </div>
                 {annual ? (
-                  <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
+                  <p className="mb-2 text-xs font-semibold text-[--color-primary]">
                     Billed annually · Equivalent to ${equivalentMonthly}/mo{annualSavings > 0 ? ` · Save $${preciseNumberFormatter.format(annualSavings)}/yr` : ''}
                   </p>
                 ) : (
-                  <p className="mb-2 text-xs font-semibold text-[var(--color-primary)]">
+                  <p className="mb-2 text-xs font-semibold text-[--color-primary]">
                     Billed monthly · Cancel anytime
                   </p>
                 )}
 
-                <p className="mb-5 text-xs text-[var(--color-text-secondary)]">
-                  <span className="font-semibold text-[var(--color-text-primary)]">Best for:</span> {plan.bestFor}
+                <p className="mb-5 text-xs text-[--color-text-secondary]">
+                  <span className="font-semibold text-[--color-text-primary]">Best for:</span> {plan.bestFor}
                 </p>
-                <div className="mb-5 border-t border-[var(--color-border)]" />
+                <div className="mb-5 border-t border-[--color-border]" />
 
                 <ul className="mb-6 flex-1 space-y-2.5">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
                       <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
-                      <span className="text-sm text-[var(--color-text-primary)]">{f}</span>
+                      <span className="text-sm text-[--color-text-primary]">{f}</span>
                     </li>
                   ))}
                 </ul>
 
                 <Link
                   href={`/signup?plan=${plan.id.toUpperCase()}`}
-                  className={`pg-btn w-full rounded-xl py-3 text-sm font-bold ${plan.highlight ? 'pg-btn-primary' : 'pg-btn-secondary text-[var(--color-text-primary)]'}`}
+                  className={`pg-btn w-full rounded-xl py-3 text-sm font-bold ${plan.highlight ? 'pg-btn-primary' : 'pg-btn-secondary text-[--color-text-primary]'}`}
                 >
                   {plan.cta}
                   <ArrowRight className="h-4 w-4" />
@@ -213,7 +213,7 @@ export default function PricingClient() {
           })}
         </div>
 
-        <div className="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-6 py-4">
+        <div className="mt-8 rounded-xl border border-[--color-border] bg-[--color-surface-muted] px-6 py-4">
           <p className="text-sm font-medium text-[var(--color-text-primary)]">
             <span className="font-bold">Elevate your business for less.</span> Same capabilities and functionality at up to 75% less than competitors.
           </p>

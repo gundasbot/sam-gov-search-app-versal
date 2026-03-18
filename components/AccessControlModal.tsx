@@ -69,21 +69,21 @@ function UnverifiedEmailBanner({ email }: { email: string }) {
   }
 
   return (
-    <div className="mb-5 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-muted)]">
+    <div className="mb-5 p-4 rounded-2xl border border-[--color-border] bg-[--color-surface-muted]">
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5 text-[var(--color-primary)]" />
+        <AlertCircle className="h-6 w-6 flex-shrink-0 mt-0.5 text-[--color-primary]" />
         <div>
-          <p className="text-base font-black text-[var(--color-text-primary)]">Email Not Yet Verified</p>
-          <p className="text-sm font-bold mt-1 leading-relaxed text-[var(--color-text-secondary)]">
+          <p className="text-base font-black text-[--color-text-primary]">Email Not Yet Verified</p>
+          <p className="text-sm font-bold mt-1 leading-relaxed text-[--color-text-secondary]">
             Check your inbox for the verification link before signing in.
           </p>
           {!resendSent ? (
             <button onClick={handleResend} disabled={resendBusy}
-              className="mt-2 text-sm font-black underline underline-offset-2 text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] disabled:opacity-60">
+              className="mt-2 text-sm font-black underline underline-offset-2 text-[--color-primary] hover:text-[--color-primary-hover] disabled:opacity-60">
               {resendBusy ? 'Sendingâ€¦' : 'Resend verification email â†’'}
             </button>
           ) : (
-            <p className="mt-2 text-sm font-black text-[var(--color-primary)]">âœ“ Sent! Check your inbox.</p>
+            <p className="mt-2 text-sm font-black text-[--color-primary]">âœ“ Sent! Check your inbox.</p>
           )}
         </div>
       </div>
@@ -133,15 +133,15 @@ function InputField({
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon?: any; error?: string }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-xs font-bold text-[--color-text-secondary] uppercase tracking-wider mb-1.5">{label}</label>
       <div className="relative">
-        {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-subtle)]" />}
+        {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[--color-text-subtle]" />}
         <input
           {...props}
           className={cx(
             'pg-input w-full py-3 rounded-xl text-sm font-semibold',
             Icon ? 'pl-10 pr-4' : 'px-4',
-            error ? 'border-red-300 bg-red-50' : 'bg-[var(--color-surface)]'
+            error ? 'border-red-300 bg-red-50' : 'bg-[--color-surface]'
           )}
         />
       </div>
@@ -156,9 +156,9 @@ function PasswordField({
   const [show, setShow] = useState(false)
   return (
     <div>
-      <label className="block text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-xs font-bold text-[--color-text-secondary] uppercase tracking-wider mb-1.5">{label}</label>
       <div className="relative">
-        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-subtle)]" />
+        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[--color-text-subtle]" />
         <input
           type={show ? 'text' : 'password'}
           value={value}
@@ -167,11 +167,11 @@ function PasswordField({
           disabled={disabled}
           className={cx(
             'pg-input w-full pl-10 pr-11 py-3 rounded-xl text-sm font-semibold',
-            error ? 'border-red-300 bg-red-50' : 'bg-[var(--color-surface)]'
+            error ? 'border-red-300 bg-red-50' : 'bg-[--color-surface]'
           )}
         />
         <button type="button" onClick={() => setShow(v => !v)}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)] hover:text-[var(--color-text-secondary)]">
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[--color-text-subtle] hover:text-[--color-text-secondary]">
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>

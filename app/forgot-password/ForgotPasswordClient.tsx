@@ -46,7 +46,7 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
       ) : (
         <form onSubmit={onSubmit} className="mt-5 space-y-3">
           <input
-            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-orange-400"
+            className="w-full rounded-xl border border-[--color-border] bg-[--color-surface] px-4 py-3 text-[--color-text-primary] outline-none focus:ring-2 focus:ring-orange-400"
             placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

@@ -2633,19 +2633,19 @@ useEffect(() => {
       setShowAccessModal(true)
       return false
     }
-    
+
+    // For search, allow running even if browsing window expired; modal will be shown after results
+    if (featureName.includes('Search')) {
+      return true;
+    }
+
     // For other features, check BOTH hasValidAccess AND canBrowse
     if (!hasValidAccess && !canBrowse) {
       setBlockedFeature(featureName)
       setShowAccessModal(true)
-      
-      if (featureName.includes('Search')) {
-        pendingActionRef.current = null
-      }
-      
       return false
     }
-    
+
     return true
   }, [hasValidAccess, canBrowse, planLoading, status])
 
@@ -3008,11 +3008,13 @@ useEffect(() => {
       return
     }
     
-    // Gate the search action
+    // Gate the search action (only block if requireAccess returns false, but allow search to run for browsing window expired)
     if (!requireAccess('Search Federal Opportunities')) {
-      console.log('❌ Search blocked: requireAccess failed')
-      pendingActionRef.current = () => runSearch(isLoadMore)
-      return
+      // Only block if requireAccess returns false for non-search features
+      if (!hasValidAccess && !canBrowse) {
+        pendingActionRef.current = () => runSearch(isLoadMore)
+        return
+      }
     }
     
     console.log('✅ All checks passed, executing search...')
@@ -3234,6 +3236,11 @@ useEffect(() => {
         // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
         writeSearchContext(opps || [], Object.fromEntries(qs.entries()))
         if (!stickyPromptDismissed) setShowStickyPrompt(true)
+        // After results, if browsing window has elapsed, show access modal
+        if (!hasValidAccess && !canBrowse) {
+          setBlockedFeature('Search Federal Opportunities');
+          setShowAccessModal(true);
+        }
       }
 
       console.log('API Search successful', { 
