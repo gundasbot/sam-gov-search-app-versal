@@ -3897,22 +3897,19 @@ ${filteredResults.map(opp => `  <opportunity>
               {/* ── HERO SEARCH STRIP — white + orange, fully light ── */}
               <div className="px-6 pt-5 pb-5 bg-white" style={{borderBottom:'2px solid #fed7aa'}}>
 
-                {/* First-Time Visit Guide */}
+                {/* First-Time Visit Guide (Professional) */}
                 {typeof window !== 'undefined' && !window.localStorage.getItem('searchGuideDismissed') && (
-                  <div id="first-time-guide" className="mb-6 rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-orange-100 via-yellow-50 to-orange-200 shadow-lg p-6 flex flex-col md:flex-row items-center gap-6 relative animate-fade-in">
+                  <div id="first-time-guide" className="mb-6 rounded-2xl border border-[--color-border] bg-white shadow p-6 flex flex-col md:flex-row items-center gap-6 relative">
                     <div className="flex-1">
-                      <h2 className="text-2xl md:text-3xl font-black text-orange-600 mb-2 flex items-center gap-2">
-                        <Sparkles className="h-7 w-7 text-yellow-400 animate-bounce" />
-                        First Time Here?
-                      </h2>
-                      <ol className="list-decimal list-inside text-lg font-semibold text-orange-900 space-y-1 pl-2">
-                        <li>Type what you want to find (keywords, NAICS, agency, etc.)</li>
-                        <li>Click <span className="inline-block bg-green-400 text-white px-2 py-0.5 rounded font-black">Search</span> or press <span className="font-black">Enter</span></li>
-                        <li>Use filters to narrow results, then <span className="text-orange-600 font-black">Save</span> or <span className="text-orange-600 font-black">Get Alerts</span></li>
+                      <h2 className="text-2xl md:text-3xl font-black text-[--color-primary] mb-2">Welcome to Precise GovCon Search</h2>
+                      <ol className="list-decimal list-inside text-base font-semibold text-[--color-text-primary] space-y-1 pl-2">
+                        <li>Enter keywords, NAICS, agency, or solicitation number in the search bar below.</li>
+                        <li>Click <span className="inline-block bg-[--color-primary] text-white px-2 py-0.5 rounded font-black">Search</span> or press <span className="font-black">Enter</span>.</li>
+                        <li>Use filters to refine results. Save searches or set up alerts as needed.</li>
                       </ol>
                     </div>
                     <button
-                      className="absolute top-3 right-3 text-orange-400 hover:text-orange-600 text-xl font-black bg-white/70 rounded-full p-2 border border-orange-200 shadow"
+                      className="absolute top-3 right-3 text-[--color-primary] hover:text-[--color-primary-hover] text-xl font-black bg-white rounded-full p-2 border border-[--color-border] shadow"
                       onClick={() => { window.localStorage.setItem('searchGuideDismissed', '1'); document.getElementById('first-time-guide')?.remove(); }}
                       aria-label="Dismiss guide"
                     >
@@ -3921,76 +3918,48 @@ ${filteredResults.map(opp => `  <opportunity>
                   </div>
                 )}
 
-                {/* Amplified Search Bar Section */}
-                <div className="rounded-3xl border-4 border-orange-400 bg-gradient-to-br from-yellow-50 via-orange-100 to-orange-200 shadow-[0_0_40px_10px_rgba(255,158,13,0.15)] px-8 py-8 mb-6 relative animate-glow">
+                {/* Professional Search Bar Section */}
+                <div className="rounded-2xl border border-[--color-border] bg-white shadow-md px-8 py-8 mb-6">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-yellow-400 flex items-center justify-center shadow-2xl animate-pulse-slow">
-                        <Search className="h-9 w-9 text-white drop-shadow-lg" />
+                      <div className="w-14 h-14 rounded-xl bg-[--color-primary] flex items-center justify-center shadow-md">
+                        <Search className="h-8 w-8 text-white" />
                       </div>
                       <div>
-                        <h1 className="text-3xl md:text-4xl font-black text-orange-600 drop-shadow-lg mb-1 tracking-tight animate-pop">Search Federal Opportunities</h1>
-                        <p className="text-lg font-bold text-orange-900/90 tracking-tight animate-fade-in">Find, track, and win government contracts. Start your search below!</p>
+                        <h1 className="text-2xl md:text-3xl font-black text-[--color-primary] mb-1 tracking-tight">Search Federal Opportunities</h1>
+                        <p className="text-base font-semibold text-[--color-text-secondary] tracking-tight">Find, track, and win government contracts. Start your search below.</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-300">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-xs font-bold text-green-700">Live</span>
-                      </div>
-                      <span className="text-base font-black text-slate-800">
-                        {(data?.totalRecords ?? 2143921).toLocaleString()} <span className="font-medium text-slate-500">active opps</span>
+                      <span className="text-sm font-bold text-[--color-text-secondary]">
+                        {(data?.totalRecords ?? 2143921).toLocaleString()} <span className="font-medium">active opportunities</span>
                       </span>
                     </div>
                   </div>
                   <div className="flex gap-3 items-stretch mb-3 mt-2">
                     <div className="flex-1 relative">
-                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-8 w-8 text-orange-300 pointer-events-none z-10 animate-glow" />
+                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-7 w-7 text-[--color-primary] pointer-events-none z-10" />
                       <input
                         type="text"
                         value={keywords}
                         onChange={(e) => setKeywords(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                        placeholder='Type keywords, NAICS, agency, or solicitation #'
+                        placeholder='Enter keywords, NAICS, agency, or solicitation #'
                         autoFocus
-                        className="w-full rounded-2xl border-2 border-orange-400 bg-white/90 py-6 pl-20 pr-6 text-2xl font-black text-orange-900 placeholder-orange-400 shadow-lg focus:border-orange-500 focus:ring-4 focus:ring-orange-200 outline-none transition-all animate-glow"
-                        style={{ boxShadow: '0 0 0 4px #fed7aa55, 0 4px 32px 0 #ffedd5' }}
+                        className="w-full rounded-2xl border-2 border-[--color-primary] bg-white py-5 pl-20 pr-6 text-xl font-semibold text-[--color-text-primary] placeholder-[--color-primary] shadow focus:border-[--color-primary-hover] focus:ring-2 focus:ring-[--color-primary]/10 outline-none transition-all"
                       />
                     </div>
                     <button onClick={() => runSearch()} disabled={loading}
-                      className="px-12 rounded-2xl font-black text-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 whitespace-nowrap hover:scale-105 active:scale-95 min-w-44 text-white shadow-xl bg-gradient-to-r from-green-400 via-green-500 to-green-600 animate-glow"
-                      style={{ boxShadow: '0 0 0 4px #bbf7d0, 0 4px 32px 0 #bbf7d0' }}
+                      className="px-10 rounded-2xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 whitespace-nowrap hover:scale-105 active:scale-95 min-w-36 text-white shadow bg-[--color-primary] hover:bg-[--color-primary-hover]"
                     >
                       {loading
-                        ? <><Loader2 className="h-7 w-7 animate-spin" />Searching</>
-                        : <><Search className="h-7 w-7" />Search</>}
+                        ? <><Loader2 className="h-6 w-6 animate-spin" />Searching</>
+                        : <><Search className="h-6 w-6" />Search</>}
                     </button>
                   </div>
                 </div>
 
-                {/* ── BIG search input + neon green Search button ── */}
-                <div className="flex gap-3 items-stretch mb-3">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 pointer-events-none z-10" />
-                    <input
-                      type="text"
-                      value={keywords}
-                      onChange={(e) => setKeywords(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                      placeholder='Enter keyword, NAICS code, agency name, or solicitation #'
-                      autoFocus
-                      className="w-full rounded-2xl border-2 border-orange-300 bg-orange-50 py-5 pl-14 pr-5 text-lg font-semibold text-slate-900 placeholder-slate-400 transition-all outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 shadow-sm"
-                    />
-                  </div>
-                  {/* Neon green Search button */}
-                  <button onClick={() => runSearch()} disabled={loading}
-                    className="px-10 rounded-2xl font-black text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 whitespace-nowrap hover:scale-105 active:scale-95 min-w-36 text-slate-900 shadow-lg"
-                    style={{background:'#22c55e', boxShadow:'0 4px 20px rgba(34,197,94,0.4)'}}>
-                    {loading
-                      ? <><Loader2 className="h-6 w-6 animate-spin" />Searching</>
-                      : <><Search className="h-6 w-6" />Search</>}
-                  </button>
-                </div>
+
 
                 {/* Secondary actions + quick chips */}
                 <div className="flex items-center gap-2 flex-wrap">
