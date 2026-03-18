@@ -510,8 +510,8 @@ export default function OpportunityPreferencesSurvey({
                               onClick={() => handleAddNaicsCode(item.code)}
                               className="w-full rounded-lg p-3 text-left transition hover:bg-slate-50"
                             >
-                              <div className="font-semibold" style={{color:"#0369a1"}}>{item.code}</div>
-                              <div className="text-sm" style={{color:"#64748b"}}>{item.description}</div>
+                              <div className="font-semibold text-gray-400">{item.code}</div>
+                              <div className="text-sm text-gray-300">{item.description}</div>
                             </button>
                           ))}
                         </div>

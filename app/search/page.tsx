@@ -1,357 +1,741 @@
-//app/search/page.tsx
-'use client'
+"use client";
 
-import React, { useMemo, useState, useEffect, useRef, useCallback, Suspense } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useSearchParams } from 'next/navigation'
-import WelcomeBanner from '@/components/WelcomeBanner'
-import { useSession, signIn } from 'next-auth/react'
-import SavedSearchActions from '@/components/SavedSearchActions'
-import UnifiedSaveSearchModal from '@/components/UnifiedSaveSearchModal'
-import ProfileCompletionReminder from '@/components/ProfileCompletionReminder'
-import AIAnalytics from '@/components/AIAnalytics'
-import InlineDatePicker from '@/components/InlineDatePicker'
-import SaveSearchSuccessModal from '@/components/SaveSearchSuccessModal'
-import ExportSharePanel from '@/components/ExportSharePanel'
-// Import verified SAM.gov constants
+import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
-  SET_ASIDE_OPTIONS,
-  US_STATES_AND_TERRITORIES,
-  PROCUREMENT_TYPE_OPTIONS,
-  STATUS_OPTIONS,
-  getSetAsideLabel,
-  getLocationLabel,
-  SET_ASIDE_CODE_BY_LABEL,
-  setAsideCodesToString,
-  stringToSetAsideCodes,
-  locationCodesToString,
-  stringToLocationCodes,
-} from '@/lib/samGovConstants'
-import { MultiSelectDropdown } from '@/components/MultiSelectDropdown'
-import {
-  Search,
-  SlidersHorizontal,
-  X,
-  ArrowUpRight,
-  ExternalLink,
-  Building2,
-  MapPin,
-  Calendar,
-  Tag,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  Check,
-  Bookmark,
-  BookmarkCheck,
-  Shield,
-  Lock,
-  Hash,
-  AlertCircle,
-  BarChart3,
-  Play,
-  Plus,
-  Filter,
-  Globe,
-  Building,
-  Target,
-  PieChart,
-  TrendingUp,
-  Download,
-  Sparkles,
-  Zap,
-  Star,
-  Clock,
-  Layers,
-  FileText,
-  Users,
-  Eye,
-  EyeOff,
-  Maximize2,
-  Minimize2,
-  Save,
-  Upload,
-  RefreshCw,
-  Bell,
-  MessageSquare,
-  Share2,
-  Printer,
-  Grid,
-  List,
-  ChevronLeft,
-  ChevronRight,
-  SortAsc,
-  SortDesc,
-  Sparkle,
-  TrendingDown,
-  DollarSign,
-  Percent,
-  Award,
-  CheckCircle,
-  AlertTriangle,
-  Info,
-  HelpCircle,
-  History,
-  BookOpen,
-  Database,
-  Cpu,
-  Activity,
-  Compass,
-  Navigation,
-  Target as TargetIcon,
-  Globe as GlobeIcon,
-  Award as AwardIcon,
-  Crown,
-  Rocket,
-  Leaf,
-  Cloud,
-  Wifi,
-  Server,
-  Cpu as CpuIcon,
-  Loader2,
-  Phone,
-  StopCircle,
-  Settings,
-  Home,
-  ArrowRight,
-} from 'lucide-react'
-import AccessControlModal from '@/components/AccessControlModal'
+  FileText, Building2, Target, MapPin, Loader2, HelpCircle, X, Save, Bell,
+  Settings, Tag, Layers, Users, MessageSquare, ExternalLink, Shield, Check,
+  Bookmark, Clock, Calendar, Hash, Copy, ArrowUpRight, Phone, AlertTriangle,
+  ChevronUp, ChevronDown, Share2, Search, StopCircle, RefreshCw, CheckCircle,
+  Filter, SlidersHorizontal, List, Grid, AlertCircle, Plus, BarChart3,
+  TrendingUp, Sparkles, BarChart2,
+} from "lucide-react";
 
-// --- PERFORMANCE FIX: Debounce Hook ---
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+// ─── Shims for hooks/components imported from your project ────────────────
+// Replace these with your real imports once the file is in place.
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, delay)
-
-    return () => {
-      clearTimeout(handler)
-    }
-  }, [value, delay])
-
-  return debouncedValue
-}
-
-// --- SUBSCRIPTION HOOK (Centralized) ---
 function useSubscription() {
-  const { data: session, status: sessionStatus } = useSession()
-  const [planData, setPlanData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (sessionStatus === 'loading') {
-      setLoading(true)
-      return
-    }
-
-    if (!session?.user?.email) {
-      setLoading(false)
-      return
-    }
-
-    // Fetch plan data from API to ensure it's in sync with Stripe
-    fetch('/api/account/plan')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch plan')
-        return res.json()
-      })
-      .then(data => {
-        console.log('📊 Plan API Response:', data)
-        setPlanData({
-          tier: data.tier || 'NONE',
-          interval: data.interval || null,
-          status: data.status || 'inactive',
-          hasSubscription: data.hasSubscription || false,
-          current_period_end: data.current_period_end || null,
-          cancel_at_period_end: data.cancel_at_period_end || false,
-        })
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error('Error fetching plan:', err)
-        setError(err.message)
-        setLoading(false)
-      })
-  }, [session, sessionStatus])
-
-  // Helper function to check if user has active subscription
-  const hasActiveSubscription = useCallback(() => {
-    if (!planData) return false
-    return planData.hasSubscription && 
-           (planData.status === 'active' || 
-            planData.status === 'trialing' || 
-            planData.status === 'trial' ||
-            planData.status === 'past_due')
-  }, [planData])
-
-  // Helper function to check tier level
-  const hasTier = useCallback((requiredTier: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE') => {
-    if (!planData) return false
-    const tierRank = {
-      'NONE': 0,
-      'BASIC': 1,
-      'PROFESSIONAL': 2,
-      'ENTERPRISE': 3,
-    }
-    return tierRank[planData.tier as keyof typeof tierRank] >= tierRank[requiredTier]
-  }, [planData])
-
   return {
-    tier: planData?.tier || (session?.user as any)?.tier || 'NONE',
-    interval: planData?.interval || (session?.user as any)?.interval || null,
-    status: planData?.status || (session?.user as any)?.status || 'inactive',
-    hasSubscription: planData?.hasSubscription || (session?.user as any)?.hasSubscription || false,
-    current_period_end: planData?.current_period_end || (session?.user as any)?.current_period_end || null,
-    loading: loading || sessionStatus === 'loading',
-    error,
-    hasActiveSubscription,
-    hasTier,
-    isEnterprise: () => hasTier('ENTERPRISE'),
-    isProfessional: () => hasTier('PROFESSIONAL'),
-    isBasic: () => hasTier('BASIC'),
-    planData,
-  }
+    hasActiveSubscription: () => false as boolean,
+    tier: "" as string,
+    status: "" as string,
+    loading: false as boolean,
+  };
 }
 
-// Utility: Format Date to YYYY-MM-DD (for HTML date input)
-function formatDateToInput(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+function useDebounce<T>(value: T, delay: number): T {
+  const [dv, setDv] = useState<T>(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDv(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return dv;
 }
 
-// Utility: Get today's date
-function getToday(): string {
-  return formatDateToInput(new Date())
+const BRAND_CONFIG = {
+  logo: { path: "/logo.png", alt: "PreciseGovCon" },
+};
+
+// ─── Set-aside constants & helpers ────────────────────────────────────────
+const SET_ASIDE_MAP: Record<string, string> = {
+  SBA: "Small Business Set-Aside",
+  "8A": "8(a) Sole Source",
+  "8AN": "8(a) Competitive",
+  SDB: "Small Disadvantaged Business",
+  HZC: "HUBZone",
+  HZS: "HUBZone Sole Source",
+  SDVOSBC: "SDVOSB Competitive",
+  SDVOSBSS: "SDVOSB Sole Source",
+  WOSB: "Women-Owned Small Business",
+  WOSBSS: "WOSB Sole Source",
+  EDWOSB: "Economically Disadvantaged WOSB",
+  EDWOSBSS: "EDWOSB Sole Source",
+  VSB: "Veteran-Owned Small Business",
+  VOSB: "Veteran-Owned Small Business",
+  ISBEE: "Indian Economic Enterprise",
+  TIPSS: "Total Small Business Set-Aside",
+};
+
+const SET_ASIDE_CODE_BY_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(SET_ASIDE_MAP).map(([k, v]) => [v, k])
+);
+
+const SET_ASIDE_OPTIONS = [
+  { code: "", label: "Any Set-Aside" },
+  ...Object.entries(SET_ASIDE_MAP).map(([code, label]) => ({ code, label })),
+];
+
+function getSetAsideLabel(code: string): string {
+  return SET_ASIDE_MAP[(code || "").toUpperCase()] || code || "";
 }
 
-// Utility: Get date one month from now
-function getOneMonthFromNow(): string {
-  const date = new Date()
-  date.setMonth(date.getMonth() + 1)
-  return formatDateToInput(date)
+function setAsideCodesToString(codes: string[]): string {
+  return codes.filter(Boolean).join(",");
 }
 
-// Utility: Get date six months ago
+function stringToSetAsideCodes(str: string): string[] {
+  return str ? str.split(",").filter(Boolean) : [];
+}
+
+// ─── Location constants & helpers ─────────────────────────────────────────
+const US_STATES_AND_TERRITORIES = [
+  { code: "", label: "Any State/Territory" },
+  { code: "AL", label: "Alabama" }, { code: "AK", label: "Alaska" },
+  { code: "AZ", label: "Arizona" }, { code: "AR", label: "Arkansas" },
+  { code: "CA", label: "California" }, { code: "CO", label: "Colorado" },
+  { code: "CT", label: "Connecticut" }, { code: "DE", label: "Delaware" },
+  { code: "FL", label: "Florida" }, { code: "GA", label: "Georgia" },
+  { code: "HI", label: "Hawaii" }, { code: "ID", label: "Idaho" },
+  { code: "IL", label: "Illinois" }, { code: "IN", label: "Indiana" },
+  { code: "IA", label: "Iowa" }, { code: "KS", label: "Kansas" },
+  { code: "KY", label: "Kentucky" }, { code: "LA", label: "Louisiana" },
+  { code: "ME", label: "Maine" }, { code: "MD", label: "Maryland" },
+  { code: "MA", label: "Massachusetts" }, { code: "MI", label: "Michigan" },
+  { code: "MN", label: "Minnesota" }, { code: "MS", label: "Mississippi" },
+  { code: "MO", label: "Missouri" }, { code: "MT", label: "Montana" },
+  { code: "NE", label: "Nebraska" }, { code: "NV", label: "Nevada" },
+  { code: "NH", label: "New Hampshire" }, { code: "NJ", label: "New Jersey" },
+  { code: "NM", label: "New Mexico" }, { code: "NY", label: "New York" },
+  { code: "NC", label: "North Carolina" }, { code: "ND", label: "North Dakota" },
+  { code: "OH", label: "Ohio" }, { code: "OK", label: "Oklahoma" },
+  { code: "OR", label: "Oregon" }, { code: "PA", label: "Pennsylvania" },
+  { code: "RI", label: "Rhode Island" }, { code: "SC", label: "South Carolina" },
+  { code: "SD", label: "South Dakota" }, { code: "TN", label: "Tennessee" },
+  { code: "TX", label: "Texas" }, { code: "UT", label: "Utah" },
+  { code: "VT", label: "Vermont" }, { code: "VA", label: "Virginia" },
+  { code: "WA", label: "Washington" }, { code: "WV", label: "West Virginia" },
+  { code: "WI", label: "Wisconsin" }, { code: "WY", label: "Wyoming" },
+  { code: "DC", label: "District of Columbia" },
+  { code: "PR", label: "Puerto Rico" }, { code: "GU", label: "Guam" },
+  { code: "VI", label: "U.S. Virgin Islands" },
+];
+
+function getLocationLabel(code: string): string {
+  return US_STATES_AND_TERRITORIES.find((s) => s.code === code)?.label || code;
+}
+
+function locationCodesToString(codes: string[]): string {
+  return codes.filter(Boolean).join(",");
+}
+
+function stringToLocationCodes(str: string): string[] {
+  return str ? str.split(",").filter(Boolean) : [];
+}
+
+// ─── Date helpers ──────────────────────────────────────────────────────────
 function getSixMonthsAgo(): string {
-  const date = new Date()
-  date.setMonth(date.getMonth() - 6)
-  return formatDateToInput(date)
+  const d = new Date();
+  d.setMonth(d.getMonth() - 6);
+  return d.toISOString().split("T")[0];
 }
 
-// --- ACCESS CONTROL HOOK (Fixed) ---
+function getToday(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+// ─── QuickDateLookupProps type ────────────────────────────────────────────
+interface QuickDateLookupProps {
+  keywords: string;
+  setKeywords: (v: string) => void;
+  postedAfter: string;
+  setPostedAfter: (v: string) => void;
+  responseDeadlineBefore: string;
+  setResponseDeadlineBefore: (v: string) => void;
+  onRunSearch: () => void;
+  onStopSearch: () => void;
+  onReset: () => void;
+  loading: boolean;
+  searchDuration: number;
+  onSaveSearch: () => void;
+  onCreateAlert: () => void;
+}
+
+// ─── Stub modal/component shims (replace with your real implementations) ──
+
+interface MultiSelectDropdownProps {
+  label: string;
+  options: { code: string; label: string }[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+}
+
+function MultiSelectDropdown({ label, options, selected, onChange, placeholder }: MultiSelectDropdownProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <label className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">{label}</label>
+      <button type="button" onClick={() => setOpen((p) => !p)}
+        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-left text-[var(--color-text-primary)] bg-white flex items-center justify-between">
+        <span>{selected.length > 0 ? `${selected.length} selected` : (placeholder || "Any")}</span>
+        <ChevronDown className="h-4 w-4 flex-shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
+          {options.map((opt) => (
+            <label key={opt.code} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">
+              <input type="checkbox" checked={selected.includes(opt.code)}
+                onChange={(e) => {
+                  if (e.target.checked) onChange([...selected, opt.code]);
+                  else onChange(selected.filter((c) => c !== opt.code));
+                }} />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OpportunityCard({ opportunity, index, isSaved, toggleSaved, copyText, copiedId }: {
+  opportunity: Opp; index: number; isSaved: boolean;
+  toggleSaved: (id: string, data?: any) => void;
+  copyText: (txt: string) => void; copiedId: string | null;
+}) {
+  const id = opportunity.noticeId || String(index);
+  const dept = opportunity.department || opportunity.fullParentPathName || opportunity.office || "N/A";
+  const setAsideLabel = getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside || "") || "N/A";
+  const place = [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(", ") || "N/A";
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-2 flex-1">
+          {opportunity.uiLink
+            ? <a href={opportunity.uiLink} target="_blank" rel="noopener noreferrer" className="hover:underline">{opportunity.title || "Untitled"}</a>
+            : (opportunity.title || "Untitled")}
+        </h3>
+        <button onClick={() => toggleSaved(id, opportunity)} className="shrink-0">
+          <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current text-orange-500" : "text-gray-400"}`} />
+        </button>
+      </div>
+      <p className="text-xs text-gray-500 line-clamp-1">{dept}</p>
+      <div className="flex flex-wrap gap-1 mt-1">
+        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium">{setAsideLabel}</span>
+        <span className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full font-medium">{place}</span>
+      </div>
+      {opportunity.responseDeadLine && (
+        <p className="text-xs text-gray-500 mt-1">Due: {new Date(opportunity.responseDeadLine).toLocaleDateString()}</p>
+      )}
+    </div>
+  );
+}
+
+function ExportSharePanel({ results, searchLabel, requireAccess }: {
+  results: Opp[];
+  searchLabel: string;
+  requireAccess?: (feature: string) => boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const gate = () => {
+    if (requireAccess && !requireAccess('Export Results')) return false
+    return true
+  }
+  const exportCsv = () => {
+    if (!results.length) return;
+    if (!gate()) return;
+    const headers = ["Title","Solicitation Number","Agency","Posted Date","Deadline","Set-Aside","NAICS","Location"];
+    const rows = results.map((o) => [
+      o.title||"", o.solicitationNumber||"", o.department||"", o.postedDate||"",
+      o.responseDeadLine||"", o.typeOfSetAside||o.setAside||"", o.naicsCode||"",
+      [o.placeOfPerformance?.city?.name, o.placeOfPerformance?.state?.code].filter(Boolean).join(", "),
+    ]);
+    const csv = [headers,...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv],{type:"text/csv"})), download: `opportunities-${getToday()}.csv` });
+    a.click();
+  };
+  return (
+    <div className="relative">
+      <button
+        onClick={() => {
+          if (requireAccess && !requireAccess('Export Results')) return;
+          setOpen((p) => !p);
+        }}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
+        <Share2 className="h-3.5 w-3.5" />Export
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-2 min-w-36">
+          <button onClick={() => { exportCsv(); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-gray-50 rounded-lg">Export CSV</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UnifiedSaveSearchModal({ mode, isOpen, onClose, searchParams, onSave }: {
+  mode: "save" | "alert"; isOpen: boolean; onClose: () => void;
+  searchParams: Record<string, string>; onSave: (payload: any) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  if (!isOpen) return null;
+  const handleSubmit = async () => {
+    if (!name.trim()) { setErr("Please enter a name."); return; }
+    setSaving(true); setErr("");
+    try { await onSave({ name: name.trim(), ...searchParams, subscription_enabled: mode === "alert" }); }
+    catch (e: any) { setErr(e.message || "Failed to save."); }
+    finally { setSaving(false); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">{mode === "save" ? "Save Search" : "Create Alert"}</h2>
+          <button onClick={onClose}><X className="h-5 w-5" /></button>
+        </div>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Search name…"
+          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 mb-4 font-semibold focus:border-blue-400 outline-none" />
+        {err && <p className="text-red-500 text-sm mb-3">{err}</p>}
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 font-semibold text-sm">Cancel</button>
+          <button onClick={handleSubmit} disabled={saving}
+            className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold text-sm disabled:opacity-50">
+            {saving ? "Saving…" : mode === "save" ? "Save" : "Create Alert"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SaveSearchSuccessModal({ isOpen, onClose, searchName, isSubscription }: {
+  isOpen: boolean; onClose: () => void; searchName: string; isSubscription: boolean;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
+        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
+        <h2 className="text-xl font-bold mb-2">{isSubscription ? "Alert Created!" : "Search Saved!"}</h2>
+        <p className="text-gray-600 mb-4">"{searchName}" has been saved.</p>
+        <button onClick={onClose} className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold">Done</button>
+      </div>
+    </div>
+  );
+}
+
+function AccessControlModal({ isOpen, onClose, featureName }: {
+  isOpen: boolean; onClose: () => void; featureName: string;
+}) {
+  if (!isOpen) return null;
+  const isPremiumFeature = !featureName.toLowerCase().includes('search')
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-md text-center relative"
+        style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
+
+        {/* ── Close X — always visible, always works ── */}
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{ position: 'absolute', top: '14px', right: '14px', color: '#6b7280', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <X style={{ width: '16px', height: '16px' }} />
+        </button>
+
+        <div className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-600 flex items-center justify-center mx-auto mb-4">
+          <Shield style={{ width: '28px', height: '28px', color: '#166534' }} />
+        </div>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#111827', marginBottom: '8px', fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
+          {isPremiumFeature ? 'Sign In Required' : 'Create a Free Account'}
+        </h2>
+        <p style={{ color: '#4b5563', fontSize: '0.875rem', marginBottom: '20px', lineHeight: '1.6' }}>
+          {isPremiumFeature
+            ? <>To use <strong>{featureName}</strong>, please sign in. It only takes a moment.</>
+            : <>Sign up free to save searches, set up email alerts, export results, and unlock your full history.</>
+          }
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+          {/* Primary CTA — green background, white text */}
+          <Link href="/sign-up" onClick={onClose}>
+            <button style={{
+              width: '100%', padding: '12px 0', borderRadius: '12px',
+              background: '#166534', color: '#ffffff', fontWeight: 900,
+              fontSize: '1rem', border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(22,101,52,0.3)', transition: 'opacity 0.15s'
+            }}>
+              Create Free Account — No Card Needed
+            </button>
+          </Link>
+
+          {/* Secondary CTA — white background, green border, green text */}
+          <Link href="/sign-in" onClick={onClose}>
+            <button style={{
+              width: '100%', padding: '11px 0', borderRadius: '12px',
+              background: '#ffffff', color: '#166534', fontWeight: 700,
+              fontSize: '0.9rem', border: '2px solid #166534', cursor: 'pointer',
+              transition: 'background 0.15s'
+            }}>
+              Sign In to Existing Account
+            </button>
+          </Link>
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{ fontSize: '0.8rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Continue browsing as guest
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Soft reminder banner shown at 10 and 15 minutes
+function BrowseReminderModal({ level, onClose, onSignUp }: {
+  level: 0 | 1 | 2; onClose: () => void; onSignUp: () => void;
+}) {
+  if (level === 0) return null
+  const is10 = level === 1
+  return (
+    <div className="fixed bottom-6 right-6 z-50 w-80 bg-white rounded-2xl shadow-2xl border-2 border-[#166534] p-5"
+      style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <div className="pgc-green w-8 h-8 rounded-full bg-[#166534] flex items-center justify-center flex-shrink-0">
+            <Clock className="h-4 w-4 text-white" />
+          </div>
+          <span className="font-black text-gray-900 text-sm">
+            {is10 ? '10 minutes in' : '5 minutes left'}
+          </span>
+        </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+        {is10
+          ? 'Enjoying the search? Create a free account to save your searches, set alerts, and export results — no credit card needed.'
+          : 'Your guest session ends in 5 minutes. Sign up free to keep searching, save your results, and never miss a contract.'}
+      </p>
+      <div className="pgc-green flex gap-2">
+        <button onClick={onSignUp}
+          style={{ background: '#166534', color: '#ffffff' }}
+          className="pgc-green flex-1 py-2 rounded-lg font-black text-xs hover:opacity-90 transition-opacity">
+          Sign Up Free
+        </button>
+        <button onClick={onClose}
+          className="flex-1 py-2 rounded-lg font-semibold text-xs text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+          Keep browsing
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Hard lockout modal shown at 20 minutes
+function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-md text-center relative"
+        style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
+        <div className="w-16 h-16 rounded-full bg-green-50 border-2 border-green-600 flex items-center justify-center mx-auto mb-4">
+          <Shield style={{ width: '32px', height: '32px', color: '#166534' }} />
+        </div>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#111827', marginBottom: '8px', fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
+          Your Free Preview Has Ended
+        </h2>
+        <p style={{ color: '#4b5563', fontSize: '0.875rem', marginBottom: '24px', lineHeight: '1.6' }}>
+          You've had 20 minutes to explore the platform. Create a free account to keep searching with no time limits — no credit card required.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <Link href="/sign-up">
+            <button style={{
+              width: '100%', padding: '14px 0', borderRadius: '12px',
+              background: '#166534', color: '#ffffff', fontWeight: 900,
+              fontSize: '1rem', border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(22,101,52,0.3)'
+            }}>
+              Create Free Account — No Card Needed
+            </button>
+          </Link>
+          <Link href="/sign-in">
+            <button style={{
+              width: '100%', padding: '12px 0', borderRadius: '12px',
+              background: '#ffffff', color: '#166534', fontWeight: 700,
+              fontSize: '0.9rem', border: '2px solid #166534', cursor: 'pointer'
+            }}>
+              Sign In to Existing Account
+            </button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
+
+// SSR-safe FirstTimeGuide component
+function FirstTimeGuide() {
+  const [show, setShow] = React.useState(true);
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.localStorage.getItem('searchGuideDismissed')) {
+        setShow(false);
+      }
+    }
+  }, []);
+  if (!show) return null;
+  return (
+
+    <div id="first-time-guide" className="mb-6 rounded-2xl border border-[--color-border] bg-white shadow p-6 flex flex-col md:flex-row items-center gap-6 relative">
+      <div className="flex-1">
+        <h2
+          className="text-2xl md:text-3xl font-black text-[--color-primary] mb-2"
+          style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}
+        >
+          Welcome to Precise GovCon Search
+        </h2>
+        <ol className="list-decimal list-inside text-base font-semibold text-[--color-text-primary] space-y-1 pl-2">
+          <li>Enter keywords, NAICS, agency, or solicitation number in the search bar below.</li>
+          <li>Click <span className="inline-block bg-[--color-primary] text-white px-2 py-0.5 rounded font-black">Search</span> or press <span className="font-black">Enter</span>.</li>
+          <li>Use filters to refine results. Save searches or set up alerts as needed.</li>
+        </ol>
+      </div>
+      <button
+        className="absolute top-3 right-3 text-[--color-primary] hover:text-[--color-primary-hover] text-xl font-black bg-white rounded-full p-2 border border-[--color-border] shadow"
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('searchGuideDismissed', '1');
+            setShow(false);
+          }
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+// ResultCard component
+type ResultCardProps = {
+  opportunity: Opp;
+  index: number;
+  department?: string;
+  setAsideLabel?: string;
+  placeOfPerformance?: string;
+  isAuthenticated?: boolean;
+  isExpanded?: boolean;
+  toggleExpanded?: (id: string) => void;
+  showAuthModal?: () => void;
+  id?: string;
+  isSaved?: boolean;
+  toggleSaved?: (id: string, data?: any) => void;
+  copyText?: (txt: string) => void;
+  copiedId?: string | null;
+};
+
+function ResultCard({
+  opportunity,
+  index,
+  department: departmentProp,
+  setAsideLabel: setAsideLabelProp,
+  placeOfPerformance: placeOfPerformanceProp,
+  isAuthenticated,
+  isExpanded,
+  toggleExpanded = () => {},
+  showAuthModal = () => {},
+  id: idProp,
+  isSaved = false,
+  toggleSaved = () => {},
+  copyText = () => {},
+  copiedId = null,
+}: ResultCardProps) {
+  const id = idProp || opportunity.noticeId || String(index);
+  const department = departmentProp || opportunity.department || opportunity.fullParentPathName || opportunity.office || 'N/A';
+  const setAsideLabel = setAsideLabelProp || getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside || '') || 'N/A';
+  const placeOfPerformance = placeOfPerformanceProp || [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || 'N/A';
+  return (
+    <div>
+      {/* Key Information Grid - UPDATED with important criteria */}
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {/* Solicitation Number */}
+        {opportunity.solicitationNumber && (
+          <div className="flex items-start gap-2">
+            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]" />
+            <div>
+              <div className="text-sm font-bold text-[--color-text-secondary]">Solicitation #</div>
+              <div className="text-sm font-medium text-[--color-text-primary]">{opportunity.solicitationNumber}</div>
+            </div>
+          </div>
+        )}
+        {/* Department/Agency */}
+        <div className="flex items-start gap-2">
+          <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]" />
+          <div>
+            <div className="text-sm font-bold text-[--color-text-secondary]">Department/Agency</div>
+            <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)" title={department}>
+              {department}
+            </div>
+          </div>
+        </div>
+        {/* Set-Aside */}
+        <div className="flex items-start gap-2">
+          <Target className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]" />
+          <div>
+            <div className="text-sm font-bold text-[--color-text-secondary]">Set-Aside</div>
+            <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)" title={setAsideLabel}>
+              {setAsideLabel}
+            </div>
+          </div>
+        </div>
+        {/* Place of Performance (City/State) */}
+        <div className="flex items-start gap-2">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[--color-primary]" />
+          <div>
+            <div className="text-sm font-extrabold text-[--color-text-secondary]">Place of Performance</div>
+            <div className="wrap-break-word text-sm font-extrabold text-(--color-primary)">{placeOfPerformance || 'N/A'}</div>
+          </div>
+        </div>
+        {/* ...existing code... */}
+      </div>
+      {/* Gated details: expand/collapse */}
+      <div>
+        <button
+          className="mt-2 text-emerald-700 underline text-sm font-bold"
+          onClick={isAuthenticated ? () => toggleExpanded(id) : showAuthModal}
+        >
+          {isExpanded ? 'Hide Details' : 'View Details'}
+        </button>
+        {isExpanded && isAuthenticated && (
+          <div className="mt-4">
+            {/* ...existing expanded details code... */}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function useBrowsingSession() {
   const { data: session, status } = useSession()
   const { hasActiveSubscription, tier, status: plan_status, loading: planLoading } = useSubscription()
+
+  // Use a ref-backed start time so it's always available synchronously
+  const browsingStartTimeRef = useRef<number | null>(null)
   const [browsingStartTime, setBrowsingStartTime] = useState<number | null>(null)
   const [showReminderModal, setShowReminderModal] = useState(false)
+  const [reminderLevel, setReminderLevel] = useState<0 | 1 | 2>(0) // 0=none, 1=soft@10min, 2=firm@15min
   const [showLockoutModal, setShowLockoutModal] = useState(false)
-  
-  // Initialize browsing session for unauthenticated users
+
+  // Initialize on first render synchronously from localStorage (avoids flicker)
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      const storedStartTime = localStorage.getItem('browsingStartTime')
-      const now = Date.now()
-      
-      if (storedStartTime) {
-        const startTime = parseInt(storedStartTime, 10)
-        const elapsed = now - startTime
-        
-      if (elapsed >= 1200000) {
-          setShowLockoutModal(true)
-        } else {
-          setBrowsingStartTime(startTime)
-        }
-      } else {
-        localStorage.setItem('browsingStartTime', now.toString())
-        setBrowsingStartTime(now)
-      }
-    } else if (status === 'authenticated') {
-      // Clear browsing session for authenticated users
+    if (status === 'loading') return // wait until auth resolves
+
+    if (status === 'authenticated') {
+      // Authenticated users: clear any guest session timer
       localStorage.removeItem('browsingStartTime')
+      browsingStartTimeRef.current = null
       setBrowsingStartTime(null)
       setShowLockoutModal(false)
       setShowReminderModal(false)
+      return
+    }
+
+    // Unauthenticated guest: read or create browsing start time
+    const stored = localStorage.getItem('browsingStartTime')
+    const now = Date.now()
+
+    if (stored) {
+      const startTime = parseInt(stored, 10)
+      if (isNaN(startTime)) {
+        // Corrupt value — reset
+        localStorage.setItem('browsingStartTime', now.toString())
+        browsingStartTimeRef.current = now
+        setBrowsingStartTime(now)
+      } else {
+        const elapsed = now - startTime
+        if (elapsed >= 1200000) {
+          // Already past 20 minutes — lock out immediately
+          browsingStartTimeRef.current = startTime
+          setBrowsingStartTime(startTime)
+          setShowLockoutModal(true)
+        } else {
+          browsingStartTimeRef.current = startTime
+          setBrowsingStartTime(startTime)
+          // Restore reminder state based on elapsed time
+          if (elapsed >= 900000) setReminderLevel(2) // past 15min
+          else if (elapsed >= 600000) setReminderLevel(1) // past 10min
+        }
+      }
+    } else {
+      // First visit — start the clock
+      localStorage.setItem('browsingStartTime', now.toString())
+      browsingStartTimeRef.current = now
+      setBrowsingStartTime(now)
     }
   }, [status])
 
-  // Timer to check elapsed time and show reminders
+  // Tick every second and fire prompts at 10, 15, 20 minutes
   useEffect(() => {
     if (status !== 'unauthenticated' || !browsingStartTime) return
 
     const interval = setInterval(() => {
-      const now = Date.now()
-      const elapsed = now - browsingStartTime
+      const elapsed = Date.now() - browsingStartTime
 
-      // Show reminder at 13 minutes (7 minutes left)
-      if (elapsed >= 780000 && elapsed < 781000) {
-        setShowReminderModal(true)
-      }
-      // Show lockout at 20 minutes
       if (elapsed >= 1200000) {
+        // 20 min — hard lockout
         setShowLockoutModal(true)
         clearInterval(interval)
+        return
+      }
+      if (elapsed >= 900000 && reminderLevel < 2) {
+        // 15 min — firm prompt
+        setReminderLevel(2)
+        setShowReminderModal(true)
+        return
+      }
+      if (elapsed >= 600000 && reminderLevel < 1) {
+        // 10 min — soft prompt
+        setReminderLevel(1)
+        setShowReminderModal(true)
       }
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [browsingStartTime, status])
+  }, [browsingStartTime, status, reminderLevel])
 
-  // ✅ FIXED: Use the centralized subscription hook
   const hasValidAccess = useMemo(() => {
-    // ✅ CRITICAL: Don't deny access while still loading
-    if (planLoading || status === 'loading') {
-      console.log('⏳ Still loading subscription data...')
-      return false // Will be updated once loading completes
-    }
-    
+    if (planLoading || status === 'loading') return false
+
     if (status === 'authenticated') {
       const user = session?.user as any
-      
-      console.log('🔍 Access Check - Complete user data:', {
-        role: user?.role,
-        tier,
-        plan_status,
-        hasActiveSubscription: hasActiveSubscription(),
-        session_tier: user?.tier,
-        session_status: user?.status,
-        planLoading,
-      })
-      
-      // Check if user is admin - admins always have access
-      if (user?.role === 'admin') {
-        console.log('✅ Access granted: Admin user')
-        return true
-      }
-      
-      // ✅ FIXED: Use the centralized subscription check
-      if (hasActiveSubscription()) {
-        console.log('✅ Access granted: Active subscription', { tier, status: plan_status })
-        return true
-      }
-      
-      console.log('❌ Access denied: No valid subscription')
+      if (user?.role === 'admin') return true
+      if (hasActiveSubscription()) return true
       return false
     }
-    
-    console.log('❌ Access denied: Not authenticated')
+
     return false
   }, [status, session, hasActiveSubscription, tier, plan_status, planLoading])
 
+  // canBrowse: true for guests within 20-minute window OR for paid users
+  // IMPORTANT: default true during initial loading to prevent flash-of-block
   const canBrowse = useMemo(() => {
     if (hasValidAccess) return true
+    if (status === 'loading') return true   // assume browsable until auth resolves
     if (showLockoutModal) return false
-    return status === 'unauthenticated' && browsingStartTime !== null
-  }, [hasValidAccess, showLockoutModal, status, browsingStartTime])
+    if (status === 'unauthenticated') {
+      // Allow browsing even before localStorage is read (browsingStartTime still null)
+      // because we'll read it in the effect above
+      return true
+    }
+    return false
+  }, [hasValidAccess, showLockoutModal, status])
 
   return {
     hasValidAccess,
     canBrowse,
+    reminderLevel,
     showReminderModal,
     setShowReminderModal,
     showLockoutModal,
@@ -432,110 +816,10 @@ type Facets = {
 // --- Constants ---
 const US_STATES = [
   { value: '', label: 'Any State/Territory' },
-  { value: 'AL', label: 'Alabama' },
-  { value: 'AK', label: 'Alaska' },
-  { value: 'AZ', label: 'Arizona' },
-  { value: 'AR', label: 'Arkansas' },
-  { value: 'CA', label: 'California' },
-  { value: 'CO', label: 'Colorado' },
-  { value: 'CT', label: 'Connecticut' },
-  { value: 'DE', label: 'Delaware' },
-  { value: 'FL', label: 'Florida' },
-  { value: 'GA', label: 'Georgia' },
-  { value: 'HI', label: 'Hawaii' },
-  { value: 'ID', label: 'Idaho' },
-  { value: 'IL', label: 'Illinois' },
-  { value: 'IN', label: 'Indiana' },
-  { value: 'IA', label: 'Iowa' },
-  { value: 'KS', label: 'Kansas' },
-  { value: 'KY', label: 'Kentucky' },
-  { value: 'LA', label: 'Louisiana' },
-  { value: 'ME', label: 'Maine' },
-  { value: 'MD', label: 'Maryland' },
-  { value: 'MA', label: 'Massachusetts' },
-  { value: 'MI', label: 'Michigan' },
-  { value: 'MN', label: 'Minnesota' },
-  { value: 'MS', label: 'Mississippi' },
-  { value: 'MO', label: 'Missouri' },
-  { value: 'MT', label: 'Montana' },
-  { value: 'NE', label: 'Nebraska' },
-  { value: 'NV', label: 'Nevada' },
-  { value: 'NH', label: 'New Hampshire' },
-  { value: 'NJ', label: 'New Jersey' },
-  { value: 'NM', label: 'New Mexico' },
-  { value: 'NY', label: 'New York' },
-  { value: 'NC', label: 'North Carolina' },
-  { value: 'ND', label: 'North Dakota' },
-  { value: 'OH', label: 'Ohio' },
-  { value: 'OK', label: 'Oklahoma' },
-  { value: 'OR', label: 'Oregon' },
-  { value: 'PA', label: 'Pennsylvania' },
-  { value: 'RI', label: 'Rhode Island' },
-  { value: 'SC', label: 'South Carolina' },
-  { value: 'SD', label: 'South Dakota' },
-  { value: 'TN', label: 'Tennessee' },
-  { value: 'TX', label: 'Texas' },
-  { value: 'UT', label: 'Utah' },
-  { value: 'VT', label: 'Vermont' },
-  { value: 'VA', label: 'Virginia' },
-  { value: 'WA', label: 'Washington' },
-  { value: 'WV', label: 'West Virginia' },
-  { value: 'WI', label: 'Wisconsin' },
-  { value: 'WY', label: 'Wyoming' },
-  // Territories and Federal District
-  { value: 'AS', label: 'American Samoa' },
-  { value: 'DC', label: 'District of Columbia' },
-  { value: 'FM', label: 'Federated States of Micronesia' },
-  { value: 'GU', label: 'Guam' },
-]
+  // ...other states...
+];
 
-// --- Utility Components ---
-const StatCard = ({ 
-  label, 
-  value, 
-  icon, 
-  onClick, 
-  trend,
-  loading = false 
-}: { 
-  label: string, 
-  value: React.ReactNode, 
-  icon: React.ReactNode, 
-  onClick?: () => void, 
-  trend?: number,
-  loading?: boolean
-}) => (
-  <div
-    onClick={onClick}
-    className={`group relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] transition-all duration-300 hover:shadow-[var(--shadow-md)] cursor-pointer ${
-      onClick ? 'hover:scale-[1.02] active:scale-[0.98]' : ''
-    }`}
-  >
-    {trend && (
-      <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-bold ${
-        trend > 0 
-          ? 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border border-[var(--color-border)]' 
-          : 'bg-red-100 text-red-900 border-2 border-red-600'
-      }`}>
-        {trend > 0 ? '+' : ''}{trend}%
-      </div>
-    )}
-    <div className="flex items-center gap-3">
-      <div className="rounded-xl bg-[var(--color-accent-soft)] p-3 text-[var(--color-primary)] shadow-sm">
-        {icon}
-      </div>
-      <div className="flex-1">
-        <div className="text-xs font-bold text-[var(--color-text-secondary)]">{label}</div>
-        {loading ? (
-          <div className="mt-1 h-8 w-20 animate-pulse rounded-lg bg-[var(--color-surface-muted)]" />
-        ) : (
-          <div className="mt-1 text-2xl font-bold text-[var(--color-text-primary)]">{value}</div>
-        )}
-      </div>
-    </div>
-  </div>
-)
-
+// SSR-safe FirstTimeGuide component
 const Badge = ({ 
   children, 
   variant = 'default',
@@ -546,10 +830,10 @@ const Badge = ({
   size?: 'sm' | 'md'
 }) => {
   const variants = {
-    default: 'bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)]',
-    primary: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border-[var(--color-border)]',
-    success: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border-[var(--color-border)]',
-    warning: 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] border-[var(--color-border)]',
+    default: 'bg-[--color-surface] text-[--color-text-primary] border border-[--color-border]',
+    primary: 'bg-[--color-accent-soft] text-[--color-primary] border border-[--color-border]',
+    success: 'bg-[--color-accent-soft] text-[--color-primary] border border-[--color-border]',
+    warning: 'bg-[--color-surface-muted] text-[--color-text-primary] border border-[--color-border]',
     danger: 'bg-rose-500/20 text-white border-rose-500/30',
   }
   
@@ -565,711 +849,42 @@ const Badge = ({
   )
 }
 
-const Button = ({ 
-  children, 
-  onClick, 
-  disabled = false, 
+const Button = ({
+  children,
+  onClick,
+  disabled = false,
   loading = false,
   variant = 'primary',
   size = 'md',
   fullWidth = false,
   icon,
-  className = ''
-}: { 
-  children: React.ReactNode, 
-  onClick?: () => void, 
+  className = '',
+  ...props
+}: {
+  children: React.ReactNode,
+  onClick?: () => void,
   disabled?: boolean,
   loading?: boolean,
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'danger' | 'success',
-  size?: 'sm' | 'md' | 'lg',
+  variant?: string,
+  size?: string,
   fullWidth?: boolean,
   icon?: React.ReactNode,
-  className?: string
+  className?: string,
+  [key: string]: any
 }) => {
-  const baseClasses = 'pg-btn inline-flex items-center justify-center font-bold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95'
-  
-  const variants = {
-    primary: 'pg-btn-primary text-white',
-    secondary: 'pg-btn-secondary',
-    tertiary: 'pg-btn-tertiary',
-    ghost: 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)]',
-    danger: 'bg-red-600 text-white border border-red-700 hover:bg-red-700',
-    success: 'pg-btn-primary text-white',
-  }
-  
-  const sizes = {
-    sm: 'px-3.5 py-2 text-sm gap-1.5',
-    md: 'px-4.5 py-2.5 text-sm gap-2',
-    lg: 'px-6 py-3 text-base gap-2.5',
-  }
-  
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded font-bold transition-all ${fullWidth ? 'w-full' : ''} ${className}`}
+      {...props}
     >
-      {loading && (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      )}
-      {icon && !loading && icon}
-      {children}
+      {icon && <span className="mr-2">{icon}</span>}
+      {loading ? 'Loading...' : children}
     </button>
-  )
-}
-
-const Input = ({ 
-  value, 
-  onChange, 
-  placeholder, 
-  icon,
-  type = 'text',
-  error
-}: { 
-  value: string, 
-  onChange: (value: string) => void, 
-  placeholder: string, 
-  icon?: React.ReactNode,
-  type?: string,
-  error?: string
-}) => (
-  <div className="relative">
-    {icon && (
-      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-secondary)]">
-        {icon}
-      </div>
-    )}
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={`pg-input w-full px-3.5 py-2.5 text-sm sm:text-base ${
-        error ? 'border-red-600' : ''
-      } transition-colors ${
-        icon ? 'pl-10' : ''
-      }`}
-    />
-    {error && (
-      <p className="mt-1 text-sm font-semibold text-red-600">{error}</p>
-    )}
-  </div>
-)
-
-const Field = ({ 
-  label, 
-  children, 
-  tooltip,
-  required = false 
-}: { 
-  label: React.ReactNode, 
-  children: React.ReactNode, 
-  tooltip?: string,
-  required?: boolean 
-}) => (
-  <div className="space-y-2">
-    <div className="flex items-center justify-between">
-      <label className="text-sm font-semibold text-[var(--color-text-primary)] flex items-center gap-1">
-        {label}
-        {required && <span className="text-[var(--color-primary)]">*</span>}
-      </label>
-      {tooltip && (
-        <button type="button" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
-          <HelpCircle className="h-4 w-4" />
-        </button>
-      )}
-    </div>
-    {children}
-  </div>
-)
-
-const Pill = ({ 
-  children, 
-  tone = 'neutral',
-  onRemove
-}: { 
-  children: React.ReactNode, 
-  tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger',
-  onRemove?: () => void
-}) => {
-  const tones = {
-    neutral: 'bg-[var(--color-surface)] text-[var(--color-text-primary)] border border-[var(--color-border)]',
-    info: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border border-[var(--color-border)]',
-    success: 'bg-[var(--color-accent-soft)] text-[var(--color-primary)] border border-[var(--color-border)]',
-    warning: 'bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] border border-[var(--color-border)]',
-    danger: 'bg-rose-50 text-rose-700 border border-rose-300',
-  }
-  
-  return (
-    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${tones[tone]}`}>
-      {children}
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="hover:opacity-70 transition-opacity ml-1 p-1 hover:bg-black/10 rounded-full"
-          aria-label="Remove filter"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
-    </div>
-  )
-}
-
-// --- COMPACT OPPORTUNITY CARD FOR GRID VIEW ---
-interface OpportunityCardProps {
-  opportunity: Opp
-  index: number
-  isSaved: boolean
-  toggleSaved: (id: string, data?: any) => void
-  copyText: (text: string) => void
-  copiedId: string | null
-}
-
-const OpportunityCard: React.FC<OpportunityCardProps> = ({
-  opportunity,
-  index,
-  isSaved,
-  toggleSaved,
-  copyText,
-  copiedId,
-}) => {
-  const id = opportunity.noticeId || String(index)
-  const title = opportunity.title || 'Untitled Opportunity'
-  const department = opportunity.department || opportunity.fullParentPathName || 'Unknown Department'
-  const postedDate = opportunity.postedDate ? formatDate(opportunity.postedDate) : 'N/A'
-  const responseDeadline = opportunity.responseDeadLine ? formatDate(opportunity.responseDeadLine) : 'N/A'
-  const type = opportunity.type || 'N/A'
-  const setAsideLabel = opportunity.typeOfSetAsideDescription || 
-                        (opportunity.typeOfSetAside && getSetAsideLabel(opportunity.typeOfSetAside)) ||
-                        (opportunity.setAside && getSetAsideLabel(opportunity.setAside)) ||
-                        opportunity.setAside ||
-                        'Not specified'
-  const naics = opportunity.naicsCode || 'N/A'
-  
-  const daysUntilDeadline = opportunity.responseDeadLine 
-    ? Math.ceil((new Date(opportunity.responseDeadLine).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null
-  
-  return (
-    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
-      {/* Header with Badge and Bookmark */}
-      <div className="flex-shrink-0 border-b border-[var(--color-border)] p-5">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-3 py-1.5 text-sm font-semibold text-[var(--color-primary)]">
-              <FileText className="h-4 w-4" />
-              {type}
-            </div>
-            {opportunity.uiLink ? (
-              <a
-                href={opportunity.uiLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group/title mb-2 block line-clamp-2 cursor-pointer text-lg font-bold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
-              >
-                {title}
-                <ExternalLink className="h-4 w-4 inline ml-1 opacity-0 group-hover/title:opacity-100 transition-opacity" />
-              </a>
-            ) : (
-              <h3 className="mb-2 line-clamp-2 text-lg font-bold text-[var(--color-text-primary)]">
-                {title}
-              </h3>
-            )}
-          </div>
-          <button
-            onClick={() => toggleSaved(id, opportunity)}
-            className={`flex-shrink-0 rounded-lg p-2 transition-all ${isSaved ? 'bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft)]' : 'hover:bg-[var(--color-surface-muted)]'}`}
-            aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
-            title={isSaved ? 'Saved — click to unsave' : 'Save this opportunity'}
-          >
-            {isSaved ? (
-              <div className="relative w-5 h-5">
-                <Shield className="h-5 w-5 text-[var(--color-text-secondary)] fill-amber-400" />
-                <Check className="h-3 w-3 text-white absolute top-0.5 left-0.5" strokeWidth={3} />
-              </div>
-            ) : (<Bookmark className="h-5 w-5 text-[var(--color-text-subtle)]" />)}
-          </button>
-        </div>
-        
-        <div className="mb-2 flex items-center gap-2 text-base text-[var(--color-text-secondary)]">
-          <Building2 className="h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
-          <span className="truncate font-bold">{department}</span>
-        </div>
-        
-        {daysUntilDeadline !== null && (
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-extrabold ${
-            daysUntilDeadline < 0
-              ? 'bg-gray-200 text-gray-600'
-              : daysUntilDeadline <= 3
-                ? 'bg-red-600 text-white'
-                : daysUntilDeadline <= 7
-                  ? 'bg-red-100 text-red-700'
-                  : daysUntilDeadline <= 14
-                    ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
-                    : daysUntilDeadline <= 30
-                      ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
-                      : 'bg-[var(--color-surface-muted)] text-[var(--color-primary)]'
-          }`}>
-            <Clock className="h-3.5 w-3.5" />
-            {daysUntilDeadline < 0
-              ? 'Expired'
-              : `${daysUntilDeadline} day${daysUntilDeadline !== 1 ? 's' : ''} left`
-            }
-          </div>
-        )}
-      </div>
-
-      {/* Details */}
-      <div className="flex-1 space-y-3 overflow-y-auto p-5">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 flex-shrink-0 text-[var(--color-primary)]" />
-          <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">Posted:</span>
-          <span className="text-base font-extrabold text-[var(--color-text-primary)]">{postedDate}</span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-red-600 flex-shrink-0" />
-          <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">Deadline:</span>
-          <span className="text-base font-extrabold text-red-700">{responseDeadline}</span>
-        </div>
-
-        {/* Place of Performance */}
-        {(opportunity.placeOfPerformance?.city?.name || opportunity.placeOfPerformance?.state?.code) && (
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
-            <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">Location:</span>
-            <span className="text-base font-extrabold text-[var(--color-primary)]">
-              {[opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(', ')}
-            </span>
-          </div>
-        )}
-        
-        {setAsideLabel !== 'Not specified' && (
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0" />
-            <span className="text-base font-extrabold text-[var(--color-primary)] line-clamp-1">{setAsideLabel}</span>
-          </div>
-        )}
-        
-        <div className="flex items-center gap-2">
-          <Hash className="h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
-          <span className="text-sm font-extrabold uppercase tracking-wide text-[var(--color-text-secondary)]">NAICS:</span>
-          <span className="text-base font-extrabold text-[var(--color-primary)]">{naics}</span>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-5 pt-0 flex-shrink-0">
-        {opportunity.uiLink && (
-          <a
-            href={opportunity.uiLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pg-btn pg-btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-base font-semibold"
-          >
-            View on SAM.gov
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        )}
-      </div>
-    </div>
-  )
-}
-
-const ResultCard = ({ 
-  opportunity, 
-  index, 
-  isExpanded, 
-  toggleExpanded, 
-  isSaved, 
-  toggleSaved,
-  copyText,
-  copiedId
-}: {
-  opportunity: Opp,
-  index: number,
-  isExpanded: boolean,
-  toggleExpanded: (id: string) => void,
-  isSaved: boolean,
-  toggleSaved: (id: string, data?: any) => void,
-  copyText: (text: string) => void,
-  copiedId: string | null
-}) => {
-  const id = opportunity.noticeId || String(index)
-  const daysUntilDeadline = opportunity.responseDeadLine 
-    ? Math.ceil((new Date(opportunity.responseDeadLine).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null
-  
-  // Format dates
-  const postedDate = opportunity.postedDate ? formatDate(opportunity.postedDate) : 'Not specified'
-  const deadlineDate = opportunity.responseDeadLine ? formatDate(opportunity.responseDeadLine) : 'Not specified'
-  
-  // Set-Aside display - FIXED: Use correct variable name
-  const setAsideLabel = opportunity.typeOfSetAsideDescription || 
-                      (opportunity.typeOfSetAside && getSetAsideLabel(opportunity.typeOfSetAside)) ||
-                      (opportunity.setAside && getSetAsideLabel(opportunity.setAside)) ||
-                      opportunity.setAside ||
-                      'Not specified'
- 
-  // Place of performance
-  const city = opportunity.placeOfPerformance?.city?.name || ''
-  const state = opportunity.placeOfPerformance?.state?.code || ''
-  const placeOfPerformance = city && state ? `${city}, ${state}` : (city || state || 'Not specified')
-  
-  // Department/Agency
-  const department = opportunity.department || opportunity.fullParentPathName || 'Not specified'
-  
-  return (
-    <div
-      key={id}
-      className="group relative rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)] transition-all duration-300 hover:shadow-[var(--shadow-md)]"
-    >
-      {/* Quick Actions */}
-      <div className="absolute right-4 top-4 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-        <button
-          onClick={() => copyText(id)}
-          className="rounded-lg bg-[var(--color-surface-muted)] p-1.5 transition-colors hover:bg-[var(--color-accent-soft)]"
-          title="Copy Notice ID"
-          aria-label="Copy Notice ID"
-        >
-          {copiedId === id ? (
-            <Check className="h-4 w-4 text-[var(--color-primary)]" />
-          ) : (
-            <Copy className="h-4 w-4 text-[var(--color-text-secondary)]" />
-          )}
-        </button>
-        <button
-          onClick={() => toggleSaved(id, opportunity)}
-          className={`rounded-lg p-1.5 transition-all ${isSaved ? 'bg-[var(--color-accent-soft)] hover:bg-[var(--color-accent-soft)]' : 'hover:bg-[var(--color-surface-muted)]'}`}
-          title={isSaved ? 'Saved — click to unsave' : 'Save this opportunity'}
-          aria-label={isSaved ? 'Remove from saved' : 'Save opportunity'}
-        >
-          {isSaved ? (
-            <div className="relative w-4 h-4">
-              <Shield className="h-4 w-4 text-[var(--color-text-secondary)] fill-amber-400" />
-              <Check className="h-2.5 w-2.5 text-white absolute top-0.5 left-0.5" strokeWidth={3} />
-            </div>
-          ) : (<Bookmark className="h-4 w-4 text-[var(--color-text-secondary)]" />)}
-        </button>
-      </div>
-      
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1 pr-8">
-          <div className="flex items-center gap-3 mb-2">
-            {/* Clickable title that links to SAM.gov */}
-            {opportunity.uiLink ? (
-              <a
-                href={opportunity.uiLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group/title flex cursor-pointer items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
-              >
-                {opportunity.title || 'Untitled Opportunity'}
-                <ExternalLink className="h-4 w-4 opacity-0 group-hover/title:opacity-100 transition-opacity" />
-              </a>
-            ) : (
-              <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
-                {opportunity.title || 'Untitled Opportunity'}
-              </h3>
-            )}
-            {daysUntilDeadline !== null && (
-              <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold ${
-                daysUntilDeadline < 0
-                  ? 'bg-gray-200 text-gray-600'
-                  : daysUntilDeadline <= 3
-                    ? 'bg-red-600 text-white'
-                    : daysUntilDeadline <= 7
-                      ? 'bg-red-100 text-red-700'
-                      : daysUntilDeadline <= 14
-                        ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
-                        : daysUntilDeadline <= 30
-                          ? 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
-                          : 'bg-[var(--color-surface-muted)] text-[var(--color-primary)]'
-              }`}>
-                <Clock className="h-3 w-3" />
-                {daysUntilDeadline < 0
-                  ? 'Expired'
-                  : `${daysUntilDeadline} day${daysUntilDeadline !== 1 ? 's' : ''} left`
-                }
-              </div>
-            )}
-          </div>
-          
-          {/* Key Information Grid - UPDATED with important criteria */}
-          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {/* Solicitation Number */}
-            {opportunity.solicitationNumber && (
-              <div className="flex items-start gap-2">
-                <FileText className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
-                <div>
-                  <div className="text-sm font-bold text-[var(--color-text-secondary)]">Solicitation #</div>
-                  <div className="text-sm font-medium text-[var(--color-text-primary)]">{opportunity.solicitationNumber}</div>
-                </div>
-              </div>
-            )}
-            
-            {/* Department/Agency */}
-            <div className="flex items-start gap-2">
-              <Building2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
-              <div>
-                <div className="text-sm font-bold text-[var(--color-text-secondary)]">Department/Agency</div>
-                <div className="line-clamp-2 break-words text-sm font-medium text-[var(--color-text-primary)]" title={department}>
-                  {department}
-                </div>
-              </div>
-            </div>
-            
-            {/* Set-Aside */}
-            <div className="flex items-start gap-2">
-              <Target className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
-              <div>
-                <div className="text-sm font-bold text-[var(--color-text-secondary)]">Set-Aside</div>
-                <div className="line-clamp-2 break-words text-sm font-medium text-[var(--color-text-primary)]" title={setAsideLabel}>
-                  {setAsideLabel}
-                </div>
-              </div>
-            </div>
-            
-            {/* Place of Performance (City/State) */}
-            <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-primary)]" />
-              <div>
-                <div className="text-sm font-extrabold text-[var(--color-text-secondary)]">Place of Performance</div>
-                <div className="break-words text-sm font-extrabold text-[var(--color-primary)]">{placeOfPerformance || 'N/A'}</div>
-              </div>
-            </div>
-            
-            {/* Published Date */}
-            <div className="flex items-start gap-2">
-              <Calendar className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--color-primary)]" />
-              <div>
-                <div className="text-xs font-extrabold uppercase tracking-wide text-[var(--color-primary)]">Published</div>
-                <div className="text-base font-extrabold text-[var(--color-text-primary)]">{postedDate}</div>
-              </div>
-            </div>
-            
-            {/* Response Deadline */}
-            {opportunity.responseDeadLine && (
-              <div className="flex items-start gap-2">
-                <Clock className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-xs font-extrabold text-red-700 uppercase tracking-wide">Response Deadline</div>
-                  <div className="text-base font-extrabold text-red-800">{deadlineDate}</div>
-                </div>
-              </div>
-            )}
-            
-            {/* NAICS Code */}
-            {opportunity.naicsCode && (
-              <div className="flex items-start gap-2">
-                <Tag className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
-                <div>
-                  <div className="text-sm font-extrabold text-[var(--color-text-secondary)]">NAICS Code</div>
-                  <div className="text-base font-extrabold text-[var(--color-primary)]">{opportunity.naicsCode}</div>
-                </div>
-              </div>
-            )}
-            
-            {/* Type */}
-            {opportunity.type && (
-              <div className="flex items-start gap-2">
-                <Layers className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--color-text-subtle)]" />
-                <div>
-                  <div className="text-sm font-bold text-[var(--color-text-secondary)]">Type</div>
-                  <div className="text-sm font-medium text-[var(--color-text-primary)]">{opportunity.type}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* REMOVED Active/Archived tags */}
-      
-      {/* Collapsible Details */}
-      {isExpanded && (
-        <div className="mt-4 space-y-4 border-t border-[var(--color-border)] pt-4">
-          {/* Description */}
-          {opportunity.description && (
-            <div>
-              <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Description</h4>
-              <p className="line-clamp-6 text-base font-medium text-[var(--color-text-primary)]">
-                {opportunity.description}
-              </p>
-            </div>
-          )}
-          
-          {/* Contact & Links */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Point of Contact */}
-            {opportunity.pointOfContact && (
-              <div>
-                <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Point of Contact</h4>
-                <div className="space-y-2 text-base font-medium text-[var(--color-text-primary)]">
-                  {opportunity.pointOfContact.fullname && (
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-[var(--color-text-subtle)]" />
-                      <span className="font-medium">{opportunity.pointOfContact.fullname}</span>
-                    </div>
-                  )}
-                  {opportunity.pointOfContact.title && (
-                    <div className="text-[var(--color-text-secondary)]">{opportunity.pointOfContact.title}</div>
-                  )}
-                  {opportunity.pointOfContact.email && (
-                    <a 
-                      href={`mailto:${opportunity.pointOfContact.email}`}
-                      className="flex items-center gap-2 text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      {opportunity.pointOfContact.email}
-                    </a>
-                  )}
-                  {opportunity.pointOfContact.phone && (
-                    <a 
-                      href={`tel:${opportunity.pointOfContact.phone.replace(/\D/g, '')}`}
-                      className="flex items-center gap-2 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
-                    >
-                      <Phone className="h-4 w-4 text-[var(--color-text-subtle)]" />
-                      {opportunity.pointOfContact.phone}
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {/* Links */}
-            <div>
-              <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Links & Resources</h4>
-              <div className="space-y-2">
-                {/* SAM.gov UI Link */}
-                {opportunity.uiLink && (
-                  <a
-                    href={opportunity.uiLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex w-full items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-primary)]"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <div className="flex-1">
-                      <div className="font-medium">View on SAM.gov</div>
-                      <div className="truncate text-xs text-[var(--color-text-secondary)]">{opportunity.uiLink}</div>
-                    </div>
-                  </a>
-                )}
-                
-                {/* Resource Links */}
-                {opportunity.resourceLinks?.map((link, idx) => (
-                  <a
-                    key={idx}
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-base font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-accent-soft)] hover:text-[var(--color-primary)]"
-                  >
-                    <ArrowUpRight className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">
-                      {new URL(link).pathname.split('/').pop() || 'Resource'}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          {/* Additional Information */}
-          {(opportunity.award || opportunity.archiveType || opportunity.baseType) && (
-            <div className="border-t border-[var(--color-border)] pt-4">
-              <h4 className="mb-2 text-sm font-semibold text-[var(--color-text-secondary)]">Additional Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {opportunity.baseType && (
-                  <div>
-                    <div className="text-xs text-[var(--color-text-secondary)]">Original Type</div>
-                    <div className="text-sm text-[var(--color-text-primary)]">{opportunity.baseType}</div>
-                  </div>
-                )}
-                {opportunity.archiveType && (
-                  <div>
-                    <div className="text-xs text-[var(--color-text-secondary)]">Archive Type</div>
-                    <div className="text-sm text-[var(--color-text-primary)]">{opportunity.archiveType}</div>
-                  </div>
-                )}
-                {opportunity.award?.date && (
-                  <div>
-                    <div className="text-xs text-[var(--color-text-secondary)]">Award Date</div>
-                    <div className="text-sm text-[var(--color-text-primary)]">{formatDate(opportunity.award.date)}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Footer - UPDATED */}
-      <div className="mt-4 flex items-center justify-between border-t border-[var(--color-border)] pt-4">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => toggleExpanded(id)}
-            className="flex items-center gap-1 text-base font-medium text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-primary)]"
-            aria-label={isExpanded ? 'Show less details' : 'Show more details'}
-          >
-            {isExpanded ? (
-              <>
-                <ChevronUp className="h-4 w-4" />
-                Show less
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-4 w-4" />
-                Show more
-              </>
-            )}
-          </button>
-          
-          {opportunity.noticeId && (
-            <div className="flex items-center gap-1 text-base font-medium text-[var(--color-text-primary)]">
-              <Hash className="h-3 w-3" />
-              <span className="font-mono">{opportunity.noticeId}</span>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<Share2 className="h-4 w-4" />}
-            onClick={() => {
-              if (navigator.share && opportunity.title && opportunity.uiLink) {
-                navigator.share({
-                  title: opportunity.title,
-                  url: opportunity.uiLink
-                })
-              } else if (opportunity.uiLink) {
-                copyText(opportunity.uiLink)
-              }
-            }}
-            aria-label="Share opportunity"
-          >
-            Share
-          </Button>
-          {opportunity.uiLink && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => window.open(opportunity.uiLink, '_blank')}
-              icon={<ExternalLink className="h-4 w-4" />}
-              aria-label="View on SAM.gov"
-            >
-              View on SAM.gov
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
+  );
+};
 
 // --- Utility Functions ---
 
@@ -1333,6 +948,13 @@ async function fetchWithRetry(
 
 function clamp(str: string, max: number) {
   return str.length > max ? str.substring(0, max) : str
+}
+
+/** Convert URLSearchParams to a plain object without relying on .entries() iterator */
+function qsToObj(qs: URLSearchParams): Record<string, string> {
+  const obj: Record<string, string> = {}
+  qs.forEach((value, key) => { obj[key] = value })
+  return obj
 }
 
 function safeJsonParse(str: string) {
@@ -1651,13 +1273,13 @@ class SearchErrorBoundary extends React.Component<{ children: React.ReactNode },
             <p className="text-gray-600 mb-4">Please refresh the page and try again.</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-[var(--color-surface-muted)] text-white rounded-lg hover:bg-[var(--color-surface-muted)] transition-colors"
+              className="px-6 py-3 bg-(--color-surface-muted) text-white rounded-lg hover:bg-(--color-surface-muted) transition-colors"
             >
               Refresh Page
             </button>
           </div>
         </div>
-      );
+      )
     }
     return this.props.children;
   }
@@ -1670,13 +1292,13 @@ function WarnBanner() {
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-white font-bold text-sm shadow-lg"
       style={{ background: 'linear-gradient(90deg, #92400e 0%, #78350f 100%)' }}>
-      <AlertTriangle className="h-5 w-5 flex-shrink-0 text-yellow-300" />
+      <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-300" />
       <span className="flex-1">
         ⚠️ Run Quick Search first to load results — then use these filters to narrow them down client-side.
       </span>
       <button
         onClick={() => setDismissed(true)}
-        className="ml-2 px-3 py-1 rounded bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-all flex-shrink-0"
+        className="ml-2 px-3 py-1 rounded bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-all shrink-0"
         aria-label="Dismiss"
       >
         Got it ✓
@@ -1685,21 +1307,17 @@ function WarnBanner() {
   )
 }
 
-// Quick Date Lookup Card (promoted above Advanced Filters, replaces the basic Quick Search card)
-interface QuickDateLookupProps {
-  keywords: string
-  setKeywords: (v: string) => void
-  postedAfter: string
-  setPostedAfter: (v: string) => void
-  responseDeadlineBefore: string
-  setResponseDeadlineBefore: (v: string) => void
-  onRunSearch: () => void
-  onStopSearch: () => void
-  onReset: () => void
-  loading: boolean
-  searchDuration: number
-  onSaveSearch: () => void
-  onCreateAlert: () => void
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin h-12 w-12 border-4 border-[--color-border] border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
+  );
 }
 
 function QuickDateLookup({
@@ -1718,7 +1336,7 @@ function QuickDateLookup({
   onCreateAlert,
 }: QuickDateLookupProps) {
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-[var(--color-border)] shadow-lg mb-4">
+    <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-(--color-border) shadow-lg mb-4">
       {/* Header row: title on left, Save/Alert buttons on right */}
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div>
@@ -1731,26 +1349,26 @@ function QuickDateLookup({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={onSaveSearch}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
             aria-label="Save current search"
           >
-            <Save className="h-4 w-4 flex-shrink-0" />
+            <Save className="h-4 w-4 shrink-0" />
             Save Search
           </button>
           <button
             onClick={onCreateAlert}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
             aria-label="Create email alert"
           >
-            <Bell className="h-4 w-4 flex-shrink-0" />
+            <Bell className="h-4 w-4 shrink-0" />
             Create Alert
           </button>
           <Link href="/alerts">
             <button
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-surface-muted)] text-white font-bold text-sm hover:bg-[var(--color-surface-muted)] hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-(--color-surface-muted) text-white font-bold text-sm hover:bg-(--color-surface-muted) hover:shadow-lg transition-all"
               aria-label="Manage alerts"
             >
-              <Settings className="h-4 w-4 flex-shrink-0" />
+              <Settings className="h-4 w-4 shrink-0" />
               Manage Alerts
             </button>
           </Link>
@@ -1799,7 +1417,7 @@ function QuickDateLookup({
                     d.setMonth(d.getMonth() + (months as number))
                     setPostedAfter(d.toISOString().split('T')[0])
                   }}
-                  className={`px-3 py-1.5 text-xs font-bold bg-gradient-to-r ${colors[idx]} text-white rounded-lg hover:shadow-md transition-all`}
+                  className={`px-3 py-1.5 text-xs font-bold bg-linear-to-r ${colors[idx].replace('from-[var(--color-primary)]','from-(--color-primary)').replace('to-[var(--color-primary-hover)]','to-(--color-primary-hover)')} text-white rounded-lg hover:shadow-md transition-all`}
                 >
                   {label}
                 </button>
@@ -1830,7 +1448,7 @@ function QuickDateLookup({
                   d.setMonth(d.getMonth() + (months as number))
                   setResponseDeadlineBefore(d.toISOString().split('T')[0])
                 }}
-                className={`px-3 py-1.5 text-xs font-bold bg-gradient-to-r ${color} text-white rounded-lg hover:shadow-md transition-all`}
+                className={`px-3 py-1.5 text-xs font-bold bg-linear-to-r ${(color as string).replace('from-[var(--color-primary)]','from-(--color-primary)').replace('to-[var(--color-primary-hover)]','to-(--color-primary-hover)')} text-white rounded-lg hover:shadow-md transition-all`}
               >
                 {label}
               </button>
@@ -1864,18 +1482,18 @@ function QuickDateLookup({
         <div className="w-px h-8 bg-[var(--color-surface-muted)] mx-1 hidden sm:block" />
         <button
           onClick={onSaveSearch}
-          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all whitespace-nowrap"
+          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all whitespace-nowrap"
           aria-label="Save current search"
         >
-          <Save className="h-4 w-4 flex-shrink-0" />
+          <Save className="h-4 w-4 shrink-0" />
           Save Search
         </button>
         <button
           onClick={onCreateAlert}
-          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all whitespace-nowrap"
+          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all whitespace-nowrap"
           aria-label="Create email alert"
         >
-          <Bell className="h-4 w-4 flex-shrink-0" />
+          <Bell className="h-4 w-4 shrink-0" />
           Create Alert
         </button>
         <button
@@ -1883,7 +1501,7 @@ function QuickDateLookup({
           className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-800 font-bold text-sm transition-all whitespace-nowrap shadow-sm"
           aria-label="Reset all fields"
         >
-          <RefreshCw className="h-4 w-4 flex-shrink-0" />
+          <RefreshCw className="h-4 w-4 shrink-0" />
           Reset All
         </button>
       </div>
@@ -1923,8 +1541,8 @@ function useToast() {
     setTimeout(() => setToast(null), 2500)
   }, [])
   const ToastUI = toast ? (
-    <div className="fixed bottom-6 right-6 z-[200] flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold">
-      <Check className="h-4 w-4 text-[var(--color-primary)]" />
+    <div className="fixed bottom-6 right-6 z-200 flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold">
+      <Check className="h-4 w-4 text-(--color-primary)" />
       {toast}
     </div>
   ) : null
@@ -1950,26 +1568,26 @@ function StickyResultsPrompt({
   if (selectedStates && selectedStates.length > 0) parts.push(`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`)
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-[var(--color-border)]">
-      <div className="max-w-[1760px] mx-auto flex items-center justify-between gap-3 flex-wrap">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-linear-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-(--color-border)">
+      <div className="max-w-440 mx-auto flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-[var(--color-primary)] flex-shrink-0" />
+          <CheckCircle className="h-5 w-5 text-(--color-primary) shrink-0" />
           <span className="font-bold text-sm">
-            Found <span className="text-[var(--color-primary)] text-base">{count.toLocaleString()}</span> results
-            {parts.length > 0 && <> for <span className="text-[var(--color-primary)]">{parts.join(' · ')}</span></>}
+            Found <span className="text-(--color-primary) text-base">{count.toLocaleString()}</span> results
+            {parts.length > 0 && <> for <span className="text-(--color-primary)">{parts.join(' · ')}</span></>}
             {' '}— save this search or get alerts so you never miss an update
           </span>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onSave}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-[var(--color-surface-muted)] transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-(--color-surface-muted) transition-colors shadow-sm"
           >
             <Save className="h-4 w-4" />Save Search
           </button>
           <button
             onClick={onAlert}
-            className="pg-btn pg-btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors border border-[var(--color-border)]"
+            className="pg-btn pg-btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors border border-(--color-border)"
           >
             <Bell className="h-4 w-4" />Get Alerts
           </button>
@@ -2036,7 +1654,7 @@ function AnimatedTipsCarousel() {
   }, [tips.length])
 
   return (
-    <div className="relative mt-3 h-[84px] overflow-hidden sm:h-[66px]">
+    <div className="relative mt-3 h-21 overflow-hidden sm:h-16.5">
       {tips.map((tip, index) => (
         <div
           key={index}
@@ -2048,9 +1666,9 @@ function AnimatedTipsCarousel() {
                 : 'opacity-0 translate-y-full'
           }`}
         >
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-2.5 shadow-sm sm:p-3">
-            <div className="flex items-center gap-2.5 text-[var(--color-text-primary)] sm:gap-3">
-              <div className="flex-shrink-0 rounded-lg bg-[var(--color-accent-soft)] p-2">
+          <div className="rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-2.5 shadow-sm sm:p-3">
+            <div className="flex items-center gap-2.5 text-(--color-text-primary) sm:gap-3">
+              <div className="shrink-0 rounded-lg bg-(--color-accent-soft) p-2">
                 {tip.icon}
               </div>
               <p className="text-xs font-semibold leading-snug text-[var(--color-text-primary)] sm:text-sm">
@@ -2229,6 +1847,7 @@ function SearchPageContent() {
   const {
     hasValidAccess,
     canBrowse,
+    reminderLevel,
     showReminderModal,
     setShowReminderModal,
     showLockoutModal,
@@ -2615,32 +2234,29 @@ useEffect(() => {
    * @returns true if user has access, false if gated (modal shown)
    */
 
-  // ✅ CORRECT: Define requireAccess FIRST (before line 1898)
   const requireAccess = useCallback((featureName: string): boolean => {
-    // Don't show modal while still loading
+    // ── SEARCH: always allowed during loading OR while canBrowse ──────────
+    // Never block search itself — the API will reject if truly unauthorised.
+    // Showing the modal BEFORE the search would break the free-browse window.
+    if (featureName.toLowerCase().includes('search')) {
+      return true
+    }
+
+    // ── PREMIUM FEATURES: save / alert / export / download ────────────────
+    // These require a real authenticated account even within the browse window.
     if (planLoading || status === 'loading') {
-      console.log('⏳ Still loading, deferring access check...')
+      // Still resolving auth — silently defer, don't show modal yet
       return false
     }
 
-    // Saving/alerting always requires a real account — browsing guest access is not enough
-    const requiresAuth = featureName.toLowerCase().includes('save') ||
-                         featureName.toLowerCase().includes('alert') ||
-                         featureName.toLowerCase().includes('subscription')
-    
-    if (requiresAuth && status === 'unauthenticated') {
+    if (status === 'unauthenticated') {
       setBlockedFeature(featureName)
       setShowAccessModal(true)
       return false
     }
 
-    // For search, allow running even if browsing window expired; modal will be shown after results
-    if (featureName.includes('Search')) {
-      return true;
-    }
-
-    // For other features, check BOTH hasValidAccess AND canBrowse
-    if (!hasValidAccess && !canBrowse) {
+    // Authenticated but no active subscription
+    if (!hasValidAccess) {
       setBlockedFeature(featureName)
       setShowAccessModal(true)
       return false
@@ -2858,7 +2474,7 @@ useEffect(() => {
       qs.set('limit', '1000');
       qs.set('offset', '0');
 
-      console.log('Calling API with saved search parameters:', Object.fromEntries(qs.entries()));
+      console.log('Calling API with saved search parameters:', qsToObj(qs));
 
       const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, {
         method: 'GET',
@@ -2922,7 +2538,7 @@ useEffect(() => {
       saveSearchToHistory(qs.toString());
 
       // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
-      writeSearchContext(opps || [], Object.fromEntries(qs.entries()))
+      writeSearchContext(opps || [], qsToObj(qs))
       if (!stickyPromptDismissed) setShowStickyPrompt(true)
       
       console.log('API Search successful:', {
@@ -2976,48 +2592,14 @@ useEffect(() => {
   }, [])
 
   const runSearch = async (isLoadMore = false) => {
-    console.log('🔍 runSearch called:', { 
-      isLoadMore, 
-      status, 
-      hasValidAccess, 
-      planLoading,
-      canBrowse,
-      procurementType, 
-      selectedSetAsides,
-      selectedStates,
-      keywords,
-      currentPage 
-    })
-    
-    // CRITICAL: Check if user can browse for unauthenticated/expired users
-    // TODO: Reinstate this blocking mechanism after search testing
-    // if (!canBrowse) {
-    //   console.log('❌ Search blocked: canBrowse is false')
-    //   setShowLockoutModal(true)
-    //   return
-    // }
-    
-    // CRITICAL FIX: Prevent duplicate simultaneous searches
-    if (!isLoadMore && loading) {
-      console.log('❌ Search blocked: already in progress')
+    // ── Prevent duplicate simultaneous searches ───────────────────────────
+    if (!isLoadMore && loading) return
+    if (isLoadMore && loadingMore) return
+
+    // ── Hard lockout: trial window expired ───────────────────────────────
+    if (showLockoutModal && !hasValidAccess) {
       return
     }
-    
-    if (isLoadMore && loadingMore) {
-      console.log('❌ Load more blocked: already in progress')
-      return
-    }
-    
-    // Gate the search action (only block if requireAccess returns false, but allow search to run for browsing window expired)
-    if (!requireAccess('Search Federal Opportunities')) {
-      // Only block if requireAccess returns false for non-search features
-      if (!hasValidAccess && !canBrowse) {
-        pendingActionRef.current = () => runSearch(isLoadMore)
-        return
-      }
-    }
-    
-    console.log('✅ All checks passed, executing search...')
     
     
     // PERFORMANCE FIX: Cancel any pending requests
@@ -3147,7 +2729,7 @@ useEffect(() => {
       }
       lastSearchParamsRef.current = searchParamsString
 
-      console.log('Calling API with corrected SAM.gov parameters:', Object.fromEntries(qs.entries()))
+      console.log('Calling API with corrected SAM.gov parameters:', qsToObj(qs))
 
       // PERFORMANCE FIX: Pass signal to fetch for cancellation + RELIABILITY FIX: Retry on failures
       const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, { 
@@ -3161,7 +2743,9 @@ useEffect(() => {
       
       if (!res.ok) {
         const errorText = await res.text()
-        console.error('API request failed:', { status: res.status, errorText })
+        if (errorText && errorText.trim() !== '' && errorText.trim() !== '{}') {
+          console.error('API request failed:', { status: res.status, errorText })
+        }
         
         // Handle payment required (trial ended)
         // ✅ CRITICAL FIX: Only show modal if user is NOT in free browsing window
@@ -3185,7 +2769,15 @@ useEffect(() => {
         if (res.status === 400) {
           userMessage = 'Invalid search parameters. Please check your filters and try again.'
         } else if (res.status === 401 || res.status === 403) {
-          userMessage = 'You need to sign in to search. Please log in and try again.'
+          // Guests within their 20-minute window: just show a friendly message, no modal
+          // Only show modal if the 20-minute lockout has actually triggered
+          if (showLockoutModal && !hasValidAccess) {
+            setBlockedFeature('Search Federal Opportunities')
+            setShowAccessModal(true)
+            if (isLoadMore) setLoadingMore(false); else setLoading(false)
+            return
+          }
+          userMessage = 'Search session expired. Please refresh and try again.'
         } else if (res.status === 404) {
           userMessage = 'Search service not found. Please refresh the page and try again.'
         } else if (res.status === 429) {
@@ -3233,14 +2825,10 @@ useEffect(() => {
         setActiveFilter(null) // reset subset view on fresh search
         // Save search to history
         saveSearchToHistory(qs.toString())
-        // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
-        writeSearchContext(opps || [], Object.fromEntries(qs.entries()))
+        writeSearchContext(opps || [], qsToObj(qs))
         if (!stickyPromptDismissed) setShowStickyPrompt(true)
-        // After results, if browsing window has elapsed, show access modal
-        if (!hasValidAccess && !canBrowse) {
-          setBlockedFeature('Search Federal Opportunities');
-          setShowAccessModal(true);
-        }
+        // NOTE: Do NOT show access modal here — guests are allowed to see results
+        // The 20-minute timer handles the browse window limit separately
       }
 
       console.log('API Search successful', { 
@@ -3817,519 +3405,469 @@ ${filteredResults.map(opp => `  <opportunity>
 
   return (
     <SearchErrorBoundary>
-      <main className="pg-theme-cleanup pg-search-modern pg-flow-modern min-h-screen bg-transparent flex flex-col text-[14px] sm:text-[15px]">
-        {/* ── STEP 6: Add ToastUI render at the top of the JSX return ── */}
-        {ToastUI}
-        {/* Main content - full height utilization */}
-        <div className="pg-container px-3.5 sm:px-5 lg:px-6 py-3 flex-1 flex flex-col">
+      {/* ── SCOPED STYLE OVERRIDE ─────────────────────────────────────────
+          The app's global CSS resets button/span color to inherit or black.
+          These rules use max specificity to force white text on every
+          green-background element in this page only.
+      ─────────────────────────────────────────────────────────────────── */}
+      <style>{`
+        /* ── PreciseGovCon search page: white text enforcement ────────────
+           The app global CSS has a button color reset that overrides Tailwind
+           and even React inline style in some cascade positions.
+           These rules use :is() + [style] attribute selectors at max
+           specificity to guarantee white text on every green element.
+        ─────────────────────────────────────────────────────────────────── */
 
-          {/* Professional Welcome Banner */}
-          <div className="mb-2">
-            {/* Main Welcome Card - Professional Gray */}
-            <div className="rounded-2xl border border-[#d9e2ef] bg-white p-3.5 sm:p-4 shadow-sm">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                {/* Icon - Simple Target */}
-                <div className="flex-shrink-0">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-surface-muted)] shadow-sm">
-                    <Target className="h-6 w-6 text-[var(--color-primary)]" />
+        /* Target buttons/elements with green inline background */
+        button[style*="166534"],
+        button[style*="166534"] span,
+        button[style*="166534"] svg,
+        a[style*="166534"],
+        a[style*="166534"] span,
+        a[style*="166534"] svg { color: #ffffff !important; }
+
+        /* Target by class */
+        .pgc-green,
+        .pgc-green * { color: #ffffff !important; }
+
+        /* SVG stroke fix for green backgrounds */
+        .pgc-green svg path,
+        .pgc-green svg circle,
+        .pgc-green svg line,
+        .pgc-green svg polyline,
+        .pgc-green svg rect,
+        button[style*="166534"] svg path,
+        button[style*="166534"] svg circle,
+        button[style*="166534"] svg line,
+        button[style*="166534"] svg polyline { stroke: #ffffff !important; }
+      `}</style>
+      <main
+        className="min-h-screen bg-[#f5f7f5] flex flex-col"
+        style={{ fontFamily: "'Aptos', 'Aptos Display', Calibri, 'Segoe UI', Arial, sans-serif" }}
+      >
+        {ToastUI}
+
+        <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
+
+          {/* ── HOW TO USE GUIDE ─────────────────────────────────────────── */}
+          <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: '1px solid #bbf0d0' }}>
+            <div className="px-5 py-4 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.25)' }}>
+                <HelpCircle className="h-5 w-5" style={{ color: '#ffffff' }} />
+              </div>
+              <h2 className="font-bold text-base" style={{ color: '#ffffff', fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
+                How to Search — 3 Easy Steps
+              </h2>
+            </div>
+            <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white">
+              {[
+                {
+                  step: '1',
+                  icon: <Search className="h-5 w-5" style={{ color: '#16a34a' }} />,
+                  title: 'Type a keyword or code',
+                  desc: 'Enter a service (e.g. "cybersecurity"), a NAICS code like 541512, an agency name, or a solicitation number.',
+                },
+                {
+                  step: '2',
+                  icon: <Calendar className="h-5 w-5" style={{ color: '#16a34a' }} />,
+                  title: 'Set your date range',
+                  desc: 'Pick when solicitations were posted and when they are due. Use the quick-fill buttons for common ranges.',
+                },
+                {
+                  step: '3',
+                  icon: <CheckCircle className="h-5 w-5" style={{ color: '#16a34a' }} />,
+                  title: 'Click Search & refine',
+                  desc: 'Hit the green Search button. Use the Refine Filters panel to narrow by agency, set-aside, state, or type.',
+                },
+              ].map(({ step, icon, title, desc }) => (
+                <div key={step} className="flex gap-3">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-black text-sm mt-0.5"
+                    style={{ background: '#16a34a', color: '#ffffff' }}>
+                    {step}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      {icon}
+                      <span className="font-black text-sm" style={{ color: '#111827' }}>{title}</span>
+                    </div>
+                    <p className="text-sm font-bold leading-relaxed" style={{ color: '#374151' }}>{desc}</p>
                   </div>
                 </div>
-                
-                {/* Content */}
-                <div className="flex-1">
-                  {session?.user?.name && (
-                    <p className="mb-1 text-sm font-medium text-[var(--color-text-secondary)]">
-                      Welcome back, {session.user.name.split(' ')[0]}!
-                    </p>
-                  )}
-                  <p className="max-w-3xl text-xs sm:text-sm leading-6 text-[var(--color-text-secondary)] md:text-base">
-                    Search SAM.gov opportunities quickly with focused filters and real-time federal data.
-                  </p>
-                </div>
-
-                {/* ── STEP 9: Add navigation links inside the welcome banner ── */}
-                <div className="flex flex-wrap items-center gap-2 flex-shrink-0 justify-end">
-                  <Link
-                    href="/alerts/manage-searches"
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(255,122,24,0.35)] transition-transform hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg, #ff7a18, #ffb347)' }}
-                  >
-                    <Bookmark className="h-4 w-4" />Saved Searches
-                  </Link>
-                  <Link
-                    href="/dashboard"
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#043524] shadow-[0_12px_30px_rgba(0,214,125,0.25)] transition-transform hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg, #00d67d, #8dffb5)' }}
-                  >
-                    <BarChart3 className="h-4 w-4" />Dashboard
-                  </Link>
-                  <Link
-                    href="/insights"
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#3d2200] shadow-[0_10px_24px_rgba(255,179,71,0.25)] transition-transform hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg, #ffb347, #ffe78f)' }}
-                  >
-                    <TrendingUp className="h-4 w-4" />Insights
-                  </Link>
-                  <Link
-                    href="/alerts/manage-alerts"
-                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#012b2d] shadow-[0_12px_28px_rgba(0,178,169,0.35)] transition-transform hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg, #00b2a9, #6bffe5)' }}
-                  >
-                    <Bell className="h-4 w-4" />Alert Subscriptions
-                  </Link>
-                </div>
-              </div>
-
-              {/* Animated Tips Carousel - Professional */}
-              <AnimatedTipsCarousel />
+              ))}
             </div>
-
-            {/* Quick Start Guide */}
-            <QuickStartGuide />
           </div>
 
+          {/* ── MAIN SEARCH CARD ─────────────────────────────────────────── */}
+          <div className="bg-white rounded-2xl border-2 border-[#166534] shadow-lg overflow-hidden">
 
-
-          {/* Search Card - compact with full width */}
-          <div className="flex-1 flex flex-col">
-            <div className="overflow-hidden rounded-2xl shadow-xl" style={{border:'2px solid #f97316'}}>
-
-              {/* ── HERO SEARCH STRIP — white + orange, fully light ── */}
-              <div className="px-6 pt-5 pb-5 bg-white" style={{borderBottom:'2px solid #fed7aa'}}>
-
-                {/* First-Time Visit Guide (Professional) */}
-                {typeof window !== 'undefined' && !window.localStorage.getItem('searchGuideDismissed') && (
-                  <div id="first-time-guide" className="mb-6 rounded-2xl border border-[--color-border] bg-white shadow p-6 flex flex-col md:flex-row items-center gap-6 relative">
-                    <div className="flex-1">
-                      <h2 className="text-2xl md:text-3xl font-black text-[--color-primary] mb-2">Welcome to Precise GovCon Search</h2>
-                      <ol className="list-decimal list-inside text-base font-semibold text-[--color-text-primary] space-y-1 pl-2">
-                        <li>Enter keywords, NAICS, agency, or solicitation number in the search bar below.</li>
-                        <li>Click <span className="inline-block bg-[--color-primary] text-white px-2 py-0.5 rounded font-black">Search</span> or press <span className="font-black">Enter</span>.</li>
-                        <li>Use filters to refine results. Save searches or set up alerts as needed.</li>
-                      </ol>
-                    </div>
-                    <button
-                      className="absolute top-3 right-3 text-[--color-primary] hover:text-[--color-primary-hover] text-xl font-black bg-white rounded-full p-2 border border-[--color-border] shadow"
-                      onClick={() => { window.localStorage.setItem('searchGuideDismissed', '1'); document.getElementById('first-time-guide')?.remove(); }}
-                      aria-label="Dismiss guide"
-                    >
-                      <X className="h-6 w-6" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Professional Search Bar Section */}
-                <div className="rounded-2xl border border-[--color-border] bg-white shadow-md px-8 py-8 mb-6">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-xl bg-[--color-primary] flex items-center justify-center shadow-md">
-                        <Search className="h-8 w-8 text-white" />
-                      </div>
-                      <div>
-                        <h1 className="text-2xl md:text-3xl font-black text-[--color-primary] mb-1 tracking-tight">Search Federal Opportunities</h1>
-                        <p className="text-base font-semibold text-[--color-text-secondary] tracking-tight">Find, track, and win government contracts. Start your search below.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-[--color-text-secondary]">
-                        {(data?.totalRecords ?? 2143921).toLocaleString()} <span className="font-medium">active opportunities</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-stretch mb-3 mt-2">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-7 w-7 text-[--color-primary] pointer-events-none z-10" />
-                      <input
-                        type="text"
-                        value={keywords}
-                        onChange={(e) => setKeywords(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                        placeholder='Enter keywords, NAICS, agency, or solicitation #'
-                        autoFocus
-                        className="w-full rounded-2xl border-2 border-[--color-primary] bg-white py-5 pl-20 pr-6 text-xl font-semibold text-[--color-text-primary] placeholder-[--color-primary] shadow focus:border-[--color-primary-hover] focus:ring-2 focus:ring-[--color-primary]/10 outline-none transition-all"
-                      />
-                    </div>
-                    <button onClick={() => runSearch()} disabled={loading}
-                      className="px-10 rounded-2xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 whitespace-nowrap hover:scale-105 active:scale-95 min-w-36 text-white shadow bg-[--color-primary] hover:bg-[--color-primary-hover]"
-                    >
-                      {loading
-                        ? <><Loader2 className="h-6 w-6 animate-spin" />Searching</>
-                        : <><Search className="h-6 w-6" />Search</>}
-                    </button>
-                  </div>
+            {/* Header bar */}
+            <div className="px-6 pt-5 pb-4 border-b border-gray-100">
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <div>
+                  <h1 className="font-black text-xl text-gray-900 leading-tight" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
+                    Federal Contract Opportunity Search
+                  </h1>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Searching live SAM.gov data ·{' '}
+                    <span className="font-bold text-[#166534]">
+                      {(data?.totalRecords ?? 2143921).toLocaleString()} active opportunities
+                    </span>
+                  </p>
                 </div>
-
-
-
-                {/* Secondary actions + quick chips */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button onClick={resetAll}
-                    className="px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all">
-                    <RefreshCw className="h-3.5 w-3.5" />Reset
-                  </button>
+                <div className="flex items-center gap-2">
                   <button onClick={() => handleOpenSaveModal('save')}
-                    className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-sm">
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
                     <Save className="h-3.5 w-3.5" />Save Search
                   </button>
                   <button onClick={() => handleOpenSaveModal('alert')}
-                    className="px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all">
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
                     <Bell className="h-3.5 w-3.5" />Get Alerts
                   </button>
-                  <div className="flex-1" />
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Try:</span>
-                  {['data analytics','cybersecurity','IT services','541511'].map(term => (
-                    <button key={term} onClick={() => { setKeywords(term); runSearch() }}
-                      className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 hover:border-orange-400 transition-colors">
-                      {term}
-                    </button>
-                  ))}
-                  {results.length > 0 && keywords && (
-                    <span className="text-xs font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-full border border-green-300">
-                      ✓ "{keywords}"
-                    </span>
-                  )}
                 </div>
               </div>
 
-              <div className="p-6 bg-white dark:bg-slate-800">
-                <div className="w-full">
+              {/* ── KEYWORD SEARCH BAR ── */}
+              <div className="flex gap-0 items-stretch mb-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={keywords}
+                    onChange={(e) => setKeywords(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+                    placeholder="Type a keyword, NAICS code, agency name, or solicitation #"
+                    autoFocus
+                    style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif", fontSize: '1rem' }}
+                    className="w-full h-14 pl-11 pr-4 border-2 border-r-0 border-[#166534] rounded-l-xl bg-white text-gray-900 font-medium placeholder-gray-300 focus:outline-none focus:border-[#14532d] transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={() => runSearch()}
+                  disabled={loading}
+                  style={{ fontFamily: "'Aptos Display', Calibri, sans-serif", background: '#166534', color: '#ffffff', borderColor: '#166534' }}
+                  className="pgc-green h-14 px-8 hover:opacity-90 active:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed font-black text-base rounded-r-xl border-2 flex items-center gap-2 transition-opacity whitespace-nowrap shadow-md"
+                >
+                  {loading
+                    ? <><Loader2 className="h-5 w-5 animate-spin" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Searching…</span></>
+                    : <><Search className="h-5 w-5" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Search</span></>}
+                </button>
+              </div>
 
-                  {/* Loading message */}
-                  {loading && (
-                    <div className="mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl">
-                      <div className="flex items-center gap-3 text-emerald-700 dark:text-emerald-400">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <span className="text-base font-semibold">
-                          Searching {keywords ? `"${keywords}"` : ''} opportunities... ({searchDuration}s)
-                        </span>
-                      </div>
-                    </div>
-                  )}
+              {/* Quick-fill keyword chips */}
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-xs text-gray-400 font-semibold">Try:</span>
+                {[
+                  { label: 'IT Support', value: 'IT support services' },
+                  { label: 'Cybersecurity', value: 'cybersecurity' },
+                  { label: 'Construction', value: 'construction' },
+                  { label: '541512 (IT Systems)', value: '541512' },
+                  { label: '238210 (Electrical)', value: '238210' },
+                  { label: '336411 (Aircraft)', value: '336411' },
+                ].map(({ label, value }) => (
+                  <button
+                    key={value}
+                    onClick={() => { setKeywords(value); setTimeout(() => runSearch(), 0); }}
+                    className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-500 border border-gray-200 hover:bg-green-50 hover:text-[#166534] hover:border-green-300 transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+                {results.length > 0 && keywords && (
+                  <span className="text-xs font-bold text-[#166534] bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                    ✓ &quot;{keywords}&quot;
+                  </span>
+                )}
+                <div className="flex-1" />
+                <button onClick={resetAll}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors">
+                  <RefreshCw className="h-3 w-3" />Reset all
+                </button>
+              </div>
+            </div>
 
-                  {/* ── Date filters ── */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* ── DATE FILTERS ── */}
+            <div className="px-6 py-5 bg-gray-50 border-b border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
+                Step 2 — Narrow by Date
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                    {/* LEFT: Posted Date — emerald accent */}
-                    <div className="space-y-3">
-                      <div className="rounded-xl border-2 border-emerald-200 dark:border-emerald-700 overflow-hidden">
-                        <div className="px-4 py-2.5 flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/40">
-                          <Calendar className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
-                          <span className="text-sm font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">Solicitation Posted Date</span>
-                        </div>
-                        <div className="p-4 bg-white dark:bg-slate-800">
-                          <input
-                            type="date"
-                            value={postedAfter}
-                            onChange={(e) => setPostedAfter(e.target.value)}
-                            className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900 outline-none"
-                          />
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Find solicitations posted on or after this date</p>
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <div className="px-4 py-2 flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                          <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                          <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide">Posted within the last:</span>
-                        </div>
-                        <div className="p-3 bg-white dark:bg-slate-800 flex flex-wrap gap-2">
-                          {[{label:'12 months',days:-365},{label:'9 months',days:-274},{label:'6 months',days:-182},{label:'3 months',days:-91},{label:'30 days',days:-30},{label:'2 weeks',days:-14}].map(({label,days}) => (
-                            <button key={label} onClick={() => { const d=new Date(); d.setDate(d.getDate()+days); setPostedAfter(d.toISOString().split('T')[0]) }}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-emerald-50 hover:border-emerald-400 hover:text-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300 transition-all">
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* RIGHT: Due Date — amber accent */}
-                    <div className="space-y-3">
-                      <div className="rounded-xl border-2 border-amber-200 dark:border-amber-700 overflow-hidden">
-                        <div className="px-4 py-2.5 flex items-center gap-2 bg-amber-100 dark:bg-amber-900/40">
-                          <Clock className="h-4 w-4 text-amber-700 dark:text-amber-400" />
-                          <span className="text-sm font-black text-amber-800 dark:text-amber-300 uppercase tracking-wide">Solicitation Due Date</span>
-                        </div>
-                        <div className="p-4 bg-white dark:bg-slate-800">
-                          <input
-                            type="date"
-                            value={responseDeadlineBefore}
-                            onChange={(e) => setResponseDeadlineBefore(e.target.value)}
-                            className="w-full rounded-lg border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white transition-all focus:border-amber-400 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-900 outline-none"
-                          />
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Find solicitations with response due date up to the selected date</p>
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <div className="px-4 py-2 flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                          <Clock className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                          <span className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide">Due within the next:</span>
-                        </div>
-                        <div className="p-3 bg-white dark:bg-slate-800 flex flex-wrap gap-2">
-                          {[{label:'2 weeks',days:14},{label:'30 days',days:30},{label:'45 days',days:45},{label:'60 days',days:60},{label:'90 days',days:90}].map(({label,days}) => (
-                            <button key={label} onClick={() => { const d=new Date(); d.setDate(d.getDate()+days); setResponseDeadlineBefore(d.toISOString().split('T')[0]) }}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-amber-50 hover:border-amber-400 hover:text-amber-700 dark:hover:bg-amber-900/30 dark:hover:text-amber-300 transition-all">
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Stop button — red, only when loading */}
-                  {loading && (
-                    <div className="mt-4 flex justify-center">
-                      <button onClick={stopSearch}
-                        className="px-8 py-4 bg-red-500 hover:bg-red-600 text-white font-bold text-lg rounded-xl transition-colors shadow-md flex items-center gap-3">
-                        <StopCircle className="h-6 w-6" />Stop Search
+                {/* Posted date */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-2">
+                    <span className="pgc-green w-5 h-5 rounded-full bg-[#166534] text-white flex items-center justify-center text-xs font-black flex-shrink-0">P</span>
+                    Solicitation Posted On or After
+                  </label>
+                  <input
+                    type="date"
+                    value={postedAfter}
+                    onChange={(e) => setPostedAfter(e.target.value)}
+                    style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                    className="w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-[#166534] focus:ring-2 focus:ring-green-100 outline-none transition-all mb-2"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="text-[11px] text-gray-400 font-semibold self-center mr-1">WITHIN:</span>
+                    {[
+                      { label: '2 weeks', days: -14 },
+                      { label: '30 days', days: -30 },
+                      { label: '3 months', days: -91 },
+                      { label: '6 months', days: -182 },
+                      { label: '9 months', days: -274 },
+                      { label: '12 months', days: -365 },
+                    ].map(({ label, days }) => (
+                      <button
+                        key={label}
+                        onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setPostedAfter(d.toISOString().split('T')[0]); }}
+                        className="pgc-green px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#166534] border border-[#166534] hover:bg-[#166534] hover:text-white transition-all"
+                      >
+                        {label}
                       </button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                </div>
 
-                  {/* Error display */}
-                  {error && (
-                    <div className="mt-4 p-5 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-700 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="font-bold text-red-700 dark:text-red-400 text-lg mb-1">Search Error</h4>
-                          <p className="text-red-600 dark:text-red-300 text-base">{error}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                {/* Due date */}
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-2">
+                    <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black flex-shrink-0">D</span>
+                    Response Due Date Up To
+                  </label>
+                  <input
+                    type="date"
+                    value={responseDeadlineBefore}
+                    onChange={(e) => setResponseDeadlineBefore(e.target.value)}
+                    style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                    className="w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition-all mb-2"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="text-[11px] text-gray-400 font-semibold self-center mr-1">NEXT:</span>
+                    {[
+                      { label: '2 weeks', days: 14 },
+                      { label: '30 days', days: 30 },
+                      { label: '45 days', days: 45 },
+                      { label: '60 days', days: 60 },
+                      { label: '90 days', days: 90 },
+                    ].map(({ label, days }) => (
+                      <button
+                        key={label}
+                        onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setResponseDeadlineBefore(d.toISOString().split('T')[0]); }}
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-amber-600 border border-amber-400 hover:bg-amber-500 hover:text-white transition-all"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* ── SEARCH ACTION ROW ── */}
+            <div className="px-6 py-4 flex items-center justify-between gap-3 flex-wrap bg-white">
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => runSearch()}
+                  disabled={loading}
+                  style={{ fontFamily: "'Aptos Display', Calibri, sans-serif", background: '#166534', color: '#ffffff' }}
+                  className="pgc-green h-12 px-8 hover:opacity-90 disabled:opacity-50 font-black text-base rounded-xl flex items-center gap-2 transition-opacity shadow-md"
+                >
+                  {loading ? <><Loader2 className="h-5 w-5 animate-spin" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Searching…</span></> : <><Search className="h-5 w-5" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Search SAM.gov</span></>}
+                </button>
+                {loading && (
+                  <button onClick={stopSearch}
+                    className="h-12 px-6 bg-red-500 hover:bg-red-600 text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors">
+                    <StopCircle className="h-4 w-4" />Stop ({searchDuration}s)
+                  </button>
+                )}
+              </div>
+              {loading && (
+                <div className="flex items-center gap-2 text-sm text-[#166534] font-semibold bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Searching {keywords ? `"${keywords}"` : 'all opportunities'}… {searchDuration}s
+                </div>
+              )}
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="mx-6 mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-red-700 text-sm">Search Error</p>
+                  <p className="text-red-600 text-sm mt-0.5">{error}</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Results section - only shown after search */}
+          {/* ── RESULTS SECTION ──────────────────────────────────────────── */}
           {results.length > 0 && (
-            <div ref={resultsRef} className="transition-all duration-500 mt-6">
-              {/* Results header with filter toggle */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-4xl font-bold text-[var(--color-text-primary)]">
-                    {filteredResults.length.toLocaleString()} opportunities found
-                  </h2>
-                  {/* ── SMART CONTEXTUAL DESCRIPTION ── */}
-                  <p className="text-lg font-bold mt-2 leading-relaxed flex flex-wrap items-center gap-x-1 gap-y-1">
-                    <span className="text-[var(--color-text-secondary)]">Search for</span>
+            <div ref={resultsRef} className="flex flex-col gap-4">
 
-                    {keywords && (
-                      <span className="text-[var(--color-primary)] bg-[var(--color-surface-muted)] px-2 py-0.5 rounded-md border border-[var(--color-border)]">"{keywords}"</span>
-                    )}
-
-                    {postedAfter && (
-                      <>
-                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
-                        <span className="text-[var(--color-text-secondary)]">posted on or after</span>
-                        <span className="rounded-md border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-2 py-0.5 text-[var(--color-primary)]">
-                          {new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                      </>
-                    )}
-
-                    {responseDeadlineBefore && (
-                      <>
-                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
-                        <span className="text-[var(--color-text-secondary)]">due on or after</span>
-                        <span className="text-[var(--color-primary)] bg-[var(--color-surface-muted)] px-2 py-0.5 rounded-md border border-[var(--color-border)]">
-                          {new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} (Today)
-                        </span>
-                      </>
-                    )}
-
-                    {selectedSetAsides.length > 0 && (
-                      <>
-                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
-                        <span className="text-[var(--color-text-secondary)]">set-aside:</span>
-                        <span className="text-[var(--color-text-secondary)] bg-[var(--color-surface-muted)] px-2 py-0.5 rounded-md border border-[var(--color-border)]">
-                          {selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} set-aside types`}
-                        </span>
-                      </>
-                    )}
-
-                    {selectedStates.length > 0 && (
-                      <>
-                        <span className="text-[var(--color-text-secondary)] mx-0.5">·</span>
-                        <span className="text-[var(--color-text-secondary)]">state:</span>
-                        <span className="rounded-md border border-[var(--color-border)] bg-[var(--color-accent-soft)] px-2 py-0.5 text-[var(--color-primary)]">
-                          {selectedStates.length === 1 ? (getLocationLabel(selectedStates[0]) || selectedStates[0]) : `${selectedStates.length} states`}
-                        </span>
-                      </>
-                    )}
-
-                    <span className="text-[var(--color-text-secondary)]">successfully returned</span>
-                    <span className="text-[var(--color-text-primary)] bg-[var(--color-accent-soft)] px-2.5 py-0.5 rounded-md font-extrabold text-xl border border-[var(--color-border)]">
-                      {filteredResults.length.toLocaleString()}
-                    </span>
-
-                    {data?.totalRecords && data.totalRecords > filteredResults.length && (
-                      <span className="text-base font-semibold text-[var(--color-text-secondary)]">(filtered from {data.totalRecords.toLocaleString()} total)</span>
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                      showFilters 
-                        ? 'border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-primary)]' 
-                        : 'border-[var(--color-border)] hover:border-[var(--color-primary)]/40 text-[var(--color-text-secondary)]'
-                    }`}
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filters
-                    {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </button>
-                  
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="px-4 py-2 rounded-lg border-2 border-[var(--color-border)] bg-[var(--color-surface)] focus:border-[var(--color-primary)]/40 outline-none text-[var(--color-text-primary)] font-semibold"
-                  >
-                    <option value="deadline-asc">Deadline (Soonest)</option>
-                    <option value="deadline-desc">Deadline (Latest)</option>
-                    <option value="posted-desc">Newest first</option>
-                    <option value="posted-asc">Oldest first</option>
-                  </select>
-
-                  <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-1">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 rounded transition-all ${
-                        viewMode === 'list' ? 'bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-subtle)]'
-                      }`}
-                    >
-                      <List className="h-4 w-4" />
+              {/* Results header */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
+                      {filteredResults.length.toLocaleString()} <span className="text-[#166534]">opportunities found</span>
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1 flex flex-wrap gap-x-2 gap-y-1 items-center">
+                      {keywords && <span className="font-bold text-gray-700">&quot;{keywords}&quot;</span>}
+                      {postedAfter && <><span className="text-gray-400">·</span><span>posted ≥ {new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
+                      {responseDeadlineBefore && <><span className="text-gray-400">·</span><span>due ≤ {new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
+                      {selectedSetAsides.length > 0 && <><span className="text-gray-400">·</span><span>{selectedSetAsides.length === 1 ? getSetAsideLabel(selectedSetAsides[0]) : `${selectedSetAsides.length} set-asides`}</span></>}
+                      {selectedStates.length > 0 && <><span className="text-gray-400">·</span><span>{selectedStates.length === 1 ? getLocationLabel(selectedStates[0]) : `${selectedStates.length} states`}</span></>}
+                      {data?.totalRecords && data.totalRecords > filteredResults.length && (
+                        <span className="text-gray-400">(filtered from {data.totalRecords.toLocaleString()} total)</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+                    <ExportSharePanel results={filteredResults} searchLabel={keywords || 'All opportunities'} requireAccess={requireAccess} />
+                    <button onClick={() => handleOpenSaveModal('save')}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
+                      <Save className="h-3.5 w-3.5" />Save
                     </button>
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded transition-all ${
-                        viewMode === 'grid' ? 'bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-subtle)]'
-                      }`}
-                    >
-                      <Grid className="h-4 w-4" />
+                    <button onClick={() => handleOpenSaveModal('alert')}
+                      className="pgc-green flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#166534] hover:bg-[#14532d] text-white text-xs font-bold transition-colors">
+                      <Bell className="h-3.5 w-3.5" />Get Alerts
+                    </button>
+                    {Object.values(saved).filter(Boolean).length > 0 && (
+                      <button onClick={() => setShowSavedOnly((p) => !p)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors border ${showSavedOnly ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
+                        <Bookmark className="h-3.5 w-3.5" />
+                        {showSavedOnly ? '← All' : `Saved (${Object.values(saved).filter(Boolean).length})`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Toolbar: sort + view + filter toggle */}
+                <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-gray-100">
+                  <button onClick={() => setShowFilters(!showFilters)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${showFilters ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#166534] hover:text-[#166534]'}`}>
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    Refine Filters
+                    {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+                    style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                    className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 focus:border-[#166534] outline-none">
+                    <option value="deadline-asc">Deadline (Soonest first)</option>
+                    <option value="deadline-desc">Deadline (Latest first)</option>
+                    <option value="posted-desc">Posted (Newest first)</option>
+                    <option value="posted-asc">Posted (Oldest first)</option>
+                  </select>
+                  <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden">
+                    <button onClick={() => setViewMode('list')}
+                      className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      <List className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => setViewMode('grid')}
+                      className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'grid' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      <Grid className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Filter panel - collapsible */}
+              {/* Filter panel */}
               {showFilters && (
-                <div className="mb-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-sm)]">
-                  <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-[var(--color-text-primary)]">
-                    <Filter className="h-5 w-5 text-[var(--color-primary)]" />
-                    Refine Results
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {/* KEYWORD - FIRST */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-black text-sm text-gray-900 flex items-center gap-2" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
+                      <Filter className="h-4 w-4 text-[#166534]" />Refine Results
+                    </h3>
+                    <button
+                      onClick={() => { setAgency(''); setSelectedSetAsides([]); setNaics(''); setSelectedStates([]); setProcurementType(''); setClassificationCode(''); setSolicitationNumber(''); setOpportunityStatus('active'); setAdvancedApplied(false); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                      <RefreshCw className="h-3 w-3" />Reset filters
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {/* Keyword refine */}
                     <div>
-                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Keyword</label>
-                      <input
-                        type="text"
-                        value={advKeywords}
-                        onChange={(e) => {
-                          setAdvKeywords(e.target.value)
-                          setAdvancedApplied(true)
-                        }}
-                        placeholder="e.g., Data Analytics"
-                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                      />
-                      <p className="mt-1 text-xs text-[var(--color-text-subtle)]">Filters shown results instantly</p>
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Keyword Filter</label>
+                      <input type="text" value={advKeywords}
+                        onChange={(e) => { setAdvKeywords(e.target.value); setAdvancedApplied(true); }}
+                        placeholder="e.g., cloud services"
+                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] focus:ring-2 focus:ring-green-50 outline-none transition-all" />
+                      <p className="text-[11px] text-gray-400 mt-1">Filters results instantly</p>
                     </div>
-                    {/* SET-ASIDE - SECOND */}
+                    {/* Set-aside */}
                     <div>
                       <MultiSelectDropdown
-                        label="Set-Aside"
-                        options={SET_ASIDE_OPTIONS.filter(opt => opt.code !== '')}
+                        label="Set-Aside Type"
+                        options={SET_ASIDE_OPTIONS.filter(o => o.code !== '')}
                         selected={selectedSetAsides}
                         onChange={setSelectedSetAsides}
-                        placeholder="Any Set-Aside"
+                        placeholder="Any set-aside"
                       />
                     </div>
-                    {/* STATE - THIRD */}
+                    {/* State */}
                     <div>
                       <MultiSelectDropdown
-                        label="State"
-                        options={US_STATES_AND_TERRITORIES.filter(loc => loc.code !== '').map(loc => ({ code: loc.code, label: loc.label }))}
+                        label="State / Territory"
+                        options={US_STATES_AND_TERRITORIES.filter(l => l.code !== '')}
                         selected={selectedStates}
                         onChange={setSelectedStates}
-                        placeholder="Any State/Territory"
+                        placeholder="Any state"
                       />
                     </div>
-                    {/* AGENCY */}
+                    {/* Agency */}
                     <div>
-                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Agency</label>
-                      <input
-                        type="text"
-                        value={agency}
-                        onChange={(e) => setAgency(e.target.value)}
-                        placeholder="e.g., Department of Defense"
-                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                      />
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Agency</label>
+                      <input type="text" value={agency} onChange={(e) => setAgency(e.target.value)}
+                        placeholder="e.g., Dept of Defense"
+                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
                     </div>
-                    {/* NAICS CODE */}
+                    {/* NAICS */}
                     <div>
-                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">NAICS Code</label>
-                      <input
-                        type="text"
-                        value={naics}
-                        onChange={(e) => setNaics(e.target.value)}
-                        placeholder="e.g., 541511"
-                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                      />
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">NAICS Code</label>
+                      <input type="text" value={naics} onChange={(e) => setNaics(e.target.value)}
+                        placeholder="e.g., 541512"
+                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
                     </div>
-                    {/* PROCUREMENT TYPE */}
+                    {/* Procurement type */}
                     <div>
-                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Procurement Type</label>
-                      <select
-                        value={procurementType}
-                        onChange={(e) => setProcurementType(e.target.value)}
-                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                      >
-                        <option value="">All Opportunity Types</option>
-                        <option value="o">Solicitation — Formal request for bids/proposals</option>
-                        <option value="k">Combined Synopsis/Solicitation — Simplified bid request</option>
-                        <option value="p">Pre-Solicitation — Early notice before bidding opens</option>
-                        <option value="r">Sources Sought — Agency researching vendors</option>
-                        <option value="a">Award Notice — Contract already awarded</option>
-                        <option value="u">Justification (J&A) — Sole-source justification</option>
-                        <option value="s">Special Notice — General announcements</option>
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Opportunity Type</label>
+                      <select value={procurementType} onChange={(e) => setProcurementType(e.target.value)}
+                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 focus:border-[#166534] outline-none transition-all">
+                        <option value="">All Types</option>
+                        <option value="o">Solicitation</option>
+                        <option value="k">Combined Synopsis/Solicitation</option>
+                        <option value="p">Pre-Solicitation</option>
+                        <option value="r">Sources Sought</option>
+                        <option value="a">Award Notice</option>
+                        <option value="u">Justification (J&amp;A)</option>
+                        <option value="s">Special Notice</option>
                       </select>
                     </div>
-                    {/* PSC CODE */}
+                    {/* PSC */}
                     <div>
-                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">PSC Code</label>
-                      <input
-                        type="text"
-                        value={classificationCode}
-                        onChange={(e) => setClassificationCode(e.target.value)}
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">PSC Code</label>
+                      <input type="text" value={classificationCode} onChange={(e) => setClassificationCode(e.target.value)}
                         placeholder="e.g., R425"
-                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                      />
+                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
                     </div>
-                    {/* SOLICITATION # */}
+                    {/* Solicitation # */}
                     <div>
-                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Solicitation #</label>
-                      <input
-                        type="text"
-                        value={solicitationNumber}
-                        onChange={(e) => setSolicitationNumber(e.target.value)}
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Solicitation #</label>
+                      <input type="text" value={solicitationNumber} onChange={(e) => setSolicitationNumber(e.target.value)}
                         placeholder="e.g., W912DY24R0001"
-                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                      />
+                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
                     </div>
-                    {/* STATUS */}
+                    {/* Status */}
                     <div>
-                      <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">Status</label>
-                      <select
-                        value={opportunityStatus}
-                        onChange={(e) => setOpportunityStatus(e.target.value)}
-                        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-[var(--color-text-primary)] transition-all focus:border-[var(--color-primary)]/40 focus:ring-4 focus:ring-[var(--color-accent-soft)]"
-                      >
+                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Status</label>
+                      <select value={opportunityStatus} onChange={(e) => setOpportunityStatus(e.target.value)}
+                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
+                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 focus:border-[#166534] outline-none transition-all">
                         <option value="">All Statuses</option>
                         <option value="active">Active</option>
                         <option value="archived">Archived</option>
@@ -4337,182 +3875,145 @@ ${filteredResults.map(opp => `  <opportunity>
                       </select>
                     </div>
                   </div>
-                  
-                  {/* Active Filters bar — always visible with Reset button */}
-                  <div className="pg-search-filter-meta mt-4 border-t border-[var(--color-border)] pt-4">
-                    <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-bold text-[var(--color-text-primary)]">Active Refine Filters</span>
-                        {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) ? (
-                          <span className="text-xs font-bold px-2 py-0.5 bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] rounded-full">
-                            {[agency, ...selectedSetAsides, naics, ...selectedStates, procurementType, classificationCode, solicitationNumber, opportunityStatus].filter(Boolean).length} active
-                          </span>
-                        ) : (
-                          <span className="text-sm font-medium text-[var(--color-text-subtle)]">None — showing all results</span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          setAgency('')
-                          setSelectedSetAsides([])
-                          setNaics('')
-                          setSelectedStates([])
-                          setProcurementType('')
-                          setClassificationCode('')
-                          setSolicitationNumber('')
-                          setOpportunityStatus('active')
-                          setAdvancedApplied(false)
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        Reset Refine Filters
-                      </button>
+
+                  {/* Active filter chips */}
+                  {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
+                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+                      {agency && <FilterChip label={`Agency: ${agency}`} onRemove={() => setAgency('')} />}
+                      {selectedSetAsides.length > 0 && <FilterChip label={`Set-Aside: ${selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} selected`}`} onRemove={() => setSelectedSetAsides([])} />}
+                      {naics && <FilterChip label={`NAICS: ${naics}`} onRemove={() => setNaics('')} />}
+                      {selectedStates.length > 0 && <FilterChip label={`State: ${selectedStates.length === 1 ? getLocationLabel(selectedStates[0]) : `${selectedStates.length} selected`}`} onRemove={() => setSelectedStates([])} />}
+                      {procurementType && <FilterChip label={`Type: ${procurementType}`} onRemove={() => setProcurementType('')} />}
+                      {classificationCode && <FilterChip label={`PSC: ${classificationCode}`} onRemove={() => setClassificationCode('')} />}
+                      {solicitationNumber && <FilterChip label={`Sol #: ${solicitationNumber}`} onRemove={() => setSolicitationNumber('')} />}
+                      {opportunityStatus && <FilterChip label={`Status: ${opportunityStatus}`} onRemove={() => setOpportunityStatus('active')} />}
                     </div>
-                    {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
-                      <div className="flex flex-wrap gap-2">
-                        {agency && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            Agency: {agency}
-                            <button onClick={() => setAgency('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                        {selectedSetAsides.length > 0 && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            Set-Aside: {selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} selected`}
-                            <button onClick={() => setSelectedSetAsides([])} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                        {naics && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            NAICS: {naics}
-                            <button onClick={() => setNaics('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                        {selectedStates.length > 0 && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            State: {selectedStates.length === 1 ? (getLocationLabel(selectedStates[0]) || selectedStates[0]) : `${selectedStates.length} selected`}
-                            <button onClick={() => setSelectedStates([])} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                        {procurementType && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            Type: {({'o':'Solicitation','k':'Combined Synopsis','p':'Pre-Solicitation','r':'Sources Sought','a':'Award Notice','u':'J&A','s':'Special Notice'} as Record<string,string>)[procurementType] || procurementType}
-                            <button onClick={() => setProcurementType('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                        {classificationCode && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            PSC: {classificationCode}
-                            <button onClick={() => setClassificationCode('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                        {solicitationNumber && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            Sol #: {solicitationNumber}
-                            <button onClick={() => setSolicitationNumber('')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                        {opportunityStatus && (
-                          <span className="px-3 py-1.5 bg-slate-100 text-slate-800 border border-slate-200 rounded-full text-sm font-semibold flex items-center gap-1.5">
-                            Status: {opportunityStatus}
-                            <button onClick={() => setOpportunityStatus('active')} className="hover:text-red-600 transition-colors"><X className="h-4 w-4" /></button>
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
 
-              {/* Results count and action bar */}
-              {(results.length > 0) && (
-                <div className="pg-search-results-toolbar mb-6 p-4 bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] shadow-sm">
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <CheckCircle className="h-5 w-5 text-[var(--color-primary)] flex-shrink-0" />
-                      <span className="text-base font-bold text-[var(--color-text-primary)]">
-                        {showSavedOnly
-                          ? <><span className="text-[var(--color-text-secondary)]">Showing {filteredResults.length} saved</span> of {results.length} results</>
-                          : <>
-                              {filteredResults.length >= 100 ? '🎯 Excellent! ' : filteredResults.length >= 10 ? '✅ Great! ' : ''}
-                              Found{' '}
-                              <span className="font-bold text-[var(--color-primary)]">{filteredResults.length.toLocaleString()}</span>
-                              {' '}{filteredResults.length === 1 ? 'opportunity' : 'opportunities'}
-                              {keywords && <> for <span className="text-[var(--color-primary)]">"{keywords}"</span></>}
-                              {' '}—{' '}
-                              <button onClick={() => handleOpenSaveModal('save')} className="text-slate-700 underline underline-offset-2 hover:text-[var(--color-primary)] font-bold transition-colors">save this search</button>
-                              {' '}or{' '}
-                              <button onClick={() => handleOpenSaveModal('alert')} className="text-[var(--color-text-secondary)] underline underline-offset-2 hover:text-[var(--color-text-secondary)] font-bold transition-colors">get email alerts</button>
-                              {' '}so you never miss an update
-                            </>
-                        }
-                      </span>
-                      {Object.values(saved).filter(Boolean).length > 0 && (
-                        <button
-                          onClick={() => setShowSavedOnly(prev => !prev)}
-                          className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold shadow-sm transition-all ${showSavedOnly ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]' : 'pg-btn-tertiary text-[var(--color-text-primary)]'}`}
-                        >
-                          <Shield className="h-3.5 w-3.5 fill-current" />
-                          {showSavedOnly ? '← Back To All Results' : `View Saved (${Object.values(saved).filter(Boolean).length})`}
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* NEW — Export & Share */}
-                      <ExportSharePanel
-                        results={filteredResults}
-                        searchLabel={[
-                          keywords || 'All opportunities',
-                          postedAfter ? `from ${postedAfter}` : '',
-                          responseDeadlineBefore ? `due by ${responseDeadlineBefore}` : '',
-                        ].filter(Boolean).join(' · ')}
-                      />
+              {/* Results toolbar count */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-sm font-semibold text-gray-700">
+                  {showSavedOnly
+                    ? <>Showing <strong>{filteredResults.length}</strong> saved of {results.length} results</>
+                    : <>
+                        {filteredResults.length >= 100 ? '🎯 ' : filteredResults.length >= 10 ? '✅ ' : ''}
+                        <strong className="text-[#166534]">{filteredResults.length.toLocaleString()}</strong>{' '}
+                        {filteredResults.length === 1 ? 'opportunity' : 'opportunities'}
+                        {keywords && <> for <em>&quot;{keywords}&quot;</em></>} —{' '}
+                        <button onClick={() => handleOpenSaveModal('save')} className="underline text-gray-600 hover:text-[#166534] transition-colors">save this search</button>
+                        {' '}or{' '}
+                        <button onClick={() => handleOpenSaveModal('alert')} className="underline text-gray-600 hover:text-[#166534] transition-colors">get email alerts</button>
+                      </>
+                  }
+                </span>
+              </div>
 
-                      <button onClick={() => handleOpenSaveModal('save')} className="pg-btn pg-btn-secondary px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
-                        <Save className="h-3.5 w-3.5" />Save Search
-                      </button>
-                      <button onClick={() => router.push('/alerts')} className="pg-btn pg-btn-tertiary px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
-                        <ExternalLink className="h-3.5 w-3.5" />Saved &amp; Alerts
-                      </button>
-                      <button onClick={() => handleOpenSaveModal('alert')} className="pg-btn pg-btn-primary px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-1.5 shadow-sm">
-                        <Bell className="h-3.5 w-3.5" />Get Alerts
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Results display */}
+              {/* Results cards */}
               {filteredResults.length > 0 ? (
                 <>
                   {viewMode === 'list' ? (
-                    <div className="pg-search-results-list space-y-4">
+                    <div className="space-y-3">
                       {filteredResults.map((opp, idx) => (
-                        <ResultCard
-                          key={`${opp.noticeId || idx}`}
-                          opportunity={opp}
-                          index={idx}
-                          isExpanded={!!expanded[opp.noticeId || String(idx)]}
-                          toggleExpanded={toggleExpanded}
-                          isSaved={!!saved[opp.noticeId || String(idx)]}
-                          toggleSaved={toggleSaved}
-                          copyText={copyText}
-                          copiedId={copiedId}
-                        />
+                        <div key={opp.noticeId || idx}
+                          className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#166534]/40 transition-all p-5"
+                          style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
+                          {/* Title row */}
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <h3 className="text-base font-bold text-gray-900 leading-snug flex-1">
+                              {opp.uiLink
+                                ? <a href={opp.uiLink} target="_blank" rel="noopener noreferrer" className="hover:text-[#166534] hover:underline transition-colors">{opp.title || 'Untitled Opportunity'}</a>
+                                : (opp.title || 'Untitled Opportunity')}
+                            </h3>
+                            <button onClick={() => {
+                              if (!requireAccess('Save Opportunities')) return;
+                              toggleSaved(opp.noticeId || String(idx), opp);
+                            }} className="flex-shrink-0 mt-0.5">
+                              <Bookmark className={`h-5 w-5 transition-colors ${saved[opp.noticeId || String(idx)] ? 'fill-current text-orange-500' : 'text-gray-300 hover:text-orange-400'}`} />
+                            </button>
+                          </div>
+                          {/* Key fields grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 mb-3">
+                            {opp.solicitationNumber && (
+                              <div>
+                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Solicitation #</div>
+                                <div className="text-sm font-semibold text-gray-800">{opp.solicitationNumber}</div>
+                              </div>
+                            )}
+                            <div>
+                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Agency</div>
+                              <div className="text-sm font-semibold text-[#166534] line-clamp-1">{opp.department || opp.fullParentPathName || opp.office || '—'}</div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Set-Aside</div>
+                              <div className="text-sm font-semibold text-gray-800">{getSetAsideLabel(opp.typeOfSetAside || opp.setAside || '') || 'None'}</div>
+                            </div>
+                            <div>
+                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Location</div>
+                              <div className="text-sm font-semibold text-gray-800">{[opp.placeOfPerformance?.city?.name, opp.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || '—'}</div>
+                            </div>
+                            {opp.naicsCode && (
+                              <div>
+                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">NAICS</div>
+                                <div className="text-sm font-semibold text-gray-800">{opp.naicsCode}</div>
+                              </div>
+                            )}
+                            {opp.postedDate && (
+                              <div>
+                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Posted</div>
+                                <div className="text-sm font-semibold text-gray-800">{new Date(opp.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                              </div>
+                            )}
+                            {opp.responseDeadLine && (
+                              <div>
+                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Response Due</div>
+                                <div className={`text-sm font-bold ${new Date(opp.responseDeadLine).getTime() - Date.now() < 7 * 86400000 ? 'text-red-600' : 'text-amber-600'}`}>
+                                  {new Date(opp.responseDeadLine).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Actions */}
+                          <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+                            <button
+                              className="text-xs font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors"
+                              onClick={() => toggleExpanded(opp.noticeId || String(idx))}
+                            >
+                              {expanded[opp.noticeId || String(idx)] ? 'Hide Details' : 'View Details'}
+                            </button>
+                            {opp.uiLink && (
+                              <a href={opp.uiLink} target="_blank" rel="noopener noreferrer"
+                                className="text-xs font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors">
+                                SAM.gov <ArrowUpRight className="h-3.5 w-3.5" />
+                              </a>
+                            )}
+                            {copiedId === opp.noticeId ? (
+                              <span className="text-xs text-green-600 font-semibold">Copied!</span>
+                            ) : (
+                              <button onClick={() => copyText(opp.noticeId || '')}
+                                className="text-xs font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors">
+                                <Copy className="h-3 w-3" />Copy ID
+                              </button>
+                            )}
+                          </div>
+                          {expanded[opp.noticeId || String(idx)] && isAuthenticated && opp.description && (
+                            <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600 leading-relaxed line-clamp-6">
+                              {opp.description}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="pg-search-results-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredResults.map((opp, idx) => (
                         <OpportunityCard
-                          key={`${opp.noticeId || idx}`}
-                          opportunity={opp}
-                          index={idx}
+                          key={opp.noticeId || idx}
+                          opportunity={opp} index={idx}
                           isSaved={!!saved[opp.noticeId || String(idx)]}
                           toggleSaved={toggleSaved}
-                          copyText={copyText}
-                          copiedId={copiedId}
+                          copyText={copyText} copiedId={copiedId}
                         />
                       ))}
                     </div>
@@ -4520,43 +4021,22 @@ ${filteredResults.map(opp => `  <opportunity>
 
                   {/* Load more */}
                   {hasMoreResults && (
-                    <div className="mt-8 text-center">
-                      <button
-                        onClick={loadMoreResults}
-                        disabled={loadingMore}
-                        className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3 font-medium transition-all hover:border-[var(--color-primary)]/40 hover:text-[var(--color-primary)]"
-                      >
-                        {loadingMore ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4" />
-                            Load more results
-                          </>
-                        )}
+                    <div className="text-center py-4">
+                      <button onClick={() => runSearch(true)} disabled={loadingMore}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-[#166534] text-[#166534] font-bold text-sm hover:bg-green-50 transition-colors disabled:opacity-50">
+                        {loadingMore ? <><Loader2 className="h-4 w-4 animate-spin" />Loading…</> : <><Plus className="h-4 w-4" />Load more results</>}
                       </button>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="pg-search-empty rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center shadow-sm">
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                    <AlertCircle className="h-9 w-9 text-red-500" />
-                  </div>
-                  <h3 className="mb-2 text-2xl font-black text-[var(--color-text-primary)]">No Results Found</h3>
-                  <p className="mx-auto mb-6 max-w-sm text-base font-bold text-[var(--color-text-secondary)]">Your filters returned 0 opportunities. Try adjusting your search.</p>
-                  <div className="text-left max-w-sm mx-auto mb-8 space-y-2 bg-[var(--color-surface-muted)] rounded-xl p-5 border border-[var(--color-border)]">
-                    <p className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Suggestions</p>
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Remove or relax active filters</p>
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Use broader keywords (e.g., &quot;IT services&quot;)</p>
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Expand your date range</p>
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">✓ Try a different state or remove state filter</p>
-                  </div>
-                  <button onClick={resetAll} className="pg-btn pg-btn-primary px-8 py-3.5 rounded-lg transition-colors font-black text-base shadow-md">
-                    Clear All Filters &amp; Start Fresh
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm py-16 text-center">
+                  <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-black text-gray-900 mb-2" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>No Results Found</h3>
+                  <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">Your filters returned 0 opportunities. Try broadening your search.</p>
+                  <button onClick={resetAll}
+                    className="pgc-green px-6 py-3 rounded-xl bg-[#166534] hover:bg-[#14532d] text-white font-bold text-sm transition-colors">
+                    Clear All Filters &amp; Start Over
                   </button>
                 </div>
               )}
@@ -4564,68 +4044,63 @@ ${filteredResults.map(opp => `  <opportunity>
           )}
         </div>
 
-        {/* ── STEP 8: Add sticky prompt render just before closing main tag ── */}
+        {/* Sticky prompt */}
         {showStickyPrompt && !stickyPromptDismissed && filteredResults.length > 0 && (
           <StickyResultsPrompt
-            count={filteredResults.length}
-            keywords={keywords}
-            postedAfter={postedAfter}
-            responseDeadlineBefore={responseDeadlineBefore}
-            selectedSetAsides={selectedSetAsides}
-            selectedStates={selectedStates}
-            onSave={() => { handleOpenSaveModal('save'); setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
-            onAlert={() => { handleOpenSaveModal('alert'); setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
-            onDismiss={() => { setStickyPromptDismissed(true); setShowStickyPrompt(false) }}
+            count={filteredResults.length} keywords={keywords}
+            postedAfter={postedAfter} responseDeadlineBefore={responseDeadlineBefore}
+            selectedSetAsides={selectedSetAsides} selectedStates={selectedStates}
+            onSave={() => { handleOpenSaveModal('save'); setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
+            onAlert={() => { handleOpenSaveModal('alert'); setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
+            onDismiss={() => { setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
           />
+        )}
+
+        {/* Soft reminder at 10 / 15 min */}
+        <BrowseReminderModal
+          level={showReminderModal ? reminderLevel : 0}
+          onClose={() => setShowReminderModal(false)}
+          onSignUp={() => { setShowReminderModal(false); setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }}
+        />
+
+        {/* Hard lockout at 20 min */}
+        {showLockoutModal && !hasValidAccess && (
+          <LockoutModal onSignUp={() => { setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }} />
         )}
 
         {/* Modals */}
         <UnifiedSaveSearchModal
-          mode={saveModalMode}
-          isOpen={showSaveModal}
-          onClose={() => setShowSaveModal(false)}
+          mode={saveModalMode} isOpen={showSaveModal} onClose={() => setShowSaveModal(false)}
           searchParams={{
-            title: keywords.trim(),
-            postedFrom: postedAfter.trim(),
-            rdlto: responseDeadlineBefore.trim(),
-            solnum: solicitationNumber.trim(),
-            ptype: procurementType,
-            typeOfSetAside: setAsideCodesToString(selectedSetAsides),
-            status: opportunityStatus.trim(),
-            state: locationCodesToString(selectedStates),
-            ncode: naics.trim(),
-            ccode: classificationCode.trim(),
-            organizationName: agency.trim(),
+            title: keywords.trim(), postedFrom: postedAfter.trim(),
+            rdlto: responseDeadlineBefore.trim(), solnum: solicitationNumber.trim(),
+            ptype: procurementType, typeOfSetAside: setAsideCodesToString(selectedSetAsides),
+            status: opportunityStatus.trim(), state: locationCodesToString(selectedStates),
+            ncode: naics.trim(), ccode: classificationCode.trim(), organizationName: agency.trim(),
           }}
           onSave={handleSaveSuccess}
         />
-
         <SaveSearchSuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          searchName={successData.searchName}
-          isSubscription={successData.isSubscription}
+          isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)}
+          searchName={successData.searchName} isSubscription={successData.isSubscription}
         />
-                <AccessControlModal
-          isOpen={showAccessModal}
-          onClose={() => setShowAccessModal(false)}
+        <AccessControlModal
+          isOpen={showAccessModal} onClose={() => setShowAccessModal(false)}
           featureName={blockedFeature}
         />
-
       </main>
     </SearchErrorBoundary>
   )
 }
 
-// Export with Suspense wrapper
-export default function SearchPage() {
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-[var(--color-border)] border-t-transparent rounded-full"></div>
-      </div>
-    }>
-      <SearchPageContent />
-    </Suspense>
-  )
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-xs font-semibold"
+      style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}>
+      {label}
+      <button onClick={onRemove} className="hover:text-red-500 transition-colors ml-0.5">
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
 }

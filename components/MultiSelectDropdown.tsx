@@ -176,7 +176,11 @@ export function MultiSelectDropdown({
                             {isSelected && (
                               <Check className="h-4 w-4 text-emerald-600 flex-shrink-0" />
                             )}
-                            <span>{opt.label}</span>
+                            {/* Show NAICS as code only, suggestions faint */}
+                            <span className="text-gray-400 font-semibold">{opt.code}</span>
+                            {opt.label && (
+                              <span className="text-gray-300 ml-2">{opt.label}</span>
+                            )}
                           </div>
                           {opt.farReference && (
                             <div className="text-xs text-gray-500 ml-6">

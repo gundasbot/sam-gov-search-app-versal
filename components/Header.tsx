@@ -143,12 +143,12 @@ export default function Header() {
   }, [])
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
-  const activePillClasses = 'bg-[#ff7a18] text-white shadow-[0_12px_22px_rgba(255,122,24,0.42)] border border-[#ffb366]/60 ring-2 ring-[#ff7a18] ring-offset-1 ring-offset-white'
-  const inactivePillClasses = 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+  const activePillClasses = 'bg-[#ff7a18] text-white shadow-md border border-[#e86a10]'
+  const inactivePillClasses = 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
 
-  // Shared nav link classes — tighter at lg, comfortable at xl+
-  const navLinkBase = 'flex items-center gap-1.5 whitespace-nowrap rounded-xl font-semibold tracking-tight transition-all'
-  const navLinkSize = 'px-2.5 py-2 text-[0.88rem] xl:px-3.5 xl:py-2.5 xl:text-[0.98rem] 2xl:px-4 2xl:text-[1.05rem]'
+  // Nav link sizing — compact enough that all 9 items fit at lg without any overflow or clipping
+  const navLinkBase = 'flex items-center gap-1 whitespace-nowrap rounded-lg font-semibold tracking-tight transition-all flex-shrink-0'
+  const navLinkSize = 'px-2 py-1.5 text-[0.78rem] lg:text-[0.8rem] xl:px-2.5 xl:text-[0.88rem] 2xl:px-3 2xl:text-[0.95rem]'
 
   return (
     <>
@@ -157,6 +157,7 @@ export default function Header() {
         .animate-scroll { animation: scroll 60s linear infinite; }
         .header-nav-scroll {
           scrollbar-width: none;
+          overflow: visible;
         }
         .header-nav-scroll::-webkit-scrollbar {
           display: none;
@@ -231,7 +232,7 @@ export default function Header() {
         }`}
       >
         <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8">
-          <div className="flex h-24 items-center justify-between gap-3 sm:h-24 lg:h-[104px] xl:gap-5">
+          <div className="flex h-[72px] items-center justify-between gap-3 sm:h-[72px] lg:h-[80px] xl:gap-4">
 
             {/* ── Logo ── */}
             <Link
@@ -246,7 +247,7 @@ export default function Header() {
                 alt="Precise GovCon"
                 width={56}
                 height={56}
-                className="h-11 w-11 flex-shrink-0 transition-transform group-hover:scale-105 sm:h-11 sm:w-11 lg:h-14 lg:w-14 xl:h-14 xl:w-14"
+                className="h-10 w-10 flex-shrink-0 transition-transform group-hover:scale-105 sm:h-10 sm:w-10 lg:h-11 lg:w-11 xl:h-12 xl:w-12"
               />
               <div className="flex flex-col gap-0.5">
                 <div
@@ -264,7 +265,7 @@ export default function Header() {
 
             {/* ── Desktop Nav ── */}
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-              <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm shadow-sm overflow-x-auto xl:gap-1.5 xl:px-2.5">
+              <nav className="header-nav-scroll flex w-full flex-nowrap items-center justify-between gap-0.5 rounded-xl border border-slate-200 bg-slate-50 px-1.5 py-1.5 shadow-sm xl:gap-1 xl:px-2">
                 {[
                   { href: '/search', label: 'Search', icon: <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
@@ -408,7 +409,7 @@ export default function Header() {
           </div>
         </div>
       </header>
-      <div aria-hidden className="h-[148px] sm:h-[154px] lg:h-[172px]" />
+      <div aria-hidden className="h-[112px] sm:h-[116px] lg:h-[124px]" />
 
       {/* ── MOBILE MENU ── */}
       {/* Backdrop */}
@@ -447,7 +448,7 @@ export default function Header() {
               return (
                 <Link key={href} href={href} prefetch={false} onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-base transition-colors ${
-                    active ? 'bg-[#ff7a18] text-white shadow-[0_8px_18px_rgba(255,122,24,0.35)]' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
+                    active ? 'bg-[#ff7a18] text-white shadow-md' : 'hover:bg-slate-50 text-slate-500 hover:text-slate-900'
                   }`}
                 >
                   {icon}{label}
