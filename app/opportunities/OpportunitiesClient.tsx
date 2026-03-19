@@ -71,7 +71,8 @@ interface SamOpportunity {
 
 // View mode types
 type ViewMode = 'list' | 'grid' | 'compact';
-type GroupMode = 'none' | 'department' | 'urgency' | 'setaside';
+type GroupMode = 'none' | 'department' | 'urgency' | 'setaside' | 'naics' | 'state' | 'deadline_month';
+type SortMode = 'deadline_asc' | 'deadline_desc' | 'posted_desc' | 'posted_asc' | 'title_asc' | 'agency_asc';
 
 const USE_MOCK_OPPORTUNITIES = true;
 
@@ -93,14 +94,28 @@ const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (
   }
 }));
 
+// Helper: compute a responseDeadLine N *business* days from now so mock cards always
+// land in the correct board column regardless of when the page is loaded.
+const _bd = (businessDays: number): string => {
+  const d = new Date();
+  let added = 0;
+  while (added < businessDays) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) added++; // skip Sat/Sun
+  }
+  return d.toISOString();
+};
+
 const MOCK_OPPORTUNITIES: SamOpportunity[] = [
+  // ── CRITICAL (≤3 bd) ──────────────────────────────────────────────────────
   {
     noticeId: 'FA-8900-DEF',
     title: 'Defensive Cyber Operations Surge',
     solicitationNumber: 'FA-8900-DEF-2026',
     department: 'Department of the Air Force',
     postedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 5 * 86400000).toISOString(),
+    responseDeadLine: _bd(2),
     naicsCode: '541512',
     classificationCode: 'D318',
     typeOfSetAsideDescription: 'SDVOSB',
@@ -108,59 +123,34 @@ const MOCK_OPPORTUNITIES: SamOpportunity[] = [
     setAside: 'SDVOSBC',
     uiLink: '#',
     fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE AIR FORCE',
-    placeOfPerformance: {
-      city: { name: 'Langley AFB' },
-      state: { code: 'VA', name: 'Virginia' },
-    },
+    placeOfPerformance: { city: { name: 'Langley AFB' }, state: { code: 'VA', name: 'Virginia' } },
     pointOfContact: [{ fullname: 'Capt. Jordan Blake', email: 'jordan.blake@us.af.mil' }],
   },
   {
-    noticeId: '70RD-CLOUD-24',
-    title: 'DHS Secure Cloud Migration Pod',
-    solicitationNumber: '70RD2026CLD',
-    department: 'Department of Homeland Security',
-    postedDate: new Date(Date.now() - 4 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 9 * 86400000).toISOString(),
-    naicsCode: '541519',
-    classificationCode: 'D307',
-    typeOfSetAsideDescription: 'Small Business',
-    typeOfSetAside: 'SBA',
-    setAside: 'SBA',
-    uiLink: '#',
-    fullParentPathName: 'DEPT OF HOMELAND SECURITY:OFFICE OF THE CTO',
-    placeOfPerformance: {
-      city: { name: 'Washington' },
-      state: { code: 'DC', name: 'District of Columbia' },
-    },
-    pointOfContact: [{ fullname: 'Priya Shah', email: 'priya.shah@hq.dhs.gov' }],
-  },
-  {
-    noticeId: '36C10B-ANL-007',
-    title: 'VA Analytics Modernization Phase II',
-    solicitationNumber: '36C10B-2026-ANL',
-    department: 'Department of Veterans Affairs',
+    noticeId: 'CRIT-SOC-001',
+    title: 'Army SOC Network Hardening Sprint',
+    solicitationNumber: 'W91CRB-26-SOC-001',
+    department: 'Department of the Army',
     postedDate: new Date(Date.now() - 1 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 12 * 86400000).toISOString(),
-    naicsCode: '541611',
-    classificationCode: 'R699',
+    responseDeadLine: _bd(1),
+    naicsCode: '541512',
+    classificationCode: 'D302',
     typeOfSetAsideDescription: 'SDVOSB',
     typeOfSetAside: 'SDVOSBC',
     setAside: 'SDVOSBC',
     uiLink: '#',
-    fullParentPathName: 'DEPT OF VETERANS AFFAIRS:TECHNOLOGY ACQUISITION CENTER',
-    placeOfPerformance: {
-      city: { name: 'Austin' },
-      state: { code: 'TX', name: 'Texas' },
-    },
-    pointOfContact: [{ fullname: 'Nina Torres', email: 'nina.torres@va.gov' }],
+    fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE ARMY',
+    placeOfPerformance: { city: { name: 'Fort Belvoir' }, state: { code: 'VA', name: 'Virginia' } },
+    pointOfContact: [{ fullname: 'Sgt. Maj. Dana Cole', email: 'dana.cole@army.mil' }],
   },
+  // ── URGENT (4-5 bd) ───────────────────────────────────────────────────────
   {
     noticeId: 'N66001-AI-2026',
     title: 'Naval AI Decision Support Toolkit',
     solicitationNumber: 'N66001-26-AI-DST',
     department: 'Department of the Navy',
     postedDate: new Date(Date.now() - 3 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 7 * 86400000).toISOString(),
+    responseDeadLine: _bd(5),
     naicsCode: '541715',
     classificationCode: 'AJ13',
     typeOfSetAsideDescription: '8(a) Program',
@@ -168,19 +158,139 @@ const MOCK_OPPORTUNITIES: SamOpportunity[] = [
     setAside: '8A',
     uiLink: '#',
     fullParentPathName: 'DEPT OF DEFENSE:DEPT OF THE NAVY',
-    placeOfPerformance: {
-      city: { name: 'San Diego' },
-      state: { code: 'CA', name: 'California' },
-    },
+    placeOfPerformance: { city: { name: 'San Diego' }, state: { code: 'CA', name: 'California' } },
     pointOfContact: [{ fullname: 'Andrea Lee', email: 'andrea.lee@navy.mil' }],
   },
+  {
+    noticeId: 'URG-DHS-002',
+    title: 'DHS Biometric Identity Verification System',
+    solicitationNumber: '70RDGE-26-BIV-002',
+    department: 'Department of Homeland Security',
+    postedDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+    responseDeadLine: _bd(4),
+    naicsCode: '541519',
+    classificationCode: 'D307',
+    typeOfSetAsideDescription: 'Small Business',
+    typeOfSetAside: 'SBA',
+    setAside: 'SBA',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF HOMELAND SECURITY:CISA',
+    placeOfPerformance: { city: { name: 'Arlington' }, state: { code: 'VA', name: 'Virginia' } },
+    pointOfContact: [{ fullname: 'Marcus Webb', email: 'marcus.webb@cisa.dhs.gov' }],
+  },
+  // ── HIGH (6-7 bd) ─────────────────────────────────────────────────────────
+  {
+    noticeId: 'HIGH-DOJ-003',
+    title: 'DOJ eDiscovery Platform Modernization',
+    solicitationNumber: 'GS-35F-DOJ-2026-001',
+    department: 'Department of Justice',
+    postedDate: new Date(Date.now() - 4 * 86400000).toISOString(),
+    responseDeadLine: _bd(7),
+    naicsCode: '541511',
+    classificationCode: 'D399',
+    typeOfSetAsideDescription: 'Woman Owned Small Business',
+    typeOfSetAside: 'WOSB',
+    setAside: 'WOSB',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF JUSTICE:EXECUTIVE OFFICE',
+    placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } },
+    pointOfContact: [{ fullname: 'Rachel Kim', email: 'rachel.kim@usdoj.gov' }],
+  },
+  {
+    noticeId: 'HIGH-HHS-004',
+    title: 'HHS Public Health Data Interoperability',
+    solicitationNumber: 'HHS-2026-PH-DI-004',
+    department: 'Dept of Health and Human Services',
+    postedDate: new Date(Date.now() - 3 * 86400000).toISOString(),
+    responseDeadLine: _bd(6),
+    naicsCode: '541613',
+    classificationCode: 'R425',
+    typeOfSetAsideDescription: '8(a) Program',
+    typeOfSetAside: '8A',
+    setAside: '8A',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF HEALTH AND HUMAN SERVICES:CDC',
+    placeOfPerformance: { city: { name: 'Atlanta' }, state: { code: 'GA', name: 'Georgia' } },
+    pointOfContact: [{ fullname: 'Dr. Priya Shah', email: 'priya.shah@cdc.hhs.gov' }],
+  },
+  // ── ACT SOON (8-10 bd) ────────────────────────────────────────────────────
+  {
+    noticeId: '70RD-CLOUD-24',
+    title: 'DHS Secure Cloud Migration Pod',
+    solicitationNumber: '70RD2026CLD',
+    department: 'Department of Homeland Security',
+    postedDate: new Date(Date.now() - 4 * 86400000).toISOString(),
+    responseDeadLine: _bd(9),
+    naicsCode: '541519',
+    classificationCode: 'D307',
+    typeOfSetAsideDescription: 'Small Business',
+    typeOfSetAside: 'SBA',
+    setAside: 'SBA',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF HOMELAND SECURITY:OFFICE OF THE CTO',
+    placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } },
+    pointOfContact: [{ fullname: 'Priya Shah', email: 'priya.shah@hq.dhs.gov' }],
+  },
+  {
+    noticeId: 'ACT-DOE-005',
+    title: 'DOE Grid Resilience Analytics Dashboard',
+    solicitationNumber: 'DE-SOL-26-GRID-005',
+    department: 'Department of Energy',
+    postedDate: new Date(Date.now() - 5 * 86400000).toISOString(),
+    responseDeadLine: _bd(10),
+    naicsCode: '541690',
+    classificationCode: 'R408',
+    typeOfSetAsideDescription: 'HUBZone',
+    typeOfSetAside: 'HZC',
+    setAside: 'HZC',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF ENERGY:OFFICE OF ELECTRICITY',
+    placeOfPerformance: { city: { name: 'Oak Ridge' }, state: { code: 'TN', name: 'Tennessee' } },
+    pointOfContact: [{ fullname: 'Elena Watts', email: 'elena.watts@doe.gov' }],
+  },
+  // ── NORMAL (11-14 bd) ─────────────────────────────────────────────────────
+  {
+    noticeId: '36C10B-ANL-007',
+    title: 'VA Analytics Modernization Phase II',
+    solicitationNumber: '36C10B-2026-ANL',
+    department: 'Department of Veterans Affairs',
+    postedDate: new Date(Date.now() - 1 * 86400000).toISOString(),
+    responseDeadLine: _bd(12),
+    naicsCode: '541611',
+    classificationCode: 'R699',
+    typeOfSetAsideDescription: 'SDVOSB',
+    typeOfSetAside: 'SDVOSBC',
+    setAside: 'SDVOSBC',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF VETERANS AFFAIRS:TECHNOLOGY ACQUISITION CENTER',
+    placeOfPerformance: { city: { name: 'Austin' }, state: { code: 'TX', name: 'Texas' } },
+    pointOfContact: [{ fullname: 'Nina Torres', email: 'nina.torres@va.gov' }],
+  },
+  {
+    noticeId: 'NORM-NASA-006',
+    title: 'NASA Mission Data Telemetry Processing',
+    solicitationNumber: 'NNH26ZTT006N',
+    department: 'NASA',
+    postedDate: new Date(Date.now() - 6 * 86400000).toISOString(),
+    responseDeadLine: _bd(14),
+    naicsCode: '541715',
+    classificationCode: 'AC14',
+    typeOfSetAsideDescription: 'Small Business',
+    typeOfSetAside: 'SBA',
+    setAside: 'SBA',
+    uiLink: '#',
+    fullParentPathName: 'NATIONAL AERONAUTICS AND SPACE ADMINISTRATION:GSFC',
+    placeOfPerformance: { city: { name: 'Greenbelt' }, state: { code: 'MD', name: 'Maryland' } },
+    pointOfContact: [{ fullname: 'James Okafor', email: 'james.okafor@nasa.gov' }],
+  },
+  // ── COMFORTABLE (15-21 bd) ────────────────────────────────────────────────
   {
     noticeId: 'HQ0034-ZT-OPS',
     title: 'Pentagon Zero Trust Operations Cell',
     solicitationNumber: 'HQ0034-26-ZT',
     department: 'Department of Defense',
     postedDate: new Date(Date.now() - 5 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 15 * 86400000).toISOString(),
+    responseDeadLine: _bd(18),
     naicsCode: '541512',
     classificationCode: 'D302',
     typeOfSetAsideDescription: 'Small Business',
@@ -188,19 +298,34 @@ const MOCK_OPPORTUNITIES: SamOpportunity[] = [
     setAside: 'SBA',
     uiLink: '#',
     fullParentPathName: 'OFFICE OF THE SECRETARY OF DEFENSE',
-    placeOfPerformance: {
-      city: { name: 'Arlington' },
-      state: { code: 'VA', name: 'Virginia' },
-    },
+    placeOfPerformance: { city: { name: 'Arlington' }, state: { code: 'VA', name: 'Virginia' } },
     pointOfContact: [{ fullname: 'Derrick Miles', email: 'derrick.miles@osd.mil' }],
   },
+  {
+    noticeId: 'COMF-USDA-007',
+    title: 'USDA Rural Broadband Infrastructure Analytics',
+    solicitationNumber: 'USDA-RUS-26-BB-007',
+    department: 'Dept of Agriculture',
+    postedDate: new Date(Date.now() - 7 * 86400000).toISOString(),
+    responseDeadLine: _bd(21),
+    naicsCode: '541519',
+    classificationCode: 'D308',
+    typeOfSetAsideDescription: 'Woman Owned Small Business',
+    typeOfSetAside: 'WOSB',
+    setAside: 'WOSB',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF AGRICULTURE:RURAL UTILITIES SERVICE',
+    placeOfPerformance: { city: { name: 'Washington' }, state: { code: 'DC', name: 'District of Columbia' } },
+    pointOfContact: [{ fullname: 'Leah Martinez', email: 'leah.martinez@usda.gov' }],
+  },
+  // ── AMPLE (22-30 bd) ──────────────────────────────────────────────────────
   {
     noticeId: 'GS-00F-NextGen',
     title: 'GSA NextGen Support Desk Expansion',
     solicitationNumber: 'GS-00F-NXT-2026',
     department: 'General Services Administration',
     postedDate: new Date(Date.now() - 6 * 86400000).toISOString(),
-    responseDeadLine: new Date(Date.now() + 20 * 86400000).toISOString(),
+    responseDeadLine: _bd(25),
     naicsCode: '541513',
     classificationCode: 'D305',
     typeOfSetAsideDescription: 'Woman Owned Small Business',
@@ -213,6 +338,58 @@ const MOCK_OPPORTUNITIES: SamOpportunity[] = [
       state: { code: 'MO', name: 'Missouri' },
     },
     pointOfContact: [{ fullname: 'Morgan Ellis', email: 'morgan.ellis@gsa.gov' }],
+  },
+  {
+    noticeId: 'AMPL-DOT-008',
+    title: 'DOT Connected Infrastructure Data Hub',
+    solicitationNumber: 'DTFH-26-R-00008',
+    department: 'Department of Transportation',
+    postedDate: new Date(Date.now() - 8 * 86400000).toISOString(),
+    responseDeadLine: _bd(28),
+    naicsCode: '541512',
+    classificationCode: 'D312',
+    typeOfSetAsideDescription: 'SDVOSB',
+    typeOfSetAside: 'SDVOSBC',
+    setAside: 'SDVOSBC',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF TRANSPORTATION:FHWA',
+    placeOfPerformance: { city: { name: 'McLean' }, state: { code: 'VA', name: 'Virginia' } },
+    pointOfContact: [{ fullname: 'Carl Thompson', email: 'carl.thompson@dot.gov' }],
+  },
+  // ── PLENTY (31+ bd) ───────────────────────────────────────────────────────
+  {
+    noticeId: 'PLNT-DOI-009',
+    title: 'Interior Dept Land Management GIS Modernization',
+    solicitationNumber: 'D26PX26009',
+    department: 'Department of the Interior',
+    postedDate: new Date(Date.now() - 10 * 86400000).toISOString(),
+    responseDeadLine: _bd(45),
+    naicsCode: '541360',
+    classificationCode: 'D308',
+    typeOfSetAsideDescription: 'Small Business',
+    typeOfSetAside: 'SBA',
+    setAside: 'SBA',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF THE INTERIOR:BLM',
+    placeOfPerformance: { city: { name: 'Denver' }, state: { code: 'CO', name: 'Colorado' } },
+    pointOfContact: [{ fullname: 'Sandra Runs', email: 'sandra.runs@blm.doi.gov' }],
+  },
+  {
+    noticeId: 'PLNT-TREAS-010',
+    title: 'Treasury Financial Crimes Analytics Platform',
+    solicitationNumber: 'TREAS-FINCEN-26-010',
+    department: 'Department of the Treasury',
+    postedDate: new Date(Date.now() - 9 * 86400000).toISOString(),
+    responseDeadLine: _bd(60),
+    naicsCode: '541511',
+    classificationCode: 'D399',
+    typeOfSetAsideDescription: '8(a) Program',
+    typeOfSetAside: '8A',
+    setAside: '8A',
+    uiLink: '#',
+    fullParentPathName: 'DEPT OF THE TREASURY:FINCEN',
+    placeOfPerformance: { city: { name: 'Vienna' }, state: { code: 'VA', name: 'Virginia' } },
+    pointOfContact: [{ fullname: 'Omar Reeves', email: 'omar.reeves@fincen.treas.gov' }],
   },
 ]
 
@@ -496,24 +673,24 @@ const hasSetAside = (o: SamOpportunity): boolean => {
 
 // Set-aside code ΓåÆ { label, color, bg, text } based on SAM.gov official codes
 const SET_ASIDE_STYLES: Record<string, { label: string; color: string; bg: string; text: string }> = {
-  SBA:       { label: 'Small Business',           color: '#eab308', bg: 'rgba(234,179,8,0.15)',   text: '#fde047' },
-  SBP:       { label: 'Partial SB',               color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  text: '#fcd34d' },
-  '8A':      { label: '8(a)',                      color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)',  text: '#c4b5fd' },
-  '8AN':     { label: '8(a) Sole Source',          color: '#7c3aed', bg: 'rgba(124,58,237,0.15)',  text: '#a78bfa' },
-  HZC:       { label: 'HUBZone',                   color: '#06b6d4', bg: 'rgba(6,182,212,0.15)',   text: '#67e8f9' },
-  HZS:       { label: 'HUBZone Sole',              color: '#0891b2', bg: 'rgba(8,145,178,0.15)',   text: '#38bdf8' },
-  SDVOSBC:   { label: 'SDVOSB',                    color: '#22c55e', bg: 'rgba(34,197,94,0.15)',   text: '#86efac' },
-  SDVOSBS:   { label: 'SDVOSB Sole',               color: '#16a34a', bg: 'rgba(22,163,74,0.15)',   text: '#4ade80' },
-  WOSB:      { label: 'WOSB',                      color: '#ec4899', bg: 'rgba(236,72,153,0.15)',  text: '#f9a8d4' },
-  WOSBSS:    { label: 'WOSB Sole',                 color: '#db2777', bg: 'rgba(219,39,119,0.15)',  text: '#f472b6' },
-  EDWOSB:    { label: 'EDWOSB',                    color: '#f43f5e', bg: 'rgba(244,63,94,0.15)',   text: '#fda4af' },
-  EDWOSBSS:  { label: 'EDWOSB Sole',               color: '#e11d48', bg: 'rgba(225,29,72,0.15)',   text: '#fb7185' },
-  VSA:       { label: 'VOSB',                      color: '#3b82f6', bg: 'rgba(59,130,246,0.15)',  text: '#93c5fd' },
-  VSS:       { label: 'VOSB Sole',                 color: '#2563eb', bg: 'rgba(37,99,235,0.15)',   text: '#60a5fa' },
-  LAS:       { label: 'Local Area',                color: '#14b8a6', bg: 'rgba(20,184,166,0.15)',  text: '#5eead4' },
-  IEE:       { label: 'Indian Econ',               color: '#f97316', bg: 'rgba(249,115,22,0.15)',  text: '#fdba74' },
-  ISBEE:     { label: 'Indian SB Econ',            color: '#ea580c', bg: 'rgba(234,88,12,0.15)',   text: '#fb923c' },
-  BICIVC:    { label: 'Buy Indian',                color: '#d97706', bg: 'rgba(217,119,6,0.15)',   text: '#fbbf24' },
+  SBA:       { label: 'Small Business',           color: '#854d0e', bg: '#422006',   text: '#fde047' },
+  SBP:       { label: 'Partial SB',               color: '#92400e', bg: '#451a03',   text: '#fcd34d' },
+  '8A':      { label: '8(a)',                      color: '#5b21b6', bg: '#2e1065',   text: '#c4b5fd' },
+  '8AN':     { label: '8(a) Sole Source',          color: '#4c1d95', bg: '#1e0a4a',   text: '#a78bfa' },
+  HZC:       { label: 'HUBZone',                   color: '#155e75', bg: '#0c2a33',   text: '#67e8f9' },
+  HZS:       { label: 'HUBZone Sole',              color: '#0e4f63', bg: '#082028',   text: '#38bdf8' },
+  SDVOSBC:   { label: 'SDVOSB',                    color: '#166534', bg: '#052e16',   text: '#86efac' },
+  SDVOSBS:   { label: 'SDVOSB Sole',               color: '#14532d', bg: '#041f0f',   text: '#4ade80' },
+  WOSB:      { label: 'WOSB',                      color: '#9d174d', bg: '#4a0728',   text: '#f9a8d4' },
+  WOSBSS:    { label: 'WOSB Sole',                 color: '#831843', bg: '#3d0320',   text: '#f472b6' },
+  EDWOSB:    { label: 'EDWOSB',                    color: '#9f1239', bg: '#4c0519',   text: '#fda4af' },
+  EDWOSBSS:  { label: 'EDWOSB Sole',               color: '#881337', bg: '#420514',   text: '#fb7185' },
+  VSA:       { label: 'VOSB',                      color: '#1e3a8a', bg: '#0d1f4a',   text: '#93c5fd' },
+  VSS:       { label: 'VOSB Sole',                 color: '#1e40af', bg: '#0e2257',   text: '#60a5fa' },
+  LAS:       { label: 'Local Area',                color: '#134e4a', bg: '#062826',   text: '#5eead4' },
+  IEE:       { label: 'Indian Econ',               color: '#7c2d12', bg: '#3b0f05',   text: '#fdba74' },
+  ISBEE:     { label: 'Indian SB Econ',            color: '#7a2e0e', bg: '#391008',   text: '#fb923c' },
+  BICIVC:    { label: 'Buy Indian',                color: '#78350f', bg: '#3a1a04',   text: '#fbbf24' },
 };
 
 const getSetAsideStyle = (opp: SamOpportunity) => {
@@ -598,6 +775,7 @@ export default function OpportunitiesClient() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [groupMode, setGroupMode] = useState<GroupMode>('urgency');
+  const [sortMode, setSortMode] = useState<SortMode>('deadline_asc');
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [showPrefsReminder, setShowPrefsReminder] = useState(false);
   const [selectedOpp, setSelectedOpp] = useState<SamOpportunity | null>(null);
@@ -688,6 +866,59 @@ export default function OpportunitiesClient() {
 
   const [userAchievement, setUserAchievement] = useState('');
   const [userTip, setUserTip] = useState('');
+
+  // ── Weekly SAM.gov cache fetch for guests ──────────────────────────────
+  // Attempts to load a fresh slice of live SAM.gov data once per week,
+  // falling back to MOCK_OPPORTUNITIES if unavailable.
+  const [guestDataLoading, setGuestDataLoading] = useState(false);
+  const [guestDataFreshAt, setGuestDataFreshAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isLoggedIn || sessionStatus === 'loading') return;
+    const CACHE_KEY = 'pgc_guest_opps_v1';
+    const CACHE_TS_KEY = 'pgc_guest_opps_ts_v1';
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const cached = localStorage.getItem(CACHE_KEY);
+    const cachedTs = localStorage.getItem(CACHE_TS_KEY);
+    const isStale = !cachedTs || Date.now() - Number(cachedTs) > ONE_WEEK_MS;
+
+    if (cached && !isStale) {
+      try {
+        const parsed = JSON.parse(cached) as SamOpportunity[];
+        if (parsed.length > 0) {
+          setAllOpportunities(parsed);
+          setDataLoaded(true);
+          setGuestDataFreshAt(new Date(Number(cachedTs)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+          setLastUpdated(`Cached ${new Date(Number(cachedTs)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+          return;
+        }
+      } catch { /* fall through to fetch */ }
+    }
+
+    // Fetch fresh slice from SAM.gov API route
+    setGuestDataLoading(true);
+    fetch('/api/sam/opportunities?limit=20&status=active')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const opps: SamOpportunity[] = (data?.opportunities ?? []).map(normalizeOpportunity);
+        if (opps.length > 0) {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(opps));
+          localStorage.setItem(CACHE_TS_KEY, String(Date.now()));
+          setAllOpportunities(opps);
+          setGuestDataFreshAt(new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+          setLastUpdated('Just now');
+        } else {
+          // API unavailable — stay with mock data (handled by filter effect)
+        }
+      })
+      .catch(() => { /* stay with mock data */ })
+      .finally(() => {
+        setDataLoaded(true);
+        setGuestDataLoading(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, sessionStatus]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -865,7 +1096,6 @@ export default function OpportunitiesClient() {
     }
 
     // Date-based filtering - only filter out expired opportunities
-    // Only filter out expired opportunities ΓÇö no future cap, all opps show
     const now = new Date();
     filtered = filtered.filter(opp => {
       const deadline = getEffectiveDeadline(opp);
@@ -873,14 +1103,12 @@ export default function OpportunitiesClient() {
       return deadline >= now;
     });
 
-    // Sort by urgency (most urgent FIRST)
+    // Default sort: soonest deadline first (callers can re-sort after)
     filtered.sort((a, b) => {
-      const deadlineA = getEffectiveDeadline(a);
-      const deadlineB = getEffectiveDeadline(b);
-      
-      const bdA = getBusinessDaysUntil(deadlineA) ?? 9999;
-      const bdB = getBusinessDaysUntil(deadlineB) ?? 9999;
-      
+      const dA = getEffectiveDeadline(a);
+      const dB = getEffectiveDeadline(b);
+      const bdA = getBusinessDaysUntil(dA) ?? 9999;
+      const bdB = getBusinessDaysUntil(dB) ?? 9999;
       return bdA - bdB;
     });
 
@@ -1042,6 +1270,37 @@ Provide analysis in JSON format with:
   };
 
   const handleRefresh = async () => {
+    // Guests: reload from weekly cache or mock — never hit the live API
+    if (!isLoggedIn) {
+      setRefreshIndicator(true);
+      // Try to reload from localStorage cache first
+      try {
+        const cached = localStorage.getItem('pgc_guest_opps_v1');
+        if (cached) {
+          const parsed = JSON.parse(cached) as SamOpportunity[];
+          if (parsed.length > 0) {
+            setAllOpportunities(parsed);
+            setDataLoaded(true);
+          } else {
+            setAllOpportunities(MOCK_OPPORTUNITIES);
+          }
+        } else {
+          setAllOpportunities(MOCK_OPPORTUNITIES);
+        }
+      } catch {
+        setAllOpportunities(MOCK_OPPORTUNITIES);
+      }
+      setSelectedUrgencyFilters(new Set());
+      setActiveFilter(null);
+      setKeywordSearch('');
+      setSearchTerm('');
+      setShowAllOpportunities(false);
+      setShowMoreBands({});
+      setToast({ type: 'success', msg: 'Opportunities refreshed.' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => setRefreshIndicator(false), 600);
+      return;
+    }
     setLoadingMore(true);
     setRefreshIndicator(true);
     try {
@@ -1233,66 +1492,64 @@ Provide analysis in JSON format with:
   // }, [dataLoaded, dataSource, isLoggedIn, sessionStatus]);
 
   // Apply filters whenever dependencies change
-  const DEFAULT_DISPLAY_COUNT = 96; // Ensure all columns fill for unsigned-in users
+  const DEFAULT_DISPLAY_COUNT = 96;
+
+  // Sort helper — applied after filtering
+  const sortOpportunities = useCallback((opps: SamOpportunity[], mode: SortMode): SamOpportunity[] => {
+    const arr = [...opps];
+    switch (mode) {
+      case 'deadline_asc':
+        return arr.sort((a, b) => (getBusinessDaysUntil(getEffectiveDeadline(a)) ?? 9999) - (getBusinessDaysUntil(getEffectiveDeadline(b)) ?? 9999));
+      case 'deadline_desc':
+        return arr.sort((a, b) => (getBusinessDaysUntil(getEffectiveDeadline(b)) ?? -1) - (getBusinessDaysUntil(getEffectiveDeadline(a)) ?? -1));
+      case 'posted_desc':
+        return arr.sort((a, b) => new Date(getEffectivePostedDate(b)).getTime() - new Date(getEffectivePostedDate(a)).getTime());
+      case 'posted_asc':
+        return arr.sort((a, b) => new Date(getEffectivePostedDate(a)).getTime() - new Date(getEffectivePostedDate(b)).getTime());
+      case 'title_asc':
+        return arr.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      case 'agency_asc':
+        return arr.sort((a, b) => (a.department || '').localeCompare(b.department || ''));
+      default:
+        return arr;
+    }
+  }, []);
+
   useEffect(() => {
-    // For logged-out users, use mock data and treat as loaded
-    if (!isLoggedIn && !dataLoaded && allOpportunities.length === 0) {
-      setAllOpportunities(MOCK_OPPORTUNITIES);
-      setDataLoaded(true);
-      setLastUpdated('Just now');
+    // For logged-out users, always use mock data — never allow live data to leak in
+    if (!isLoggedIn) {
+      const mockData = MOCK_OPPORTUNITIES;
+      if (allOpportunities !== mockData && allOpportunities.length !== mockData.length) {
+        setAllOpportunities(mockData);
+      }
+      if (!dataLoaded) {
+        setDataLoaded(true);
+        setLastUpdated('Just now');
+      }
+      const filtered = sortOpportunities(
+        applyFilters(mockData, filterParam, searchTerm, selectedType, selectedSetAside,
+          activeFilter, selectedAgency, selectedNAICS, selectedUrgency, selectedUrgencyFilters, showAllOpportunities),
+        sortMode
+      );
+      setFilteredOpportunities(filtered);
+      setDisplayedOpportunities(filtered);
+      setDisplayCount(filtered.length);
       return;
     }
     if (dataLoaded) {
-      let filtered = applyFilters(
-        allOpportunities,
-        filterParam,
-        searchTerm,
-        selectedType,
-        selectedSetAside,
-        activeFilter,
-        selectedAgency,
-        selectedNAICS,
-        selectedUrgency,
-        selectedUrgencyFilters,
-        showAllOpportunities
+      const filtered = sortOpportunities(
+        applyFilters(allOpportunities, filterParam, searchTerm, selectedType, selectedSetAside,
+          activeFilter, selectedAgency, selectedNAICS, selectedUrgency, selectedUrgencyFilters, showAllOpportunities),
+        sortMode
       );
-
-      // Debug: log state after toggling showAllOpportunities
-      console.log('UI filter state:', {
-        allOpportunities: allOpportunities.length,
-        filtered: filtered.length,
-        showAllOpportunities,
-        isLoggedIn,
-        opportunityPreferences,
-      });
-
-      if (!isLoggedIn) {
-        let toShow = filtered;
-        if (toShow.length < 40) {
-          const needed = 40 - toShow.length;
-          let mockFill = [];
-          for (let i = 0; i < needed; i++) {
-            mockFill.push({ ...MOCK_OPPORTUNITIES[i % MOCK_OPPORTUNITIES.length], noticeId: `mock-fill-${i}` });
-          }
-          toShow = [...toShow, ...mockFill];
-        }
-        setFilteredOpportunities(toShow);
-        setDisplayedOpportunities(toShow);
-        setDisplayCount(toShow.length);
-      } else if (isLoggedIn && !showAllOpportunities) {
-        setFilteredOpportunities(filtered);
-        setDisplayedOpportunities(filtered);
-        setDisplayCount(filtered.length);
-      } else if (isLoggedIn && showAllOpportunities) {
-        setFilteredOpportunities(allOpportunities);
-        setDisplayedOpportunities(allOpportunities);
-        setDisplayCount(allOpportunities.length);
-      }
+      setFilteredOpportunities(filtered);
+      setDisplayedOpportunities(filtered);
+      setDisplayCount(filtered.length);
     }
   }, [
-    allOpportunities, filterParam, searchTerm, selectedType, selectedSetAside, 
-    dataLoaded, activeFilter, applyFilters, selectedAgency, selectedNAICS, 
-    selectedUrgency, selectedUrgencyFilters, showAllOpportunities, isLoggedIn, opportunityPreferences
+    allOpportunities, filterParam, searchTerm, selectedType, selectedSetAside,
+    dataLoaded, activeFilter, applyFilters, sortOpportunities, selectedAgency, selectedNAICS,
+    selectedUrgency, selectedUrgencyFilters, showAllOpportunities, isLoggedIn, opportunityPreferences, sortMode
   ]);
 
   // 📌 NEW: Personalized stats
@@ -1395,11 +1652,17 @@ Provide analysis in JSON format with:
       return terms.some(t => t && fields.includes(t));
     });
   }, [displayedOpportunities, keywordSearch, searchTerm]);
-  // When showAllOpportunities is ON, allow loading up to allOpportunities.length
-  const visibleOpportunities = keywordFiltered.slice(0, displayCount);
-  const hasMore = showAllOpportunities
-    ? displayCount < allOpportunities.length
-    : displayCount < displayedOpportunities.length;
+  // visibleOpportunities: the actual set shown in list/compact views.
+  // For guests, cap at MOCK_OPPORTUNITIES.length (no duplication/padding).
+  // For logged-in users, respect displayCount.
+  const visibleOpportunities = !isLoggedIn
+    ? keywordFiltered          // guests see all mock data (16 items)
+    : keywordFiltered.slice(0, displayCount);
+  const hasMore = !isLoggedIn
+    ? false  // guests always see all mock items — no "load more"
+    : showAllOpportunities
+      ? displayCount < allOpportunities.length
+      : displayCount < displayedOpportunities.length;
 
   // 📌 NEW: Group opportunities by selected criteria
   const groupedOpportunities = useMemo(() => {
@@ -1414,10 +1677,10 @@ Provide analysis in JSON format with:
 
       switch (groupMode) {
         case 'department':
-          groupKey = opp.department || "Other"
-          break
+          groupKey = opp.department || 'Other';
+          break;
 
-        case 'urgency':
+        case 'urgency': {
           const deadline = getEffectiveDeadline(opp);
           if (!deadline) {
             groupKey = 'No Deadline';
@@ -1426,38 +1689,43 @@ Provide analysis in JSON format with:
             groupKey = getUrgencyLabel(bd ?? 999);
           }
           break;
+        }
         case 'setaside':
-            groupKey = opp.typeOfSetAsideDescription || "Other"
-            break
+          groupKey = opp.typeOfSetAsideDescription || 'Unrestricted / No Set-Aside';
+          break;
+
+        case 'naics':
+          groupKey = opp.naicsCode ? `NAICS ${opp.naicsCode.slice(0, 4)}xx` : 'Unknown NAICS';
+          break;
+
+        case 'state':
+          groupKey = opp.placeOfPerformance?.state?.code
+            ? `${opp.placeOfPerformance.state.code} — ${opp.placeOfPerformance.state.name || ''}`
+            : opp.officeAddress?.state || 'Location TBD';
+          break;
+
+        case 'deadline_month': {
+          const dl = getEffectiveDeadline(opp);
+          groupKey = dl
+            ? dl.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+            : 'No Deadline';
+          break;
+        }
       }
 
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
+      if (!groups[groupKey]) groups[groupKey] = [];
       groups[groupKey].push(opp);
     });
 
     if (groupMode === 'urgency') {
-      const urgencyOrder = [
-        'CRITICAL',
-        'URGENT',
-        'HIGH PRIORITY',
-        'ACT SOON',
-        'NORMAL',
-        'COMFORTABLE',
-        'AMPLE TIME',
-        'PLENTY OF TIME',
-        'No Deadline'
-      ];
-
-      return Object.fromEntries(
-        Object.entries(groups).sort((a, b) =>
-          urgencyOrder.indexOf(a[0]) - urgencyOrder.indexOf(b[0])
-        )
-      );
+      const urgencyOrder = ['CRITICAL', 'URGENT', 'HIGH PRIORITY', 'ACT SOON', 'NORMAL', 'COMFORTABLE', 'AMPLE TIME', 'PLENTY OF TIME', 'No Deadline'];
+      return Object.fromEntries(Object.entries(groups).sort((a, b) => urgencyOrder.indexOf(a[0]) - urgencyOrder.indexOf(b[0])));
     }
-
-    return groups;
+    if (groupMode === 'deadline_month') {
+      return Object.fromEntries(Object.entries(groups).sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()));
+    }
+    // All other modes: alpha sort by key
+    return Object.fromEntries(Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])));
   }, [visibleOpportunities, groupMode]);
 
   // Reminder to set preferences — only shown to guests (logged-in users are never interrupted)
@@ -1624,66 +1892,108 @@ Provide analysis in JSON format with:
 {/* ticker sample feed banner removed */}
 
       <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
-        {/* 📌 HERO SECTION - What we're showing and how */}
-        <div className="mb-2 p-2 sm:p-3 bg-white rounded-xl border border-slate-200" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-3 sm:mb-4">
-                <Image 
-                  src="/logo.png" 
-                  alt="Company Logo" 
-                  width={56}
-                  height={56}
-                  className="w-8 h-8 object-contain flex-shrink-0"
-                />
-                <h1 className="text-base sm:text-lg font-bold leading-tight text-slate-900" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
-                  {(() => {
-                    const h = new Date().getHours();
-                    const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
-                    return (
-                      <>
-                        <span className="text-slate-900">{g}, </span>
-                        <span className="text-[#ff7a18] font-extrabold">{userName || 'there'}</span>
-                        <span className="text-slate-900">! Welcome to your curated opportunities provided by </span>
-                        <span className="text-[#ff7a18] font-extrabold">Precise GovCon</span>
-                        <span className="text-slate-900 font-semibold"> TM</span>
-                      </>
-                    );
-                  })()}
+
+        {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
+        {isLoggedIn ? (
+          /* Signed-in: compact single bar */
+          <div className="mb-3 px-4 py-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-4" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
+            <div className="flex items-center gap-3 min-w-0">
+              <Image src="/logo.png" alt="PreciseGovCon" width={40} height={40} className="w-9 h-9 object-contain flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide leading-none mb-0.5">
+                  {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night'; })()}
+                  {userName ? `, ${userName}` : ''}
+                </p>
+                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
+                  Welcome to your streamlined opportunities dashboard
                 </h1>
               </div>
             </div>
+            <div className="flex-shrink-0 text-right hidden sm:block">
+              <p className="text-xs text-slate-400 leading-none mb-0.5">Powered by</p>
+              <p className="text-sm font-extrabold text-[#ff7a18] leading-none">
+                PreciseGovCon<sup className="text-[10px] font-bold text-slate-400"> ®</sup> Contract Intelligence
+              </p>
+            </div>
           </div>
-        </div>
-
-        {/* Welcome Banner */}
-        {showWelcomeBanner && !userProfile.hasCompletedSurvey && (
-          <div className="mb-6 p-4 sm:p-6 bg-white rounded-2xl border border-slate-200 relative" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
-            <button
-              onClick={handleDismissBanner}
-              className="absolute top-4 right-4 p-2 hover:bg-red-500/20 rounded-lg transition-colors text-slate-400 hover:text-red-400"
-              aria-label="Dismiss"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="flex items-start justify-between gap-4 pr-12">
-              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
-                <Image src="/logo.png" alt="Precise GovCon" width={40} height={40} className="w-9 h-9 object-contain" />
+        ) : (
+          /* Guest: two-column CTA card */
+          <div className="mb-3 bg-white rounded-xl border border-amber-200 overflow-hidden" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
+            <div className="flex flex-col sm:flex-row">
+              {/* Left: context */}
+              <div className="flex-1 px-5 py-4 flex items-start gap-3">
+                <Image src="/logo.png" alt="PreciseGovCon" width={44} height={44} className="w-10 h-10 object-contain flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-700 text-[11px] font-black uppercase tracking-wider">
+                      ⚠ Sample Data
+                    </span>
+                    {guestDataLoading ? (
+                      <span className="inline-flex items-center gap-1.5 text-cyan-600 text-xs font-semibold">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Loading from SAM.gov…
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">
+                        {guestDataFreshAt ? `Live SAM.gov data · refreshed ${guestDataFreshAt}` : 'Preview mode — not tailored to your business'}
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
+                    You're viewing a sample pull of live data from SAM.gov opportunities.
+                  </h1>
+                  <p className="text-sm text-slate-600 mt-0.5 leading-snug">
+                    Sign in to unlock a feed filtered by your <strong>NAICS codes</strong>, <strong>PSC codes</strong>, certifications, and agency preferences — powered by <span className="text-[#ff7a18] font-extrabold">PreciseGovCon<sup className="text-[10px]"> ®</sup></span> Opportunity Intelligence.
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                  {userName ? `Welcome, ${userName}!` : 'Welcome!'}
+              {/* Right: CTA */}
+              <div className="flex-shrink-0 flex flex-col items-center justify-center gap-2 px-6 py-4 bg-gradient-to-br from-[#ff7a18]/10 to-amber-50 border-t sm:border-t-0 sm:border-l border-amber-200">
+                <a
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#ff7a18] hover:bg-orange-600 text-white font-extrabold rounded-xl transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap"
+                >
+                  Sign In to Get Your Feed
+                </a>
+                <a
+                  href="/register"
+                  className="text-xs text-slate-500 hover:text-[#ff7a18] transition-colors font-semibold underline underline-offset-2"
+                >
+                  New to PreciseGovCon? Create a free account
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Welcome Banner — shown to logged-in users who haven't completed survey */}
+        {isLoggedIn && showWelcomeBanner && !userProfile.hasCompletedSurvey && (
+          <div className="mb-3 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-blue-950/60 to-slate-900 relative overflow-hidden" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
+            {/* Subtle top accent bar */}
+            <div className="h-0.5 w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-[#ff7a18]" />
+            <button onClick={handleDismissBanner} className="absolute top-3 right-3 p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white" aria-label="Dismiss">
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-5 py-4 pr-12">
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-extrabold text-white leading-tight">
+                  Welcome to PreciseGovCon's Opportunities Pipeline
                 </h2>
-                <p className="text-slate-700 text-base mb-3">
-                  Complete your opportunity preferences survey to get personalized recommendations
+                <p className="text-sm text-slate-400 mt-0.5">
+                  Your streamlined federal contracting platform — powered by live SAM.gov data and AI-driven matching.
+                  {userName ? ` Complete your profile, ${userName}, to activate your personalized feed.` : ' Complete your profile to activate your personalized feed.'}
                 </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => setSurveyOpen(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
-                  style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all shadow-md text-sm whitespace-nowrap"
                 >
-                  Get AI-powered curated opportunities
+                  <Settings className="w-4 h-4" />
+                  Set My Preferences
                 </button>
               </div>
             </div>
@@ -1691,33 +2001,28 @@ Provide analysis in JSON format with:
         )}
 
         {/* Survey Success Banner */}
-        {userProfile.hasCompletedSurvey && !bannerDismissed && (
-          <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 relative">
-            <button
-              onClick={handleDismissBanner}
-              className="absolute top-4 right-4 p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
-              aria-label="Dismiss"
-            >
-              <X className="w-5 h-5" />
+        {isLoggedIn && userProfile.hasCompletedSurvey && !bannerDismissed && (
+          <div className="mb-3 rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 relative overflow-hidden">
+            <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500 to-cyan-500" />
+            <button onClick={handleDismissBanner} className="absolute top-3 right-3 p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white" aria-label="Dismiss">
+              <X className="w-4 h-4" />
             </button>
-            
-            <div className="flex items-start justify-between gap-4 pr-12">
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                  <CheckCircle className="w-6 h-6 text-emerald-400" />
-                  Your Feed is Personalized, {userName}!
-                </h2>
-                <p className="text-slate-300 text-base mb-3">
-                  Showing {displayedOpportunities.length} opportunities matching your preferences
-                </p>
-                <button
-                  onClick={() => setSurveyOpen(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
-                >
-                  <Settings className="w-5 h-5" />
-                  Update Preferences
-                </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-5 py-4 pr-12">
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
               </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-extrabold text-white leading-tight">
+                  Your Feed is Active{userName ? `, ${userName}` : ''}
+                </h2>
+                <p className="text-sm text-slate-400 mt-0.5">
+                  Showing {displayedOpportunities.length} opportunities matched to your profile. Update preferences anytime to refine your results.
+                </p>
+              </div>
+              <button onClick={() => setSurveyOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-bold rounded-lg transition-all text-sm whitespace-nowrap flex-shrink-0">
+                <Settings className="w-4 h-4" />
+                Update Preferences
+              </button>
             </div>
           </div>
         )}
@@ -1787,52 +2092,115 @@ Provide analysis in JSON format with:
           </div>
         </div>
 
-        {/* View Controls */}
-        <div className="mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-2 bg-slate-800/40 rounded-xl border border-slate-700">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-slate-300">View:</span>
-            <div className="flex items-center gap-2 p-1 bg-slate-900/50 rounded-lg overflow-x-auto">
+        {/* ── View / Sort / Group Controls ─────────────────────────────────── */}
+        <div className="mb-2 flex flex-wrap items-center gap-2 p-2.5 bg-slate-900/70 rounded-xl border border-slate-700/60">
+
+          {/* View mode */}
+          <div className="flex items-center gap-1 p-0.5 bg-slate-800/80 rounded-lg border border-slate-700/50">
+            {([
+              { mode: 'list' as ViewMode, icon: <List className="w-3.5 h-3.5" />, label: 'List' },
+              { mode: 'grid' as ViewMode, icon: <Grid3x3 className="w-3.5 h-3.5" />, label: 'Board' },
+              { mode: 'compact' as ViewMode, icon: <Layers className="w-3.5 h-3.5" />, label: 'Compact' },
+            ] as {mode: ViewMode; icon: React.ReactNode; label: string}[]).map(v => (
               <button
-                onClick={() => setViewMode('list')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-bold ${
-                  viewMode === 'list' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                key={v.mode}
+                onClick={() => { setViewMode(v.mode); if (v.mode === 'grid') setGroupMode('none'); }}
+                style={{
+                  background: viewMode === v.mode ? '#0e7490' : 'transparent',
+                  color: viewMode === v.mode ? '#fff' : '#94a3b8',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '5px 11px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  transition: 'all 0.15s',
+                  boxShadow: viewMode === v.mode ? '0 1px 6px rgba(14,116,144,0.5)' : 'none',
+                }}
               >
-                <List className="w-4 h-4" /> List
+                {v.icon}{v.label}
               </button>
-              <button
-                onClick={() => { setViewMode('grid'); setGroupMode('none'); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-bold ${
-                  viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Grid3x3 className="w-4 h-4" /> Board
-              </button>
-              <button
-                onClick={() => setViewMode('compact')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-bold ${
-                  viewMode === 'compact' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Layers className="w-4 h-4" /> Compact
-              </button>
-            </div>
+            ))}
           </div>
 
+          <div className="w-px h-6 bg-slate-700/60 hidden sm:block" />
+
+          {/* Sort */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Sort</span>
+            <select
+              value={sortMode}
+              onChange={e => setSortMode(e.target.value as SortMode)}
+              style={{
+                background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155',
+                borderRadius: '7px', padding: '5px 28px 5px 10px', fontSize: '12px',
+                fontWeight: 600, cursor: 'pointer', outline: 'none',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
+              }}
+            >
+              <option value="deadline_asc">⏰ Deadline: Soonest First</option>
+              <option value="deadline_desc">⏰ Deadline: Latest First</option>
+              <option value="posted_desc">📅 Posted: Newest First</option>
+              <option value="posted_asc">📅 Posted: Oldest First</option>
+              <option value="title_asc">🔤 Title: A → Z</option>
+              <option value="agency_asc">🏛 Agency: A → Z</option>
+            </select>
+          </div>
+
+          {/* Group By — only for list/compact */}
           {viewMode !== 'grid' && (
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <span className="text-sm font-semibold text-slate-300">Group By:</span>
-              <select
-                value={groupMode}
-                onChange={(e) => setGroupMode(e.target.value as GroupMode)}
-                className="px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-auto"
-              >
-                <option value="none">No Grouping</option>
-                <option value="urgency">Deadline Urgency</option>
-                <option value="department">Department</option>
-                <option value="setaside">Set-Aside Type</option>
-              </select>
-            </div>
+            <>
+              <div className="w-px h-6 bg-slate-700/60 hidden sm:block" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Group</span>
+                <select
+                  value={groupMode}
+                  onChange={e => setGroupMode(e.target.value as GroupMode)}
+                  style={{
+                    background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155',
+                    borderRadius: '7px', padding: '5px 28px 5px 10px', fontSize: '12px',
+                    fontWeight: 600, cursor: 'pointer', outline: 'none',
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
+                  }}
+                >
+                  <option value="none">No Grouping</option>
+                  <option value="urgency">Deadline Urgency</option>
+                  <option value="deadline_month">Deadline Month</option>
+                  <option value="department">Agency / Department</option>
+                  <option value="setaside">Set-Aside Type</option>
+                  <option value="naics">NAICS Code (4-digit)</option>
+                  <option value="state">Place of Performance</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* Spacer + Preferences nudge for guests */}
+          <div className="flex-1" />
+          {!isLoggedIn && (
+            <a
+              href="/login"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '5px 13px',
+                background: 'rgba(255,122,24,0.12)',
+                border: '1px solid rgba(255,122,24,0.4)',
+                borderRadius: '7px',
+                color: '#fb923c',
+                fontSize: '12px', fontWeight: 700,
+                textDecoration: 'none',
+                transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Sign in to update preferences
+            </a>
           )}
         </div>
 
@@ -1846,7 +2214,8 @@ Provide analysis in JSON format with:
                 Business Days Remaining
               </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Show All toggle */}
               <button
                 onClick={() => {
                   const next = !showAllOpportunities;
@@ -1859,53 +2228,75 @@ Provide analysis in JSON format with:
                   }
                 }}
                 style={{
-                  background: showAllOpportunities ? '#c45e10' : '#ff7a18',
-                  color: '#fff',
-                  boxShadow: 'none',
-                  border: '2px solid #ff7a18',
-                  fontWeight: 900,
-                  fontSize: '0.9rem',
-                  borderRadius: '10px',
-                  padding: '8px 18px',
+                  background: showAllOpportunities ? '#166534' : '#1e293b',
+                  color: showAllOpportunities ? '#86efac' : '#f97316',
+                  border: showAllOpportunities ? '1.5px solid #22c55e' : '1.5px solid rgba(249,115,22,0.6)',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  borderRadius: '8px',
+                  padding: '7px 14px',
                   transition: 'all 0.2s',
-                  textShadow: 'none',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  letterSpacing: '0.01em',
                 }}
-                className="font-bold transition-all"
               >
-                {showAllOpportunities ? 'Showing All Opportunities' : 'Show All Opportunities'}
+                {showAllOpportunities ? (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    All {allOpportunities.length} Loaded
+                  </>
+                ) : (
+                  <>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                    </svg>
+                    Show All
+                  </>
+                )}
               </button>
+
+              {/* Refresh button */}
               <button
                 onClick={handleRefresh}
                 disabled={loadingMore}
                 style={{
-                  background: '#fff',
-                  color: '#ff7a18',
-                  border: '2px solid #ff7a18',
-                  fontWeight: 900,
-                  fontSize: '0.9rem',
-                  borderRadius: '10px',
-                  padding: '8px 18px',
-                  marginLeft: '8px',
+                  background: loadingMore ? '#0f172a' : '#1e293b',
+                  color: loadingMore ? '#38bdf8' : '#94a3b8',
+                  border: loadingMore ? '1.5px solid #0284c7' : '1.5px solid #334155',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  borderRadius: '8px',
+                  padding: '7px 14px',
                   transition: 'all 0.2s',
-                  textShadow: 'none',
                   cursor: loadingMore ? 'not-allowed' : 'pointer',
-                  opacity: loadingMore ? 0.7 : 1,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '6px',
+                  opacity: loadingMore ? 0.8 : 1,
                 }}
-                className="font-bold transition-all"
               >
-                <RefreshCw className={`w-6 h-6 ${loadingMore ? 'animate-spin' : ''}`} />
-                {loadingMore ? 'Refreshing...' : 'Refresh'}
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingMore ? 'animate-spin' : ''}`} />
+                {loadingMore ? 'Refreshing…' : 'Refresh'}
               </button>
+
               {selectedUrgencyFilters.size > 0 && (
                 <button
                   onClick={() => setSelectedUrgencyFilters(new Set())}
-                  className="px-4 py-3 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm font-semibold text-red-400 flex items-center gap-2"
+                  style={{
+                    background: 'rgba(239,68,68,0.1)',
+                    color: '#f87171',
+                    border: '1.5px solid rgba(239,68,68,0.35)',
+                    fontWeight: 700, fontSize: '12px',
+                    borderRadius: '8px', padding: '7px 12px',
+                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  }}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                   Clear Filter
                 </button>
               )}
@@ -1988,40 +2379,73 @@ Provide analysis in JSON format with:
 
 
         {/* Results Header */}
-        <div ref={resultsRef} className="mb-2 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">
-            {!isLoggedIn ? (
-              <>Showing <span className="text-cyan-400">40</span> preview opportunities &mdash; sign in for <span className="text-cyan-400">1,400+</span> live results</>
-            ) : visibleOpportunities.length === 0 && displayedOpportunities.length === 0 ? (
-              <span className="text-slate-300">
-                No opportunities are available at this time. Please check back later or click <b>Refresh</b> above.
+        <div ref={resultsRef} className="mb-2 flex items-center justify-between flex-wrap gap-2">
+          {!isLoggedIn ? (
+            /* Guest CTA bar */
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-400 text-xs font-black uppercase tracking-wider">
+                ⚠ Sample Data
               </span>
-            ) : (
-              <>
-                Showing <span className="text-cyan-400">{visibleOpportunities.length.toLocaleString()}</span>
-                {displayedOpportunities.length !== allOpportunities.length && (
-                  <> of <span className="text-cyan-400">{allOpportunities.length.toLocaleString()}</span> available</>
-                )}
-                {opportunityPreferences && !showAllOpportunities
-                  ? <span className="text-slate-400 font-normal text-base"> curated opportunities</span>
-                  : <span className="text-slate-400 font-normal text-base"> opportunities</span>
-                }
-                {opportunityPreferences && !showAllOpportunities && displayedOpportunities.length < allOpportunities.length && (
-                  <span className="ml-2 text-sm font-normal text-amber-400">
-                    ({allOpportunities.length - displayedOpportunities.length} filtered by your preferences —{' '}
-                    <button className="underline hover:text-white transition-colors" onClick={() => setShowAllOpportunities(true)}>
-                      show all
-                    </button>)
+              {guestDataLoading ? (
+                <span className="inline-flex items-center gap-2 text-cyan-400 text-sm font-semibold">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Fetching opportunities from SAM.gov…
+                </span>
+              ) : (
+                <span className="text-slate-300 text-sm font-semibold">
+                  Showing <span className="text-cyan-400 font-bold">{viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length}</span> opportunities
+                  {guestDataFreshAt && <span className="text-slate-500 text-xs ml-1.5">· data from {guestDataFreshAt}</span>}
+                </span>
+              )}
+              <span className="text-slate-500 text-sm hidden sm:inline">—</span>
+              <a href="/login" className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#ff7a18] hover:bg-orange-600 text-white text-xs font-extrabold rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                Sign in for your personalized feed →
+              </a>
+            </div>
+          ) : visibleOpportunities.length === 0 && displayedOpportunities.length === 0 ? (
+            <h3 className="text-xl font-bold text-white">
+              <span className="text-slate-300">
+                No opportunities available at this time. Click <b>Refresh</b> to try again.
+              </span>
+            </h3>
+          ) : (
+            <h3 className="text-xl font-bold text-white">
+              {(() => {
+                const h = new Date().getHours();
+                const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
+                return (
+                  <span className="text-slate-300 font-normal text-base">
+                    {greeting}{userName ? <>, <span className="text-[#ff7a18] font-extrabold">{userName}</span></> : ''}
+                    {' '}—{' '}
                   </span>
-                )}
-                {activeFilter && (
-                  <span className="ml-2 text-base font-normal text-slate-400">
-                    (filtered by {activeFilter === 'setasides' ? 'set-asides' : activeFilter})
-                  </span>
-                )}
-              </>
-            )}
-          </h3>
+                );
+              })()}
+              Showing{' '}
+              <span className="text-cyan-400">
+                {(viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length).toLocaleString()}
+              </span>
+              {displayedOpportunities.length !== allOpportunities.length && (
+                <> of <span className="text-cyan-400">{allOpportunities.length.toLocaleString()}</span> available</>
+              )}
+              {opportunityPreferences && !showAllOpportunities
+                ? <span className="text-slate-400 font-normal text-base"> curated opportunities</span>
+                : <span className="text-slate-400 font-normal text-base"> opportunities</span>
+              }
+              {opportunityPreferences && !showAllOpportunities && displayedOpportunities.length < allOpportunities.length && (
+                <span className="ml-2 text-sm font-normal text-amber-400">
+                  ({allOpportunities.length - displayedOpportunities.length} filtered by your preferences —{' '}
+                  <button className="underline hover:text-white transition-colors" onClick={() => setShowAllOpportunities(true)}>
+                    show all
+                  </button>)
+                </span>
+              )}
+              {activeFilter && (
+                <span className="ml-2 text-base font-normal text-slate-400">
+                  (filtered by {activeFilter === 'setasides' ? 'set-asides' : activeFilter})
+                </span>
+              )}
+            </h3>
+          )}
           {activeFilter && (
             <button
               onClick={() => setActiveFilter(null)}
@@ -2209,7 +2633,7 @@ Provide analysis in JSON format with:
                                   display: 'inline-block',
                                   background: sa.bg,
                                   color: sa.text,
-                                  border: `1px solid ${sa.color}55`,
+                                  border: `1px solid ${sa.color}`,
                                   borderRadius: '4px',
                                   padding: '1px 6px',
                                   fontSize: '10px',
@@ -2589,84 +3013,124 @@ Provide analysis in JSON format with:
         })}
 
         {/* Load More Button and End-of-Results Counter */}
-        <div className="mt-12 mb-24 text-center relative">
-          <div className="mb-6 flex flex-col items-center gap-2">
-            <div className="flex flex-col items-center gap-4">
-              <p className="text-slate-300 text-base font-semibold mb-0">
-                Showing {visibleOpportunities.length.toLocaleString()} of {(showAllOpportunities ? allOpportunities.length : displayedOpportunities.length).toLocaleString()} opportunities
+        <div className="mt-10 mb-24 text-center relative">
+          <div className="mb-6 flex flex-col items-center gap-4">
+
+            {/* Count text */}
+            {isLoggedIn ? (
+              <p className="text-sm text-slate-500">
+                Showing{' '}
+                <span className="text-slate-300 font-semibold">
+                  {(viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length).toLocaleString()}
+                </span>{' '}
+                of{' '}
+                <span className="text-slate-300 font-semibold">
+                  {(showAllOpportunities ? allOpportunities.length : displayedOpportunities.length).toLocaleString()}
+                </span>{' '}
+                opportunities
               </p>
-              {/* Show All Opportunities button if there are hidden opportunities */}
-              {(!showAllOpportunities && allOpportunities.length > displayedOpportunities.length) && (
-                <button
-                  onClick={() => {
-                    setShowAllOpportunities(true);
-                    setDisplayCount(allOpportunities.length);
-                  }}
-                  className="mt-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg text-base"
-                  style={{ minWidth: '220px' }}
-                >
-                  Show All {allOpportunities.length.toLocaleString()} Opportunities
-                </button>
-              )}
-              {/* Load More Button - Always visible when there are more opportunities */}
-              {hasMore && (
-                <div className="my-8 text-center">
-                  <button
-                    onClick={() => {
-                      if (!loadingMore) {
-                        setDisplayCount(prev => {
-                          const max = showAllOpportunities ? allOpportunities.length : displayedOpportunities.length;
-                          return Math.min(prev + 24, max);
-                        });
-                      }
-                    }}
-                    disabled={loadingMore || !hasMore}
-                    className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-base mx-auto"
-                    style={{
-                      minWidth: '280px',
-                    }}
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        Load More Opportunities
-                        <ChevronDown className="w-5 h-5" />
-                        <span className="ml-2 px-3 py-1 bg-white/20 rounded-full text-sm">
-                          {((showAllOpportunities ? allOpportunities.length : displayedOpportunities.length) - visibleOpportunities.length).toLocaleString()} left
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="h-1 w-64 mx-auto bg-slate-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-300"
-                style={{ width: `${(visibleOpportunities.length / (showAllOpportunities ? allOpportunities.length : displayedOpportunities.length)) * 100}%` }}
-              />
-            </div>
+            ) : (
+              <p className="text-sm text-slate-500">
+                Showing <span className="text-slate-300 font-semibold">{(viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length).toLocaleString()}</span> sample opportunities
+                {guestDataFreshAt && <span className="text-slate-600"> · SAM.gov data from {guestDataFreshAt}</span>}
+              </p>
+            )}
+
+            {/* Show All button — logged-in only */}
+            {isLoggedIn && !showAllOpportunities && allOpportunities.length > displayedOpportunities.length && (
+              <button
+                onClick={() => { setShowAllOpportunities(true); setDisplayCount(allOpportunities.length); }}
+                style={{
+                  background: '#1e293b', color: '#f97316',
+                  border: '1.5px solid rgba(249,115,22,0.5)',
+                  fontWeight: 700, fontSize: '13px',
+                  borderRadius: '9px', padding: '9px 22px',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  minWidth: '220px',
+                }}
+              >
+                Show All {allOpportunities.length.toLocaleString()} Opportunities
+              </button>
+            )}
+
+            {/* Load More button — logged-in only */}
+            {isLoggedIn && hasMore && (
+              <button
+                onClick={() => {
+                  if (!loadingMore) {
+                    setLoadingMore(true);
+                    setTimeout(() => {
+                      setDisplayCount(prev => {
+                        const max = showAllOpportunities ? allOpportunities.length : displayedOpportunities.length;
+                        return Math.min(prev + 24, max);
+                      });
+                      setLoadingMore(false);
+                    }, 400);
+                  }
+                }}
+                disabled={loadingMore || !hasMore}
+                style={{
+                  background: loadingMore ? '#0f172a' : '#1e293b',
+                  color: loadingMore ? '#67e8f9' : '#94a3b8',
+                  border: loadingMore ? '1.5px solid #0e7490' : '1.5px solid #334155',
+                  fontWeight: 700, fontSize: '13px',
+                  borderRadius: '9px', padding: '10px 28px',
+                  cursor: loadingMore ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s',
+                  display: 'inline-flex', alignItems: 'center', gap: '8px',
+                  minWidth: '240px', justifyContent: 'center',
+                  opacity: loadingMore ? 0.85 : 1,
+                }}
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading more opportunities…
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Load More
+                    <span style={{ background: '#334155', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700 }}>
+                      {((showAllOpportunities ? allOpportunities.length : displayedOpportunities.length) - visibleOpportunities.length).toLocaleString()} more
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Progress bar — logged-in only */}
+            {isLoggedIn && (
+              <div className="h-0.5 w-48 mx-auto bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-600 to-blue-600 transition-all duration-500"
+                  style={{ width: `${(visibleOpportunities.length / Math.max(1, showAllOpportunities ? allOpportunities.length : displayedOpportunities.length)) * 100}%` }}
+                />
+              </div>
+            )}
+
+            {/* Completion badge — logged-in only */}
+            {isLoggedIn && !hasMore && dataLoaded && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                padding: '7px 18px',
+                background: '#0f2820', border: '1.5px solid #166534',
+                borderRadius: '9px', color: '#86efac', fontSize: '13px', fontWeight: 600,
+              }}>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                All {visibleOpportunities.length.toLocaleString()} opportunities loaded
+                {opportunityPreferences && !showAllOpportunities && displayedOpportunities.length < allOpportunities.length && (
+                  <span style={{ color: '#fbbf24', fontSize: '12px' }}>
+                    {' '}·{' '}
+                    <button style={{ textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 700 }} onClick={() => setShowAllOpportunities(true)}>
+                      show {allOpportunities.length - displayedOpportunities.length} more
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+
           </div>
-          {/* Persistent Show More Opportunities button at the bottom */}
-          {/* Button is now unified above */}
-          {!dataLoaded || visibleOpportunities.length === (showAllOpportunities ? allOpportunities.length : displayedOpportunities.length) ? (
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-slate-800/60 border border-white/10 rounded-xl text-sm text-slate-400 mt-8">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <span>
-                Showing all {visibleOpportunities.length.toLocaleString()} opportunities
-                {opportunityPreferences && !showAllOpportunities && displayedOpportunities.length < allOpportunities.length
-                  ? <>
-                      <span className="text-amber-400/80"> ({allOpportunities.length.toLocaleString()} total available — <button className="underline hover:text-white transition-colors" onClick={() => setShowAllOpportunities(true)}>show all</button>)</span>
-                    </>
-                  : null
-                }
-              </span>
-            </div>
-          ) : null}
         </div>
 
         {/* Opportunity Detail Modal */}
@@ -2720,24 +3184,27 @@ Provide analysis in JSON format with:
                 {/* Body ΓÇö scrollable */}
                 <div className="overflow-y-auto max-h-[60vh]">
 
-                  {/* ΓöÇΓöÇ Set-aside badge row (prominent, full width) ΓöÇΓöÇ */}
+                  {/* ── Set-aside badge row ── */}
                   {(() => {
                     const sa = getSetAsideStyle(opp);
                     const rawCode = ((opp as any).setAside || opp.typeOfSetAside || '').trim();
-                    const desc = opp.typeOfSetAsideDescription || (opp as any).setAsideDescription || '';
+                    const desc = (opp.typeOfSetAsideDescription || (opp as any).setAsideDescription || '').trim();
+                    // Suppress desc if it duplicates sa.label or is empty/none
+                    const showDesc = desc && desc !== 'None' && desc !== 'N/A' && (!sa || desc.toLowerCase() !== sa.label.toLowerCase());
                     if (!sa && !rawCode && !desc) return null;
                     return (
                       <div className="px-6 pt-4 pb-2 flex flex-wrap items-center gap-2">
                         {sa ? (
-                          <span style={{ background: sa.bg, color: sa.text, border: `1.5px solid ${sa.color}88` }}
+                          <span style={{ background: sa.bg, color: sa.text, border: `1.5px solid ${sa.color}` }}
                             className="px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider flex items-center gap-1.5">
-                            <span style={{ background: sa.color }} className="w-2 h-2 rounded-full inline-block" />
+                            <span style={{ background: sa.text, opacity: 0.9 }} className="w-2 h-2 rounded-full inline-block flex-shrink-0" />
                             {sa.label}
                           </span>
                         ) : rawCode ? (
-                          <span className="px-3 py-1.5 bg-blue-500/20 text-blue-300 border border-blue-500/40 rounded-lg text-sm font-black uppercase tracking-wider">{rawCode}</span>
+                          <span style={{ background: '#1e3a5f', color: '#93c5fd', border: '1.5px solid #1e40af' }}
+                            className="px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider">{rawCode}</span>
                         ) : null}
-                        {desc && desc !== 'None' && desc !== 'N/A' && (
+                        {showDesc && (
                           <span className="text-slate-400 text-xs">{desc}</span>
                         )}
                       </div>
@@ -2847,7 +3314,10 @@ Provide analysis in JSON format with:
 
                       {/* Deadline */}
                       <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">ΓÅ░ Response Deadline</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          Response Deadline
+                        </p>
                         <p className={`text-lg font-black ${urgencyTextColor}`}>{dl ? formatDate(dl) : 'No deadline'}</p>
                         {bd !== null && <p className="text-xs text-slate-400 mt-0.5">{bd} business days remaining</p>}
                         {opp.updatedResponseDeadLine && opp.updatedResponseDeadLine !== opp.responseDeadLine && (

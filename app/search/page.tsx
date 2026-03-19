@@ -4170,10 +4170,14 @@ ${filteredResults.map(opp => `  <opportunity>
           isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)}
           searchName={successData.searchName} isSubscription={successData.isSubscription}
         />
-        <AccessControlModal
-          isOpen={showAccessModal} onClose={() => setShowAccessModal(false)}
-          featureName={blockedFeature}
-        />
+        {/* Only render AccessControlModal if explicitly triggered by user action */}
+        {showAccessModal && (
+          <AccessControlModal
+            isOpen={showAccessModal}
+            onClose={() => setShowAccessModal(false)}
+            featureName={blockedFeature}
+          />
+        )}
       </main>
     </SearchErrorBoundary>
   )
