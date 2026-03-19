@@ -348,7 +348,7 @@ function AccessControlModal({ isOpen, onClose, featureName }: {
         <p style={{ color: '#4b5563', fontSize: '0.875rem', marginBottom: '20px', lineHeight: '1.6' }}>
           {isPremiumFeature
             ? <>To use <strong>{featureName}</strong>, please sign in. It only takes a moment.</>
-            : <>Sign up free to save searches, set up email alerts, export results, and unlock your full history.</>
+            : <>Start a <strong>14-day free trial</strong> to save searches, set up email alerts, export results, and unlock your full history. Cancel any time before the trial ends — no charge.</>
           }
         </p>
 
@@ -361,7 +361,7 @@ function AccessControlModal({ isOpen, onClose, featureName }: {
               fontSize: '1rem', border: 'none', cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(22,101,52,0.3)', transition: 'opacity 0.15s'
             }}>
-              Create Free Account — No Card Needed
+              Create Free Account — 14-Day Free Trial
             </button>
           </Link>
 
@@ -413,8 +413,8 @@ function BrowseReminderModal({ level, onClose, onSignUp }: {
       </div>
       <p className="text-xs text-gray-600 mb-4 leading-relaxed">
         {is10
-          ? 'Enjoying the search? Create a free account to save your searches, set alerts, and export results — no credit card needed.'
-          : 'Your guest session ends in 5 minutes. Sign up free to keep searching, save your results, and never miss a contract.'}
+          ? 'Enjoying the search? Create a free account — includes a 14-day free trial. Your card is stored securely and only charged after the trial ends.'
+          : 'Your guest session ends in 5 minutes. Start your free 14-day trial to keep searching, save results, and never miss a contract.'}
       </p>
       <div className="pgc-green flex gap-2">
         <button onClick={onSignUp}
@@ -434,39 +434,122 @@ function BrowseReminderModal({ level, onClose, onSignUp }: {
 // Hard lockout modal shown at 20 minutes
 function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-md text-center relative"
-        style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
-        <div className="w-16 h-16 rounded-full bg-green-50 border-2 border-green-600 flex items-center justify-center mx-auto mb-4">
-          <Shield style={{ width: '32px', height: '32px', color: '#166534' }} />
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', padding: '16px',
+      fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif"
+    }}>
+      <div style={{
+        background: '#ffffff', borderRadius: '24px', padding: '48px 40px 40px',
+        width: '100%', maxWidth: '540px', textAlign: 'center',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.35)', position: 'relative'
+      }}>
+
+        {/* ── Red Close Button ── */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              position: 'absolute', top: '16px', right: '16px',
+              background: '#dc2626', color: '#ffffff',
+              border: 'none', borderRadius: '50%',
+              width: '40px', height: '40px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', boxShadow: '0 4px 12px rgba(220,38,38,0.4)',
+              fontSize: '18px', fontWeight: 900, lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        )}
+
+        {/* Icon */}
+        <div style={{
+          width: '72px', height: '72px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
+          border: '3px solid #16a34a',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px'
+        }}>
+          <Shield style={{ width: '36px', height: '36px', color: '#166534' }} />
         </div>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#111827', marginBottom: '8px', fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
+
+        {/* Headline */}
+        <h2 style={{
+          fontSize: '1.75rem', fontWeight: 900, color: '#111827',
+          marginBottom: '12px', lineHeight: 1.2,
+          fontFamily: "'Aptos Display', Calibri, sans-serif"
+        }}>
           Your Free Preview Has Ended
         </h2>
-        <p style={{ color: '#4b5563', fontSize: '0.875rem', marginBottom: '24px', lineHeight: '1.6' }}>
-          You've had 20 minutes to explore the platform. Create a free account to keep searching with no time limits — no credit card required.
+
+        {/* Body */}
+        <p style={{ color: '#374151', fontSize: '1rem', marginBottom: '8px', lineHeight: 1.7 }}>
+          You've had <strong>20 minutes</strong> to explore our platform.
+          Start a <strong>14-day free trial</strong> to keep searching with no time limits.
+          Cancel any time before the trial ends and you won't be charged.
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+        {/* Stripe security note */}
+        <div style={{
+          background: '#f0fdf4', border: '1px solid #bbf7d0',
+          borderRadius: '12px', padding: '12px 16px', marginBottom: '28px',
+          display: 'flex', alignItems: 'flex-start', gap: '10px', textAlign: 'left'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>🔒</span>
+          <div>
+            <p style={{ color: '#166534', fontWeight: 700, fontSize: '0.85rem', marginBottom: '2px' }}>
+              Your card is stored securely — only charged after your trial
+            </p>
+            <p style={{ color: '#4b5563', fontSize: '0.8rem', lineHeight: 1.5 }}>
+              We use <strong>Stripe</strong> to securely store your payment details during signup.
+              You get a <strong>14-day free trial</strong> first — no charge until it ends,
+              and you can cancel any time before then.
+            </p>
+          </div>
+        </div>
+
+        {/* CTAs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <Link href="/sign-up">
             <button style={{
-              width: '100%', padding: '14px 0', borderRadius: '12px',
-              background: '#166534', color: '#ffffff', fontWeight: 900,
-              fontSize: '1rem', border: 'none', cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(22,101,52,0.3)'
+              width: '100%', padding: '18px 0', borderRadius: '14px',
+              background: 'linear-gradient(135deg, #16a34a, #166534)',
+              color: '#ffffff', fontWeight: 900, fontSize: '1.15rem',
+              border: 'none', cursor: 'pointer',
+              boxShadow: '0 6px 20px rgba(22,101,52,0.35)',
+              letterSpacing: '0.01em'
             }}>
-              Create Free Account — No Card Needed
+              Start My 14-Day Free Trial
             </button>
           </Link>
           <Link href="/sign-in">
             <button style={{
-              width: '100%', padding: '12px 0', borderRadius: '12px',
+              width: '100%', padding: '15px 0', borderRadius: '14px',
               background: '#ffffff', color: '#166534', fontWeight: 700,
-              fontSize: '0.9rem', border: '2px solid #166534', cursor: 'pointer'
+              fontSize: '1rem', border: '2px solid #16a34a', cursor: 'pointer',
+              transition: 'background 0.15s'
             }}>
               Sign In to Existing Account
             </button>
           </Link>
         </div>
+
+        {/* Dismiss link */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              marginTop: '18px', background: 'none', border: 'none',
+              color: '#9ca3af', fontSize: '0.8rem', cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            Continue browsing (limited access)
+          </button>
+        )}
       </div>
     </div>
   )
@@ -4065,7 +4148,10 @@ ${filteredResults.map(opp => `  <opportunity>
 
         {/* Hard lockout at 20 min */}
         {showLockoutModal && !hasValidAccess && (
-          <LockoutModal onSignUp={() => { setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }} />
+          <LockoutModal
+            onSignUp={() => { setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }}
+            onClose={() => setShowLockoutModal(false)}
+          />
         )}
 
         {/* Modals */}

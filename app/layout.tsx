@@ -3,7 +3,7 @@
 import type { Metadata } from 'next'
 import ClientLayout from './client-layout'
 import './globals.css'
-import { Manrope, Sora } from 'next/font/google'
+import { Manrope, Sora, Inter } from 'next/font/google'
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -15,6 +15,12 @@ const sora = Sora({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-display',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
 })
 
 export const metadata: Metadata = {
@@ -97,13 +103,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${manrope.variable} ${sora.variable} h-full antialiased scroll-smooth`}
+      className={`${manrope.variable} ${sora.variable} ${inter.variable} h-full antialiased scroll-smooth`}
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#ffffff" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" href="/favicon.ico" />
+        {/* Add Google Fonts link as fallback */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
@@ -114,7 +124,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           selection:bg-primary-500 selection:text-white
           supports-[overflow-anchor:clip]:overflow-anchor-auto"
         style={{
-          fontFamily: "Aptos, 'Segoe UI', var(--font-ui), system-ui, sans-serif",
+          fontFamily: "Inter, var(--font-inter), Aptos, 'Segoe UI', var(--font-ui), system-ui, sans-serif",
           WebkitTextSizeAdjust: '100%',
           textSizeAdjust: '100%',
           isolation: 'isolate'

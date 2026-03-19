@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Cookie, Shield, BarChart3 } from 'lucide-react'
+import { X, Shield, BarChart3, Cookie } from 'lucide-react'
 
 interface CookiePreferences {
   necessary: boolean
@@ -33,14 +33,14 @@ function Toggle({
       aria-disabled={disabled}
       disabled={disabled}
       onClick={onChange}
-      className={`relative inline-flex h-6 w-11 rounded-full border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a18] focus-visible:ring-offset-2 ${
         checked
-          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]'
-          : 'border-[var(--color-border)] bg-[var(--color-surface-muted)]'
-      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+          ? 'border-[#ff7a18] bg-[#ff7a18]'
+          : 'border-gray-500 bg-gray-600'
+      } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+        className={`pointer-events-none inline-block h-4 w-4 mt-0.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
           checked ? 'translate-x-5' : 'translate-x-0.5'
         }`}
       />
@@ -51,12 +51,11 @@ function Toggle({
 export default function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [visible, setVisible] = useState(false)
   const [preferences, setPreferences] = useState<CookiePreferences>(() => {
     if (typeof window === 'undefined') return defaultPreferences
-
     const consent = localStorage.getItem('cookie-consent')
     if (!consent) return defaultPreferences
-
     try {
       return JSON.parse(consent) as CookiePreferences
     } catch {
@@ -64,161 +63,219 @@ export default function CookieConsent() {
     }
   })
 
+  // Show banner after short delay if no consent stored
   useEffect(() => {
     const consent = localStorage.getItem('cookie-consent')
-
     if (!consent) {
-      const timer = window.setTimeout(() => setShowBanner(true), 650)
+      const timer = window.setTimeout(() => {
+        setShowBanner(true)
+        // Trigger slide-up after mount
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setVisible(true))
+        })
+      }, 800)
       return () => window.clearTimeout(timer)
     }
   }, [])
 
+  // Lock scroll when settings modal open
   useEffect(() => {
-    const shouldLock = showBanner || showSettings
-    if (!shouldLock) return
-
-    const prevOverflow = document.body.style.overflow
+    if (!showSettings) return
+    const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-
-    return () => {
-      document.body.style.overflow = prevOverflow
-    }
-  }, [showBanner, showSettings])
+    return () => { document.body.style.overflow = prev }
+  }, [showSettings])
 
   const savePreferences = (prefs: CookiePreferences) => {
     localStorage.setItem('cookie-consent', JSON.stringify(prefs))
     setPreferences(prefs)
-    setShowSettings(false)
-    setShowBanner(false)
+    // Animate out
+    setVisible(false)
+    setTimeout(() => {
+      setShowSettings(false)
+      setShowBanner(false)
+    }, 350)
 
-    if (prefs.analytics) {
-      console.log('Analytics initialized')
-    }
-
-    if (prefs.marketing) {
-      console.log('Marketing initialized')
-    }
+    if (prefs.analytics) console.log('Analytics initialized')
+    if (prefs.marketing) console.log('Marketing initialized')
   }
 
   const acceptAll = () =>
-    savePreferences({
-      necessary: true,
-      analytics: true,
-      marketing: true,
-      preferences: true,
-    })
+    savePreferences({ necessary: true, analytics: true, marketing: true, preferences: true })
 
   const rejectAll = () =>
-    savePreferences({
-      necessary: true,
-      analytics: false,
-      marketing: false,
-      preferences: false,
-    })
+    savePreferences({ necessary: true, analytics: false, marketing: false, preferences: false })
 
   const saveCustom = () => savePreferences(preferences)
+
+  const dismiss = () => {
+    setVisible(false)
+    setTimeout(() => setShowBanner(false), 350)
+  }
 
   if (!showBanner) return null
 
   return (
     <>
-      {!showSettings && (
-        <div className="pointer-events-none fixed bottom-0 left-0 z-[1200] px-3 pb-3 sm:bottom-4 sm:left-4 sm:w-[420px] sm:px-0 sm:pb-0">
-          <div className="pointer-events-auto animate-cookie-in rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-modal)]">
-            <div className="relative p-4 sm:p-5">
-              <button
-                type="button"
-                onClick={() => setShowBanner(false)}
-                className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
-                aria-label="Dismiss cookie notice"
-              >
-                <X className="h-4 w-4" />
-              </button>
+      {/* ── BOTTOM BAR ── Full width fix applied */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[1200] w-screen transition-transform duration-500 ease-out"
+        style={{ 
+          transform: visible ? 'translateY(0)' : 'translateY(110%)', 
+          pointerEvents: visible ? 'auto' : 'none' 
+        }}
+        role="region"
+        aria-label="Cookie consent"
+      >
+        {/* Backdrop fade at top of bar */}
+        <div className="pointer-events-none h-6 w-full"
+          style={{ background: 'linear-gradient(to bottom, transparent, rgba(15,23,42,0.15))' }} />
 
-              <div className="flex items-start gap-3 pr-9">
-                <div className="mt-0.5 hidden rounded-xl bg-[var(--color-primary)]/12 p-2.5 text-[var(--color-primary)] sm:block">
-                  <Cookie className="h-5 w-5" />
+        {/* Main bar - full width with gradient background */}
+        <div
+          className="pgc-cookie-bar border-t w-full bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] shadow-[0_-8px_40px_rgba(0,0,0,0.5),0_-2px_0_rgba(255,122,24,0.3)] border-[rgba(255,122,24,0.25)]"
+        >
+          {/* Content container - centered with max width */}
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex w-full min-w-0 flex-col py-2 justify-between sm:flex-row sm:items-center sm:py-4 lg:py-4">
+
+              {/* ── Left: icon + text ── */}
+              <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3 sm:items-center">
+                <div
+                  className="mt-0.5 flex-shrink-0 rounded-lg p-1.5 sm:p-2 sm:mt-0"
+                  style={{ background: 'rgba(255,122,24,0.15)', border: '1px solid rgba(255,122,24,0.3)' }}
+                >
+                  <Cookie className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#ff7a18' }} />
                 </div>
-
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
-                    Cookie preferences
-                  </h3>
-
-                  <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                    We use cookies to improve functionality and measure performance. You can accept all,
-                    reject optional cookies, or customize by category.
+                <div className="min-w-0">
+                  <p className="text-xs font-bold sm:text-sm md:text-base" style={{ color: '#ffffff', marginBottom: 2 }}>
+                    We value your privacy
                   </p>
-
-                  <div className="mt-4 grid grid-cols-2 gap-2 px-2 sm:gap-2.5 sm:px-1">
-                    <button
-                      type="button"
-                      onClick={acceptAll}
-                      className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)] active:translate-y-[1px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
-                    >
-                      Accept All
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={rejectAll}
-                      className="w-full rounded-xl border border-[var(--color-border)] bg-transparent px-4 py-2.5 text-sm font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-muted)] active:translate-y-[1px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
-                    >
-                      Reject All
-                    </button>
-
+                  <p className="mt-0.5 text-[11px] leading-relaxed sm:text-xs md:text-sm" style={{ color: '#94a3b8' }}>
+                    We use cookies to improve functionality and measure performance.{' '}
                     <button
                       type="button"
                       onClick={() => setShowSettings(true)}
-                      className="col-span-2 mx-0.5 w-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] active:translate-y-[1px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+                      className="font-semibold underline underline-offset-2 transition-colors hover:text-white focus:outline-none"
+                      style={{ color: '#ff7a18' }}
                     >
-                      Customize
+                      Cookie Policy
                     </button>
-                  </div>
+                  </p>
                 </div>
+              </div>
+
+              {/* ── Right: buttons ── */}
+              <div
+                className="flex min-w-0 items-center gap-1 sm:gap-2.5"
+                style={{ flexWrap: 'nowrap', overflowX: 'auto' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(true)}
+                  className="rounded-lg border px-2 py-1 text-[11px] font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-sm whitespace-nowrap"
+                  style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
+                >
+                  Customize Settings
+                </button>
+
+                <button
+                  type="button"
+                  onClick={rejectAll}
+                  className="rounded-lg border px-2 py-1 text-[11px] font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-sm whitespace-nowrap"
+                  style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
+                >
+                  Essential Only
+                </button>
+
+                <button
+                  type="button"
+                  onClick={acceptAll}
+                  className="rounded-lg px-3 py-1 text-[11px] font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1 sm:px-5 sm:text-sm whitespace-nowrap"
+                  style={{
+                    background: 'linear-gradient(135deg, #ff7a18, #f97316)',
+                    boxShadow: '0 4px 14px rgba(255,122,24,0.4)',
+                    color: '#ffffff',
+                  }}
+                >
+                  Accept All
+                </button>
+
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  className="rounded-lg p-1 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                  style={{ color: '#64748b' }}
+                  aria-label="Dismiss cookie notice"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
+      {/* ── SETTINGS MODAL ── (unchanged) */}
       {showSettings && (
-        <div className="fixed inset-0 z-[1250] flex items-end justify-center bg-black/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-4">
-          <div className="animate-modal-in flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-modal)] sm:rounded-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-4 sm:px-6">
-              <div className="flex items-center gap-2.5">
-                <div className="rounded-lg bg-[var(--color-primary)]/12 p-2 text-[var(--color-primary)]">
-                  <Shield className="h-4 w-4" />
+        <div
+          className="fixed inset-0 z-[1250] flex items-end justify-center p-0 sm:items-center sm:p-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSettings(false) }}
+        >
+          <div
+            className="pgc-cookie-modal animate-settings-in flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border sm:rounded-2xl"
+            style={{
+              background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)',
+              borderColor: 'rgba(255,122,24,0.2)',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+              color: '#ffffff',
+            }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-5 py-4 sm:px-6"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="rounded-lg p-2"
+                  style={{ background: 'rgba(255,122,24,0.15)', border: '1px solid rgba(255,122,24,0.3)' }}
+                >
+                  <Shield className="h-4 w-4" style={{ color: '#ff7a18' }} />
                 </div>
-                <h2 className="text-lg font-semibold text-[var(--color-text-primary)] sm:text-xl">
-                  Cookie settings
+                <h2 className="text-base font-black sm:text-lg" style={{ color: '#ffffff' }}>
+                  Cookie Settings
                 </h2>
               </div>
-
               <button
                 type="button"
                 onClick={() => setShowSettings(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+                className="rounded-lg p-2 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                style={{ color: '#64748b' }}
                 aria-label="Close cookie settings"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
-              <p className="mb-5 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                Choose which optional cookies we can use. Necessary cookies are always enabled because
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <p className="mb-5 text-sm leading-relaxed" style={{ color: '#94a3b8' }}>
+                Choose which optional cookies we can use. Necessary cookies are always enabled —
                 they keep core features working.
               </p>
 
               <div className="space-y-3">
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">
+                {/* Necessary */}
+                <div
+                  className="rounded-xl p-4"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                        Necessary cookies
-                      </h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                      <h3 className="text-sm font-bold" style={{ color: '#ffffff' }}>Necessary cookies</h3>
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: '#64748b' }}>
                         Required for authentication, session safety, and core functionality.
                       </p>
                     </div>
@@ -226,135 +283,184 @@ export default function CookieConsent() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                {/* Analytics */}
+                <div
+                  className="rounded-xl p-4 transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.analytics ? 'rgba(255,122,24,0.3)' : 'rgba(255,255,255,0.08)'}` }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
-                        <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
+                      <h3 className="flex items-center gap-2 text-sm font-bold" style={{ color: '#ffffff' }}>
+                        <BarChart3 className="h-3.5 w-3.5" style={{ color: '#ff7a18' }} />
                         Analytics cookies
                       </h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: '#64748b' }}>
                         Help us understand feature usage and improve performance.
                       </p>
                     </div>
                     <Toggle
                       checked={preferences.analytics}
-                      onChange={() =>
-                        setPreferences((p) => ({
-                          ...p,
-                          analytics: !p.analytics,
-                        }))
-                      }
+                      onChange={() => setPreferences((p) => ({ ...p, analytics: !p.analytics }))}
                     />
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                {/* Marketing */}
+                <div
+                  className="rounded-xl p-4 transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.marketing ? 'rgba(255,122,24,0.3)' : 'rgba(255,255,255,0.08)'}` }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                        Marketing cookies
-                      </h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                      <h3 className="text-sm font-bold" style={{ color: '#ffffff' }}>Marketing cookies</h3>
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: '#64748b' }}>
                         Used to measure campaigns and improve ad relevance.
                       </p>
                     </div>
                     <Toggle
                       checked={preferences.marketing}
-                      onChange={() =>
-                        setPreferences((p) => ({
-                          ...p,
-                          marketing: !p.marketing,
-                        }))
-                      }
+                      onChange={() => setPreferences((p) => ({ ...p, marketing: !p.marketing }))}
                     />
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                {/* Preferences */}
+                <div
+                  className="rounded-xl p-4 transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.preferences ? 'rgba(255,122,24,0.3)' : 'rgba(255,255,255,0.08)'}` }}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                        Preference cookies
-                      </h3>
-                      <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                      <h3 className="text-sm font-bold" style={{ color: '#ffffff' }}>Preference cookies</h3>
+                      <p className="mt-1 text-xs leading-relaxed" style={{ color: '#64748b' }}>
                         Remember your app settings and display preferences.
                       </p>
                     </div>
                     <Toggle
                       checked={preferences.preferences}
-                      onChange={() =>
-                        setPreferences((p) => ({
-                          ...p,
-                          preferences: !p.preferences,
-                        }))
-                      }
+                      onChange={() => setPreferences((p) => ({ ...p, preferences: !p.preferences }))}
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-[var(--color-border)] px-4 py-4 sm:px-6">
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowSettings(false)}
-                  className="w-full rounded-xl bg-[var(--color-surface-muted)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 sm:w-auto"
-                >
-                  Cancel
-                </button>
+            {/* Footer */}
+            <div
+              className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:justify-end sm:gap-2.5 sm:px-6"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:order-1" style={{ color: '#94a3b8' }}
+              >
+                Cancel
+              </button>
 
-                <button
-                  type="button"
-                  onClick={rejectAll}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-transparent px-4 py-2.5 text-sm font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 sm:w-auto"
-                >
-                  Reject All
-                </button>
+              <button
+                type="button"
+                onClick={rejectAll}
+                className="rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:order-2" 
+                style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
+              >
+                Reject All
+              </button>
 
-                <button
-                  type="button"
-                  onClick={saveCustom}
-                  className="w-full rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 sm:w-auto"
-                >
-                  Save Preferences
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={saveCustom}
+                className="rounded-lg px-5 py-2.5 text-sm font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:order-3"
+                style={{
+                  background: 'linear-gradient(135deg, #ff7a18, #f97316)',
+                  boxShadow: '0 4px 14px rgba(255,122,24,0.35)',
+                  color: '#ffffff',
+                }}
+              >
+                Save Preferences
+              </button>
             </div>
           </div>
         </div>
       )}
 
       <style jsx>{`
-        @keyframes cookieIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+        @keyframes settingsIn {
+          from { opacity: 0; transform: translateY(20px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        }
+        .animate-settings-in {
+          animation: settingsIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        @keyframes modalIn {
-          from {
-            opacity: 0;
-            transform: translateY(16px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+        /* ── Force correct text colours — overrides any global CSS reset ── */
+
+        /* Dark bar: everything is white or slate, never black */
+        .pgc-cookie-bar,
+        .pgc-cookie-bar * {
+          color: inherit !important;
+        }
+        .pgc-cookie-bar {
+          color: #ffffff !important;
         }
 
-        .animate-cookie-in {
-          animation: cookieIn 0.28s ease-out;
+        /* Specific text targets inside the bar */
+        .pgc-cookie-bar p,
+        .pgc-cookie-bar span,
+        .pgc-cookie-bar h2,
+        .pgc-cookie-bar h3 {
+          color: inherit !important;
         }
 
-        .animate-modal-in {
-          animation: modalIn 0.22s ease-out;
+        /* White text elements */
+        .pgc-cookie-white {
+          color: #ffffff !important;
+        }
+
+        /* Slate-400 muted text */
+        .pgc-cookie-muted {
+          color: #94a3b8 !important;
+        }
+
+        /* Slate-300 button text */
+        .pgc-cookie-btn-ghost {
+          color: #cbd5e1 !important;
+        }
+        .pgc-cookie-btn-ghost:hover {
+          color: #ffffff !important;
+        }
+
+        /* Orange accent */
+        .pgc-cookie-orange {
+          color: #ff7a18 !important;
+        }
+
+        /* White button text on orange bg */
+        .pgc-cookie-btn-primary,
+        .pgc-cookie-btn-primary * {
+          color: #ffffff !important;
+        }
+
+        /* SVG icons inside the bar */
+        .pgc-cookie-bar svg path,
+        .pgc-cookie-bar svg circle,
+        .pgc-cookie-bar svg rect,
+        .pgc-cookie-bar svg line,
+        .pgc-cookie-bar svg polyline {
+          stroke: currentColor !important;
+        }
+
+        /* Dark modal: same overrides */
+        .pgc-cookie-modal,
+        .pgc-cookie-modal * {
+          color: inherit !important;
+        }
+        .pgc-cookie-modal {
+          color: #ffffff !important;
+        }
+        .pgc-cookie-modal p,
+        .pgc-cookie-modal span {
+          color: inherit !important;
         }
       `}</style>
     </>

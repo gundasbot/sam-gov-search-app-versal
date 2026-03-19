@@ -116,13 +116,18 @@
   color-scheme: dark;
 }
 
-
+/* FONT CONFIGURATION - Inter as primary font */
 html,
 body {
   min-height: 100%;
   width: 100%;
   overflow-x: hidden;
-  font-family: 'Aptos', 'Inter', Arial, sans-serif;
+  font-family: var(--font-inter), 'Inter', 'Aptos', Arial, sans-serif !important;
+}
+
+/* Force Inter on all elements to ensure consistency */
+* {
+  font-family: inherit;
 }
 
 html {
