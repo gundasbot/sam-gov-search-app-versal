@@ -628,7 +628,9 @@ export default function DashboardPage() {
   const [showOpportunityModal, setShowOpportunityModal] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<SavedOpportunity | null>(null);
   const router = useRouter()
-  const { data: session } = useSession()
+  // required:false prevents next-auth from throwing CLIENT_FETCH_ERROR when
+  // the session endpoint returns HTML (e.g. during initial cold start or proxy issues)
+  const { data: session, status: sessionStatus } = useSession({ required: false })
   const name = useMemo(() => firstName(session), [session])
   const [mounted, setMounted] = useState(false)
 
@@ -647,7 +649,6 @@ export default function DashboardPage() {
   const [goalInput, setGoalInput] = useState('')
   const [goalSaving, setGoalSaving] = useState(false)
   const [toast, setToast] = useState<{type:'success'|'error';msg:string}|null>(null)
-  const [showAiModal, setShowAiModal] = useState(false)
   const [hoveredTrend, setHoveredTrend] = useState<TrendData | null>(null)
 
   const surveyDismissKey = useMemo(
@@ -676,6 +677,8 @@ export default function DashboardPage() {
   ])
 
   useEffect(() => {
+    // Don't run until next-auth has resolved — avoids CLIENT_FETCH_ERROR
+    if (sessionStatus === 'loading') return
     if (!session?.user?.email) return
 
     let cancelled = false
@@ -704,9 +707,11 @@ export default function DashboardPage() {
       cancelled = true
       if (surveyTimer) clearTimeout(surveyTimer)
     }
-  }, [session?.user?.email, shouldSuppressSurvey, router])
+  }, [session?.user?.email, sessionStatus, shouldSuppressSurvey, router])
 
   useEffect(() => {
+    // Wait for next-auth to resolve before deciding which data path to take
+    if (sessionStatus === 'loading') return
     if (!session?.user?.email) {
       const tick = () => setDash(makePublicData())
       tick()
@@ -741,7 +746,7 @@ export default function DashboardPage() {
     load()
     const id = setInterval(load,5*60*1000)
     return () => clearInterval(id)
-  }, [session?.user?.email, userPrefs])
+  }, [session?.user?.email, sessionStatus, userPrefs])
 
   const buildAnalysis = useCallback((d: DashboardData) => {
     const top = [...d.savedOpportunities,...d.recentOpportunities].filter(o=>typeof o.match==='number').sort((a,b)=>(b.match??0)-(a.match??0)).slice(0,3)
@@ -826,17 +831,61 @@ export default function DashboardPage() {
     return () => clearTimeout(t)
   }, [toast])
 
-  const isAuth = !!session?.user?.email
+  const isAuth = sessionStatus === 'authenticated' && !!session?.user?.email
   const hour = mounted ? new Date().getHours() : 12
   const greeting = hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'
 
   const stats = useMemo(() => [
-    {label:'Deadlines',       value:dash.upcomingDeadlines.length, sub:'Next 14 days',    bg:'linear-gradient(135deg,#f97316,#dc2626)', onClick:()=>router.push('/opportunities?filter=deadlines')},
-    {label:'Active Searches', value:dash.activeSearchesCount,      sub:'Saved alerts',    bg:'linear-gradient(135deg,#38bdf8,#4f46e5)', onClick:()=>router.push('/alerts')},
-    {label:'Saved Opps',      value:dash.savedOppCount,            sub:'Watchlist',       bg:'linear-gradient(135deg,#fbbf24,#ea580c)', onClick:()=>router.push('/opportunities?saved=1')},
-    {label:'New This Week',   value:dash.thisWeekCount,            sub:'SAM.gov matches', bg:'linear-gradient(135deg,#34d399,#0f766e)', onClick:()=>router.push('/search')},
-    {label:'Avg Match Score', value:dash.avgMatchScore!==null?`${dash.avgMatchScore}%`:'—', sub:'Profile fit', bg:'linear-gradient(135deg,#a78bfa,#7c3aed,#c026d3)', onClick:()=>router.push('/opportunities?sort=match')},
-    {label:'Notifications',   value:dash.notifications.length,     sub:'Signals',         bg:'linear-gradient(135deg,#64748b,#1e293b)', onClick:()=>router.push('/alerts?tab=notifications')},
+    {
+      label: 'Deadlines',
+      value: dash.upcomingDeadlines.length,
+      sub: dash.upcomingDeadlines[0] ? `Earliest: ${dash.upcomingDeadlines[0].deadline}` : 'Next 14 days',
+      detail: dash.upcomingDeadlines[0]?.title ? `${dash.upcomingDeadlines[0].title} · ${dash.upcomingDeadlines[0].value || ''}` : 'No upcoming deadlines',
+      bg: '#b91c1c',
+      onClick: () => router.push('/opportunities?filter=deadlines'),
+    },
+    {
+      label: 'Active Searches',
+      value: dash.activeSearchesCount,
+      sub: `${dash.activeSearches.reduce((s, a) => s + (a.newCount ?? 0), 0)} new results`,
+      detail: dash.activeSearches[0] ? `Latest: "${dash.activeSearches[0].name}"` : 'No saved searches',
+      bg: '#1d4ed8',
+      onClick: () => router.push('/alerts'),
+    },
+    {
+      label: 'Saved Opps',
+      value: dash.savedOppCount,
+      sub: 'Watchlist',
+      detail: dash.savedOpportunities[0] ? `Top: ${dash.savedOpportunities[0].title}` : 'No saved opportunities',
+      bg: '#b45309',
+      onClick: () => router.push('/opportunities?saved=1'),
+    },
+    {
+      label: 'New This Week',
+      value: dash.thisWeekCount,
+      sub: 'SAM.gov matches',
+      detail: `${dash.totalActiveOpportunities.toLocaleString()} total active opportunities`,
+      bg: '#047857',
+      onClick: () => router.push('/search'),
+    },
+    {
+      label: 'Avg Match Score',
+      value: dash.avgMatchScore !== null ? `${dash.avgMatchScore}%` : '—',
+      sub: 'Profile fit',
+      detail: dash.avgMatchScore !== null
+        ? dash.avgMatchScore >= 80 ? 'Strong pipeline alignment' : dash.avgMatchScore >= 65 ? 'Good alignment — refine preferences' : 'Update preferences to improve match'
+        : 'Complete your profile to see scores',
+      bg: '#6d28d9',
+      onClick: () => router.push('/opportunities?sort=match'),
+    },
+    {
+      label: 'Notifications',
+      value: dash.notifications.length,
+      sub: 'Signals',
+      detail: dash.notifications[0]?.title ?? 'No new signals',
+      bg: '#334155',
+      onClick: () => router.push('/alerts?tab=notifications'),
+    },
   ], [dash, router])
 
   const primarySearch = dash.activeSearches[0]
@@ -877,8 +926,8 @@ export default function DashboardPage() {
           <div className={`flex items-center gap-3 rounded-xl border backdrop-blur-md px-4 py-3 shadow-2xl pointer-events-auto ${toast.type==='success' ? 'border-emerald-500/40 bg-emerald-950/95 text-emerald-400' : 'border-rose-500/40 bg-rose-950/95 text-rose-400'}`}>
             {toast.type==='success' ? <CheckCircle className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
             <p className="flex-1 text-sm font-semibold">{toast.msg}</p>
-            <button onClick={()=>setToast(null)} className="text-current opacity-60 hover:opacity-100 cursor-pointer bg-transparent border-none p-0">
-              <X className="w-4 h-4" />
+            <button onClick={() => setToast(null)} className="text-current opacity-70 hover:opacity-100 cursor-pointer bg-transparent border-none text-xs font-bold px-2 py-1 rounded hover:bg-white/10 transition-colors">
+              Dismiss
             </button>
           </div>
         </div>
@@ -891,11 +940,11 @@ export default function DashboardPage() {
           <div className="absolute right-0 top-0 h-full w-full max-w-md flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 shadow-2xl">
             {/* Drawer header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+              <h2 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest">
                 {drawerTitles[drawer]}
               </h2>
-              <button onClick={()=>setDrawer(null)} className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
-                <X className="w-3.5 h-3.5" />
+              <button onClick={() => setDrawer(null)} className="px-4 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                Close
               </button>
             </div>
 
@@ -1115,17 +1164,17 @@ export default function DashboardPage() {
                   {/* Live stat pills */}
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     {[
-                      {label:'Live Opps',   value:dash.totalActiveOpportunities.toLocaleString(), cls:'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300'},
-                      {label:'New Matches', value:dash.thisWeekCount,                              cls:'bg-orange-50 dark:bg-orange-900/30 border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300'},
-                      {label:'Deadlines',   value:dash.upcomingDeadlines.length,                   cls:'bg-amber-50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300'},
-                      {label:'Avg Match',   value:dash.avgMatchScore ? `${dash.avgMatchScore}%` : '—', cls:'bg-violet-50 dark:bg-violet-900/30 border-violet-300 dark:border-violet-600 text-violet-700 dark:text-violet-300'},
+                      { label: 'Live Opps',   value: dash.totalActiveOpportunities.toLocaleString(), bg: '#047857' },
+                      { label: 'New Matches', value: dash.thisWeekCount,                              bg: '#b45309' },
+                      { label: 'Deadlines',   value: dash.upcomingDeadlines.length,                   bg: '#b91c1c' },
+                      { label: 'Avg Match',   value: dash.avgMatchScore ? `${dash.avgMatchScore}%` : '—', bg: '#4f46e5' },
                     ].map(s => (
-                      <div key={s.label} className={`text-center px-4 py-2 rounded-xl border ${s.cls}`}>
-                        <p className="text-xl font-black">{dash.loading ? '—' : s.value}</p>
-                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{s.label}</p>
+                      <div key={s.label} style={{ background: s.bg, color: 'white' }} className="text-center px-4 py-2 rounded-xl">
+                        <p className="text-xl font-black text-white">{dash.loading ? '—' : s.value}</p>
+                        <p className="text-xs font-semibold text-white/70">{s.label}</p>
                       </div>
                     ))}
-                    <button type="button" onClick={()=>router.push('/dashboard/onboarding?next=/dashboard')} className="inline-flex items-center gap-2.5 px-7 py-3 rounded-xl text-white font-black text-base cursor-pointer transition-all shadow-lg hover:shadow-xl hover:scale-105 ml-2 group" style={{background:'linear-gradient(135deg,#f97316 0%,#ea580c 50%,#dc2626 100%)'}}>
+                    <button type="button" onClick={() => router.push('/dashboard/onboarding?next=/dashboard')} className="inline-flex items-center gap-2.5 px-7 py-3 rounded-xl text-white font-black text-base cursor-pointer transition-all hover:brightness-110 ml-2 group" style={{ background: '#ea580c', color: 'white' }}>
                       {userPrefs ? 'Update Preferences' : 'Set Up Preferences'}
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
@@ -1133,90 +1182,117 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-6">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-3">
-                    {dash.dataSource!=='loading' && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-600">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities</span>
-                      </div>
-                    )}
+              <div>
+                {/* Live badge */}
+                {dash.dataSource !== 'loading' && (
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4" style={{ background: '#047857', color: 'white' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'white', flexShrink: 0, animation: 'pulse 2s infinite' }} />
+                    <span style={{ color: 'white', fontWeight: 900, fontSize: '14px', letterSpacing: '0.02em' }}>
+                      Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities
+                    </span>
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-2">
-                    {dash.loading ? 'Loading…' : 'Welcome to the Federal Contract Intelligence Dashboard'}
-                  </h1>
-                  <p className="text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-4">
-                    Track live SAM.gov opportunities scored against your certifications and NAICS codes. Sign in to unlock AI match scoring, deadline alerts, and your personalized pipeline.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {['AI-powered match scoring','Set-aside & NAICS filtering','Deadline alerts','Pipeline tracking'].map(f => (
-                      <span key={f} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 shadow-sm">
-                        <CheckCircle className="w-3 h-3 text-emerald-500" />{f}
-                      </span>
-                    ))}
+                )}
+
+                {/* Headline — full width, all colours */}
+                <h1 style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif', fontWeight: 900, fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', lineHeight: 1.15, marginBottom: '1.25rem' }}>
+                  {dash.loading ? (
+                    <span style={{ color: '#94a3b8' }}>Loading…</span>
+                  ) : (
+                    <>
+                      <span style={{ color: '#f97316' }}>Welcome</span>
+                      <span style={{ color: '#1e293b' }}> to </span>
+                      <span style={{ color: '#0ea5e9' }}>PreciseGovCon</span>
+                      <span style={{ color: '#1e293b' }}>'s </span>
+                      <span style={{ color: '#10b981' }}>Contract Intelligence</span>
+                      <span style={{ color: '#1e293b' }}> Dashboard</span>
+                    </>
+                  )}
+                </h1>
+
+                {/* Three-column content row — value text spans 2, chips in last col */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+
+                  {/* Col 1–2: Value statement — takes up 2/3 of the width */}
+                  <div className="md:col-span-2">
+                    <p style={{ fontSize: '19px', fontWeight: 700, color: '#1e293b', lineHeight: 1.7, marginBottom: '12px' }}>
+                      Your personalized procurement intelligence hub — live contract opportunities scored against your{' '}
+                      <span style={{ color: '#1d4ed8', fontWeight: 800 }}>certifications</span>,{' '}
+                      <span style={{ color: '#6d28d9', fontWeight: 800 }}>NAICS codes</span>, and{' '}
+                      <span style={{ color: '#047857', fontWeight: 800 }}>agency preferences</span>.
+                    </p>
+                    <p style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', lineHeight: 1.6 }}>
+                      <span style={{ color: '#ea580c', fontWeight: 900 }}>Sign in</span> to activate AI match scoring, deadline alerts, and a pipeline built for your business.
+                    </p>
+                    {/* Feature chips — 2-col grid, stretches full width */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '20px' }}>
+                      {[
+                        { label: 'AI Match Scoring',            color: '#6d28d9' },
+                        { label: 'Set-Aside & NAICS Filtering', color: '#1d4ed8' },
+                        { label: 'Deadline Alerts',             color: '#b91c1c' },
+                        { label: 'Pipeline Tracking',           color: '#047857' },
+                        { label: 'State & Local — coming soon', color: '#78350f' },
+                      ].map(f => (
+                        <span key={f.label} style={{ background: f.color, color: 'white', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 18px', borderRadius: '8px', fontSize: '16px', fontWeight: 800, width: '100%' }}>
+                          <CheckCircle style={{ width: 18, height: 18, flexShrink: 0, color: 'white' }} />{f.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                {/* CTA box */}
-                <div className="flex flex-col gap-3 shrink-0 min-w-52 p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md">
-                  <p className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide">Get started free</p>
-                  <Link href="/register" className="w-full text-center px-5 py-3 rounded-xl text-white text-sm font-black transition-all hover:scale-105 shadow-lg" style={{background:'linear-gradient(135deg,#f97316,#dc2626)'}}>
-                    Create Free Account
-                  </Link>
-                  <Link href="/login" className="w-full text-center px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                    Sign In
-                  </Link>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center">No credit card required</p>
+
+                  {/* Col 3: CTA box */}
+                  <div className="md:col-span-1 p-5 rounded-2xl bg-white border-2 border-orange-200 shadow-xl dark:bg-slate-800 dark:border-slate-600">
+                    <p style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', marginBottom: '4px' }}>Start for free</p>
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '16px', lineHeight: 1.5 }}>
+                      Join thousands of small businesses winning government contracts with AI-powered intelligence.
+                    </p>
+                    <Link href="/register" style={{ display: 'block', textAlign: 'center', padding: '12px 20px', borderRadius: '10px', background: '#ea580c', color: 'white', fontWeight: 900, fontSize: '14px', textDecoration: 'none', marginBottom: '10px' }} className="hover:brightness-110 transition-all">
+                      Create Free Account
+                    </Link>
+                    <Link href="/login" style={{ display: 'block', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', border: '2px solid #d1d5db', color: '#374151', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }} className="hover:bg-slate-50 transition-colors dark:border-slate-600 dark:text-slate-200">
+                      Sign In to Your Dashboard
+                    </Link>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '10px' }}>No credit card required · SDVOSB &amp; VOSB friendly</p>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </section>
 
-        {/* ── Logged-out info strip (no duplicate buttons) ──────────────────── */}
+        {/* ── Visitor info strip ──────────────────────────────────────────── */}
         {!isAuth && !dash.loading && (
-          <div className="mb-4 px-5 py-3 rounded-2xl flex flex-wrap items-center gap-3" style={{background:'linear-gradient(135deg,#ea580c,#d97706)'}}>
-            <CheckCircle className="w-4 h-4 text-orange-100 shrink-0" />
-            <p className="text-sm text-white flex-1">
-              <strong>You're viewing public data.</strong> Sign in to filter by your certifications, get AI match scores, and track deadlines.
+          <div className="mb-4 rounded-2xl flex flex-wrap items-center gap-3 px-5 py-4" style={{ background: '#ea580c', color: 'white' }}>
+            <CheckCircle style={{ color: 'white', width: 20, height: 20, flexShrink: 0 }} />
+            <p style={{ color: 'white', fontSize: '15px', fontWeight: 600, flex: 1 }}>
+              <strong style={{ color: 'white', fontWeight: 900 }}>You're viewing a public sample of live SAM.gov data.</strong>
+              {' '}Sign in to filter by your certifications, activate AI match scores, and track your deadline pipeline.
             </p>
+            <Link href="/login"
+              style={{ background: 'white', color: '#c2410c', fontWeight: 900, fontSize: '14px', padding: '8px 20px', borderRadius: '8px', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
+              className="hover:bg-orange-50 transition-colors">
+              Sign In Now
+            </Link>
           </div>
         )}
 
         {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-          {stats.map(({label,value,sub,bg,onClick}) => (
+          {stats.map(({ label, value, sub, detail, bg, onClick }) => (
             <button
               key={label}
-              onClick={label === 'Saved Opps' && dash.savedOpportunities.length > 0
-                ? () => {
-                    setSelectedOpportunity(dash.savedOpportunities[0]);
-                    setShowOpportunityModal(true);
-                  }
-                : label === 'Deadlines' && dash.upcomingDeadlines.length > 0
-                ? () => {
-                    setSelectedOpportunity({
-                      ...dash.savedOpportunities.find(o => o.deadline && o.deadline.includes('day'))!,
-                      // fallback to first if not found
-                    });
-                    setShowOpportunityModal(true);
-                  }
-                : label === 'Refresh'
-                ? handleRefresh
-                : onClick}
-              style={{background: bg}}
-              className="text-left rounded-2xl border border-white/10 shadow-md hover:shadow-xl p-4 transition-all cursor-pointer group hover:scale-[1.02] active:scale-[0.98] hover:brightness-110"
-              disabled={label === 'Refresh' && refreshing}
+              onClick={onClick}
+              style={{ background: bg, color: 'white' }}
+              className="text-left rounded-2xl shadow-md hover:shadow-xl p-5 transition-all cursor-pointer group hover:brightness-110 active:scale-[0.98]"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-white/40 shadow-sm" />
-                <ChevronRight className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" />
+                <p style={{ color: 'white', fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
+                <ChevronRight style={{ color: 'rgba(255,255,255,0.6)', width: 18, height: 18 }} className="group-hover:translate-x-0.5 transition-all" />
               </div>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-1.5">{label}</p>
-              <p className="text-4xl font-black leading-none mb-1.5 text-white">
-                {dash.loading ? <Loader2 className="w-5 h-5 text-white/60 animate-spin" /> : (value??'—')}
+              <p style={{ color: 'white', fontSize: '3rem', fontWeight: 900, lineHeight: 1, marginBottom: '8px' }}>
+                {dash.loading ? <Loader2 style={{ color: 'rgba(255,255,255,0.7)', width: 24, height: 24 }} className="animate-spin" /> : (value ?? '—')}
               </p>
-              <p className="text-xs text-white/70">{sub}</p>
+              <p style={{ color: 'white', fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>{sub}</p>
+              <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, lineHeight: 1.4 }} className="line-clamp-2">{detail}</p>
             </button>
           ))}
         </div>
@@ -1230,77 +1306,190 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-5">
 
             {/* AI Analysis */}
-            {analysis && (dash.savedOppCount>0||dash.recentOpportunities.length>0) && (
-              <div className="rounded-2xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700 flex items-center justify-center shrink-0">
-                      <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">Precise GovCon Intelligence</span>
-                        <span className="px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700 text-xs font-bold text-violet-600 dark:text-violet-400">AI</span>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">{analysis.summary}</p>
-                      {analysis.topOpps?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          {analysis.topOpps.map((o,i) => (
-                            <span key={i} className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold ${o.urgency==='high' ? 'bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400' : o.urgency==='medium' ? 'bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400' : 'bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400'}`}>
-                              <span className="w-1.5 h-1.5 rounded-full bg-current" />{o.title}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {analysis.recs?.length > 0 && (
-                        <ul className="flex flex-col gap-1">
-                          {analysis.recs.map((r,i) => (
-                            <li key={i} className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                              <ChevronRight className="w-3 h-3 shrink-0 mt-0.5 text-violet-500" />{r}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
+            {analysis && (dash.savedOppCount > 0 || dash.recentOpportunities.length > 0) && (
+              <div className="rounded-2xl border border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-800 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 bg-violet-700">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-white" />
+                    <span className="text-base font-black text-white">PreciseGovCon Intelligence</span>
+                    <span className="px-2 py-0.5 rounded bg-white/20 text-xs font-bold text-white">AI</span>
                   </div>
-                  <button onClick={runAi} disabled={analysisLoading}
-                    className="flex items-center gap-1.5 text-xs font-bold text-violet-500 hover:text-violet-700 dark:hover:text-violet-300 bg-transparent border-none cursor-pointer shrink-0 disabled:opacity-50 transition-colors">
-                    <RefreshCw className={`w-3 h-3 ${analysisLoading?'animate-spin':''}`} />
-                    {analysisLoading?'Analyzing…':'Refresh'}
+                  <button
+                    onClick={runAi}
+                    disabled={analysisLoading}
+                    className="text-sm font-bold text-white/80 hover:text-white disabled:opacity-50 bg-transparent border-none cursor-pointer transition-colors flex items-center gap-1.5"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${analysisLoading ? 'animate-spin' : ''}`} />
+                    {analysisLoading ? 'Analyzing…' : 'Re-Analyze'}
                   </button>
+                </div>
+
+                <div className="p-5">
+                  {/* Summary */}
+                  <p className="text-base text-slate-700 dark:text-slate-200 leading-relaxed mb-4 font-medium">
+                    {analysis.summary}
+                  </p>
+
+                  {/* Top priorities */}
+                  {analysis.topOpps?.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Top Priorities</p>
+                      <div className="flex flex-col gap-2">
+                        {analysis.topOpps.map((o, i) => (
+                          <div key={i} className={`flex items-start gap-3 p-3 rounded-xl ${
+                            o.urgency === 'high'
+                              ? 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800'
+                              : o.urgency === 'medium'
+                              ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800'
+                              : 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800'
+                          }`}>
+                            <span className={`w-2.5 h-2.5 rounded-full mt-1 shrink-0 ${
+                              o.urgency === 'high' ? 'bg-rose-500' : o.urgency === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
+                            }`} />
+                            <div>
+                              <p className="text-sm font-bold text-slate-900 dark:text-white">{o.title}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{o.reason}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommended actions */}
+                  {analysis.recs?.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Recommended Actions</p>
+                      <ul className="flex flex-col gap-2">
+                        {analysis.recs.map((r, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                            <ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-violet-500" />
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <Link
+                    href="/insights"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-colors"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    View Full AI Analysis &amp; Insights
+                  </Link>
                 </div>
               </div>
             )}
 
             {/* Latest Matches */}
             {dash.recentOpportunities.length > 0 && (
-              <div className="rounded-2xl border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-800 overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-emerald-100 dark:border-emerald-900 bg-emerald-600">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <div className="rounded-2xl border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-3.5 bg-emerald-700">
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Target className="w-4 h-4" />
                     Latest Matches
                   </h3>
-                  <button onClick={()=>setDrawer('recentMatches')} className="text-xs font-bold text-white/80 hover:text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg border-none cursor-pointer transition-colors">View all →</button>
+                  <Link
+                    href="/opportunities?sort=match&view=list"
+                    className="px-4 py-1.5 rounded-lg bg-white text-emerald-700 text-sm font-black hover:bg-emerald-50 transition-colors"
+                  >
+                    View All Matches
+                  </Link>
                 </div>
-                {dash.recentOpportunities.slice(0,5).map((o,i) => (
-                  <button key={o.noticeId} onClick={()=>router.push(`/opportunities${qs({noticeId:o.noticeId})}`)}
-                    className={`w-full text-left px-5 py-3.5 ${i < Math.min(4,dash.recentOpportunities.length-1) ? 'border-b border-slate-100 dark:border-slate-700/60' : ''} bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate mb-1">{o.title}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
-                          <span>{o.agency}</span>
-                          {o.setAside && <span className="text-emerald-600 dark:text-emerald-400 font-bold">{o.setAside}</span>}
-                          {o.naics && <span className="font-mono">{o.naics}</span>}
-                        </p>
+
+                {/* Sort/filter bar */}
+                <div className="flex items-center gap-2 px-5 py-2.5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex-wrap">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mr-1">Sort:</span>
+                  {[
+                    { label: 'Match Score', href: '/opportunities?sort=match&view=list' },
+                    { label: 'Deadline', href: '/opportunities?sort=deadline_asc&view=list' },
+                    { label: 'Value', href: '/opportunities?sort=value&view=list' },
+                    { label: 'Posted', href: '/opportunities?sort=posted_desc&view=list' },
+                  ].map(s => (
+                    <Link key={s.label} href={s.href}
+                      className="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:border-emerald-300 hover:text-emerald-700 transition-colors">
+                      {s.label}
+                    </Link>
+                  ))}
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-2 mr-1">Filter:</span>
+                  {[
+                    { label: 'SDVOSB', href: '/opportunities?setAside=SDVOSBC&view=list' },
+                    { label: 'SBA', href: '/opportunities?setAside=SBA&view=list' },
+                    { label: 'Expiring', href: '/opportunities?filter=expiring&view=list' },
+                  ].map(f => (
+                    <Link key={f.label} href={f.href}
+                      className="px-3 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-300 hover:text-amber-700 transition-colors">
+                      {f.label}
+                    </Link>
+                  ))}
+                </div>
+
+                {/* Match rows */}
+                <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {dash.recentOpportunities.slice(0, 6).map((o, i) => (
+                    <Link
+                      key={o.noticeId}
+                      href={`/opportunities${qs({ noticeId: o.noticeId })}`}
+                      className="flex items-start gap-4 px-5 py-4 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors"
+                    >
+                      {/* Match score pill */}
+                      <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black text-white text-sm ${
+                        (o.match ?? 0) >= 85 ? 'bg-emerald-600' :
+                        (o.match ?? 0) >= 70 ? 'bg-sky-600' : 'bg-slate-500'
+                      }`}>
+                        <span className="text-base leading-none">{o.match ?? '—'}</span>
+                        <span className="text-[10px] font-bold opacity-80">%</span>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {typeof o.match==='number' && <Score v={o.match} />}
-                        {o.value && <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{fmtCur(o.value)}</span>}
-                        {o.deadline && <span className="text-xs font-black text-orange-500 bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded">{o.deadline}</span>}
+
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-snug mb-0.5 truncate">{o.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{o.agency}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {o.setAside && (
+                            <span className="px-2 py-0.5 rounded bg-emerald-700 text-white text-[11px] font-bold">{o.setAside}</span>
+                          )}
+                          {o.naics && (
+                            <span className="px-2 py-0.5 rounded bg-slate-700 text-slate-200 text-[11px] font-mono font-bold">{o.naics}</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+
+                      {/* Right meta */}
+                      <div className="shrink-0 text-right flex flex-col items-end gap-1">
+                        {o.deadline && (
+                          <span className={`px-2 py-0.5 rounded text-xs font-black text-white ${
+                            parseInt(o.deadline) <= 5 ? 'bg-red-600' :
+                            parseInt(o.deadline) <= 10 ? 'bg-orange-500' : 'bg-slate-500'
+                          }`}>
+                            {o.deadline}
+                          </span>
+                        )}
+                        {o.value && (
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{fmtCur(o.value)}</span>
+                        )}
+                        {o.posted && (
+                          <span className="text-xs text-slate-400">{o.posted}</span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                {/* Footer CTA */}
+                <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    Showing {Math.min(6, dash.recentOpportunities.length)} of {dash.thisWeekCount || dash.recentOpportunities.length} new matches this week
+                  </span>
+                  <Link
+                    href="/opportunities?sort=match&view=list"
+                    className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-800 transition-colors"
+                  >
+                    See All Matches
+                  </Link>
+                </div>
               </div>
             )}
 
@@ -1378,105 +1567,131 @@ export default function DashboardPage() {
 
             {/* Deadlines */}
             {dash.upcomingDeadlines.length > 0 && (
-              <div className="rounded-2xl border border-orange-300 dark:border-orange-800 bg-white dark:bg-slate-800 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-orange-200 dark:border-orange-900 bg-orange-500">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-white" />Deadlines
+              <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid #7f1d1d' }}>
+                <div style={{ background: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
+                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertTriangle style={{ width: 16, height: 16, color: 'white' }} />Upcoming Deadlines
                   </h3>
-                  <button onClick={()=>setDrawer('deadlines')} className="text-xs font-bold text-white/80 hover:text-white bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg border-none cursor-pointer transition-colors">View all →</button>
+                  <Link href="/opportunities?filter=expiring&view=list"
+                    style={{ color: 'white', fontWeight: 700, fontSize: '12px', background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: '6px', textDecoration: 'none' }}
+                    className="hover:bg-white/30 transition-colors">
+                    View All Deadlines
+                  </Link>
                 </div>
-                <div className="p-3 flex flex-col gap-2">
-                  {dash.upcomingDeadlines.map((dl,i) => (
-                    <div key={i} className="rounded-xl border border-orange-100 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-950/20 p-3">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate mb-1.5">{dl.title}</p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{dl.value||''}</p>
-                        <p className="text-sm font-black text-orange-600 dark:text-orange-400 flex items-center gap-1"><Clock className="w-3 h-3" />{dl.deadline}</p>
+                <div>
+                  {dash.upcomingDeadlines.map((dl, i) => {
+                    const days = parseInt(dl.deadline)
+                    const bg = days <= 3 ? '#7f1d1d' : days <= 7 ? '#991b1b' : '#b91c1c'
+                    return (
+                      <div key={i} style={{ background: bg, color: 'white', padding: '12px 16px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
+                        <p style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dl.title}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: 600 }}>{dl.value || ''}</p>
+                          <p style={{ color: 'white', fontWeight: 900, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                            <Clock style={{ width: 12, height: 12, color: 'white' }} />{dl.deadline}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
 
             {/* Alerts */}
-            <div className="rounded-2xl border border-teal-300 dark:border-teal-800 bg-white dark:bg-slate-800 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-teal-200 dark:border-teal-900 bg-linear-to-r from-teal-600 to-cyan-600">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-cyan-200" />
-                  <span>Your Alerts</span>
-                  <span className="text-xs font-normal text-teal-200 ml-1">· Search subscriptions</span>
+            <div className="rounded-2xl overflow-hidden border border-teal-800">
+              <div className="flex items-center justify-between px-4 py-3 bg-teal-700">
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <Bell className="w-4 h-4" />
+                  Your Alerts
                 </h3>
+                <Link href="/alerts" className="text-xs font-bold text-white bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors">
+                  Manage Alerts
+                </Link>
               </div>
-              <div className="p-3 flex flex-col gap-2">
-                {dash.activeSearches.length === 0
-                  ? <p className="text-sm text-slate-400 text-center py-4">No active alerts yet.</p>
-                  : dash.activeSearches.slice(0,4).map(s => (
+              <div className="divide-y divide-teal-900/30 bg-teal-950">
+                {dash.activeSearches.length === 0 ? (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-sm text-teal-300 mb-3">No active alert subscriptions yet.</p>
+                    <Link href="/alerts" className="px-4 py-2 rounded-lg bg-teal-700 text-white text-sm font-bold hover:bg-teal-600 transition-colors">
+                      Create Your First Alert
+                    </Link>
+                  </div>
+                ) : (
+                  dash.activeSearches.slice(0, 4).map(s => (
                     <Link key={s.id} href={`/alerts/${s.id}`}
-                      className="block rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 p-3 transition-colors">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate flex-1">{s.name}</p>
-                        <span className="text-xs font-bold text-emerald-500 shrink-0">● Live</span>
+                      className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-teal-900 transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{s.name}</p>
+                        <p className="text-xs text-teal-300 mt-0.5 truncate">
+                          "{s.query}"
+                          {s.filters?.naics && <span className="text-cyan-300 font-mono ml-1">· NAICS {s.filters.naics}</span>}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] font-bold text-emerald-400">● Live</span>
+                          <span className="text-[11px] text-teal-400">{s.resultsCount ?? 0} results</span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                        <span>Real-time</span>
-                        {(s.newCount??0)>0 && <span className="font-bold text-emerald-500">+{s.newCount} new</span>}
-                      </div>
+                      {(s.newCount ?? 0) > 0 && (
+                        <span className="shrink-0 px-2 py-0.5 rounded bg-rose-700 text-white text-xs font-black">+{s.newCount} new</span>
+                      )}
                     </Link>
                   ))
-                }
-                <Link href="/alerts" className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold mt-1 transition-colors shadow-md shadow-emerald-600/20">
-                  <Plus className="w-3.5 h-3.5" />New Alert
+                )}
+              </div>
+              <div className="px-4 py-3 bg-teal-800">
+                <Link href="/alerts" className="flex items-center justify-center gap-2 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-bold transition-colors">
+                  <Plus className="w-4 h-4" />New Alert Subscription
                 </Link>
               </div>
             </div>
 
             {/* AI Insights */}
-            <div className="rounded-2xl border border-violet-300 dark:border-violet-800 bg-white dark:bg-slate-800 overflow-hidden">
-              <div className="px-4 py-3 border-b border-violet-200 dark:border-violet-900 bg-violet-600">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  AI Insights
+            <div className="rounded-2xl overflow-hidden border border-violet-800">
+              <div className="px-4 py-3 bg-violet-800">
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <Brain className="w-4 h-4" />AI Insights
                 </h3>
               </div>
-              <div className="p-4">
-              <ul className="flex flex-col gap-2 mb-4">
-                {(analysis?.recs || [
-                  `Your ${userPrefs?.setAsides?.[0]||'SDVOSB'} certification matches active DoD solicitations`,
-                  'SDVOSB set-asides trending up this quarter',
-                  'Cloud modernization demand peaks in Q3',
-                ]).slice(0,3).map((r,i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-sm text-slate-600 dark:text-slate-300 leading-snug">
-                    <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 text-violet-500" />{r}
-                  </li>
-                ))}
-              </ul>
-              <button onClick={()=>setShowAiModal(true)}
-                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold cursor-pointer transition-colors shadow-md shadow-violet-600/20">
-                <Brain className="w-4 h-4" />Full AI Analysis
-              </button>
-
-              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
-                  <Activity className="w-4 h-4 text-sky-500" />Recent Activity
-                </h3>
-                <div className="flex flex-col gap-2">
-                  {activityLog.slice(0,4).map(log => (
-                    <div key={log.id} className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center shrink-0">
-                        {log.type==='search' && <Search className="w-3 h-3 text-sky-500" />}
-                        {log.type==='alert' && <Bell className="w-3 h-3 text-amber-500" />}
-                        {log.type==='ai' && <Brain className="w-3 h-3 text-violet-500" />}
-                        {log.type==='save' && <Target className="w-3 h-3 text-emerald-500" />}
-                        {log.type==='share' && <Share2 className="w-3 h-3 text-blue-400" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate leading-snug">{log.title}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{fmtRel(log.timestamp)}</p>
-                      </div>
-                    </div>
+              <div className="p-4 bg-violet-950">
+                <ul className="flex flex-col gap-3 mb-4">
+                  {(analysis?.recs || [
+                    `Your ${userPrefs?.setAsides?.[0] || 'SDVOSB'} certification matches active DoD solicitations`,
+                    'SDVOSB set-asides trending up this quarter',
+                    'Cloud modernization demand peaks in Q3',
+                  ]).slice(0, 3).map((r, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-violet-100 leading-snug font-medium">
+                      <ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-violet-400" />{r}
+                    </li>
                   ))}
+                </ul>
+                <Link href="/insights"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors">
+                  <Brain className="w-4 h-4" />View Full AI Analysis
+                </Link>
+
+                <div className="mt-4 pt-4 border-t border-violet-800">
+                  <h3 className="text-sm font-black text-violet-200 flex items-center gap-2 mb-3">
+                    <Activity className="w-4 h-4 text-sky-400" />Recent Activity
+                  </h3>
+                  <div className="flex flex-col gap-2">
+                    {activityLog.slice(0, 4).map(log => (
+                      <div key={log.id} className="flex items-start gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-violet-900 border border-violet-700 flex items-center justify-center shrink-0">
+                          {log.type === 'search' && <Search className="w-3 h-3 text-sky-400" />}
+                          {log.type === 'alert'  && <Bell className="w-3 h-3 text-amber-400" />}
+                          {log.type === 'ai'     && <Brain className="w-3 h-3 text-violet-400" />}
+                          {log.type === 'save'   && <Target className="w-3 h-3 text-emerald-400" />}
+                          {log.type === 'share'  && <Share2 className="w-3 h-3 text-blue-400" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-violet-100 truncate leading-snug">{log.title}</p>
+                          <p className="text-xs text-violet-400 mt-0.5">{fmtRel(log.timestamp)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
 
@@ -1484,72 +1699,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* AI Modal */}
-      {showAiModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-900 shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between px-5 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700 flex items-center justify-center">
-                  <Brain className="w-4 h-4 text-violet-600 dark:text-violet-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-slate-900 dark:text-white">Precise GovCon Intelligence</p>
-                  <p className="text-xs text-slate-400">AI-powered pipeline analysis</p>
-                </div>
-              </div>
-              <button onClick={()=>setShowAiModal(false)} className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="p-5 flex flex-col gap-4">
-              {analysis && (
-                <>
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Summary</p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.summary}</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Top Priorities</p>
-                    <div className="flex flex-col gap-2">
-                      {analysis.topOpps?.map((o,i) => (
-                        <div key={i} className={`flex items-start gap-2.5 p-3 rounded-xl border ${o.urgency==='high' ? 'border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30' : o.urgency==='medium' ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30' : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30'}`}>
-                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${o.urgency==='high'?'bg-rose-500':o.urgency==='medium'?'bg-amber-500':'bg-emerald-500'}`} />
-                          <div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white mb-0.5">{o.title}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">{o.reason}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Recommended Actions</p>
-                    <ul className="flex flex-col gap-2">
-                      {analysis.recs?.map((r,i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
-                          <ChevronRight className="w-3.5 h-3.5 shrink-0 mt-0.5 text-violet-500" />{r}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              )}
-              <div className="flex gap-3">
-                <button onClick={runAi} disabled={analysisLoading}
-                  className="flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold cursor-pointer border-none transition-colors disabled:opacity-50 shadow-md shadow-orange-500/20">
-                  <RefreshCw className={`w-3.5 h-3.5 ${analysisLoading?'animate-spin':''}`} />
-                  {analysisLoading?'Analyzing…':'Re-Analyze'}
-                </button>
-                <button onClick={()=>setShowAiModal(false)}
-                  className="flex-1 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* AI Analysis is now inline in the main column — no modal needed */}
     </div>
   )
 }
