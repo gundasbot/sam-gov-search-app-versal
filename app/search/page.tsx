@@ -1,558 +1,558 @@
 "use client";
 
-import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from"react";
+import Link from"next/link";
+import Image from"next/image";
+import { useRouter, useSearchParams } from"next/navigation";
+import { useSession } from"next-auth/react";
 import {
-  FileText, Building2, Target, MapPin, Loader2, HelpCircle, X, Save, Bell,
-  Settings, Tag, Layers, Users, MessageSquare, ExternalLink, Shield, Check,
-  Bookmark, Clock, Calendar, Hash, Copy, ArrowUpRight, Phone, AlertTriangle,
-  ChevronUp, ChevronDown, Share2, Search, StopCircle, RefreshCw, CheckCircle,
-  Filter, SlidersHorizontal, List, Grid, AlertCircle, Plus, BarChart3,
-  TrendingUp, Sparkles, BarChart2,
-} from "lucide-react";
+ FileText, Building2, Target, MapPin, Loader2, HelpCircle, X, Save, Bell,
+ Settings, Tag, Layers, Users, MessageSquare, ExternalLink, Shield, Check,
+ Bookmark, Clock, Calendar, Hash, Copy, ArrowUpRight, Phone, AlertTriangle,
+ ChevronUp, ChevronDown, Share2, Search, StopCircle, RefreshCw, CheckCircle,
+ Filter, SlidersHorizontal, List, Grid, AlertCircle, Plus, BarChart3,
+ TrendingUp, Sparkles, BarChart2,
+} from"lucide-react";
 
 // ─── Shims for hooks/components imported from your project ────────────────
 // Replace these with your real imports once the file is in place.
 
 function useSubscription() {
-  return {
-    hasActiveSubscription: () => false as boolean,
-    tier: "" as string,
-    status: "" as string,
-    loading: false as boolean,
-  };
+ return {
+ hasActiveSubscription: () => false as boolean,
+ tier:""as string,
+ status:""as string,
+ loading: false as boolean,
+ };
 }
 
 function useDebounce<T>(value: T, delay: number): T {
-  const [dv, setDv] = useState<T>(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDv(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return dv;
+ const [dv, setDv] = useState<T>(value);
+ useEffect(() => {
+ const t = setTimeout(() => setDv(value), delay);
+ return () => clearTimeout(t);
+ }, [value, delay]);
+ return dv;
 }
 
 const BRAND_CONFIG = {
-  logo: { path: "/logo.png", alt: "PreciseGovCon" },
+ logo: { path:"/logo.png", alt:"PreciseGovCon"},
 };
 
 // ─── Set-aside constants & helpers ────────────────────────────────────────
 const SET_ASIDE_MAP: Record<string, string> = {
-  SBA: "Small Business Set-Aside",
-  "8A": "8(a) Sole Source",
-  "8AN": "8(a) Competitive",
-  SDB: "Small Disadvantaged Business",
-  HZC: "HUBZone",
-  HZS: "HUBZone Sole Source",
-  SDVOSBC: "SDVOSB Competitive",
-  SDVOSBSS: "SDVOSB Sole Source",
-  WOSB: "Women-Owned Small Business",
-  WOSBSS: "WOSB Sole Source",
-  EDWOSB: "Economically Disadvantaged WOSB",
-  EDWOSBSS: "EDWOSB Sole Source",
-  VSB: "Veteran-Owned Small Business",
-  VOSB: "Veteran-Owned Small Business",
-  ISBEE: "Indian Economic Enterprise",
-  TIPSS: "Total Small Business Set-Aside",
+ SBA:"Small Business Set-Aside",
+"8A":"8(a) Sole Source",
+"8AN":"8(a) Competitive",
+ SDB:"Small Disadvantaged Business",
+ HZC:"HUBZone",
+ HZS:"HUBZone Sole Source",
+ SDVOSBC:"SDVOSB Competitive",
+ SDVOSBSS:"SDVOSB Sole Source",
+ WOSB:"Women-Owned Small Business",
+ WOSBSS:"WOSB Sole Source",
+ EDWOSB:"Economically Disadvantaged WOSB",
+ EDWOSBSS:"EDWOSB Sole Source",
+ VSB:"Veteran-Owned Small Business",
+ VOSB:"Veteran-Owned Small Business",
+ ISBEE:"Indian Economic Enterprise",
+ TIPSS:"Total Small Business Set-Aside",
 };
 
 const SET_ASIDE_CODE_BY_LABEL: Record<string, string> = Object.fromEntries(
-  Object.entries(SET_ASIDE_MAP).map(([k, v]) => [v, k])
+ Object.entries(SET_ASIDE_MAP).map(([k, v]) => [v, k])
 );
 
 const SET_ASIDE_OPTIONS = [
-  { code: "", label: "Any Set-Aside" },
-  ...Object.entries(SET_ASIDE_MAP).map(([code, label]) => ({ code, label })),
+ { code:"", label:"Any Set-Aside"},
+ ...Object.entries(SET_ASIDE_MAP).map(([code, label]) => ({ code, label })),
 ];
 
 function getSetAsideLabel(code: string): string {
-  return SET_ASIDE_MAP[(code || "").toUpperCase()] || code || "";
+ return SET_ASIDE_MAP[(code ||"").toUpperCase()] || code ||"";
 }
 
 function setAsideCodesToString(codes: string[]): string {
-  return codes.filter(Boolean).join(",");
+ return codes.filter(Boolean).join(",");
 }
 
 function stringToSetAsideCodes(str: string): string[] {
-  return str ? str.split(",").filter(Boolean) : [];
+ return str ? str.split(",").filter(Boolean) : [];
 }
 
 // ─── Location constants & helpers ─────────────────────────────────────────
 const US_STATES_AND_TERRITORIES = [
-  { code: "", label: "Any State/Territory" },
-  { code: "AL", label: "Alabama" }, { code: "AK", label: "Alaska" },
-  { code: "AZ", label: "Arizona" }, { code: "AR", label: "Arkansas" },
-  { code: "CA", label: "California" }, { code: "CO", label: "Colorado" },
-  { code: "CT", label: "Connecticut" }, { code: "DE", label: "Delaware" },
-  { code: "FL", label: "Florida" }, { code: "GA", label: "Georgia" },
-  { code: "HI", label: "Hawaii" }, { code: "ID", label: "Idaho" },
-  { code: "IL", label: "Illinois" }, { code: "IN", label: "Indiana" },
-  { code: "IA", label: "Iowa" }, { code: "KS", label: "Kansas" },
-  { code: "KY", label: "Kentucky" }, { code: "LA", label: "Louisiana" },
-  { code: "ME", label: "Maine" }, { code: "MD", label: "Maryland" },
-  { code: "MA", label: "Massachusetts" }, { code: "MI", label: "Michigan" },
-  { code: "MN", label: "Minnesota" }, { code: "MS", label: "Mississippi" },
-  { code: "MO", label: "Missouri" }, { code: "MT", label: "Montana" },
-  { code: "NE", label: "Nebraska" }, { code: "NV", label: "Nevada" },
-  { code: "NH", label: "New Hampshire" }, { code: "NJ", label: "New Jersey" },
-  { code: "NM", label: "New Mexico" }, { code: "NY", label: "New York" },
-  { code: "NC", label: "North Carolina" }, { code: "ND", label: "North Dakota" },
-  { code: "OH", label: "Ohio" }, { code: "OK", label: "Oklahoma" },
-  { code: "OR", label: "Oregon" }, { code: "PA", label: "Pennsylvania" },
-  { code: "RI", label: "Rhode Island" }, { code: "SC", label: "South Carolina" },
-  { code: "SD", label: "South Dakota" }, { code: "TN", label: "Tennessee" },
-  { code: "TX", label: "Texas" }, { code: "UT", label: "Utah" },
-  { code: "VT", label: "Vermont" }, { code: "VA", label: "Virginia" },
-  { code: "WA", label: "Washington" }, { code: "WV", label: "West Virginia" },
-  { code: "WI", label: "Wisconsin" }, { code: "WY", label: "Wyoming" },
-  { code: "DC", label: "District of Columbia" },
-  { code: "PR", label: "Puerto Rico" }, { code: "GU", label: "Guam" },
-  { code: "VI", label: "U.S. Virgin Islands" },
+ { code:"", label:"Any State/Territory"},
+ { code:"AL", label:"Alabama"}, { code:"AK", label:"Alaska"},
+ { code:"AZ", label:"Arizona"}, { code:"AR", label:"Arkansas"},
+ { code:"CA", label:"California"}, { code:"CO", label:"Colorado"},
+ { code:"CT", label:"Connecticut"}, { code:"DE", label:"Delaware"},
+ { code:"FL", label:"Florida"}, { code:"GA", label:"Georgia"},
+ { code:"HI", label:"Hawaii"}, { code:"ID", label:"Idaho"},
+ { code:"IL", label:"Illinois"}, { code:"IN", label:"Indiana"},
+ { code:"IA", label:"Iowa"}, { code:"KS", label:"Kansas"},
+ { code:"KY", label:"Kentucky"}, { code:"LA", label:"Louisiana"},
+ { code:"ME", label:"Maine"}, { code:"MD", label:"Maryland"},
+ { code:"MA", label:"Massachusetts"}, { code:"MI", label:"Michigan"},
+ { code:"MN", label:"Minnesota"}, { code:"MS", label:"Mississippi"},
+ { code:"MO", label:"Missouri"}, { code:"MT", label:"Montana"},
+ { code:"NE", label:"Nebraska"}, { code:"NV", label:"Nevada"},
+ { code:"NH", label:"New Hampshire"}, { code:"NJ", label:"New Jersey"},
+ { code:"NM", label:"New Mexico"}, { code:"NY", label:"New York"},
+ { code:"NC", label:"North Carolina"}, { code:"ND", label:"North Dakota"},
+ { code:"OH", label:"Ohio"}, { code:"OK", label:"Oklahoma"},
+ { code:"OR", label:"Oregon"}, { code:"PA", label:"Pennsylvania"},
+ { code:"RI", label:"Rhode Island"}, { code:"SC", label:"South Carolina"},
+ { code:"SD", label:"South Dakota"}, { code:"TN", label:"Tennessee"},
+ { code:"TX", label:"Texas"}, { code:"UT", label:"Utah"},
+ { code:"VT", label:"Vermont"}, { code:"VA", label:"Virginia"},
+ { code:"WA", label:"Washington"}, { code:"WV", label:"West Virginia"},
+ { code:"WI", label:"Wisconsin"}, { code:"WY", label:"Wyoming"},
+ { code:"DC", label:"District of Columbia"},
+ { code:"PR", label:"Puerto Rico"}, { code:"GU", label:"Guam"},
+ { code:"VI", label:"U.S. Virgin Islands"},
 ];
 
 function getLocationLabel(code: string): string {
-  return US_STATES_AND_TERRITORIES.find((s) => s.code === code)?.label || code;
+ return US_STATES_AND_TERRITORIES.find((s) => s.code === code)?.label || code;
 }
 
 function locationCodesToString(codes: string[]): string {
-  return codes.filter(Boolean).join(",");
+ return codes.filter(Boolean).join(",");
 }
 
 function stringToLocationCodes(str: string): string[] {
-  return str ? str.split(",").filter(Boolean) : [];
+ return str ? str.split(",").filter(Boolean) : [];
 }
 
 // ─── Date helpers ──────────────────────────────────────────────────────────
 function getSixMonthsAgo(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() - 6);
-  return d.toISOString().split("T")[0];
+ const d = new Date();
+ d.setMonth(d.getMonth() - 6);
+ return d.toISOString().split("T")[0];
 }
 
 function getToday(): string {
-  return new Date().toISOString().split("T")[0];
+ return new Date().toISOString().split("T")[0];
 }
 
 // ─── QuickDateLookupProps type ────────────────────────────────────────────
 interface QuickDateLookupProps {
-  keywords: string;
-  setKeywords: (v: string) => void;
-  postedAfter: string;
-  setPostedAfter: (v: string) => void;
-  responseDeadlineBefore: string;
-  setResponseDeadlineBefore: (v: string) => void;
-  onRunSearch: () => void;
-  onStopSearch: () => void;
-  onReset: () => void;
-  loading: boolean;
-  searchDuration: number;
-  onSaveSearch: () => void;
-  onCreateAlert: () => void;
+ keywords: string;
+ setKeywords: (v: string) => void;
+ postedAfter: string;
+ setPostedAfter: (v: string) => void;
+ responseDeadlineBefore: string;
+ setResponseDeadlineBefore: (v: string) => void;
+ onRunSearch: () => void;
+ onStopSearch: () => void;
+ onReset: () => void;
+ loading: boolean;
+ searchDuration: number;
+ onSaveSearch: () => void;
+ onCreateAlert: () => void;
 }
 
 // ─── Stub modal/component shims (replace with your real implementations) ──
 
 interface MultiSelectDropdownProps {
-  label: string;
-  options: { code: string; label: string }[];
-  selected: string[];
-  onChange: (v: string[]) => void;
-  placeholder?: string;
+ label: string;
+ options: { code: string; label: string }[];
+ selected: string[];
+ onChange: (v: string[]) => void;
+ placeholder?: string;
 }
 
 function MultiSelectDropdown({ label, options, selected, onChange, placeholder }: MultiSelectDropdownProps) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <label className="block text-lg font-bold text-[var(--color-text-secondary)] mb-2">{label}</label>
-      <button type="button" onClick={() => setOpen((p) => !p)}
-        className="w-full rounded-lg border-2 border-[var(--color-border)] px-4 py-3 text-base font-semibold text-left text-[var(--color-text-primary)] bg-white flex items-center justify-between">
-        <span>{selected.length > 0 ? `${selected.length} selected` : (placeholder || "Any")}</span>
-        <ChevronDown className="h-4 w-4 flex-shrink-0" />
-      </button>
-      {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
-          {options.map((opt) => (
-            <label key={opt.code} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">
-              <input type="checkbox" checked={selected.includes(opt.code)}
-                onChange={(e) => {
-                  if (e.target.checked) onChange([...selected, opt.code]);
-                  else onChange(selected.filter((c) => c !== opt.code));
-                }} />
-              {opt.label}
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+ const [open, setOpen] = useState(false);
+ return (
+ <div className="relative">
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>{label}</label>
+ <button type="button"onClick={() => setOpen((p) => !p)}
+ className="multi-select-trigger w-full rounded-lg border-2 border-gray-200 px-3 font-semibold text-left text-gray-900 bg-white flex items-center justify-between focus:border-[#166534] outline-none transition-colors" style={{ height: "42px", fontSize: "15px" }}>
+ <span className="truncate">{selected.length > 0 ? `${selected.length} selected` : (placeholder ||"Any")}</span>
+ <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400"/>
+ </button>
+ {open && (
+ <div className="multi-select-dropdown absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
+ {options.map((opt) => (
+ <label key={opt.code} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-800">
+ <input type="checkbox"checked={selected.includes(opt.code)}
+ onChange={(e) => {
+ if (e.target.checked) onChange([...selected, opt.code]);
+ else onChange(selected.filter((c) => c !== opt.code));
+ }} />
+ {opt.label}
+ </label>
+ ))}
+ </div>
+ )}
+ </div>
+ );
 }
 
 function OpportunityCard({ opportunity, index, isSaved, toggleSaved, copyText, copiedId }: {
-  opportunity: Opp; index: number; isSaved: boolean;
-  toggleSaved: (id: string, data?: any) => void;
-  copyText: (txt: string) => void; copiedId: string | null;
+ opportunity: Opp; index: number; isSaved: boolean;
+ toggleSaved: (id: string, data?: any) => void;
+ copyText: (txt: string) => void; copiedId: string | null;
 }) {
-  const id = opportunity.noticeId || String(index);
-  const dept = opportunity.department || opportunity.fullParentPathName || opportunity.office || "N/A";
-  const setAsideLabel = getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside || "") || "N/A";
-  const place = [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(", ") || "N/A";
-  return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-2 flex-1">
-          {opportunity.uiLink
-            ? <a href={opportunity.uiLink} target="_blank" rel="noopener noreferrer" className="hover:underline">{opportunity.title || "Untitled"}</a>
-            : (opportunity.title || "Untitled")}
-        </h3>
-        <button onClick={() => toggleSaved(id, opportunity)} className="shrink-0">
-          <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current text-orange-500" : "text-gray-400"}`} />
-        </button>
-      </div>
-      <p className="text-xs text-gray-500 line-clamp-1">{dept}</p>
-      <div className="flex flex-wrap gap-1 mt-1">
-        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium">{setAsideLabel}</span>
-        <span className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full font-medium">{place}</span>
-      </div>
-      {opportunity.responseDeadLine && (
-        <p className="text-xs text-gray-500 mt-1">Due: {new Date(opportunity.responseDeadLine).toLocaleDateString()}</p>
-      )}
-    </div>
-  );
+ const id = opportunity.noticeId || String(index);
+ const dept = opportunity.department || opportunity.fullParentPathName || opportunity.office ||"N/A";
+ const setAsideLabel = getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside ||"") ||"N/A";
+ const place = [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(",") ||"N/A";
+ return (
+ <div className="rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+ <div className="flex items-start justify-between gap-2">
+ <h3 className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-2 flex-1">
+ {opportunity.uiLink
+ ? <a href={opportunity.uiLink} target="_blank"rel="noopener noreferrer"className="hover:underline">{opportunity.title ||"Untitled"}</a>
+ : (opportunity.title ||"Untitled")}
+ </h3>
+ <button onClick={() => toggleSaved(id, opportunity)} className="shrink-0">
+ <Bookmark className={`h-4 w-4 ${isSaved ?"fill-current text-orange-500":"text-gray-400"}`} />
+ </button>
+ </div>
+ <p className="text-xs text-gray-500 line-clamp-1">{dept}</p>
+ <div className="flex flex-wrap gap-1 mt-1">
+ <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium">{setAsideLabel}</span>
+ <span className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full font-medium">{place}</span>
+ </div>
+ {opportunity.responseDeadLine && (
+ <p className="text-xs text-gray-500 mt-1">Due: {new Date(opportunity.responseDeadLine).toLocaleDateString()}</p>
+ )}
+ </div>
+ );
 }
 
 function ExportSharePanel({ results, searchLabel, requireAccess }: {
-  results: Opp[];
-  searchLabel: string;
-  requireAccess?: (feature: string) => boolean;
+ results: Opp[];
+ searchLabel: string;
+ requireAccess?: (feature: string) => boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const gate = () => {
-    if (requireAccess && !requireAccess('Export Results')) return false
-    return true
-  }
-  const exportCsv = () => {
-    if (!results.length) return;
-    if (!gate()) return;
-    const headers = ["Title","Solicitation Number","Agency","Posted Date","Deadline","Set-Aside","NAICS","Location"];
-    const rows = results.map((o) => [
-      o.title||"", o.solicitationNumber||"", o.department||"", o.postedDate||"",
-      o.responseDeadLine||"", o.typeOfSetAside||o.setAside||"", o.naicsCode||"",
-      [o.placeOfPerformance?.city?.name, o.placeOfPerformance?.state?.code].filter(Boolean).join(", "),
-    ]);
-    const csv = [headers,...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv],{type:"text/csv"})), download: `opportunities-${getToday()}.csv` });
-    a.click();
-  };
-  return (
-    <div className="relative">
-      <button
-        onClick={() => {
-          if (requireAccess && !requireAccess('Export Results')) return;
-          setOpen((p) => !p);
-        }}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
-        <Share2 className="h-3.5 w-3.5" />Export
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-2 min-w-36">
-          <button onClick={() => { exportCsv(); setOpen(false); }}
-            className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-gray-50 rounded-lg">Export CSV</button>
-        </div>
-      )}
-    </div>
-  );
+ const [open, setOpen] = useState(false);
+ const gate = () => {
+ if (requireAccess && !requireAccess('Export Results')) return false
+ return true
+ }
+ const exportCsv = () => {
+ if (!results.length) return;
+ if (!gate()) return;
+ const headers = ["Title","Solicitation Number","Agency","Posted Date","Deadline","Set-Aside","NAICS","Location"];
+ const rows = results.map((o) => [
+ o.title||"", o.solicitationNumber||"", o.department||"", o.postedDate||"",
+ o.responseDeadLine||"", o.typeOfSetAside||o.setAside||"", o.naicsCode||"",
+ [o.placeOfPerformance?.city?.name, o.placeOfPerformance?.state?.code].filter(Boolean).join(","),
+ ]);
+ const csv = [headers,...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+ const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv],{type:"text/csv"})), download: `opportunities-${getToday()}.csv` });
+ a.click();
+ };
+ return (
+ <div className="relative">
+ <button
+ onClick={() => {
+ if (requireAccess && !requireAccess('Export Results')) return;
+ setOpen((p) => !p);
+ }}
+ className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
+ <Share2 className="h-3.5 w-3.5"/>Export
+ </button>
+ {open && (
+ <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-2 min-w-36">
+ <button onClick={() => { exportCsv(); setOpen(false); }}
+ className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-lg">Export CSV</button>
+ </div>
+ )}
+ </div>
+ );
 }
 
 function UnifiedSaveSearchModal({ mode, isOpen, onClose, searchParams, onSave }: {
-  mode: "save" | "alert"; isOpen: boolean; onClose: () => void;
-  searchParams: Record<string, string>; onSave: (payload: any) => Promise<void>;
+ mode:"save"|"alert"; isOpen: boolean; onClose: () => void;
+ searchParams: Record<string, string>; onSave: (payload: any) => Promise<void>;
 }) {
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-  if (!isOpen) return null;
-  const handleSubmit = async () => {
-    if (!name.trim()) { setErr("Please enter a name."); return; }
-    setSaving(true); setErr("");
-    try { await onSave({ name: name.trim(), ...searchParams, subscription_enabled: mode === "alert" }); }
-    catch (e: any) { setErr(e.message || "Failed to save."); }
-    finally { setSaving(false); }
-  };
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">{mode === "save" ? "Save Search" : "Create Alert"}</h2>
-          <button onClick={onClose}><X className="h-5 w-5" /></button>
-        </div>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Search name…"
-          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 mb-4 font-semibold focus:border-blue-400 outline-none" />
-        {err && <p className="text-red-500 text-sm mb-3">{err}</p>}
-        <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 font-semibold text-sm">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving}
-            className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold text-sm disabled:opacity-50">
-            {saving ? "Saving…" : mode === "save" ? "Save" : "Create Alert"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+ const [name, setName] = useState("");
+ const [saving, setSaving] = useState(false);
+ const [err, setErr] = useState("");
+ if (!isOpen) return null;
+ const handleSubmit = async () => {
+ if (!name.trim()) { setErr("Please enter a name."); return; }
+ setSaving(true); setErr("");
+ try { await onSave({ name: name.trim(), ...searchParams, subscription_enabled: mode ==="alert"}); }
+ catch (e: any) { setErr(e.message ||"Failed to save."); }
+ finally { setSaving(false); }
+ };
+ return (
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+ <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+ <div className="flex items-center justify-between mb-4">
+ <h2 className="text-xl font-bold">{mode ==="save"?"Save Search":"Create Alert"}</h2>
+ <button onClick={onClose}><X className="h-5 w-5"/></button>
+ </div>
+ <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Search name…"
+ className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 mb-4 font-semibold focus:border-blue-400 outline-none"/>
+ {err && <p className="text-red-500 text-sm mb-3">{err}</p>}
+ <div className="flex gap-2 justify-end">
+ <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 font-semibold text-sm">Cancel</button>
+ <button onClick={handleSubmit} disabled={saving}
+ className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold text-sm disabled:opacity-50">
+ {saving ?"Saving…": mode ==="save"?"Save":"Create Alert"}
+ </button>
+ </div>
+ </div>
+ </div>
+ );
 }
 
 function SaveSearchSuccessModal({ isOpen, onClose, searchName, isSubscription }: {
-  isOpen: boolean; onClose: () => void; searchName: string; isSubscription: boolean;
+ isOpen: boolean; onClose: () => void; searchName: string; isSubscription: boolean;
 }) {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
-        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
-        <h2 className="text-xl font-bold mb-2">{isSubscription ? "Alert Created!" : "Search Saved!"}</h2>
-        <p className="text-gray-600 mb-4">"{searchName}" has been saved.</p>
-        <button onClick={onClose} className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold">Done</button>
-      </div>
-    </div>
-  );
+ if (!isOpen) return null;
+ return (
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+ <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
+ <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3"/>
+ <h2 className="text-xl font-bold mb-2">{isSubscription ?"Alert Created!":"Search Saved!"}</h2>
+ <p className="text-gray-600 mb-4">"{searchName}"has been saved.</p>
+ <button onClick={onClose} className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold">Done</button>
+ </div>
+ </div>
+ );
 }
 
 function AccessControlModal({ isOpen, onClose, featureName }: {
-  isOpen: boolean; onClose: () => void; featureName: string;
+ isOpen: boolean; onClose: () => void; featureName: string;
 }) {
-  if (!isOpen) return null;
-  const isPremiumFeature = !featureName.toLowerCase().includes('search')
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-md text-center relative"
-        style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
+ if (!isOpen) return null;
+ const isPremiumFeature = !featureName.toLowerCase().includes('search')
+ return (
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+ <div className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-md text-center relative"
+ style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
 
-        {/* ── Close X — always visible, always works ── */}
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          style={{ position: 'absolute', top: '14px', right: '14px', color: '#6b7280', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        >
-          <X style={{ width: '16px', height: '16px' }} />
-        </button>
+ {/* ── Close X — always visible, always works ── */}
+ <button
+ onClick={onClose}
+ aria-label="Close"
+ style={{ position: 'absolute', top: '14px', right: '14px', color: '#6b7280', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+ >
+ <X style={{ width: '16px', height: '16px' }} />
+ </button>
 
-        <div className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-600 flex items-center justify-center mx-auto mb-4">
-          <Shield style={{ width: '28px', height: '28px', color: '#166534' }} />
-        </div>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#111827', marginBottom: '8px', fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
-          {isPremiumFeature ? 'Sign In Required' : 'Create a Free Account'}
-        </h2>
-        <p style={{ color: '#4b5563', fontSize: '0.875rem', marginBottom: '20px', lineHeight: '1.6' }}>
-          {isPremiumFeature
-            ? <>To use <strong>{featureName}</strong>, please sign in. It only takes a moment.</>
-            : <>Start a <strong>14-day free trial</strong> to save searches, set up email alerts, export results, and unlock your full history. Cancel any time before the trial ends — no charge.</>
-          }
-        </p>
+ <div className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-600 flex items-center justify-center mx-auto mb-4">
+ <Shield style={{ width: '28px', height: '28px', color: '#166534' }} />
+ </div>
+ <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#111827', marginBottom: '8px', fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
+ {isPremiumFeature ? 'Sign In Required' : 'Create a Free Account'}
+ </h2>
+ <p style={{ color: '#4b5563', fontSize: '0.875rem', marginBottom: '20px', lineHeight: '1.6' }}>
+ {isPremiumFeature
+ ? <>To use <strong>{featureName}</strong>, please sign in. It only takes a moment.</>
+ : <>Start a <strong>14-day free trial</strong> to save searches, set up email alerts, export results, and unlock your full history. Cancel any time before the trial ends — no charge.</>
+ }
+ </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-          {/* Primary CTA — green background, white text */}
-          <Link href="/sign-up" onClick={onClose}>
-            <button style={{
-              width: '100%', padding: '12px 0', borderRadius: '12px',
-              background: '#166534', color: '#ffffff', fontWeight: 900,
-              fontSize: '1rem', border: 'none', cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(22,101,52,0.3)', transition: 'opacity 0.15s'
-            }}>
-              Create Free Account — 14-Day Free Trial
-            </button>
-          </Link>
+ <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+ {/* Primary CTA — green background, white text */}
+ <Link href="/sign-up"onClick={onClose}>
+ <button style={{
+ width: '100%', padding: '12px 0', borderRadius: '12px',
+ background: '#166534', color: '#ffffff', fontWeight: 900,
+ fontSize: '1rem', border: 'none', cursor: 'pointer',
+ boxShadow: '0 4px 12px rgba(22,101,52,0.3)', transition: 'opacity 0.15s'
+ }}>
+ Create Free Account — 14-Day Free Trial
+ </button>
+ </Link>
 
-          {/* Secondary CTA — white background, green border, green text */}
-          <Link href="/sign-in" onClick={onClose}>
-            <button style={{
-              width: '100%', padding: '11px 0', borderRadius: '12px',
-              background: '#ffffff', color: '#166534', fontWeight: 700,
-              fontSize: '0.9rem', border: '2px solid #166534', cursor: 'pointer',
-              transition: 'background 0.15s'
-            }}>
-              Sign In to Existing Account
-            </button>
-          </Link>
-        </div>
+ {/* Secondary CTA — white background, green border, green text */}
+ <Link href="/sign-in"onClick={onClose}>
+ <button style={{
+ width: '100%', padding: '11px 0', borderRadius: '12px',
+ background: '#ffffff', color: '#166534', fontWeight: 700,
+ fontSize: '0.9rem', border: '2px solid #166534', cursor: 'pointer',
+ transition: 'background 0.15s'
+ }}>
+ Sign In to Existing Account
+ </button>
+ </Link>
+ </div>
 
-        <button
-          onClick={onClose}
-          style={{ fontSize: '0.8rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          Continue browsing as guest
-        </button>
-      </div>
-    </div>
-  );
+ <button
+ onClick={onClose}
+ style={{ fontSize: '0.8rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+ >
+ Continue browsing as guest
+ </button>
+ </div>
+ </div>
+ );
 }
 
 // Soft reminder banner shown at 10 and 15 minutes
 function BrowseReminderModal({ level, onClose, onSignUp }: {
-  level: 0 | 1 | 2; onClose: () => void; onSignUp: () => void;
+ level: 0 | 1 | 2; onClose: () => void; onSignUp: () => void;
 }) {
-  if (level === 0) return null
-  const is10 = level === 1
-  return (
-    <div className="fixed bottom-6 right-6 z-50 w-80 bg-white rounded-2xl shadow-2xl border-2 border-[#166534] p-5"
-      style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <div className="pgc-green w-8 h-8 rounded-full bg-[#166534] flex items-center justify-center flex-shrink-0">
-            <Clock className="h-4 w-4 text-white" />
-          </div>
-          <span className="font-black text-gray-900 text-sm">
-            {is10 ? '10 minutes in' : '5 minutes left'}
-          </span>
-        </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <p className="text-xs text-gray-600 mb-4 leading-relaxed">
-        {is10
-          ? 'Enjoying the search? Create a free account — includes a 14-day free trial. Your card is stored securely and only charged after the trial ends.'
-          : 'Your guest session ends in 5 minutes. Start your free 14-day trial to keep searching, save results, and never miss a contract.'}
-      </p>
-      <div className="pgc-green flex gap-2">
-        <button onClick={onSignUp}
-          style={{ background: '#166534', color: '#ffffff' }}
-          className="pgc-green flex-1 py-2 rounded-lg font-black text-xs hover:opacity-90 transition-opacity">
-          Sign Up Free
-        </button>
-        <button onClick={onClose}
-          className="flex-1 py-2 rounded-lg font-semibold text-xs text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
-          Keep browsing
-        </button>
-      </div>
-    </div>
-  )
+ if (level === 0) return null
+ const is10 = level === 1
+ return (
+ <div className="fixed bottom-6 right-6 z-50 w-80 bg-white rounded-2xl shadow-2xl border-2 border-[#166534] p-5"
+ style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
+ <div className="flex items-start justify-between gap-2 mb-3">
+ <div className="flex items-center gap-2">
+ <div className="pgc-green w-8 h-8 rounded-full bg-[#166534] flex items-center justify-center flex-shrink-0">
+ <Clock className="h-4 w-4 text-white"/>
+ </div>
+ <span className="font-black text-gray-900 text-sm">
+ {is10 ? '10 minutes in' : '5 minutes left'}
+ </span>
+ </div>
+ <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5">
+ <X className="h-4 w-4"/>
+ </button>
+ </div>
+ <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+ {is10
+ ? 'Enjoying the search? Create a free account — includes a 14-day free trial. Your card is stored securely and only charged after the trial ends.'
+ : 'Your guest session ends in 5 minutes. Start your free 14-day trial to keep searching, save results, and never miss a contract.'}
+ </p>
+ <div className="pgc-green flex gap-2">
+ <button onClick={onSignUp}
+ style={{ background: '#166534', color: '#ffffff' }}
+ className="pgc-green flex-1 py-2 rounded-lg font-black text-xs hover:opacity-90 transition-opacity">
+ Sign Up Free
+ </button>
+ <button onClick={onClose}
+ className="flex-1 py-2 rounded-lg font-semibold text-xs text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors">
+ Keep browsing
+ </button>
+ </div>
+ </div>
+ )
 }
 
 // Hard lockout modal shown at 20 minutes
 function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: () => void }) {
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', padding: '16px',
-      fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif"
-    }}>
-      <div style={{
-        background: '#ffffff', borderRadius: '24px', padding: '48px 40px 40px',
-        width: '100%', maxWidth: '540px', textAlign: 'center',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.35)', position: 'relative'
-      }}>
+ return (
+ <div style={{
+ position: 'fixed', inset: 0, zIndex: 9999,
+ display: 'flex', alignItems: 'center', justifyContent: 'center',
+ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', padding: '16px',
+ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"
+ }}>
+ <div style={{
+ background: '#ffffff', borderRadius: '24px', padding: '48px 40px 40px',
+ width: '100%', maxWidth: '540px', textAlign: 'center',
+ boxShadow: '0 24px 64px rgba(0,0,0,0.35)', position: 'relative'
+ }}>
 
-        {/* ── Red Close Button ── */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              position: 'absolute', top: '16px', right: '16px',
-              background: '#dc2626', color: '#ffffff',
-              border: 'none', borderRadius: '50%',
-              width: '40px', height: '40px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', boxShadow: '0 4px 12px rgba(220,38,38,0.4)',
-              fontSize: '18px', fontWeight: 900, lineHeight: 1,
-            }}
-          >
-            ✕
-          </button>
-        )}
+ {/* ── Red Close Button ── */}
+ {onClose && (
+ <button
+ onClick={onClose}
+ aria-label="Close"
+ style={{
+ position: 'absolute', top: '16px', right: '16px',
+ background: '#dc2626', color: '#ffffff',
+ border: 'none', borderRadius: '50%',
+ width: '40px', height: '40px',
+ display: 'flex', alignItems: 'center', justifyContent: 'center',
+ cursor: 'pointer', boxShadow: '0 4px 12px rgba(220,38,38,0.4)',
+ fontSize: '18px', fontWeight: 900, lineHeight: 1,
+ }}
+ >
+ ✕
+ </button>
+ )}
 
-        {/* Icon */}
-        <div style={{
-          width: '72px', height: '72px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
-          border: '3px solid #16a34a',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px'
-        }}>
-          <Shield style={{ width: '36px', height: '36px', color: '#166534' }} />
-        </div>
+ {/* Icon */}
+ <div style={{
+ width: '72px', height: '72px', borderRadius: '50%',
+ background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
+ border: '3px solid #16a34a',
+ display: 'flex', alignItems: 'center', justifyContent: 'center',
+ margin: '0 auto 20px'
+ }}>
+ <Shield style={{ width: '36px', height: '36px', color: '#166534' }} />
+ </div>
 
-        {/* Headline */}
-        <h2 style={{
-          fontSize: '1.75rem', fontWeight: 900, color: '#111827',
-          marginBottom: '12px', lineHeight: 1.2,
-          fontFamily: "'Aptos Display', Calibri, sans-serif"
-        }}>
-          Your Free Preview Has Ended
-        </h2>
+ {/* Headline */}
+ <h2 style={{
+ fontSize: '1.75rem', fontWeight: 900, color: '#111827',
+ marginBottom: '12px', lineHeight: 1.2,
+ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"
+ }}>
+ Your Free Preview Has Ended
+ </h2>
 
-        {/* Body */}
-        <p style={{ color: '#374151', fontSize: '1rem', marginBottom: '8px', lineHeight: 1.7 }}>
-          You've had <strong>20 minutes</strong> to explore our platform.
-          Start a <strong>14-day free trial</strong> to keep searching with no time limits.
-          Cancel any time before the trial ends and you won't be charged.
-        </p>
+ {/* Body */}
+ <p style={{ color: '#374151', fontSize: '1rem', marginBottom: '8px', lineHeight: 1.7 }}>
+ You've had <strong>20 minutes</strong> to explore our platform.
+ Start a <strong>14-day free trial</strong> to keep searching with no time limits.
+ Cancel any time before the trial ends and you won't be charged.
+ </p>
 
-        {/* Stripe security note */}
-        <div style={{
-          background: '#f0fdf4', border: '1px solid #bbf7d0',
-          borderRadius: '12px', padding: '12px 16px', marginBottom: '28px',
-          display: 'flex', alignItems: 'flex-start', gap: '10px', textAlign: 'left'
-        }}>
-          <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>🔒</span>
-          <div>
-            <p style={{ color: '#166534', fontWeight: 700, fontSize: '0.85rem', marginBottom: '2px' }}>
-              Your card is stored securely — only charged after your trial
-            </p>
-            <p style={{ color: '#4b5563', fontSize: '0.8rem', lineHeight: 1.5 }}>
-              We use <strong>Stripe</strong> to securely store your payment details during signup.
-              You get a <strong>14-day free trial</strong> first — no charge until it ends,
-              and you can cancel any time before then.
-            </p>
-          </div>
-        </div>
+ {/* Stripe security note */}
+ <div style={{
+ background: '#f0fdf4', border: '1px solid #bbf7d0',
+ borderRadius: '12px', padding: '12px 16px', marginBottom: '28px',
+ display: 'flex', alignItems: 'flex-start', gap: '10px', textAlign: 'left'
+ }}>
+ <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>🔒</span>
+ <div>
+ <p style={{ color: '#166534', fontWeight: 700, fontSize: '0.85rem', marginBottom: '2px' }}>
+ Your card is stored securely — only charged after your trial
+ </p>
+ <p style={{ color: '#4b5563', fontSize: '0.8rem', lineHeight: 1.5 }}>
+ We use <strong>Stripe</strong> to securely store your payment details during signup.
+ You get a <strong>14-day free trial</strong> first — no charge until it ends,
+ and you can cancel any time before then.
+ </p>
+ </div>
+ </div>
 
-        {/* CTAs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Link href="/sign-up">
-            <button style={{
-              width: '100%', padding: '18px 0', borderRadius: '14px',
-              background: 'linear-gradient(135deg, #16a34a, #166534)',
-              color: '#ffffff', fontWeight: 900, fontSize: '1.15rem',
-              border: 'none', cursor: 'pointer',
-              boxShadow: '0 6px 20px rgba(22,101,52,0.35)',
-              letterSpacing: '0.01em'
-            }}>
-              Start My 14-Day Free Trial
-            </button>
-          </Link>
-          <Link href="/sign-in">
-            <button style={{
-              width: '100%', padding: '15px 0', borderRadius: '14px',
-              background: '#ffffff', color: '#166534', fontWeight: 700,
-              fontSize: '1rem', border: '2px solid #16a34a', cursor: 'pointer',
-              transition: 'background 0.15s'
-            }}>
-              Sign In to Existing Account
-            </button>
-          </Link>
-        </div>
+ {/* CTAs */}
+ <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+ <Link href="/sign-up">
+ <button style={{
+ width: '100%', padding: '18px 0', borderRadius: '14px',
+ background: 'linear-gradient(135deg, #16a34a, #166534)',
+ color: '#ffffff', fontWeight: 900, fontSize: '1.15rem',
+ border: 'none', cursor: 'pointer',
+ boxShadow: '0 6px 20px rgba(22,101,52,0.35)',
+ letterSpacing: '0.01em'
+ }}>
+ Start My 14-Day Free Trial
+ </button>
+ </Link>
+ <Link href="/sign-in">
+ <button style={{
+ width: '100%', padding: '15px 0', borderRadius: '14px',
+ background: '#ffffff', color: '#166534', fontWeight: 700,
+ fontSize: '1rem', border: '2px solid #16a34a', cursor: 'pointer',
+ transition: 'background 0.15s'
+ }}>
+ Sign In to Existing Account
+ </button>
+ </Link>
+ </div>
 
-        {/* Dismiss link */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            style={{
-              marginTop: '18px', background: 'none', border: 'none',
-              color: '#9ca3af', fontSize: '0.8rem', cursor: 'pointer',
-              textDecoration: 'underline'
-            }}
-          >
-            Continue browsing (limited access)
-          </button>
-        )}
-      </div>
-    </div>
-  )
+ {/* Dismiss link */}
+ {onClose && (
+ <button
+ onClick={onClose}
+ style={{
+ marginTop: '18px', background: 'none', border: 'none',
+ color: '#9ca3af', fontSize: '0.8rem', cursor: 'pointer',
+ textDecoration: 'underline'
+ }}
+ >
+ Continue browsing (limited access)
+ </button>
+ )}
+ </div>
+ </div>
+ )
 }
 
 
@@ -560,413 +560,413 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
 
 // SSR-safe FirstTimeGuide component
 function FirstTimeGuide() {
-  const [show, setShow] = React.useState(true);
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (window.localStorage.getItem('searchGuideDismissed')) {
-        setShow(false);
-      }
-    }
-  }, []);
-  if (!show) return null;
-  return (
+ const [show, setShow] = React.useState(true);
+ React.useEffect(() => {
+ if (typeof window !== 'undefined') {
+ if (window.localStorage.getItem('searchGuideDismissed')) {
+ setShow(false);
+ }
+ }
+ }, []);
+ if (!show) return null;
+ return (
 
-    <div id="first-time-guide" className="mb-6 rounded-2xl border border-[--color-border] bg-white shadow p-6 flex flex-col md:flex-row items-center gap-6 relative">
-      <div className="flex-1">
-        <h2
-          className="text-2xl md:text-3xl font-black text-[--color-primary] mb-2"
-          style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}
-        >
-          Welcome to Precise GovCon Search
-        </h2>
-        <ol className="list-decimal list-inside text-base font-semibold text-[--color-text-primary] space-y-1 pl-2">
-          <li>Enter keywords, NAICS, agency, or solicitation number in the search bar below.</li>
-          <li>Click <span className="inline-block bg-[--color-primary] text-white px-2 py-0.5 rounded font-black">Search</span> or press <span className="font-black">Enter</span>.</li>
-          <li>Use filters to refine results. Save searches or set up alerts as needed.</li>
-        </ol>
-      </div>
-      <button
-        className="absolute top-3 right-3 text-[--color-primary] hover:text-[--color-primary-hover] text-xl font-black bg-white rounded-full p-2 border border-[--color-border] shadow"
-        onClick={() => {
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem('searchGuideDismissed', '1');
-            setShow(false);
-          }
-        }}
-      >
-        ×
-      </button>
-    </div>
-  );
+ <div id="first-time-guide"className="mb-6 rounded-2xl border border-[--color-border] bg-white shadow p-6 flex flex-col md:flex-row items-center gap-6 relative">
+ <div className="flex-1">
+ <h2
+ className="text-2xl md:text-3xl font-black text-[--color-primary] mb-2"
+ style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}
+ >
+ Welcome to Precise GovCon Search
+ </h2>
+ <ol className="list-decimal list-inside text-base font-semibold text-[--color-text-primary] space-y-1 pl-2">
+ <li>Enter keywords, NAICS, agency, or solicitation number in the search bar below.</li>
+ <li>Click <span className="inline-block bg-[--color-primary] text-white px-2 py-0.5 rounded font-black">Search</span> or press <span className="font-black">Enter</span>.</li>
+ <li>Use filters to refine results. Save searches or set up alerts as needed.</li>
+ </ol>
+ </div>
+ <button
+ className="absolute top-3 right-3 text-[--color-primary] hover:text-[--color-primary-hover] text-xl font-black bg-white rounded-full p-2 border border-[--color-border] shadow"
+ onClick={() => {
+ if (typeof window !== 'undefined') {
+ window.localStorage.setItem('searchGuideDismissed', '1');
+ setShow(false);
+ }
+ }}
+ >
+ ×
+ </button>
+ </div>
+ );
 }
 
 // ResultCard component
 type ResultCardProps = {
-  opportunity: Opp;
-  index: number;
-  department?: string;
-  setAsideLabel?: string;
-  placeOfPerformance?: string;
-  isAuthenticated?: boolean;
-  isExpanded?: boolean;
-  toggleExpanded?: (id: string) => void;
-  showAuthModal?: () => void;
-  id?: string;
-  isSaved?: boolean;
-  toggleSaved?: (id: string, data?: any) => void;
-  copyText?: (txt: string) => void;
-  copiedId?: string | null;
+ opportunity: Opp;
+ index: number;
+ department?: string;
+ setAsideLabel?: string;
+ placeOfPerformance?: string;
+ isAuthenticated?: boolean;
+ isExpanded?: boolean;
+ toggleExpanded?: (id: string) => void;
+ showAuthModal?: () => void;
+ id?: string;
+ isSaved?: boolean;
+ toggleSaved?: (id: string, data?: any) => void;
+ copyText?: (txt: string) => void;
+ copiedId?: string | null;
 };
 
 function ResultCard({
-  opportunity,
-  index,
-  department: departmentProp,
-  setAsideLabel: setAsideLabelProp,
-  placeOfPerformance: placeOfPerformanceProp,
-  isAuthenticated,
-  isExpanded,
-  toggleExpanded = () => {},
-  showAuthModal = () => {},
-  id: idProp,
-  isSaved = false,
-  toggleSaved = () => {},
-  copyText = () => {},
-  copiedId = null,
+ opportunity,
+ index,
+ department: departmentProp,
+ setAsideLabel: setAsideLabelProp,
+ placeOfPerformance: placeOfPerformanceProp,
+ isAuthenticated,
+ isExpanded,
+ toggleExpanded = () => {},
+ showAuthModal = () => {},
+ id: idProp,
+ isSaved = false,
+ toggleSaved = () => {},
+ copyText = () => {},
+ copiedId = null,
 }: ResultCardProps) {
-  const id = idProp || opportunity.noticeId || String(index);
-  const department = departmentProp || opportunity.department || opportunity.fullParentPathName || opportunity.office || 'N/A';
-  const setAsideLabel = setAsideLabelProp || getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside || '') || 'N/A';
-  const placeOfPerformance = placeOfPerformanceProp || [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || 'N/A';
-  return (
-    <div>
-      {/* Key Information Grid - UPDATED with important criteria */}
-      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {/* Solicitation Number */}
-        {opportunity.solicitationNumber && (
-          <div className="flex items-start gap-2">
-            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]" />
-            <div>
-              <div className="text-sm font-bold text-[--color-text-secondary]">Solicitation #</div>
-              <div className="text-sm font-medium text-[--color-text-primary]">{opportunity.solicitationNumber}</div>
-            </div>
-          </div>
-        )}
-        {/* Department/Agency */}
-        <div className="flex items-start gap-2">
-          <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]" />
-          <div>
-            <div className="text-sm font-bold text-[--color-text-secondary]">Department/Agency</div>
-            <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)" title={department}>
-              {department}
-            </div>
-          </div>
-        </div>
-        {/* Set-Aside */}
-        <div className="flex items-start gap-2">
-          <Target className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]" />
-          <div>
-            <div className="text-sm font-bold text-[--color-text-secondary]">Set-Aside</div>
-            <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)" title={setAsideLabel}>
-              {setAsideLabel}
-            </div>
-          </div>
-        </div>
-        {/* Place of Performance (City/State) */}
-        <div className="flex items-start gap-2">
-          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[--color-primary]" />
-          <div>
-            <div className="text-sm font-extrabold text-[--color-text-secondary]">Place of Performance</div>
-            <div className="wrap-break-word text-sm font-extrabold text-(--color-primary)">{placeOfPerformance || 'N/A'}</div>
-          </div>
-        </div>
-        {/* ...existing code... */}
-      </div>
-      {/* Gated details: expand/collapse */}
-      <div>
-        <button
-          className="mt-2 text-emerald-700 underline text-sm font-bold"
-          onClick={isAuthenticated ? () => toggleExpanded(id) : showAuthModal}
-        >
-          {isExpanded ? 'Hide Details' : 'View Details'}
-        </button>
-        {isExpanded && isAuthenticated && (
-          <div className="mt-4">
-            {/* ...existing expanded details code... */}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+ const id = idProp || opportunity.noticeId || String(index);
+ const department = departmentProp || opportunity.department || opportunity.fullParentPathName || opportunity.office || 'N/A';
+ const setAsideLabel = setAsideLabelProp || getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside || '') || 'N/A';
+ const placeOfPerformance = placeOfPerformanceProp || [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || 'N/A';
+ return (
+ <div>
+ {/* Key Information Grid - UPDATED with important criteria */}
+ <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+ {/* Solicitation Number */}
+ {opportunity.solicitationNumber && (
+ <div className="flex items-start gap-2">
+ <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
+ <div>
+ <div className="text-sm font-bold text-[--color-text-secondary]">Solicitation #</div>
+ <div className="text-sm font-medium text-[--color-text-primary]">{opportunity.solicitationNumber}</div>
+ </div>
+ </div>
+ )}
+ {/* Department/Agency */}
+ <div className="flex items-start gap-2">
+ <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
+ <div>
+ <div className="text-sm font-bold text-[--color-text-secondary]">Department/Agency</div>
+ <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)"title={department}>
+ {department}
+ </div>
+ </div>
+ </div>
+ {/* Set-Aside */}
+ <div className="flex items-start gap-2">
+ <Target className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
+ <div>
+ <div className="text-sm font-bold text-[--color-text-secondary]">Set-Aside</div>
+ <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)"title={setAsideLabel}>
+ {setAsideLabel}
+ </div>
+ </div>
+ </div>
+ {/* Place of Performance (City/State) */}
+ <div className="flex items-start gap-2">
+ <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[--color-primary]"/>
+ <div>
+ <div className="text-sm font-extrabold text-[--color-text-secondary]">Place of Performance</div>
+ <div className="wrap-break-word text-sm font-extrabold text-(--color-primary)">{placeOfPerformance || 'N/A'}</div>
+ </div>
+ </div>
+ {/* ...existing code... */}
+ </div>
+ {/* Gated details: expand/collapse */}
+ <div>
+ <button
+ className="mt-2 text-emerald-700 underline text-sm font-bold"
+ onClick={isAuthenticated ? () => toggleExpanded(id) : showAuthModal}
+ >
+ {isExpanded ? 'Hide Details' : 'View Details'}
+ </button>
+ {isExpanded && isAuthenticated && (
+ <div className="mt-4">
+ {/* ...existing expanded details code... */}
+ </div>
+ )}
+ </div>
+ </div>
+ );
 }
 
 function useBrowsingSession() {
-  const { data: session, status } = useSession()
-  const { hasActiveSubscription, tier, status: plan_status, loading: planLoading } = useSubscription()
+ const { data: session, status } = useSession()
+ const { hasActiveSubscription, tier, status: plan_status, loading: planLoading } = useSubscription()
 
-  // Use a ref-backed start time so it's always available synchronously
-  const browsingStartTimeRef = useRef<number | null>(null)
-  const [browsingStartTime, setBrowsingStartTime] = useState<number | null>(null)
-  const [showReminderModal, setShowReminderModal] = useState(false)
-  const [reminderLevel, setReminderLevel] = useState<0 | 1 | 2>(0) // 0=none, 1=soft@10min, 2=firm@15min
-  const [showLockoutModal, setShowLockoutModal] = useState(false)
+ // Use a ref-backed start time so it's always available synchronously
+ const browsingStartTimeRef = useRef<number | null>(null)
+ const [browsingStartTime, setBrowsingStartTime] = useState<number | null>(null)
+ const [showReminderModal, setShowReminderModal] = useState(false)
+ const [reminderLevel, setReminderLevel] = useState<0 | 1 | 2>(0) // 0=none, 1=soft@10min, 2=firm@15min
+ const [showLockoutModal, setShowLockoutModal] = useState(false)
 
-  // Initialize on first render synchronously from localStorage (avoids flicker)
-  useEffect(() => {
-    if (status === 'loading') return // wait until auth resolves
+ // Initialize on first render synchronously from localStorage (avoids flicker)
+ useEffect(() => {
+ if (status === 'loading') return // wait until auth resolves
 
-    if (status === 'authenticated') {
-      // Authenticated users: clear any guest session timer
-      localStorage.removeItem('browsingStartTime')
-      browsingStartTimeRef.current = null
-      setBrowsingStartTime(null)
-      setShowLockoutModal(false)
-      setShowReminderModal(false)
-      return
-    }
+ if (status === 'authenticated') {
+ // Authenticated users: clear any guest session timer
+ localStorage.removeItem('browsingStartTime')
+ browsingStartTimeRef.current = null
+ setBrowsingStartTime(null)
+ setShowLockoutModal(false)
+ setShowReminderModal(false)
+ return
+ }
 
-    // Unauthenticated guest: read or create browsing start time
-    const stored = localStorage.getItem('browsingStartTime')
-    const now = Date.now()
+ // Unauthenticated guest: read or create browsing start time
+ const stored = localStorage.getItem('browsingStartTime')
+ const now = Date.now()
 
-    if (stored) {
-      const startTime = parseInt(stored, 10)
-      if (isNaN(startTime)) {
-        // Corrupt value — reset
-        localStorage.setItem('browsingStartTime', now.toString())
-        browsingStartTimeRef.current = now
-        setBrowsingStartTime(now)
-      } else {
-        const elapsed = now - startTime
-        if (elapsed >= 1200000) {
-          // Already past 20 minutes — lock out immediately
-          browsingStartTimeRef.current = startTime
-          setBrowsingStartTime(startTime)
-          setShowLockoutModal(true)
-        } else {
-          browsingStartTimeRef.current = startTime
-          setBrowsingStartTime(startTime)
-          // Restore reminder state based on elapsed time
-          if (elapsed >= 900000) setReminderLevel(2) // past 15min
-          else if (elapsed >= 600000) setReminderLevel(1) // past 10min
-        }
-      }
-    } else {
-      // First visit — start the clock
-      localStorage.setItem('browsingStartTime', now.toString())
-      browsingStartTimeRef.current = now
-      setBrowsingStartTime(now)
-    }
-  }, [status])
+ if (stored) {
+ const startTime = parseInt(stored, 10)
+ if (isNaN(startTime)) {
+ // Corrupt value — reset
+ localStorage.setItem('browsingStartTime', now.toString())
+ browsingStartTimeRef.current = now
+ setBrowsingStartTime(now)
+ } else {
+ const elapsed = now - startTime
+ if (elapsed >= 1200000) {
+ // Already past 20 minutes — lock out immediately
+ browsingStartTimeRef.current = startTime
+ setBrowsingStartTime(startTime)
+ setShowLockoutModal(true)
+ } else {
+ browsingStartTimeRef.current = startTime
+ setBrowsingStartTime(startTime)
+ // Restore reminder state based on elapsed time
+ if (elapsed >= 900000) setReminderLevel(2) // past 15min
+ else if (elapsed >= 600000) setReminderLevel(1) // past 10min
+ }
+ }
+ } else {
+ // First visit — start the clock
+ localStorage.setItem('browsingStartTime', now.toString())
+ browsingStartTimeRef.current = now
+ setBrowsingStartTime(now)
+ }
+ }, [status])
 
-  // Tick every second and fire prompts at 10, 15, 20 minutes
-  useEffect(() => {
-    if (status !== 'unauthenticated' || !browsingStartTime) return
+ // Tick every second and fire prompts at 10, 15, 20 minutes
+ useEffect(() => {
+ if (status !== 'unauthenticated' || !browsingStartTime) return
 
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - browsingStartTime
+ const interval = setInterval(() => {
+ const elapsed = Date.now() - browsingStartTime
 
-      if (elapsed >= 1200000) {
-        // 20 min — hard lockout
-        setShowLockoutModal(true)
-        clearInterval(interval)
-        return
-      }
-      if (elapsed >= 900000 && reminderLevel < 2) {
-        // 15 min — firm prompt
-        setReminderLevel(2)
-        setShowReminderModal(true)
-        return
-      }
-      if (elapsed >= 600000 && reminderLevel < 1) {
-        // 10 min — soft prompt
-        setReminderLevel(1)
-        setShowReminderModal(true)
-      }
-    }, 1000)
+ if (elapsed >= 1200000) {
+ // 20 min — hard lockout
+ setShowLockoutModal(true)
+ clearInterval(interval)
+ return
+ }
+ if (elapsed >= 900000 && reminderLevel < 2) {
+ // 15 min — firm prompt
+ setReminderLevel(2)
+ setShowReminderModal(true)
+ return
+ }
+ if (elapsed >= 600000 && reminderLevel < 1) {
+ // 10 min — soft prompt
+ setReminderLevel(1)
+ setShowReminderModal(true)
+ }
+ }, 1000)
 
-    return () => clearInterval(interval)
-  }, [browsingStartTime, status, reminderLevel])
+ return () => clearInterval(interval)
+ }, [browsingStartTime, status, reminderLevel])
 
-  const hasValidAccess = useMemo(() => {
-    if (planLoading || status === 'loading') return false
+ const hasValidAccess = useMemo(() => {
+ if (planLoading || status === 'loading') return false
 
-    if (status === 'authenticated') {
-      const user = session?.user as any
-      if (user?.role === 'admin') return true
-      if (hasActiveSubscription()) return true
-      return false
-    }
+ if (status === 'authenticated') {
+ const user = session?.user as any
+ if (user?.role === 'admin') return true
+ if (hasActiveSubscription()) return true
+ return false
+ }
 
-    return false
-  }, [status, session, hasActiveSubscription, tier, plan_status, planLoading])
+ return false
+ }, [status, session, hasActiveSubscription, tier, plan_status, planLoading])
 
-  // canBrowse: true for guests within 20-minute window OR for paid users
-  // IMPORTANT: default true during initial loading to prevent flash-of-block
-  const canBrowse = useMemo(() => {
-    if (hasValidAccess) return true
-    if (status === 'loading') return true   // assume browsable until auth resolves
-    if (showLockoutModal) return false
-    if (status === 'unauthenticated') {
-      // Allow browsing even before localStorage is read (browsingStartTime still null)
-      // because we'll read it in the effect above
-      return true
-    }
-    return false
-  }, [hasValidAccess, showLockoutModal, status])
+ // canBrowse: true for guests within 20-minute window OR for paid users
+ // IMPORTANT: default true during initial loading to prevent flash-of-block
+ const canBrowse = useMemo(() => {
+ if (hasValidAccess) return true
+ if (status === 'loading') return true // assume browsable until auth resolves
+ if (showLockoutModal) return false
+ if (status === 'unauthenticated') {
+ // Allow browsing even before localStorage is read (browsingStartTime still null)
+ // because we'll read it in the effect above
+ return true
+ }
+ return false
+ }, [hasValidAccess, showLockoutModal, status])
 
-  return {
-    hasValidAccess,
-    canBrowse,
-    reminderLevel,
-    showReminderModal,
-    setShowReminderModal,
-    showLockoutModal,
-    setShowLockoutModal,
-    isAuthenticated: status === 'authenticated',
-    tier,
-    plan_status,
-    planLoading,
-  }
+ return {
+ hasValidAccess,
+ canBrowse,
+ reminderLevel,
+ showReminderModal,
+ setShowReminderModal,
+ showLockoutModal,
+ setShowLockoutModal,
+ isAuthenticated: status === 'authenticated',
+ tier,
+ plan_status,
+ planLoading,
+ }
 }
 
 // --- Types ---
 type Opp = {
-  noticeId?: string
-  title?: string
-  solicitationNumber?: string
-  fullParentPathName?: string
-  department?: string
-  subTier?: string
-  office?: string
-  postedDate?: string
-  responseDeadLine?: string
-  type?: string
-  // SAM.gov often returns both a set-aside *code* and a human-readable description.
-  // Different endpoints / export formats may use different field names, so we support both.
-  typeOfSetAside?: string
-  typeOfSetAsideDescription?: string
-  setAside?: string
-  setAsideCode?: string
-  naicsCode?: string
-  placeOfPerformance?: {
-    city?: { name?: string }
-    state?: { code?: string }
-    county?: { name?: string }
-    zip?: string
-    country?: { code?: string }
-  }
-  description?: string
-  uiLink?: string
-  resourceLinks?: string[]
-  active?: string
-  status?: string          // opportunity status (active/inactive/archived/cancelled)
-  organizationName?: string // agency / org name
-  organizationId?: string   // agency / org identifier
-  modifiedDate?: string
-  baseType?: string
-  archiveType?: string
-  award?: any
-  pointOfContact?: any
-  classificationCode?: string
-  productServiceCode?: string
-  contractOpportunityType?: string
+ noticeId?: string
+ title?: string
+ solicitationNumber?: string
+ fullParentPathName?: string
+ department?: string
+ subTier?: string
+ office?: string
+ postedDate?: string
+ responseDeadLine?: string
+ type?: string
+ // SAM.gov often returns both a set-aside *code* and a human-readable description.
+ // Different endpoints / export formats may use different field names, so we support both.
+ typeOfSetAside?: string
+ typeOfSetAsideDescription?: string
+ setAside?: string
+ setAsideCode?: string
+ naicsCode?: string
+ placeOfPerformance?: {
+ city?: { name?: string }
+ state?: { code?: string }
+ county?: { name?: string }
+ zip?: string
+ country?: { code?: string }
+ }
+ description?: string
+ uiLink?: string
+ resourceLinks?: string[]
+ active?: string
+ status?: string // opportunity status (active/inactive/archived/cancelled)
+ organizationName?: string // agency / org name
+ organizationId?: string // agency / org identifier
+ modifiedDate?: string
+ baseType?: string
+ archiveType?: string
+ award?: any
+ pointOfContact?: any
+ classificationCode?: string
+ productServiceCode?: string
+ contractOpportunityType?: string
 }
 
 type ApiResponse = {
-  totalRecords?: number
-  opportunitiesData?: Opp[]
-  [k: string]: any
+ totalRecords?: number
+ opportunitiesData?: Opp[]
+ [k: string]: any
 }
 
 type FacetItem = {
-  name: string
-  count: number
-  value?: string
+ name: string
+ count: number
+ value?: string
 }
 
 type Facets = {
-  agencies: FacetItem[]
-  setAsides: Array<FacetItem & { label: string }>
-  naics: FacetItem[]
-  states: FacetItem[]
-  cities: Array<FacetItem & { state: string }>
-  productServices: FacetItem[]
-  departments: FacetItem[]
-  types: FacetItem[]
+ agencies: FacetItem[]
+ setAsides: Array<FacetItem & { label: string }>
+ naics: FacetItem[]
+ states: FacetItem[]
+ cities: Array<FacetItem & { state: string }>
+ productServices: FacetItem[]
+ departments: FacetItem[]
+ types: FacetItem[]
 }
 
 // --- Constants ---
 const US_STATES = [
-  { value: '', label: 'Any State/Territory' },
-  // ...other states...
+ { value: '', label: 'Any State/Territory' },
+ // ...other states...
 ];
 
 // SSR-safe FirstTimeGuide component
 const Badge = ({ 
-  children, 
-  variant = 'default',
-  size = 'sm'
+ children, 
+ variant = 'default',
+ size = 'sm'
 }: { 
-  children: React.ReactNode, 
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger',
-  size?: 'sm' | 'md'
+ children: React.ReactNode, 
+ variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger',
+ size?: 'sm' | 'md'
 }) => {
-  const variants = {
-    default: 'bg-[--color-surface] text-[--color-text-primary] border border-[--color-border]',
-    primary: 'bg-[--color-accent-soft] text-[--color-primary] border border-[--color-border]',
-    success: 'bg-[--color-accent-soft] text-[--color-primary] border border-[--color-border]',
-    warning: 'bg-[--color-surface-muted] text-[--color-text-primary] border border-[--color-border]',
-    danger: 'bg-rose-500/20 text-white border-rose-500/30',
-  }
-  
-  const sizes = {
-    sm: 'px-2 py-0.5 text-xs rounded-full',
-    md: 'px-3 py-1 text-sm rounded-full',
-  }
-  
-  return (
-    <span className={`inline-flex items-center border ${variants[variant]} ${sizes[size]}`}>
-      {children}
-    </span>
-  )
+ const variants = {
+ default: 'bg-[--color-surface] text-[--color-text-primary] border border-[--color-border]',
+ primary: 'bg-[--color-accent-soft] text-[--color-primary] border border-[--color-border]',
+ success: 'bg-[--color-accent-soft] text-[--color-primary] border border-[--color-border]',
+ warning: 'bg-[--color-surface-muted] text-[--color-text-primary] border border-[--color-border]',
+ danger: 'bg-rose-500/20 text-white border-rose-500/30',
+ }
+ 
+ const sizes = {
+ sm: 'px-2 py-0.5 text-xs rounded-full',
+ md: 'px-3 py-1 text-sm rounded-full',
+ }
+ 
+ return (
+ <span className={`inline-flex items-center border ${variants[variant]} ${sizes[size]}`}>
+ {children}
+ </span>
+ )
 }
 
 const Button = ({
-  children,
-  onClick,
-  disabled = false,
-  loading = false,
-  variant = 'primary',
-  size = 'md',
-  fullWidth = false,
-  icon,
-  className = '',
-  ...props
+ children,
+ onClick,
+ disabled = false,
+ loading = false,
+ variant = 'primary',
+ size = 'md',
+ fullWidth = false,
+ icon,
+ className = '',
+ ...props
 }: {
-  children: React.ReactNode,
-  onClick?: () => void,
-  disabled?: boolean,
-  loading?: boolean,
-  variant?: string,
-  size?: string,
-  fullWidth?: boolean,
-  icon?: React.ReactNode,
-  className?: string,
-  [key: string]: any
+ children: React.ReactNode,
+ onClick?: () => void,
+ disabled?: boolean,
+ loading?: boolean,
+ variant?: string,
+ size?: string,
+ fullWidth?: boolean,
+ icon?: React.ReactNode,
+ className?: string,
+ [key: string]: any
 }) => {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded font-bold transition-all ${fullWidth ? 'w-full' : ''} ${className}`}
-      {...props}
-    >
-      {icon && <span className="mr-2">{icon}</span>}
-      {loading ? 'Loading...' : children}
-    </button>
-  );
+ return (
+ <button
+ type="button"
+ onClick={onClick}
+ disabled={disabled || loading}
+ className={`inline-flex items-center justify-center gap-2 rounded font-bold transition-all ${fullWidth ? 'w-full' : ''} ${className}`}
+ {...props}
+ >
+ {icon && <span className="mr-2">{icon}</span>}
+ {loading ? 'Loading...' : children}
+ </button>
+ );
 };
 
 // --- Utility Functions ---
@@ -975,630 +975,630 @@ const Button = ({
  * Retry a fetch request with exponential backoff for SAM.gov reliability
  */
 async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  maxRetries = 3,
-  initialDelay = 2000
+ url: string,
+ options: RequestInit,
+ maxRetries = 3,
+ initialDelay = 2000
 ): Promise<Response> {
-  let last_error: Error | null = null;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    // Bail out immediately if the request was intentionally cancelled
-    if (options.signal?.aborted) {
-      throw new DOMException('Search stopped by user', 'AbortError');
-    }
+ let last_error: Error | null = null;
+ 
+ for (let attempt = 0; attempt <= maxRetries; attempt++) {
+ // Bail out immediately if the request was intentionally cancelled
+ if (options.signal?.aborted) {
+ throw new DOMException('Search stopped by user', 'AbortError');
+ }
 
-    try {
-      const response = await fetch(url, options);
-      
-      // If response is OK or it's a client error (4xx), return immediately
-      if (response.ok || (response.status >= 400 && response.status < 500)) {
-        if (attempt > 0) {
-          console.log(`✅ Request succeeded after ${attempt} ${attempt === 1 ? 'retry' : 'retries'}`);
-        }
-        return response;
-      }
-      
-      // For 5xx errors (server errors), we'll retry
-      if (response.status >= 500 && attempt < maxRetries) {
-        const delay = initialDelay * Math.pow(2, attempt);
-        console.log(`⚠️  Server error ${response.status}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      
-      return response;
-    } catch (error) {
-      last_error = error as Error;
+ try {
+ const response = await fetch(url, options);
+ 
+ // If response is OK or it's a client error (4xx), return immediately
+ if (response.ok || (response.status >= 400 && response.status < 500)) {
+ if (attempt > 0) {
+ console.log(`✅ Request succeeded after ${attempt} ${attempt === 1 ? 'retry' : 'retries'}`);
+ }
+ return response;
+ }
+ 
+ // For 5xx errors (server errors), we'll retry
+ if (response.status >= 500 && attempt < maxRetries) {
+ const delay = initialDelay * Math.pow(2, attempt);
+ console.log(`⚠️ Server error ${response.status}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+ await new Promise(resolve => setTimeout(resolve, delay));
+ continue;
+ }
+ 
+ return response;
+ } catch (error) {
+ last_error = error as Error;
 
-      // Don't retry aborted requests — user cancelled intentionally
-      if (last_error.name === 'AbortError' || options.signal?.aborted) {
-        throw last_error;
-      }
-      
-      if (attempt < maxRetries) {
-        const delay = initialDelay * Math.pow(2, attempt);
-        console.log(`❌ Request failed: ${last_error.message}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  // Only log as error for genuine failures, not user cancellations
-  console.error(`🚫 Max retries (${maxRetries}) exceeded. Last error:`, last_error);
-  throw last_error || new Error('Max retries exceeded');
+ // Don't retry aborted requests — user cancelled intentionally
+ if (last_error.name === 'AbortError' || options.signal?.aborted) {
+ throw last_error;
+ }
+ 
+ if (attempt < maxRetries) {
+ const delay = initialDelay * Math.pow(2, attempt);
+ console.log(`❌ Request failed: ${last_error.message}, retrying in ${delay/1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+ await new Promise(resolve => setTimeout(resolve, delay));
+ }
+ }
+ }
+ 
+ // Only log as error for genuine failures, not user cancellations
+ console.error(`🚫 Max retries (${maxRetries}) exceeded. Last error:`, last_error);
+ throw last_error || new Error('Max retries exceeded');
 }
 
 function clamp(str: string, max: number) {
-  return str.length > max ? str.substring(0, max) : str
+ return str.length > max ? str.substring(0, max) : str
 }
 
 /** Convert URLSearchParams to a plain object without relying on .entries() iterator */
 function qsToObj(qs: URLSearchParams): Record<string, string> {
-  const obj: Record<string, string> = {}
-  qs.forEach((value, key) => { obj[key] = value })
-  return obj
+ const obj: Record<string, string> = {}
+ qs.forEach((value, key) => { obj[key] = value })
+ return obj
 }
 
 function safeJsonParse(str: string) {
-  try {
-    return JSON.parse(str)
-  } catch {
-    return null
-  }
+ try {
+ return JSON.parse(str)
+ } catch {
+ return null
+ }
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+ return new Date(dateStr).toLocaleDateString('en-US', {
+ year: 'numeric',
+ month: 'short',
+ day: 'numeric'
+ })
 }
 
 function normalizeText(str?: string) {
-  return (str || '').trim()
+ return (str || '').trim()
 }
 
 function normalizeAgency(o: Opp) {
-  return normalizeText(o.department || o.fullParentPathName || o.office)
+ return normalizeText(o.department || o.fullParentPathName || o.office)
 }
 
 function normalizeNaics(o: Opp) {
-  return normalizeText(o.naicsCode)
+ return normalizeText(o.naicsCode)
 }
 
 function normalizeState(o: Opp) {
-  return normalizeText(o.placeOfPerformance?.state?.code)
+ return normalizeText(o.placeOfPerformance?.state?.code)
 }
 
 function normalizeCity(o: Opp) {
-  return normalizeText(o.placeOfPerformance?.city?.name)
+ return normalizeText(o.placeOfPerformance?.city?.name)
 }
 
 function normalizeSol(o: Opp) {
-  return normalizeText(o.solicitationNumber)
+ return normalizeText(o.solicitationNumber)
 }
 
 function normalizeProductService(o: Opp) {
-  return normalizeText(o.productServiceCode)
+ return normalizeText(o.productServiceCode)
 }
 
 function normalizeNoticeId(o: Opp) {
-  return normalizeText(o.noticeId)
+ return normalizeText(o.noticeId)
 }
 
 function normalizeTitle(o: Opp) {
-  return normalizeText(o.title)
+ return normalizeText(o.title)
 }
 
 function normalizeType(o: Opp) {
-  return normalizeText(o.type)
+ return normalizeText(o.type)
 }
 
 function normalizeSetAsideCode(o: Opp) {
-  return normalizeText(o.setAsideCode || o.setAside)
+ return normalizeText(o.setAsideCode || o.setAside)
 }
 
 function groupLabelFromSetAside(o: Opp) {
-  const code = normalizeSetAsideCode(o)
-  return getSetAsideLabel(code) || code
+ const code = normalizeSetAsideCode(o)
+ return getSetAsideLabel(code) || code
 }
 
 function formatNaicsDisplay(o: Opp) {
-  const code = normalizeNaics(o)
-  return code ? `NAICS ${code}` : ''
+ const code = normalizeNaics(o)
+ return code ? `NAICS ${code}` : ''
 }
 
 function formatSetAsideDisplay(o: Opp) {
-  const label = groupLabelFromSetAside(o)
-  return label || ''
+ const label = groupLabelFromSetAside(o)
+ return label || ''
 }
 
 function summarizePlace(o: Opp) {
-  const city = normalizeCity(o)
-  const state = normalizeState(o)
-  return [city, state].filter(Boolean).join(', ')
+ const city = normalizeCity(o)
+ const state = normalizeState(o)
+ return [city, state].filter(Boolean).join(', ')
 }
 
 function withinText(hay: string, needle: string) {
-  return hay.toLowerCase().includes(needle.toLowerCase())
+ return hay.toLowerCase().includes(needle.toLowerCase())
 }
 
 function formatSearchQuery(query: string): string {
-  try {
-    const params = new URLSearchParams(query)
-    const parts: string[] = []
-    
-    // Get readable labels for parameters
-    const title = params.get('title')
-    if (title && title !== '*') parts.push(`"${title}"`)
-    
-    const ptype = params.get('ptype')
-    if (ptype) {
-      const typeMap: Record<string, string> = {
-        'a': 'Award Notice',
-        'p': 'Pre-solicitation',
-        'o': 'Solicitation',
-        'r': 'Sources Sought',
-        's': 'Special Notice',
-        'u': 'Justification (J&A)',
-        'k': 'Combined Synopsis/Solicitation',
-        'g': 'Sale of Surplus Property',
-        'i': 'Intent to Bundle (DoD)'
-      }
-      parts.push(typeMap[ptype] || `Type: ${ptype}`)
-    }
-    
-    const typeOfSetAside = params.get('typeOfSetAside')
-    if (typeOfSetAside) {
-      parts.push(getSetAsideLabel(typeOfSetAside) || `Set-Aside: ${typeOfSetAside}`)
-    }
-    
-    const state = params.get('state')
-    if (state) {
-      const stateLabel = US_STATES.find(s => s.value === state)?.label || state
-      parts.push(`State: ${stateLabel}`)
-    }
-    
-    const postedFrom = params.get('postedFrom')
-    const postedTo = params.get('postedTo')
-    if (postedFrom || postedTo) {
-      if (postedFrom && postedTo) {
-        parts.push(`${postedFrom} to ${postedTo}`)
-      } else if (postedFrom) {
-        parts.push(`After ${postedFrom}`)
-      } else if (postedTo) {
-        parts.push(`Before ${postedTo}`)
-      }
-    }
-    
-    const naics = params.get('naics')
-    if (naics) parts.push(`NAICS: ${naics}`)
-    
-    const organizationCode = params.get('organizationCode')
-    if (organizationCode) parts.push(`Agency: ${organizationCode}`)
-    
-    const solnum = params.get('solnum')
-    if (solnum) parts.push(`Solicitation: ${solnum}`)
-    
-    return parts.length > 0 ? parts.join('   ') : 'Empty search'
-  } catch {
-    return query.length > 30 ? query.substring(0, 30) + '...' : query
-  }
+ try {
+ const params = new URLSearchParams(query)
+ const parts: string[] = []
+ 
+ // Get readable labels for parameters
+ const title = params.get('title')
+ if (title && title !== '*') parts.push(`"${title}"`)
+ 
+ const ptype = params.get('ptype')
+ if (ptype) {
+ const typeMap: Record<string, string> = {
+ 'a': 'Award Notice',
+ 'p': 'Pre-solicitation',
+ 'o': 'Solicitation',
+ 'r': 'Sources Sought',
+ 's': 'Special Notice',
+ 'u': 'Justification (J&A)',
+ 'k': 'Combined Synopsis/Solicitation',
+ 'g': 'Sale of Surplus Property',
+ 'i': 'Intent to Bundle (DoD)'
+ }
+ parts.push(typeMap[ptype] || `Type: ${ptype}`)
+ }
+ 
+ const typeOfSetAside = params.get('typeOfSetAside')
+ if (typeOfSetAside) {
+ parts.push(getSetAsideLabel(typeOfSetAside) || `Set-Aside: ${typeOfSetAside}`)
+ }
+ 
+ const state = params.get('state')
+ if (state) {
+ const stateLabel = US_STATES.find(s => s.value === state)?.label || state
+ parts.push(`State: ${stateLabel}`)
+ }
+ 
+ const postedFrom = params.get('postedFrom')
+ const postedTo = params.get('postedTo')
+ if (postedFrom || postedTo) {
+ if (postedFrom && postedTo) {
+ parts.push(`${postedFrom} to ${postedTo}`)
+ } else if (postedFrom) {
+ parts.push(`After ${postedFrom}`)
+ } else if (postedTo) {
+ parts.push(`Before ${postedTo}`)
+ }
+ }
+ 
+ const naics = params.get('naics')
+ if (naics) parts.push(`NAICS: ${naics}`)
+ 
+ const organizationCode = params.get('organizationCode')
+ if (organizationCode) parts.push(`Agency: ${organizationCode}`)
+ 
+ const solnum = params.get('solnum')
+ if (solnum) parts.push(`Solicitation: ${solnum}`)
+ 
+ return parts.length > 0 ? parts.join(' ') : 'Empty search'
+ } catch {
+ return query.length > 30 ? query.substring(0, 30) + '...' : query
+ }
 }
 
 // Add this function BEFORE updateFacets
 function getSolicitationDates(opportunity: Opp): { start?: string, end?: string } {
-  // Check for contract start/end dates in the award data
-  if (opportunity.award?.contractDates) {
-    return {
-      start: opportunity.award.contractDates.start,
-      end: opportunity.award.contractDates.end
-    }
-  }
-  
-  // Check for performance period in description
-  if (opportunity.description) {
-    const startMatch = opportunity.description.match(/start(?:ing)?\s*(?:date)?\s*[:]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i)
-    const endMatch = opportunity.description.match(/(?:end|completion|closing)\s*(?:date)?\s*[:]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i)
-    
-    return {
-      start: startMatch ? startMatch[1] : undefined,
-      end: endMatch ? endMatch[1] : undefined
-    }
-  }
-  
-  return {}
+ // Check for contract start/end dates in the award data
+ if (opportunity.award?.contractDates) {
+ return {
+ start: opportunity.award.contractDates.start,
+ end: opportunity.award.contractDates.end
+ }
+ }
+ 
+ // Check for performance period in description
+ if (opportunity.description) {
+ const startMatch = opportunity.description.match(/start(?:ing)?\s*(?:date)?\s*[:]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i)
+ const endMatch = opportunity.description.match(/(?:end|completion|closing)\s*(?:date)?\s*[:]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i)
+ 
+ return {
+ start: startMatch ? startMatch[1] : undefined,
+ end: endMatch ? endMatch[1] : undefined
+ }
+ }
+ 
+ return {}
 }
 
 function updateFacets(opps: Opp[]) {
-  // Implementation would go here
-  return {
-    agencies: [],
-    setAsides: [],
-    naics: [],
-    states: [],
-    cities: [],
-    productServices: [],
-    departments: [],
-    types: []
-  }
+ // Implementation would go here
+ return {
+ agencies: [],
+ setAsides: [],
+ naics: [],
+ states: [],
+ cities: [],
+ productServices: [],
+ departments: [],
+ types: []
+ }
 }
 
 // --- Custom Hooks ---
 
 // Search History Hook
 const useSearchHistory = () => {
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+ const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  const saveSearchToHistory = useCallback((searchParams: string) => {
-    try {
-      const updated = [searchParams, ...recentSearches.filter(s => s !== searchParams)].slice(0, 10)
-      setRecentSearches(updated)
-      localStorage.setItem('govcon_recent_searches', JSON.stringify(updated))
-    } catch (error) {
-      console.error('Failed to save search history:', error)
-    }
-  }, [recentSearches]);
+ const saveSearchToHistory = useCallback((searchParams: string) => {
+ try {
+ const updated = [searchParams, ...recentSearches.filter(s => s !== searchParams)].slice(0, 10)
+ setRecentSearches(updated)
+ localStorage.setItem('govcon_recent_searches', JSON.stringify(updated))
+ } catch (error) {
+ console.error('Failed to save search history:', error)
+ }
+ }, [recentSearches]);
 
-  return { recentSearches, saveSearchToHistory, setRecentSearches };
+ return { recentSearches, saveSearchToHistory, setRecentSearches };
 };
 
 // Opportunity Management Hook — persists to DB via API so dashboard & alerts show saved opps
 const useOpportunityManagement = (showToast?: (msg: string) => void) => {
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
-  // Store full opportunity data keyed by id so we can POST it to the API
-  const opportunityDataRef = React.useRef<Record<string, any>>({});
+ const [saved, setSaved] = useState<Record<string, boolean>>({});
+ // Store full opportunity data keyed by id so we can POST it to the API
+ const opportunityDataRef = React.useRef<Record<string, any>>({});
 
-  const toggleSaved = useCallback((id: string, opportunityData?: any) => {
-    setSaved((p) => {
-      const isNowSaved = !p[id]
-      const newSaved = { ...p, [id]: isNowSaved }
+ const toggleSaved = useCallback((id: string, opportunityData?: any) => {
+ setSaved((p) => {
+ const isNowSaved = !p[id]
+ const newSaved = { ...p, [id]: isNowSaved }
 
-      // Show toast notification
-      if (showToast) {
-        if (isNowSaved && opportunityData) {
-          showToast(`✓ Saved: ${opportunityData.title?.slice(0, 45) || 'Opportunity'}`)
-        } else if (!isNowSaved) {
-          showToast('Removed from saved opportunities')
-        }
-      }
+ // Show toast notification
+ if (showToast) {
+ if (isNowSaved && opportunityData) {
+ showToast(`✓ Saved: ${opportunityData.title?.slice(0, 45) || 'Opportunity'}`)
+ } else if (!isNowSaved) {
+ showToast('Removed from saved opportunities')
+ }
+ }
 
-      // Persist to localStorage as a fallback
-      try {
-        localStorage.setItem('govcon_saved_opportunities', JSON.stringify(newSaved))
-      } catch (error) {
-        console.error('Failed to save to localStorage:', error)
-      }
+ // Persist to localStorage as a fallback
+ try {
+ localStorage.setItem('govcon_saved_opportunities', JSON.stringify(newSaved))
+ } catch (error) {
+ console.error('Failed to save to localStorage:', error)
+ }
 
-      // Persist to DB via API
-      if (isNowSaved && opportunityData) {
-        opportunityDataRef.current[id] = opportunityData
-        fetch('/api/saved-opportunities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            noticeId: id,
-            title: opportunityData.title,
-            solicitationNumber: opportunityData.solicitationNumber,
-            department: opportunityData.department || opportunityData.fullParentPathName,
-            postedDate: opportunityData.postedDate,
-            responseDeadLine: opportunityData.responseDeadLine,
-            naicsCode: opportunityData.naicsCode,
-            type: opportunityData.type,
-            setAside: opportunityData.typeOfSetAsideDescription || opportunityData.typeOfSetAside || opportunityData.setAside,
-            placeOfPerformance: opportunityData.placeOfPerformance,
-            uiLink: opportunityData.uiLink,
-            organizationName: opportunityData.organizationName,
-          }),
-        }).catch(err => console.error('Failed to save opportunity to DB:', err))
-      } else if (!isNowSaved) {
-        // Remove from DB
-        fetch(`/api/saved-opportunities/${id}`, { method: 'DELETE' })
-          .catch(err => console.error('Failed to delete saved opportunity from DB:', err))
-      }
+ // Persist to DB via API
+ if (isNowSaved && opportunityData) {
+ opportunityDataRef.current[id] = opportunityData
+ fetch('/api/saved-opportunities', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ noticeId: id,
+ title: opportunityData.title,
+ solicitationNumber: opportunityData.solicitationNumber,
+ department: opportunityData.department || opportunityData.fullParentPathName,
+ postedDate: opportunityData.postedDate,
+ responseDeadLine: opportunityData.responseDeadLine,
+ naicsCode: opportunityData.naicsCode,
+ type: opportunityData.type,
+ setAside: opportunityData.typeOfSetAsideDescription || opportunityData.typeOfSetAside || opportunityData.setAside,
+ placeOfPerformance: opportunityData.placeOfPerformance,
+ uiLink: opportunityData.uiLink,
+ organizationName: opportunityData.organizationName,
+ }),
+ }).catch(err => console.error('Failed to save opportunity to DB:', err))
+ } else if (!isNowSaved) {
+ // Remove from DB
+ fetch(`/api/saved-opportunities/${id}`, { method: 'DELETE' })
+ .catch(err => console.error('Failed to delete saved opportunity from DB:', err))
+ }
 
-      return newSaved
-    });
-  }, [showToast]);
+ return newSaved
+ });
+ }, [showToast]);
 
-  return { saved, toggleSaved, setSaved };
+ return { saved, toggleSaved, setSaved };
 };
 
 // Search State Persistence Hook
 const useSearchStatePersistence = () => {
-  const saveSearchState = useCallback((state: any) => {
-    try {
-      sessionStorage.setItem('searchState', JSON.stringify(state));
-    } catch (error) {
-      console.error('Failed to save search state:', error);
-    }
-  }, []);
+ const saveSearchState = useCallback((state: any) => {
+ try {
+ sessionStorage.setItem('searchState', JSON.stringify(state));
+ } catch (error) {
+ console.error('Failed to save search state:', error);
+ }
+ }, []);
 
-  const restoreSearchState = useCallback(() => {
-    try {
-      const saved = sessionStorage.getItem('searchState');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error('Failed to restore search state:', error);
-    }
-    return null;
-  }, []);
+ const restoreSearchState = useCallback(() => {
+ try {
+ const saved = sessionStorage.getItem('searchState');
+ if (saved) {
+ return JSON.parse(saved);
+ }
+ } catch (error) {
+ console.error('Failed to restore search state:', error);
+ }
+ return null;
+ }, []);
 
-  return { saveSearchState, restoreSearchState };
+ return { saveSearchState, restoreSearchState };
 };
 
 // Error Boundary Component
 class SearchErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
+ constructor(props: { children: React.ReactNode }) {
+ super(props);
+ this.state = { hasError: false };
+ }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true };
-  }
+ static getDerivedStateFromError(error: Error) {
+ return { hasError: true };
+ }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Search Error:', error, errorInfo);
-  }
+ componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+ console.error('Search Error:', error, errorInfo);
+ }
 
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-center p-8">
-            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Search Failed to Load</h2>
-            <p className="text-gray-600 mb-4">Please refresh the page and try again.</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-(--color-surface-muted) text-white rounded-lg hover:bg-(--color-surface-muted) transition-colors"
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
-      )
-    }
-    return this.props.children;
-  }
+ render() {
+ if (this.state.hasError) {
+ return (
+ <div className="min-h-screen bg-white flex items-center justify-center">
+ <div className="text-center p-8">
+ <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4"/>
+ <h2 className="text-2xl font-bold text-gray-900 mb-2">Search Failed to Load</h2>
+ <p className="text-gray-600 mb-4">Please refresh the page and try again.</p>
+ <button
+ onClick={() => window.location.reload()}
+ className="px-6 py-3 bg-(--color-surface-muted) text-white rounded-lg hover:bg-(--color-surface-muted) transition-colors"
+ >
+ Refresh Page
+ </button>
+ </div>
+ </div>
+ )
+ }
+ return this.props.children;
+ }
 }
 
 // Dismissable warning banner shown when no Quick Search results are loaded yet
 function WarnBanner() {
-  const [dismissed, setDismissed] = React.useState(false)
-  if (dismissed) return null
-  return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-white font-bold text-sm shadow-lg"
-      style={{ background: 'linear-gradient(90deg, #92400e 0%, #78350f 100%)' }}>
-      <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-300" />
-      <span className="flex-1">
-        ⚠️ Run Quick Search first to load results — then use these filters to narrow them down client-side.
-      </span>
-      <button
-        onClick={() => setDismissed(true)}
-        className="ml-2 px-3 py-1 rounded bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-all shrink-0"
-        aria-label="Dismiss"
-      >
-        Got it ✓
-      </button>
-    </div>
-  )
+ const [dismissed, setDismissed] = React.useState(false)
+ if (dismissed) return null
+ return (
+ <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-white font-bold text-sm shadow-lg"
+ style={{ background: 'linear-gradient(90deg, #92400e 0%, #78350f 100%)' }}>
+ <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-300"/>
+ <span className="flex-1">
+ ⚠️ Run Quick Search first to load results — then use these filters to narrow them down client-side.
+ </span>
+ <button
+ onClick={() => setDismissed(true)}
+ className="ml-2 px-3 py-1 rounded bg-white/20 hover:bg-white/30 text-white font-bold text-xs transition-all shrink-0"
+ aria-label="Dismiss"
+ >
+ Got it ✓
+ </button>
+ </div>
+ )
 }
 
 
 export default function SearchPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 border-4 border-[--color-border] border-t-transparent rounded-full"></div>
-      </div>
-    }>
-      <SearchPageContent />
-    </Suspense>
-  );
+ return (
+ <Suspense fallback={
+ <div className="min-h-screen bg-white flex items-center justify-center">
+ <div className="animate-spin h-12 w-12 border-4 border-[--color-border] border-t-transparent rounded-full"></div>
+ </div>
+ }>
+ <SearchPageContent />
+ </Suspense>
+ );
 }
 
 function QuickDateLookup({
-  keywords,
-  setKeywords,
-  postedAfter,
-  setPostedAfter,
-  responseDeadlineBefore,
-  setResponseDeadlineBefore,
-  onRunSearch,
-  onStopSearch,
-  onReset,
-  loading,
-  searchDuration,
-  onSaveSearch,
-  onCreateAlert,
+ keywords,
+ setKeywords,
+ postedAfter,
+ setPostedAfter,
+ responseDeadlineBefore,
+ setResponseDeadlineBefore,
+ onRunSearch,
+ onStopSearch,
+ onReset,
+ loading,
+ searchDuration,
+ onSaveSearch,
+ onCreateAlert,
 }: QuickDateLookupProps) {
-  return (
-    <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-(--color-border) shadow-lg mb-4">
-      {/* Header row: title on left, Save/Alert buttons on right */}
-      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <div>
-          <h3 style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
-            Quick Solicitations Lookup
-          </h3>
-          <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters</p>
-        </div>
-        {/* Save Search + Create Alert */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={onSaveSearch}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
-            aria-label="Save current search"
-          >
-            <Save className="h-4 w-4 shrink-0" />
-            Save Search
-          </button>
-          <button
-            onClick={onCreateAlert}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
-            aria-label="Create email alert"
-          >
-            <Bell className="h-4 w-4 shrink-0" />
-            Create Alert
-          </button>
-          <Link href="/alerts">
-            <button
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-(--color-surface-muted) text-white font-bold text-sm hover:bg-(--color-surface-muted) hover:shadow-lg transition-all"
-              aria-label="Manage alerts"
-            >
-              <Settings className="h-4 w-4 shrink-0" />
-              Manage Alerts
-            </button>
-          </Link>
-        </div>
-      </div>
+ return (
+ <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-(--color-border) shadow-lg mb-4">
+ {/* Header row: title on left, Save/Alert buttons on right */}
+ <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+ <div>
+ <h3 style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
+ Quick Solicitations Lookup
+ </h3>
+ <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters</p>
+ </div>
+ {/* Save Search + Create Alert */}
+ <div className="flex items-center gap-2 flex-wrap">
+ <button
+ onClick={onSaveSearch}
+ className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
+ aria-label="Save current search"
+ >
+ <Save className="h-4 w-4 shrink-0"/>
+ Save Search
+ </button>
+ <button
+ onClick={onCreateAlert}
+ className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
+ aria-label="Create email alert"
+ >
+ <Bell className="h-4 w-4 shrink-0"/>
+ Create Alert
+ </button>
+ <Link href="/alerts">
+ <button
+ className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-(--color-surface-muted) text-white font-bold text-sm hover:bg-(--color-surface-muted) hover:shadow-lg transition-all"
+ aria-label="Manage alerts"
+ >
+ <Settings className="h-4 w-4 shrink-0"/>
+ Manage Alerts
+ </button>
+ </Link>
+ </div>
+ </div>
 
-      {/* 3-column: keyword + posted date (with quick-fills) + deadline date (with quick-fills) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        {/* Keyword */}
-        <div>
-          <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
-            Keyword:
-          </label>
-          <input
-            type="text"
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') onRunSearch() }}
-            placeholder="e.g., Data Analytics"
-            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-500 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] transition-colors"
-          />
-        </div>
+ {/* 3-column: keyword + posted date (with quick-fills) + deadline date (with quick-fills) */}
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+ {/* Keyword */}
+ <div>
+ <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+ Keyword:
+ </label>
+ <input
+ type="text"
+ value={keywords}
+ onChange={(e) => setKeywords(e.target.value)}
+ onKeyDown={(e) => { if (e.key === 'Enter') onRunSearch() }}
+ placeholder="e.g., Data Analytics"
+ className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-500 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] transition-colors"
+ />
+ </div>
 
-        {/* Solicitation Posted Date */}
-        <div>
-          <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
-            Solicitation Posted Date:
-          </label>
-          <input
-            type="date"
-            value={postedAfter}
-            onChange={(e) => setPostedAfter(e.target.value)}
-            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
-          />
-          <div style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">POSTED WITHIN:</div>
-          <div className="flex flex-wrap gap-1">
-            {[['1 Mo', -1], ['3 Mo', -3], ['6 Mo', -6], ['9 Mo', -9], ['12 Mo', -12]].map(([label, months]) => {
-              const colors = ['from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-slate-600 to-slate-800']
-              const idx = ['-1', '-3', '-6', '-9', '-12'].indexOf(String(months))
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => {
-                    const d = new Date()
-                    d.setMonth(d.getMonth() + (months as number))
-                    setPostedAfter(d.toISOString().split('T')[0])
-                  }}
-                  className={`px-3 py-1.5 text-xs font-bold bg-linear-to-r ${colors[idx].replace('from-[var(--color-primary)]','from-(--color-primary)').replace('to-[var(--color-primary-hover)]','to-(--color-primary-hover)')} text-white rounded-lg hover:shadow-md transition-all`}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+ {/* Solicitation Posted Date */}
+ <div>
+ <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+ Solicitation Posted Date:
+ </label>
+ <input
+ type="date"
+ value={postedAfter}
+ onChange={(e) => setPostedAfter(e.target.value)}
+ className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
+ />
+ <div className="font-bold text-gray-700 mb-1" style={{ fontSize: "13px" }}>POSTED WITHIN:</div>
+ <div className="flex flex-wrap gap-1">
+ {[['1 Mo', -1], ['3 Mo', -3], ['6 Mo', -6], ['9 Mo', -9], ['12 Mo', -12]].map(([label, months]) => {
+ const colors = ['from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-[var(--color-primary)] to-[var(--color-primary-hover)]', 'from-slate-600 to-slate-800']
+ const idx = ['-1', '-3', '-6', '-9', '-12'].indexOf(String(months))
+ return (
+ <button
+ key={label}
+ type="button"
+ onClick={() => {
+ const d = new Date()
+ d.setMonth(d.getMonth() + (months as number))
+ setPostedAfter(d.toISOString().split('T')[0])
+ }}
+ className={`px-3 py-1.5 text-xs font-bold bg-linear-to-r ${colors[idx].replace('from-[var(--color-primary)]','from-(--color-primary)').replace('to-[var(--color-primary-hover)]','to-(--color-primary-hover)')} text-white rounded-lg hover:shadow-md transition-all`}
+ >
+ {label}
+ </button>
+ )
+ })}
+ </div>
+ </div>
 
-        {/* Submission Deadline Date */}
-        <div>
-          <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
-            Submission Deadline Date:
-          </label>
-          <input
-            type="date"
-            value={responseDeadlineBefore}
-            onChange={(e) => setResponseDeadlineBefore(e.target.value)}
-            className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
-          />
-          <div style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-xs font-bold text-gray-700 mb-1">DEADLINE WITHIN:</div>
-          <div className="flex flex-wrap gap-1">
-            {[['1 Mo', 1, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['3 Mo', 3, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['6 Mo', 6, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['9 Mo', 9, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['12 Mo', 12, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]']].map(([label, months, color]) => (
-              <button
-                key={label as string}
-                type="button"
-                onClick={() => {
-                  const d = new Date()
-                  d.setMonth(d.getMonth() + (months as number))
-                  setResponseDeadlineBefore(d.toISOString().split('T')[0])
-                }}
-                className={`px-3 py-1.5 text-xs font-bold bg-linear-to-r ${(color as string).replace('from-[var(--color-primary)]','from-(--color-primary)').replace('to-[var(--color-primary-hover)]','to-(--color-primary-hover)')} text-white rounded-lg hover:shadow-md transition-all`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+ {/* Submission Deadline Date */}
+ <div>
+ <label style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="block text-base font-bold text-gray-900 mb-2">
+ Submission Deadline Date:
+ </label>
+ <input
+ type="date"
+ value={responseDeadlineBefore}
+ onChange={(e) => setResponseDeadlineBefore(e.target.value)}
+ className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
+ />
+ <div className="font-bold text-gray-700 mb-1" style={{ fontSize: "13px" }}>DEADLINE WITHIN:</div>
+ <div className="flex flex-wrap gap-1">
+ {[['1 Mo', 1, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['3 Mo', 3, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['6 Mo', 6, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['9 Mo', 9, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]'], ['12 Mo', 12, 'from-[var(--color-primary)] to-[var(--color-primary-hover)]']].map(([label, months, color]) => (
+ <button
+ key={label as string}
+ type="button"
+ onClick={() => {
+ const d = new Date()
+ d.setMonth(d.getMonth() + (months as number))
+ setResponseDeadlineBefore(d.toISOString().split('T')[0])
+ }}
+ className={`px-3 py-1.5 text-xs font-bold bg-linear-to-r ${(color as string).replace('from-[var(--color-primary)]','from-(--color-primary)').replace('to-[var(--color-primary-hover)]','to-(--color-primary-hover)')} text-white rounded-lg hover:shadow-md transition-all`}
+ >
+ {label}
+ </button>
+ ))}
+ </div>
+ </div>
+ </div>
 
-      {/* Action row: Run / Stop / Save / Alert */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={onRunSearch}
-          disabled={loading}
-          className="pg-btn pg-btn-primary inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-bold rounded-lg text-white transition-all shadow-md disabled:opacity-50 whitespace-nowrap"
-        >
-          {loading ? (
-            <><Loader2 className="h-5 w-5 animate-spin" />Searching...</>
-          ) : (
-            <><Search className="h-5 w-5" />RUN QUICK SEARCH</>
-          )}
-        </button>
-        <button
-          onClick={onStopSearch}
-          disabled={!loading}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 text-base font-bold rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-        >
-          <StopCircle className="h-5 w-5" />
-          STOP
-          {loading && searchDuration > 0 && <span className="text-sm opacity-90">({searchDuration}s)</span>}
-        </button>
-        <div className="w-px h-8 bg-[var(--color-surface-muted)] mx-1 hidden sm:block" />
-        <button
-          onClick={onSaveSearch}
-          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all whitespace-nowrap"
-          aria-label="Save current search"
-        >
-          <Save className="h-4 w-4 shrink-0" />
-          Save Search
-        </button>
-        <button
-          onClick={onCreateAlert}
-          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all whitespace-nowrap"
-          aria-label="Create email alert"
-        >
-          <Bell className="h-4 w-4 shrink-0" />
-          Create Alert
-        </button>
-        <button
-          onClick={onReset}
-          className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-800 font-bold text-sm transition-all whitespace-nowrap shadow-sm"
-          aria-label="Reset all fields"
-        >
-          <RefreshCw className="h-4 w-4 shrink-0" />
-          Reset All
-        </button>
-      </div>
-    </div>
-  )
+ {/* Action row: Run / Stop / Save / Alert */}
+ <div className="flex flex-wrap items-center gap-2">
+ <button
+ onClick={onRunSearch}
+ disabled={loading}
+ className="pg-btn pg-btn-primary inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-bold rounded-lg text-white transition-all shadow-md disabled:opacity-50 whitespace-nowrap"
+ >
+ {loading ? (
+ <><Loader2 className="h-5 w-5 animate-spin"/>Searching...</>
+ ) : (
+ <><Search className="h-5 w-5"/>RUN QUICK SEARCH</>
+ )}
+ </button>
+ <button
+ onClick={onStopSearch}
+ disabled={!loading}
+ className="inline-flex items-center justify-center gap-2 px-5 py-3 text-base font-bold rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+ >
+ <StopCircle className="h-5 w-5"/>
+ STOP
+ {loading && searchDuration > 0 && <span className="text-sm opacity-90">({searchDuration}s)</span>}
+ </button>
+ <div className="w-px h-8 bg-[var(--color-surface-muted)] mx-1 hidden sm:block"/>
+ <button
+ onClick={onSaveSearch}
+ className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all whitespace-nowrap"
+ aria-label="Save current search"
+ >
+ <Save className="h-4 w-4 shrink-0"/>
+ Save Search
+ </button>
+ <button
+ onClick={onCreateAlert}
+ className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all whitespace-nowrap"
+ aria-label="Create email alert"
+ >
+ <Bell className="h-4 w-4 shrink-0"/>
+ Create Alert
+ </button>
+ <button
+ onClick={onReset}
+ className="inline-flex items-center gap-1.5 px-4 py-3 rounded-lg bg-white border-2 border-gray-400 hover:bg-gray-50 text-gray-800 font-bold text-sm transition-all whitespace-nowrap shadow-sm"
+ aria-label="Reset all fields"
+ >
+ <RefreshCw className="h-4 w-4 shrink-0"/>
+ Reset All
+ </button>
+ </div>
+ </div>
+ )
 }
 
 // Keep a thin shim so existing call sites compile — unused after JSX update
 interface QuickSearchProps {
-  quickKeyword: string; setQuickKeyword: (v: string) => void
-  quickPostedDate: string; setQuickPostedDate: (v: string) => void
-  quickDeadlineDate: string; setQuickDeadlineDate: (v: string) => void
-  onRunSearch: () => void; onStopSearch: () => void
-  isSearching: boolean; isLoading: boolean
+ quickKeyword: string; setQuickKeyword: (v: string) => void
+ quickPostedDate: string; setQuickPostedDate: (v: string) => void
+ quickDeadlineDate: string; setQuickDeadlineDate: (v: string) => void
+ onRunSearch: () => void; onStopSearch: () => void
+ isSearching: boolean; isLoading: boolean
 }
 function QuickSearch(_p: QuickSearchProps) { return null }
 
@@ -1606,85 +1606,85 @@ function QuickSearch(_p: QuickSearchProps) { return null }
 
 /** Write last search to sessionStorage so Dashboard & Insights can read it */
 function writeSearchContext(results: any[], params: Record<string, string>) {
-  try {
-    sessionStorage.setItem('lastSearchResults', JSON.stringify({
-      results: results.slice(0, 50),
-      params,
-      searchedAt: new Date().toISOString(),
-      count: results.length,
-    }))
-  } catch { /* quota — ignore */ }
+ try {
+ sessionStorage.setItem('lastSearchResults', JSON.stringify({
+ results: results.slice(0, 50),
+ params,
+ searchedAt: new Date().toISOString(),
+ count: results.length,
+ }))
+ } catch { /* quota — ignore */ }
 }
 
 /** Simple toast hook (paste once near the top of the file) */
 function useToast() {
-  const [toast, setToast] = useState<string | null>(null)
-  const showToast = useCallback((msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2500)
-  }, [])
-  const ToastUI = toast ? (
-    <div className="fixed bottom-6 right-6 z-200 flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold">
-      <Check className="h-4 w-4 text-(--color-primary)" />
-      {toast}
-    </div>
-  ) : null
-  return { showToast, ToastUI }
+ const [toast, setToast] = useState<string | null>(null)
+ const showToast = useCallback((msg: string) => {
+ setToast(msg)
+ setTimeout(() => setToast(null), 2500)
+ }, [])
+ const ToastUI = toast ? (
+ <div className="fixed bottom-6 right-6 z-200 flex items-center gap-2 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl text-sm font-bold">
+ <Check className="h-4 w-4 text-(--color-primary)"/>
+ {toast}
+ </div>
+ ) : null
+ return { showToast, ToastUI }
 }
 
 // ── STEP 8: Add sticky prompt component + render ──
 // Add this component definition above SearchPageContent:
 function StickyResultsPrompt({
-  count, keywords, postedAfter, responseDeadlineBefore, selectedSetAsides, selectedStates, onSave, onAlert, onDismiss,
+ count, keywords, postedAfter, responseDeadlineBefore, selectedSetAsides, selectedStates, onSave, onAlert, onDismiss,
 }: { 
-  count: number; keywords: string; 
-  postedAfter?: string; responseDeadlineBefore?: string;
-  selectedSetAsides?: string[]; selectedStates?: string[];
-  onSave: () => void; onAlert: () => void; onDismiss: () => void 
+ count: number; keywords: string; 
+ postedAfter?: string; responseDeadlineBefore?: string;
+ selectedSetAsides?: string[]; selectedStates?: string[];
+ onSave: () => void; onAlert: () => void; onDismiss: () => void 
 }) {
-  // Build a compact description
-  const parts: string[] = []
-  if (keywords) parts.push(`"${keywords}"`)
-  if (postedAfter) parts.push(`posted ≥ ${new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
-  if (responseDeadlineBefore) parts.push(`due on or after ${new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
-  if (selectedSetAsides && selectedSetAsides.length > 0) parts.push(`${selectedSetAsides.length} set-aside${selectedSetAsides.length > 1 ? 's' : ''}`)
-  if (selectedStates && selectedStates.length > 0) parts.push(`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`)
+ // Build a compact description
+ const parts: string[] = []
+ if (keywords) parts.push(`"${keywords}"`)
+ if (postedAfter) parts.push(`posted ≥ ${new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
+ if (responseDeadlineBefore) parts.push(`due on or after ${new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`)
+ if (selectedSetAsides && selectedSetAsides.length > 0) parts.push(`${selectedSetAsides.length} set-aside${selectedSetAsides.length > 1 ? 's' : ''}`)
+ if (selectedStates && selectedStates.length > 0) parts.push(`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`)
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-linear-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-(--color-border)">
-      <div className="max-w-440 mx-auto flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-(--color-primary) shrink-0" />
-          <span className="font-bold text-sm">
-            Found <span className="text-(--color-primary) text-base">{count.toLocaleString()}</span> results
-            {parts.length > 0 && <> for <span className="text-(--color-primary)">{parts.join(' · ')}</span></>}
-            {' '}— save this search or get alerts so you never miss an update
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={onSave}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-(--color-surface-muted) transition-colors shadow-sm"
-          >
-            <Save className="h-4 w-4" />Save Search
-          </button>
-          <button
-            onClick={onAlert}
-            className="pg-btn pg-btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors border border-(--color-border)"
-          >
-            <Bell className="h-4 w-4" />Get Alerts
-          </button>
-          <button
-            onClick={onDismiss}
-            className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
-            aria-label="Dismiss"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+ return (
+ <div className="fixed bottom-0 left-0 right-0 z-50 bg-linear-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-(--color-border)">
+ <div className="max-w-440 mx-auto flex items-center justify-between gap-3 flex-wrap">
+ <div className="flex items-center gap-3">
+ <CheckCircle className="h-5 w-5 text-(--color-primary) shrink-0"/>
+ <span className="font-bold text-sm">
+ Found <span className="text-(--color-primary) text-base">{count.toLocaleString()}</span> results
+ {parts.length > 0 && <> for <span className="text-(--color-primary)">{parts.join(' · ')}</span></>}
+ {' '}— save this search or get alerts so you never miss an update
+ </span>
+ </div>
+ <div className="flex items-center gap-2 shrink-0">
+ <button
+ onClick={onSave}
+ className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-(--color-surface-muted) transition-colors shadow-sm"
+ >
+ <Save className="h-4 w-4"/>Save Search
+ </button>
+ <button
+ onClick={onAlert}
+ className="pg-btn pg-btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors border border-(--color-border)"
+ >
+ <Bell className="h-4 w-4"/>Get Alerts
+ </button>
+ <button
+ onClick={onDismiss}
+ className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+ aria-label="Dismiss"
+ >
+ <X className="h-4 w-4"/>
+ </button>
+ </div>
+ </div>
+ </div>
+ )
 }
 
 // --- Main Component ---
@@ -1694,1447 +1694,1447 @@ function StickyResultsPrompt({
 
 // Animated Tips Carousel Component
 function AnimatedTipsCarousel() {
-  const [currentTip, setCurrentTip] = useState(0)
-  
-  const tips = [
-    {
-      icon: <FileText className="h-5 w-5" />,
-      text: "Pro tip: Use specific keywords like 'cybersecurity services' instead of broad terms like 'IT'.",
-      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
-    },
-    {
-      icon: <Calendar className="h-5 w-5" />,
-      text: "Quick trick: Use the date buttons below to instantly apply common time ranges.",
-      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
-    },
-    {
-      icon: <Bell className="h-5 w-5" />,
-      text: "Set up alerts to get notified when new opportunities match your saved filters.",
-      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
-    },
-    {
-      icon: <Shield className="h-5 w-5" />,
-      text: "VOSB advantage: apply set-aside filters to surface contracts reserved for eligible firms.",
-      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
-    },
-    {
-      icon: <MapPin className="h-5 w-5" />,
-      text: "Local advantage: filter by state to find nearby opportunities with lower competition.",
-      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
-    },
-    {
-      icon: <Clock className="h-5 w-5" />,
-      text: "Heads up: prioritize items with near deadlines first so you don't miss submission windows.",
-      color: "from-[var(--color-primary)] to-[var(--color-primary-hover)]"
-    }
-  ]
+ const [currentTip, setCurrentTip] = useState(0)
+ 
+ const tips = [
+ {
+ icon: <FileText className="h-5 w-5"/>,
+ text:"Pro tip: Use specific keywords like 'cybersecurity services' instead of broad terms like 'IT'.",
+ color:"from-[var(--color-primary)] to-[var(--color-primary-hover)]"
+ },
+ {
+ icon: <Calendar className="h-5 w-5"/>,
+ text:"Quick trick: Use the date buttons below to instantly apply common time ranges.",
+ color:"from-[var(--color-primary)] to-[var(--color-primary-hover)]"
+ },
+ {
+ icon: <Bell className="h-5 w-5"/>,
+ text:"Set up alerts to get notified when new opportunities match your saved filters.",
+ color:"from-[var(--color-primary)] to-[var(--color-primary-hover)]"
+ },
+ {
+ icon: <Shield className="h-5 w-5"/>,
+ text:"VOSB advantage: apply set-aside filters to surface contracts reserved for eligible firms.",
+ color:"from-[var(--color-primary)] to-[var(--color-primary-hover)]"
+ },
+ {
+ icon: <MapPin className="h-5 w-5"/>,
+ text:"Local advantage: filter by state to find nearby opportunities with lower competition.",
+ color:"from-[var(--color-primary)] to-[var(--color-primary-hover)]"
+ },
+ {
+ icon: <Clock className="h-5 w-5"/>,
+ text:"Heads up: prioritize items with near deadlines first so you don't miss submission windows.",
+ color:"from-[var(--color-primary)] to-[var(--color-primary-hover)]"
+ }
+ ]
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTip((prev) => (prev + 1) % tips.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [tips.length])
+ useEffect(() => {
+ const interval = setInterval(() => {
+ setCurrentTip((prev) => (prev + 1) % tips.length)
+ }, 5000)
+ return () => clearInterval(interval)
+ }, [tips.length])
 
-  return (
-    <div className="relative mt-3 h-21 overflow-hidden sm:h-16.5">
-      {tips.map((tip, index) => (
-        <div
-          key={index}
-          className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-            index === currentTip 
-              ? 'opacity-100 translate-y-0' 
-              : index < currentTip 
-                ? 'opacity-0 -translate-y-full' 
-                : 'opacity-0 translate-y-full'
-          }`}
-        >
-          <div className="rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-2.5 shadow-sm sm:p-3">
-            <div className="flex items-center gap-2.5 text-(--color-text-primary) sm:gap-3">
-              <div className="shrink-0 rounded-lg bg-(--color-accent-soft) p-2">
-                {tip.icon}
-              </div>
-              <p className="text-xs font-semibold leading-snug text-[var(--color-text-primary)] sm:text-sm">
-                {tip.text}
-              </p>
-            </div>
-          </div>
-        </div>
-      ))}
-      
-      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 flex gap-1.5">
-        {tips.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentTip(index)}
-            className={`w-1.5 h-1.5 rounded-full transition-all ${
-              index === currentTip 
-                ? 'bg-[var(--color-surface-muted)] w-4' 
-                : 'bg-gray-500 hover:bg-gray-400'
-            }`}
-            aria-label={`Go to tip ${index + 1}`}
-          />
-        ))}
-      </div>
-    </div>
-  )
+ return (
+ <div className="relative mt-3 h-21 overflow-hidden sm:h-16.5">
+ {tips.map((tip, index) => (
+ <div
+ key={index}
+ className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+ index === currentTip 
+ ? 'opacity-100 translate-y-0' 
+ : index < currentTip 
+ ? 'opacity-0 -translate-y-full' 
+ : 'opacity-0 translate-y-full'
+ }`}
+ >
+ <div className="rounded-lg border border-(--color-border) bg-(--color-surface-muted) p-2.5 shadow-sm sm:p-3">
+ <div className="flex items-center gap-2.5 text-(--color-text-primary) sm:gap-3">
+ <div className="shrink-0 rounded-lg bg-(--color-accent-soft) p-2">
+ {tip.icon}
+ </div>
+ <p className="text-xs font-semibold leading-snug text-[var(--color-text-primary)] sm:text-sm">
+ {tip.text}
+ </p>
+ </div>
+ </div>
+ </div>
+ ))}
+ 
+ <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 flex gap-1.5">
+ {tips.map((_, index) => (
+ <button
+ key={index}
+ onClick={() => setCurrentTip(index)}
+ className={`w-1.5 h-1.5 rounded-full transition-all ${
+ index === currentTip 
+ ? 'bg-[var(--color-surface-muted)] w-4' 
+ : 'bg-gray-500 hover:bg-gray-400'
+ }`}
+ aria-label={`Go to tip ${index + 1}`}
+ />
+ ))}
+ </div>
+ </div>
+ )
 }
 
 // Quick Start Guide Component
 function QuickStartGuide() {
-  const [isOpen, setIsOpen] = useState(false)
+ const [isOpen, setIsOpen] = useState(false)
 
-  return (
-    <div className="mt-3">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3.5 bg-white rounded-xl border border-gray-300 hover:border-[var(--color-border)] transition-all shadow-sm"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center">
-            <HelpCircle className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-sm sm:text-base font-semibold text-gray-900">
-            {isOpen ? 'Hide Quick Start Guide' : 'New here? Click for Quick Start Guide'}
-          </span>
-        </div>
-        {isOpen ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
-      </button>
+ return (
+ <div className="mt-3">
+ <button
+ onClick={() => setIsOpen(!isOpen)}
+ className="w-full flex items-center justify-between p-3.5 bg-white rounded-xl border border-gray-300 hover:border-[var(--color-border)] transition-all shadow-sm"
+ >
+ <div className="flex items-center gap-3">
+ <div className="w-9 h-9 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center">
+ <HelpCircle className="h-5 w-5 text-white"/>
+ </div>
+ <span className="text-sm sm:text-base font-semibold text-gray-900">
+ {isOpen ? 'Hide Quick Start Guide' : 'New here? Click for Quick Start Guide'}
+ </span>
+ </div>
+ {isOpen ? <ChevronUp className="h-5 w-5 text-gray-600"/> : <ChevronDown className="h-5 w-5 text-gray-600"/>}
+ </button>
 
-      {isOpen && (
-        <div className="mt-2.5 bg-gray-50 rounded-xl p-4 sm:p-5 border border-gray-300 shadow">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
-                  1
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">Enter Your Search</h3>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Type keywords, company names, products, or services. Leave blank to see all opportunities.
-                </p>
-              </div>
-            </div>
+ {isOpen && (
+ <div className="mt-2.5 bg-gray-50 rounded-xl p-4 sm:p-5 border border-gray-300 shadow">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ <div className="flex gap-3">
+ <div className="flex-shrink-0">
+ <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
+ 1
+ </div>
+ </div>
+ <div>
+ <h3 className="text-sm font-bold text-gray-900 mb-1">Enter Your Search</h3>
+ <p className="text-sm text-gray-700 leading-relaxed">
+ Type keywords, company names, products, or services. Leave blank to see all opportunities.
+ </p>
+ </div>
+ </div>
 
-            <div className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
-                  2
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">Select Date Ranges</h3>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Use quick-fill buttons or pick custom dates to narrow your search.
-                </p>
-              </div>
-            </div>
+ <div className="flex gap-3">
+ <div className="flex-shrink-0">
+ <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
+ 2
+ </div>
+ </div>
+ <div>
+ <h3 className="text-sm font-bold text-gray-900 mb-1">Select Date Ranges</h3>
+ <p className="text-sm text-gray-700 leading-relaxed">
+ Use quick-fill buttons or pick custom dates to narrow your search.
+ </p>
+ </div>
+ </div>
 
-            <div className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
-                  3
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">Click Search</h3>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Hit the green Search button to find matching opportunities from SAM.gov.
-                </p>
-              </div>
-            </div>
+ <div className="flex gap-3">
+ <div className="flex-shrink-0">
+ <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
+ 3
+ </div>
+ </div>
+ <div>
+ <h3 className="text-sm font-bold text-gray-900 mb-1">Click Search</h3>
+ <p className="text-sm text-gray-700 leading-relaxed">
+ Hit the green Search button to find matching opportunities from SAM.gov.
+ </p>
+ </div>
+ </div>
 
-            <div className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
-                  4
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">Refine & Save</h3>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Use filters to narrow results, then save your search or create an email alert.
-                </p>
-              </div>
-            </div>
-          </div>
+ <div className="flex gap-3">
+ <div className="flex-shrink-0">
+ <div className="w-8 h-8 bg-[var(--color-surface-muted)] rounded-lg flex items-center justify-center text-white font-black text-sm">
+ 4
+ </div>
+ </div>
+ <div>
+ <h3 className="text-sm font-bold text-gray-900 mb-1">Refine & Save</h3>
+ <p className="text-sm text-gray-700 leading-relaxed">
+ Use filters to narrow results, then save your search or create an email alert.
+ </p>
+ </div>
+ </div>
+ </div>
 
-          <div className="mt-3 pt-3 border-t border-gray-300">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">Pro Tips</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
-                <span><strong>Be Specific:</strong> "Cloud services" beats "IT"</span>
-              </div>
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
-                <span><strong>Check Daily:</strong> New opportunities posted constantly</span>
-              </div>
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
-                <span><strong>Save Searches:</strong> Rerun successful searches quickly</span>
-              </div>
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
-                <span><strong>Set Alerts:</strong> Get emailed automatically</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
+ <div className="mt-3 pt-3 border-t border-gray-300">
+ <h3 className="text-sm font-bold text-gray-900 mb-3">Pro Tips</h3>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+ <div className="flex items-start gap-2 text-sm text-gray-700">
+ <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5"/>
+ <span><strong>Be Specific:</strong>"Cloud services"beats"IT"</span>
+ </div>
+ <div className="flex items-start gap-2 text-sm text-gray-700">
+ <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5"/>
+ <span><strong>Check Daily:</strong> New opportunities posted constantly</span>
+ </div>
+ <div className="flex items-start gap-2 text-sm text-gray-700">
+ <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5"/>
+ <span><strong>Save Searches:</strong> Rerun successful searches quickly</span>
+ </div>
+ <div className="flex items-start gap-2 text-sm text-gray-700">
+ <CheckCircle className="h-4 w-4 text-[var(--color-primary)] flex-shrink-0 mt-0.5"/>
+ <span><strong>Set Alerts:</strong> Get emailed automatically</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ )}
+ </div>
+ )
 }
 
 // Searching Facts Component
 function SearchingFacts({ duration }: { duration: number }) {
-  const [currentFact, setCurrentFact] = useState(0)
+ const [currentFact, setCurrentFact] = useState(0)
 
-  const facts = [
-    "💼 The U.S. government spends over $600 billion annually on contracts",
-    "📊 Small businesses win over 25% of federal contract dollars each year",
-    "🎯 Set-aside opportunities give small businesses exclusive access to bids",
-    "⚡ SAM.gov posts thousands of new opportunities every week",
-    "🏆 Veterans can access special set-asides through the SDVOSB program",
-    "🌟 Women-owned businesses have dedicated WOSB opportunities",
-    "📈 Federal contracts can transform small businesses into major players",
-    "🔍 Being specific in searches helps you find better-matched opportunities"
-  ]
+ const facts = [
+"💼 The U.S. government spends over $600 billion annually on contracts",
+"📊 Small businesses win over 25% of federal contract dollars each year",
+"🎯 Set-aside opportunities give small businesses exclusive access to bids",
+"⚡ SAM.gov posts thousands of new opportunities every week",
+"🏆 Veterans can access special set-asides through the SDVOSB program",
+"🌟 Women-owned businesses have dedicated WOSB opportunities",
+"📈 Federal contracts can transform small businesses into major players",
+"🔍 Being specific in searches helps you find better-matched opportunities"
+ ]
 
-  useEffect(() => {
-    if (duration > 0 && duration % 3 === 0) {
-      setCurrentFact((prev) => (prev + 1) % facts.length)
-    }
-  }, [duration, facts.length])
+ useEffect(() => {
+ if (duration > 0 && duration % 3 === 0) {
+ setCurrentFact((prev) => (prev + 1) % facts.length)
+ }
+ }, [duration, facts.length])
 
-  return (
-    <div className="mt-4 pt-4 border-t-2 border-[var(--color-border)]">
-      <div className="flex items-center gap-3">
-        <Sparkles className="h-5 w-5 text-blue-600 animate-pulse" />
-        <p className="text-base font-semibold text-blue-800">
-          <strong>Did you know?</strong> {facts[currentFact]}
-        </p>
-      </div>
-    </div>
-  )
+ return (
+ <div className="mt-4 pt-4 border-t-2 border-[var(--color-border)]">
+ <div className="flex items-center gap-3">
+ <Sparkles className="h-5 w-5 text-blue-600 animate-pulse"/>
+ <p className="text-base font-semibold text-blue-800">
+ <strong>Did you know?</strong> {facts[currentFact]}
+ </p>
+ </div>
+ </div>
+ )
 }
 
 
 function SearchPageContent() {
-  const router = useRouter()
-  const { data: session, status } = useSession()
+ const router = useRouter()
+ const { data: session, status } = useSession()
 
-  // Access Control
-  const {
-    hasValidAccess,
-    canBrowse,
-    reminderLevel,
-    showReminderModal,
-    setShowReminderModal,
-    showLockoutModal,
-    setShowLockoutModal,
-    isAuthenticated,
-    planLoading,
-  } = useBrowsingSession()
+ // Access Control
+ const {
+ hasValidAccess,
+ canBrowse,
+ reminderLevel,
+ showReminderModal,
+ setShowReminderModal,
+ showLockoutModal,
+ setShowLockoutModal,
+ isAuthenticated,
+ planLoading,
+ } = useBrowsingSession()
 
-  const DEFAULT_LIMIT = 10000  // Increased to get more results
-  const LOAD_MORE_INCREMENT = 1000
+ const DEFAULT_LIMIT = 10000 // Increased to get more results
+ const LOAD_MORE_INCREMENT = 1000
 
-  // Search form states
-  const [keywords, setKeywords] = useState('')
-  const [naics, setNaics] = useState('')
-  const [agency, setAgency] = useState('')
-  const [selectedSetAsides, setSelectedSetAsides] = useState<string[]>([])
-  const [selectedStates, setSelectedStates] = useState<string[]>([])
-  // ✅ QUICK SEARCH STATE
-  const [quickKeyword, setQuickKeyword] = useState('')
-  const [quickPostedDate, setQuickPostedDate] = useState(getSixMonthsAgo())
-  const [quickDeadlineDate, setQuickDeadlineDate] = useState(getToday())
-  
-  // Calculate default dates: 6 months back for "from", 1 month ahead for response deadline (both auto-update daily)
-  const defaults = useMemo(() => {
-    const today = new Date()
-    const lookback = new Date()
-    lookback.setMonth(lookback.getMonth() - 6) // Always 6 months back from today
-    const responseDeadlineDate = new Date()
-    responseDeadlineDate.setMonth(responseDeadlineDate.getMonth() + 1) // Always 1 month ahead from today
-    return {
-      from: lookback.toISOString().split('T')[0],
-      responseDeadline: responseDeadlineDate.toISOString().split('T')[0]
-    }
-  }, []) // Recalculates on component mount (each day)
+ // Search form states
+ const [keywords, setKeywords] = useState('')
+ const [naics, setNaics] = useState('')
+ const [agency, setAgency] = useState('')
+ const [selectedSetAsides, setSelectedSetAsides] = useState<string[]>([])
+ const [selectedStates, setSelectedStates] = useState<string[]>([])
+ // ✅ QUICK SEARCH STATE
+ const [quickKeyword, setQuickKeyword] = useState('')
+ const [quickPostedDate, setQuickPostedDate] = useState(getSixMonthsAgo())
+ const [quickDeadlineDate, setQuickDeadlineDate] = useState(getToday())
+ 
+ // Calculate default dates: 6 months back for"from", 1 month ahead for response deadline (both auto-update daily)
+ const defaults = useMemo(() => {
+ const today = new Date()
+ const lookback = new Date()
+ lookback.setMonth(lookback.getMonth() - 6) // Always 6 months back from today
+ const responseDeadlineDate = new Date()
+ responseDeadlineDate.setMonth(responseDeadlineDate.getMonth() + 1) // Always 1 month ahead from today
+ return {
+ from: lookback.toISOString().split('T')[0],
+ responseDeadline: responseDeadlineDate.toISOString().split('T')[0]
+ }
+ }, []) // Recalculates on component mount (each day)
 
-  const [postedAfter, setPostedAfter] = useState(getSixMonthsAgo())
-  const [postedBefore, setPostedBefore] = useState('') // Removed default - field will be hidden
-  const [showDateWarning, setShowDateWarning] = useState(false)
-  const [dateWarningMessage, setDateWarningMessage] = useState('')
+ const [postedAfter, setPostedAfter] = useState(getSixMonthsAgo())
+ const [postedBefore, setPostedBefore] = useState('') // Removed default - field will be hidden
+ const [showDateWarning, setShowDateWarning] = useState(false)
+ const [dateWarningMessage, setDateWarningMessage] = useState('')
 
-  // Validate date range doesn't exceed 364 days
-  const validateDateRange = useCallback((startDate: string, endDate: string) => {
-    if (!startDate || !endDate) return true
-    
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays > 364) {
-      setDateWarningMessage(
-        `⚠️ Your date range is ${diffDays} days. SAM.gov's API limits searches to 364 days (1 year). Please select a shorter date range for better results.`
-      )
-      setShowDateWarning(true)
-      return false
-    }
-    
-    setShowDateWarning(false)
-    return true
-  }, [])
+ // Validate date range doesn't exceed 364 days
+ const validateDateRange = useCallback((startDate: string, endDate: string) => {
+ if (!startDate || !endDate) return true
+ 
+ const start = new Date(startDate)
+ const end = new Date(endDate)
+ const diffTime = Math.abs(end.getTime() - start.getTime())
+ const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+ 
+ if (diffDays > 364) {
+ setDateWarningMessage(
+ `⚠️ Your date range is ${diffDays} days. SAM.gov's API limits searches to 364 days (1 year). Please select a shorter date range for better results.`
+ )
+ setShowDateWarning(true)
+ return false
+ }
+ 
+ setShowDateWarning(false)
+ return true
+ }, [])
 
-  const [procurementType, setProcurementType] = useState('') // '' = All Types
-  const [isActive, setIsActive] = useState('') // 'true' | 'false' | '' (all)
-  const [activeFilter, setActiveFilter] = useState<string | null>(null) // null = show all; "true"/"false" = subset view
+ const [procurementType, setProcurementType] = useState('') // '' = All Types
+ const [isActive, setIsActive] = useState('') // 'true' | 'false' | '' (all)
+ const [activeFilter, setActiveFilter] = useState<string | null>(null) // null = show all;"true"/"false"= subset view
 
-  // ===== ADVANCED SEARCH — client-side filter applied flag =====
-  const [advancedApplied, setAdvancedApplied] = useState(false) // true = filter results client-side
-  // Separate keyword/date fields for Advanced Search client-side filtering
-  const [advKeywords, setAdvKeywords] = useState('')
-  const [advPostedAfter, setAdvPostedAfter] = useState(getSixMonthsAgo())
-  const [advResponseDeadline, setAdvResponseDeadline] = useState(getToday())
+ // ===== ADVANCED SEARCH — client-side filter applied flag =====
+ const [advancedApplied, setAdvancedApplied] = useState(false) // true = filter results client-side
+ // Separate keyword/date fields for Advanced Search client-side filtering
+ const [advKeywords, setAdvKeywords] = useState('')
+ const [advPostedAfter, setAdvPostedAfter] = useState(getSixMonthsAgo())
+ const [advResponseDeadline, setAdvResponseDeadline] = useState(getToday())
 
-  // ===== NEW CRITICAL SEARCH PARAMETERS =====
-  // Phase 1: Critical
-  const [solicitationNumber, setSolicitationNumber] = useState('') // Priority 1B - Direct lookup
-  const [classificationCode, setClassificationCode] = useState('') // Priority 1C - PSC codes
-  const [responseDeadline, setResponseDeadline] = useState(getToday())// Priority 1A - CRITICAL - Filter by specific deadline date (default: today)
-  // Empty by default - no upper limit
-  const [responseDeadlineAfter, setResponseDeadlineAfter] = useState('')
-  const [responseDeadlineBefore, setResponseDeadlineBefore] = useState(getToday())
+ // ===== NEW CRITICAL SEARCH PARAMETERS =====
+ // Phase 1: Critical
+ const [solicitationNumber, setSolicitationNumber] = useState('') // Priority 1B - Direct lookup
+ const [classificationCode, setClassificationCode] = useState('') // Priority 1C - PSC codes
+ const [responseDeadline, setResponseDeadline] = useState(getToday())// Priority 1A - CRITICAL - Filter by specific deadline date (default: today)
+ // Empty by default - no upper limit
+ const [responseDeadlineAfter, setResponseDeadlineAfter] = useState('')
+ const [responseDeadlineBefore, setResponseDeadlineBefore] = useState(getToday())
 
-  // Phase 2: High Value
-  const [noticeId, setNoticeId] = useState('') // Priority 2B - Direct ID
-  const [opportunityStatus, setOpportunityStatus] = useState('active') // Priority 2A - Default to Active status
+ // Phase 2: High Value
+ const [noticeId, setNoticeId] = useState('') // Priority 2B - Direct ID
+ const [opportunityStatus, setOpportunityStatus] = useState('active') // Priority 2A - Default to Active status
 
-  // Phase 3: Medium Value
-  const [placeOfPerformanceZip, setPlaceOfPerformanceZip] = useState('') // Priority 3A - ZIP
-  const [organizationCode, setOrganizationCode] = useState('') // Priority 3B - Org code
+ // Phase 3: Medium Value
+ const [placeOfPerformanceZip, setPlaceOfPerformanceZip] = useState('') // Priority 3A - ZIP
+ const [organizationCode, setOrganizationCode] = useState('') // Priority 3B - Org code
 
-  // PERFORMANCE FIX: Debounce keywords to reduce API calls
-  const debouncedKeywords = useDebounce(keywords, 500)
-  
-  // PERFORMANCE FIX: AbortController for canceling requests
-  const abortControllerRef = useRef<AbortController | null>(null)
+ // PERFORMANCE FIX: Debounce keywords to reduce API calls
+ const debouncedKeywords = useDebounce(keywords, 500)
+ 
+ // PERFORMANCE FIX: AbortController for canceling requests
+ const abortControllerRef = useRef<AbortController | null>(null)
 
-  // UI states
-  const [loading, setLoading] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<ApiResponse | null>(null)
-  const [showFilters, setShowFilters] = useState(true)
-  const [showExportMenu, setShowExportMenu] = useState(false)
-  const [showSavedOnly, setShowSavedOnly] = useState(false)
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [sortBy, setSortBy] = useState<"posted-desc" | "posted-asc" | "deadline-desc" | "deadline-asc" | "relevance">("posted-desc")
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  
-  // Search timer for stop button
-  const [searchStartTime, setSearchStartTime] = useState<Date | null>(null)
-  const [searchDuration, setSearchDuration] = useState(0)
+ // UI states
+ const [loading, setLoading] = useState(false)
+ const [loadingMore, setLoadingMore] = useState(false)
+ const [error, setError] = useState<string | null>(null)
+ const [data, setData] = useState<ApiResponse | null>(null)
+ const [showFilters, setShowFilters] = useState(true)
+ const [showExportMenu, setShowExportMenu] = useState(false)
+ const [showSavedOnly, setShowSavedOnly] = useState(false)
+ const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+ const [copiedId, setCopiedId] = useState<string | null>(null)
+ const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+ const [sortBy, setSortBy] = useState<"posted-desc"|"posted-asc"|"deadline-desc"|"deadline-asc"|"relevance">("posted-desc")
+ const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+ 
+ // Search timer for stop button
+ const [searchStartTime, setSearchStartTime] = useState<Date | null>(null)
+ const [searchDuration, setSearchDuration] = useState(0)
 
-  // Access control - with feature-specific gating
-  const [showAccessModal, setShowAccessModal] = useState(false)
-  const [blockedFeature, setBlockedFeature] = useState('Advanced Federal Bid Search')
-  const pendingActionRef = useRef<(() => void) | null>(null)
+ // Access control - with feature-specific gating
+ const [showAccessModal, setShowAccessModal] = useState(false)
+ const [blockedFeature, setBlockedFeature] = useState('Advanced Federal Bid Search')
+ const pendingActionRef = useRef<(() => void) | null>(null)
 
-  const [isSignUp, setIsSignUp] = useState(true)
+ const [isSignUp, setIsSignUp] = useState(true)
 
-  // ✅ FIXED: Unified modal state
-  const [showSaveModal, setShowSaveModal] = useState(false)
-  
-  // ✅ Alert builder modal state (used when arriving with ?action=create-alert)
-  const [showAlertBuilder, setShowAlertBuilder] = useState(false)
+ // ✅ FIXED: Unified modal state
+ const [showSaveModal, setShowSaveModal] = useState(false)
+ 
+ // ✅ Alert builder modal state (used when arriving with ?action=create-alert)
+ const [showAlertBuilder, setShowAlertBuilder] = useState(false)
 const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [successData, setSuccessData] = useState({
-    searchName: '',
-    isSubscription: false,
-    saved_search_id: null as string | null
-  })
+ const [showSuccessModal, setShowSuccessModal] = useState(false)
+ const [successData, setSuccessData] = useState({
+ searchName: '',
+ isSubscription: false,
+ saved_search_id: null as string | null
+ })
 
-  // Results limit and pagination
-  const [resultsLimit, setResultsLimit] = useState(DEFAULT_LIMIT)
-  const [hasMoreResults, setHasMoreResults] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  // Drill-down states
-  const [showSetAsideDrilldown, setShowSetAsideDrilldown] = useState(false)
-  const [showStateDrilldown, setShowStateDrilldown] = useState(false)
-  const [showNaicsDrilldown, setShowNaicsDrilldown] = useState(false)
-  const [showAgencyDrilldown, setShowAgencyDrilldown] = useState(false)
+ // Results limit and pagination
+ const [resultsLimit, setResultsLimit] = useState(DEFAULT_LIMIT)
+ const [hasMoreResults, setHasMoreResults] = useState(false)
+ const [currentPage, setCurrentPage] = useState(1)
+ // Drill-down states
+ const [showSetAsideDrilldown, setShowSetAsideDrilldown] = useState(false)
+ const [showStateDrilldown, setShowStateDrilldown] = useState(false)
+ const [showNaicsDrilldown, setShowNaicsDrilldown] = useState(false)
+ const [showAgencyDrilldown, setShowAgencyDrilldown] = useState(false)
 
-  // Interactive breakdown states
-  const [expandedBreakdown, setExpandedBreakdown] = useState<'setAsides' | 'naics' | 'agencies' | 'states' | null>(null)
+ // Interactive breakdown states
+ const [expandedBreakdown, setExpandedBreakdown] = useState<'setAsides' | 'naics' | 'agencies' | 'states' | null>(null)
 
-  // Refs
-  const resultsRef = useRef<HTMLDivElement>(null)
-  const filtersRef = useRef<HTMLDivElement>(null)
-  const lastSearchParamsRef = useRef<string>('') // CRITICAL FIX: Track last search to prevent duplicates
+ // Refs
+ const resultsRef = useRef<HTMLDivElement>(null)
+ const filtersRef = useRef<HTMLDivElement>(null)
+ const lastSearchParamsRef = useRef<string>('') // CRITICAL FIX: Track last search to prevent duplicates
 
-  // Custom hooks
-  const { recentSearches, saveSearchToHistory, setRecentSearches } = useSearchHistory();
-  const { showToast, ToastUI } = useToast()
-  const [showStickyPrompt, setShowStickyPrompt] = useState(false)
-  const [stickyPromptDismissed, setStickyPromptDismissed] = useState(false)
-  const { saved, toggleSaved, setSaved } = useOpportunityManagement(showToast);
-  const { saveSearchState, restoreSearchState } = useSearchStatePersistence();
+ // Custom hooks
+ const { recentSearches, saveSearchToHistory, setRecentSearches } = useSearchHistory();
+ const { showToast, ToastUI } = useToast()
+ const [showStickyPrompt, setShowStickyPrompt] = useState(false)
+ const [stickyPromptDismissed, setStickyPromptDismissed] = useState(false)
+ const { saved, toggleSaved, setSaved } = useOpportunityManagement(showToast);
+ const { saveSearchState, restoreSearchState } = useSearchStatePersistence();
 
-  // Timer effect - updates search duration every second
-  useEffect(() => {
-    if (!loading || !searchStartTime) {
-      setSearchDuration(0)
-      return
-    }
+ // Timer effect - updates search duration every second
+ useEffect(() => {
+ if (!loading || !searchStartTime) {
+ setSearchDuration(0)
+ return
+ }
 
-    const interval = setInterval(() => {
-      const duration = Math.floor((Date.now() - searchStartTime.getTime()) / 1000)
-      setSearchDuration(duration)
-    }, 1000)
+ const interval = setInterval(() => {
+ const duration = Math.floor((Date.now() - searchStartTime.getTime()) / 1000)
+ setSearchDuration(duration)
+ }, 1000)
 
-    return () => clearInterval(interval)
-  }, [loading, searchStartTime])
+ return () => clearInterval(interval)
+ }, [loading, searchStartTime])
 
-  // Stop/Cancel search function with keyboard shortcut
-  const stopSearch = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort('Search stopped by user')
-      abortControllerRef.current = null
-    }
-    setLoading(false)
-    setLoadingMore(false)
-    setSearchStartTime(null)
-    setSearchDuration(0)
-    console.log('🛑 Search stopped by user')
-  }, [])
+ // Stop/Cancel search function with keyboard shortcut
+ const stopSearch = useCallback(() => {
+ if (abortControllerRef.current) {
+ abortControllerRef.current.abort('Search stopped by user')
+ abortControllerRef.current = null
+ }
+ setLoading(false)
+ setLoadingMore(false)
+ setSearchStartTime(null)
+ setSearchDuration(0)
+ console.log('🛑 Search stopped by user')
+ }, [])
 
-  // Add keyboard shortcut for stopping search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && loading) {
-        stopSearch();
-      }
-    };
+ // Add keyboard shortcut for stopping search
+ useEffect(() => {
+ const handleKeyDown = (e: KeyboardEvent) => {
+ if (e.key === 'Escape' && loading) {
+ stopSearch();
+ }
+ };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [loading, stopSearch]);
+ document.addEventListener('keydown', handleKeyDown);
+ return () => document.removeEventListener('keydown', handleKeyDown);
+ }, [loading, stopSearch]);
 
-  const scrollToResults = useCallback(() => {
-    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
+ const scrollToResults = useCallback(() => {
+ resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+ }, [])
 
-  // Load saved data from localStorage
-  useEffect(() => {
-    try {
-      const savedSearches = localStorage.getItem('govcon_recent_searches')
-      if (savedSearches) setRecentSearches(JSON.parse(savedSearches).slice(0, 5))
-      
-      const savedData = localStorage.getItem('govcon_saved_opportunities')
-      if (savedData) setSaved(JSON.parse(savedData))
+ // Load saved data from localStorage
+ useEffect(() => {
+ try {
+ const savedSearches = localStorage.getItem('govcon_recent_searches')
+ if (savedSearches) setRecentSearches(JSON.parse(savedSearches).slice(0, 5))
+ 
+ const savedData = localStorage.getItem('govcon_saved_opportunities')
+ if (savedData) setSaved(JSON.parse(savedData))
 
-      // Restore search state from sessionStorage
-      const restoredState = restoreSearchState();
-      if (restoredState) {
-        // Optionally restore state here
-      }
-    } catch (error) {
-      console.error('Failed to load data:', error)
-    }
-  }, [setRecentSearches, setSaved, restoreSearchState])
+ // Restore search state from sessionStorage
+ const restoredState = restoreSearchState();
+ if (restoredState) {
+ // Optionally restore state here
+ }
+ } catch (error) {
+ console.error('Failed to load data:', error)
+ }
+ }, [setRecentSearches, setSaved, restoreSearchState])
 
-  const searchParams = useSearchParams()
-  // Auto-load saved search if loadSavedSearch param is present
-  useEffect(() => {
-    const savedSearchId = searchParams?.get('loadSavedSearch');
-    const runImmediately = searchParams?.get('run') === '1';
-    
-    if (!savedSearchId) return;
-    
-    // Wait for subscription to load before running
-    if (planLoading) {
-      console.log('Waiting for subscription data before loading saved search...');
-      return;
-    }
+ const searchParams = useSearchParams()
+ // Auto-load saved search if loadSavedSearch param is present
+ useEffect(() => {
+ const savedSearchId = searchParams?.get('loadSavedSearch');
+ const runImmediately = searchParams?.get('run') === '1';
+ 
+ if (!savedSearchId) return;
+ 
+ // Wait for subscription to load before running
+ if (planLoading) {
+ console.log('Waiting for subscription data before loading saved search...');
+ return;
+ }
 
-    (async () => {
-      try {
-        console.log('Loading saved search:', savedSearchId);
-        const res = await fetch(`/api/saved-searches/${savedSearchId}`);
-        if (!res.ok) {
-          console.error('Failed to load saved search:', res.status);
-          return;
-        }
-        
-        const { search } = await res.json();
-        console.log('✅ Loaded saved search:', search);
-        console.log('🔍 Date fields in saved search:', {
-          posted_after: search.posted_after,
-          posted_before: search.posted_before,
-          rdl_from: search.rdl_from,
-          rdl_to: search.rdl_to,
-          postedAfter: search.posted_after,
-          postedBefore: search.posted_before,
-        });
+ (async () => {
+ try {
+ console.log('Loading saved search:', savedSearchId);
+ const res = await fetch(`/api/saved-searches/${savedSearchId}`);
+ if (!res.ok) {
+ console.error('Failed to load saved search:', res.status);
+ return;
+ }
+ 
+ const { search } = await res.json();
+ console.log('✅ Loaded saved search:', search);
+ console.log('🔍 Date fields in saved search:', {
+ posted_after: search.posted_after,
+ posted_before: search.posted_before,
+ rdl_from: search.rdl_from,
+ rdl_to: search.rdl_to,
+ postedAfter: search.posted_after,
+ postedBefore: search.posted_before,
+ });
 
-        // Helper to convert DateTime to date string (YYYY-MM-DD)
-        const toDateString = (dateTime: any): string => {
-          if (!dateTime) return '';
-          try {
-            // If it's already just a date string, return it
-            if (typeof dateTime === 'string' && !dateTime.includes('T')) {
-              return dateTime;
-            }
-            // Otherwise parse and extract date part
-            const date = new Date(dateTime);
-            return date.toISOString().split('T')[0];
-          } catch {
-            return '';
-          }
-        };
+ // Helper to convert DateTime to date string (YYYY-MM-DD)
+ const toDateString = (dateTime: any): string => {
+ if (!dateTime) return '';
+ try {
+ // If it's already just a date string, return it
+ if (typeof dateTime === 'string' && !dateTime.includes('T')) {
+ return dateTime;
+ }
+ // Otherwise parse and extract date part
+ const date = new Date(dateTime);
+ return date.toISOString().split('T')[0];
+ } catch {
+ return '';
+ }
+ };
 
-        // Map database field names to UI/API field names
-        const mappedParams = {
-          keywords: search.keywords || '',
-          naics: search.naics || '',
-          agency: search.agency || '',
-          setAside: search.setAside || '',  // Database uses set_aside
-          stateOfPerformance: search.stateOfPerformance || '',  // Database uses state_of_performance
-          procurementType: search.procurementType || '',  // Database uses procurement_type
-          postedAfter: toDateString(search.posted_after),  // Convert DateTime to date string
-          postedBefore: toDateString(search.posted_before),  // Convert DateTime to date string
-          is_active: search.is_active !== null && search.is_active !== undefined && search.is_active !== 'undefined' ? search.is_active : '',
-          solicitationNumber: search.solicitation_number || '',  // Database uses solicitation_number
-          classificationCode: search.classification_code || '',  // Database uses classification_code
-          responseDeadlineFrom: toDateString(search.rdl_from),  // Database uses rdl_from
-          responseDeadlineTo: toDateString(search.rdl_to),  // Database uses rdl_to
-          noticeId: search.noticeId || '',  // Database uses notice_id
-          opportunityStatus: search.opportunity_status || '',  // Database uses opportunity_status
-          placeOfPerformanceZip: search.place_of_performance_zip || '',  // Database uses place_of_performance_zip
-          organizationCode: search.organization_code || '',  // Database uses organization_code
-        };
+ // Map database field names to UI/API field names
+ const mappedParams = {
+ keywords: search.keywords || '',
+ naics: search.naics || '',
+ agency: search.agency || '',
+ setAside: search.setAside || '', // Database uses set_aside
+ stateOfPerformance: search.stateOfPerformance || '', // Database uses state_of_performance
+ procurementType: search.procurementType || '', // Database uses procurement_type
+ postedAfter: toDateString(search.posted_after), // Convert DateTime to date string
+ postedBefore: toDateString(search.posted_before), // Convert DateTime to date string
+ is_active: search.is_active !== null && search.is_active !== undefined && search.is_active !== 'undefined' ? search.is_active : '',
+ solicitationNumber: search.solicitation_number || '', // Database uses solicitation_number
+ classificationCode: search.classification_code || '', // Database uses classification_code
+ responseDeadlineFrom: toDateString(search.rdl_from), // Database uses rdl_from
+ responseDeadlineTo: toDateString(search.rdl_to), // Database uses rdl_to
+ noticeId: search.noticeId || '', // Database uses notice_id
+ opportunityStatus: search.opportunity_status || '', // Database uses opportunity_status
+ placeOfPerformanceZip: search.place_of_performance_zip || '', // Database uses place_of_performance_zip
+ organizationCode: search.organization_code || '', // Database uses organization_code
+ };
 
-        // Apply the filters to UI state for display
-        console.log('📝 Setting UI state from saved search...');
-        setKeywords(mappedParams.keywords);
-        setNaics(mappedParams.naics);
-        setAgency(mappedParams.agency);
-        setSelectedSetAsides(stringToSetAsideCodes(mappedParams.setAside));
-        setSelectedStates(stringToLocationCodes(mappedParams.stateOfPerformance));
-        setProcurementType(mappedParams.procurementType);
-        setPostedAfter(mappedParams.postedAfter);
-        setPostedBefore(mappedParams.postedBefore);
-        setIsActive(mappedParams.is_active);
-        setSolicitationNumber(mappedParams.solicitationNumber);
-        setClassificationCode(mappedParams.classificationCode);
-        // Note: Currently UI only supports single deadline field, using rdl_to
-        setResponseDeadline(mappedParams.responseDeadlineTo || mappedParams.responseDeadlineFrom);
-        setNoticeId(mappedParams.noticeId);
-        setOpportunityStatus(mappedParams.opportunityStatus);
-        setPlaceOfPerformanceZip(mappedParams.placeOfPerformanceZip);
-        setOrganizationCode(mappedParams.organizationCode);
-        
-        console.log('✅ UI state updated with mapped params:', mappedParams);
+ // Apply the filters to UI state for display
+ console.log('📝 Setting UI state from saved search...');
+ setKeywords(mappedParams.keywords);
+ setNaics(mappedParams.naics);
+ setAgency(mappedParams.agency);
+ setSelectedSetAsides(stringToSetAsideCodes(mappedParams.setAside));
+ setSelectedStates(stringToLocationCodes(mappedParams.stateOfPerformance));
+ setProcurementType(mappedParams.procurementType);
+ setPostedAfter(mappedParams.postedAfter);
+ setPostedBefore(mappedParams.postedBefore);
+ setIsActive(mappedParams.is_active);
+ setSolicitationNumber(mappedParams.solicitationNumber);
+ setClassificationCode(mappedParams.classificationCode);
+ // Note: Currently UI only supports single deadline field, using rdl_to
+ setResponseDeadline(mappedParams.responseDeadlineTo || mappedParams.responseDeadlineFrom);
+ setNoticeId(mappedParams.noticeId);
+ setOpportunityStatus(mappedParams.opportunityStatus);
+ setPlaceOfPerformanceZip(mappedParams.placeOfPerformanceZip);
+ setOrganizationCode(mappedParams.organizationCode);
+ 
+ console.log('✅ UI state updated with mapped params:', mappedParams);
 
-        // CRITICAL FIX: If run=1, execute search IMMEDIATELY with mapped parameters
-        // No timeout needed since we're passing params directly, not relying on state
-        if (runImmediately) {
-          console.log('🚀 Auto-running search with loaded parameters...');
-          console.log('📋 Mapped parameters:', mappedParams);
-          
-          // Execute immediately - no timeout needed since we pass params directly
-          executeSearchWithParams(mappedParams);
-        }
-      } catch (e) {
-        console.error('Failed to auto-load saved search:', e);
-      }
-    })();
-  }, [searchParams, planLoading]);
-  
-  // Handle URL action parameters from Alerts page
-  useEffect(() => {
-    const action = searchParams?.get('action')
-    
-    if (action === 'create-saved-search') {
-      // Open saved search modal
-      setTimeout(() => setShowSaveModal(true), 300)
-    } else if (action === 'create-alert') {
-      // Open alert modal  
-      setTimeout(() => setShowAlertBuilder(true), 300)
-    }
-  }, [searchParams])
+ // CRITICAL FIX: If run=1, execute search IMMEDIATELY with mapped parameters
+ // No timeout needed since we're passing params directly, not relying on state
+ if (runImmediately) {
+ console.log('🚀 Auto-running search with loaded parameters...');
+ console.log('📋 Mapped parameters:', mappedParams);
+ 
+ // Execute immediately - no timeout needed since we pass params directly
+ executeSearchWithParams(mappedParams);
+ }
+ } catch (e) {
+ console.error('Failed to auto-load saved search:', e);
+ }
+ })();
+ }, [searchParams, planLoading]);
+ 
+ // Handle URL action parameters from Alerts page
+ useEffect(() => {
+ const action = searchParams?.get('action')
+ 
+ if (action === 'create-saved-search') {
+ // Open saved search modal
+ setTimeout(() => setShowSaveModal(true), 300)
+ } else if (action === 'create-alert') {
+ // Open alert modal 
+ setTimeout(() => setShowAlertBuilder(true), 300)
+ }
+ }, [searchParams])
 
-  useEffect(() => {
-    try {
-      const from = searchParams?.get('from')
-      if (from !== 'cta') return
-      // ✅ CRITICAL FIX: Don't show modal if user has valid access OR is in browsing window
-      if (hasValidAccess || canBrowse) return
+ useEffect(() => {
+ try {
+ const from = searchParams?.get('from')
+ if (from !== 'cta') return
+ // ✅ CRITICAL FIX: Don't show modal if user has valid access OR is in browsing window
+ if (hasValidAccess || canBrowse) return
 
-      const shown = sessionStorage.getItem('govcon_gate_shown')
-      if (shown) return
-      sessionStorage.setItem('govcon_gate_shown', 'true')
+ const shown = sessionStorage.getItem('govcon_gate_shown')
+ if (shown) return
+ sessionStorage.setItem('govcon_gate_shown', 'true')
 
-      setBlockedFeature('Advanced Federal Bid Search')
-      pendingActionRef.current = () => { void runSearch(false) }
-      setTimeout(() => setShowAccessModal(true), 350)
-    } catch {
-      // ignore
-    }
-  }, [searchParams, hasValidAccess, canBrowse])
+ setBlockedFeature('Advanced Federal Bid Search')
+ pendingActionRef.current = () => { void runSearch(false) }
+ setTimeout(() => setShowAccessModal(true), 350)
+ } catch {
+ // ignore
+ }
+ }, [searchParams, hasValidAccess, canBrowse])
 
 
 // Save current search state
 useEffect(() => {
-  const searchState = {
-    keywords, naics, agency, selectedSetAsides, selectedStates,  // ✅ FIXED
-    postedAfter, postedBefore, procurementType, isActive,
-    solicitationNumber, classificationCode, responseDeadline,
-    noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode
-  };
-  saveSearchState(searchState);
+ const searchState = {
+ keywords, naics, agency, selectedSetAsides, selectedStates, // ✅ FIXED
+ postedAfter, postedBefore, procurementType, isActive,
+ solicitationNumber, classificationCode, responseDeadline,
+ noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode
+ };
+ saveSearchState(searchState);
 }, [
-  keywords, naics, agency, selectedSetAsides, selectedStates,  // ✅ FIXED
-  postedAfter, postedBefore, procurementType, isActive,
-  solicitationNumber, classificationCode, responseDeadline,
-  noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode,
-  saveSearchState
+ keywords, naics, agency, selectedSetAsides, selectedStates, // ✅ FIXED
+ postedAfter, postedBefore, procurementType, isActive,
+ solicitationNumber, classificationCode, responseDeadline,
+ noticeId, opportunityStatus, placeOfPerformanceZip, organizationCode,
+ saveSearchState
 ]);
-  // Check if user has access - Robust version
-  /**
-   * Gate a premium action - if user doesn't have access, show modal
-   * @param featureName - The name of the feature being accessed (shown in modal)
-   * @returns true if user has access, false if gated (modal shown)
-   */
-
-  const requireAccess = useCallback((featureName: string): boolean => {
-    // ── SEARCH: always allowed during loading OR while canBrowse ──────────
-    // Never block search itself — the API will reject if truly unauthorised.
-    // Showing the modal BEFORE the search would break the free-browse window.
-    if (featureName.toLowerCase().includes('search')) {
-      return true
-    }
-
-    // ── PREMIUM FEATURES: save / alert / export / download ────────────────
-    // These require a real authenticated account even within the browse window.
-    if (planLoading || status === 'loading') {
-      // Still resolving auth — silently defer, don't show modal yet
-      return false
-    }
-
-    if (status === 'unauthenticated') {
-      setBlockedFeature(featureName)
-      setShowAccessModal(true)
-      return false
-    }
-
-    // Authenticated but no active subscription
-    if (!hasValidAccess) {
-      setBlockedFeature(featureName)
-      setShowAccessModal(true)
-      return false
-    }
-
-    return true
-  }, [hasValidAccess, canBrowse, planLoading, status])
-
-  // ✅ Then define handleOpenSaveModal (line 1898)
-  const handleOpenSaveModal = useCallback((mode: 'save' | 'alert') => {
-    if (!requireAccess(mode === 'save' ? 'Save Searches' : 'Email Alerts for New Opportunities')) {
-      return
-    }
-    setSaveModalMode(mode)
-    setShowSaveModal(true)
-  }, [requireAccess])
-
-  // ✅ Handle successful save
-  const handleSaveSuccess = useCallback(async (payload: any) => {
-    try {
-      console.log('💾 Saving search with payload:', payload)
-      
-      const endpoint = payload.subscription_enabled 
-        ? '/api/saved-searches/with-subscription' 
-        : '/api/saved-searches'
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) {
-        // 401 means unauthenticated — prompt sign-in instead of showing a generic error
-        if (response.status === 401) {
-          setShowSaveModal(false)
-          setShowAccessModal(true)
-          setBlockedFeature('Save Searches')
-          return
-        }
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save search')
-      }
-
-      const result = await response.json()
-      console.log('✅ Save successful:', result)
-      
-      setShowSaveModal(false)
-      setSuccessData({
-        searchName: result.search?.name || payload.name,
-        isSubscription: Boolean(payload.subscription_enabled),
-        saved_search_id: result.search?.id || null
-      })
-      setShowSuccessModal(true)
-      router.refresh()
-    } catch (error: any) {
-      console.error('❌ Failed to save:', error)
-      throw error
-    }
-  }, [router])
-
-
-
-
-
-  const handleCreateAlert = () => {
-    if (status === 'loading') return
-    if (!requireAccess('Email Alerts for New Opportunities')) return
-    setShowAlertBuilder(true)
-  }
-  
-  // Dashboard should be accessible to everyone
-  const handleViewDashboard = () => {
-    router.push('/dashboard')
-  }
-
-  // Helper: Convert YYYY-MM-DD to MM/dd/yyyy for SAM.gov API
-  function formatDateForAPI(isoDate: string): string {
-    if (!isoDate) return ''
-    const date = new Date(isoDate)
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const year = date.getFullYear()
-    return `${month}/${day}/${year}` // MM/dd/yyyy format required by SAM.gov
-  }
-
-  // Data validation function
-  const validateSearchParams = useCallback((params: any) => {
-    const errors: string[] = [];
-    
-    if (params.postedAfter && params.postedBefore) {
-      const start = new Date(params.postedAfter);
-      const end = new Date(params.postedBefore);
-      if (start > end) {
-        errors.push('Start date must be before end date');
-      }
-    }
-    
-    if (params.naics && !/^\d{2,6}$/.test(params.naics)) {
-      errors.push('NAICS code must be 2-6 digits');
-    }
-    
-    if (params.placeOfPerformanceZip && !/^\d{5}(-\d{4})?$/.test(params.placeOfPerformanceZip)) {
-      errors.push('ZIP code must be 5 digits or 5+4 format');
-    }
-    
-    return errors;
-  }, []);
-
-  /**
-   * Execute search with explicit parameters (used for saved searches)
-   * This bypasses state variables to avoid race conditions
-   */
-  const executeSearchWithParams = async (params: any) => {
-    console.log('executeSearchWithParams called with:', params);
-    
-    // Validate parameters
-    const validationErrors = validateSearchParams(params);
-    if (validationErrors.length > 0) {
-      setError(validationErrors.join('. '));
-      return;
-    }
-
-    // CRITICAL: Check if user can browse
-    // TODO: Reinstate this blocking mechanism after search testing
-    // if (!canBrowse) {
-    //   console.log('Search blocked: canBrowse is false');
-    //   setShowLockoutModal(true);
-    //   return;
-    // }
-
-    // Gate the search action
-    if (!requireAccess('Search Federal Opportunities')) {
-      console.log('Search blocked: requireAccess failed');
-      return;
-    }
-
-    console.log('All checks passed, executing search with saved params...');
-
-    // Cancel any pending requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort('New search started');
-    }
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    setLoading(true);
-    setSearchStartTime(new Date());
-    setResultsLimit(DEFAULT_LIMIT);
-    setCurrentPage(1);
-    setError(null);
-
-    try {
-      const qs = new URLSearchParams();
-
-      // Build query from explicit params instead of state variables
-      if (params.solicitationNumber?.trim()) {
-        qs.set('solnum', params.solicitationNumber.trim());
-      }
-      if (params.noticeId?.trim()) {
-        qs.set('noticeid', params.noticeId.trim());
-      }
-      if (params.keywords?.trim()) {
-        qs.set('title', params.keywords.trim());
-      }
-      if (params.naics?.trim()) {
-        qs.set('ncode', clamp(params.naics.trim(), 6));
-      }
-      if (params.classificationCode?.trim()) {
-        qs.set('ccode', params.classificationCode.trim());
-      }
-      if (params.agency?.trim()) {
-        qs.set('organizationName', clamp(params.agency.trim(), 120));
-      }
-      if (params.organizationCode?.trim()) {
-        qs.set('organizationCode', params.organizationCode.trim());
-      }
-      if (params.setAside && params.setAside.trim() !== '') {
-        qs.set('typeOfSetAside', params.setAside.trim());
-      }
-      if (params.procurementType?.trim()) {
-        qs.set('ptype', params.procurementType.trim());
-      }
-      if (params.stateOfPerformance?.trim() && params.stateOfPerformance !== '') {
-        qs.set('state', params.stateOfPerformance.trim());
-      }
-      if (params.placeOfPerformanceZip?.trim()) {
-        qs.set('zip', params.placeOfPerformanceZip.trim());
-      }
-      if (params.opportunityStatus?.trim()) {
-        qs.set('status', params.opportunityStatus.trim());
-      }
-      if (params.is_active && params.is_active !== '' && params.is_active !== 'undefined') {
-        qs.set('isActive', params.is_active);
-      }
-      if (params.postedAfter?.trim()) {
-        qs.set('postedFrom', formatDateForAPI(params.postedAfter.trim()));
-      }
-      if (params.postedBefore?.trim()) {
-        qs.set('postedTo', formatDateForAPI(params.postedBefore.trim()));
-      }
-      // Handle response deadline range
-      if (params.responseDeadlineFrom?.trim()) {
-        qs.set('responseDeadlineFrom', formatDateForAPI(params.responseDeadlineFrom.trim()));
-      }
-      if (params.responseDeadlineTo?.trim()) {
-        qs.set('responseDeadlineTo', formatDateForAPI(params.responseDeadlineTo.trim()));
-      }
-      // Fallback for single deadline field (backward compatibility)
-      if (params.responseDeadline?.trim() && !params.responseDeadlineFrom && !params.responseDeadlineTo) {
-        qs.set('responseDeadline', formatDateForAPI(params.responseDeadline.trim()));
-      }
-
-      qs.set('limit', '1000');
-      qs.set('offset', '0');
-
-      console.log('Calling API with saved search parameters:', qsToObj(qs));
-
-      const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(canBrowse && !isAuthenticated ? { 'x-browsing-session': 'true' } : {}),
-        },
-        signal: abortController.signal,
-      }, 3, 2000); // 3 retries, 2 second initial delay
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('API request failed:', { status: res.status, errorText });
-        
-        // Handle payment-required status
-        if (res.status === 402) {
-          if (!canBrowse && !hasValidAccess) {
-            setBlockedFeature('Search Federal Opportunities');
-            setShowAccessModal(true);
-            setError('Your trial has ended. Please upgrade to continue searching.');
-            setLoading(false);
-            return; // Don't throw - just return early
-          }
-        }
-
-        // Build user-friendly error message
-        let userMessage = 'Search failed. Please try again.';
-        if (res.status === 400) {
-          userMessage = 'Invalid search parameters. Please check your filters and try again.';
-        } else if (res.status === 401 || res.status === 403) {
-          userMessage = 'You need to sign in to search. Please log in and try again.';
-        } else if (res.status === 404) {
-          userMessage = 'Search service not found. Please refresh the page and try again.';
-        } else if (res.status === 429) {
-          userMessage = 'Too many searches. Please wait a moment and try again.';
-        } else if (res.status === 500) {
-          userMessage = 'SAM.gov service is temporarily unavailable. Please try again in a few moments.';
-        } else if (res.status === 502 || res.status === 503 || res.status === 504) {
-          userMessage = 'Connection to SAM.gov failed. The service may be down. Please try again later.';
-        }
-        
-        // Set error state instead of throwing
-        setError(userMessage);
-        setData(null);
-        setLoading(false);
-        return; // Exit early instead of throwing
-      }
-
-      const json = await res.json();
-      const payload = json as ApiResponse;
-      const opps = payload.opportunitiesData || [];
-
-      const total = payload.totalCount || 0;
-      const loaded = (opps?.length ?? 0);
-      const currentTotalLoaded = loaded;
-      
-      setHasMoreResults(currentTotalLoaded < total);
-      setData(payload);
-      setActiveFilter(null);
-      
-      saveSearchToHistory(qs.toString());
-
-      // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
-      writeSearchContext(opps || [], qsToObj(qs))
-      if (!stickyPromptDismissed) setShowStickyPrompt(true)
-      
-      console.log('API Search successful:', {
-        results: (opps?.length ?? 0),
-        totalRecords: total,
-        hasMoreResults: currentTotalLoaded < total,
-      });
-
-    } catch (e: any) {
-      if (e.name === 'AbortError' || abortController.signal.aborted) {
-        console.log('Request aborted');
-        return;
-      }
-      
-      console.error('Search error:', e);
-      setError(e?.message || 'Search failed. Please try again.');
-      setData(null);
-    } finally {
-      if (!abortController.signal.aborted) {
-        setLoading(false);
-        setSearchStartTime(null);
-        setSearchDuration(0);
-      }
-    }
-  };
-
-  // ✅ NEW: Run Quick Search - Auto-populate advanced fields  
-  const runQuickSearch = useCallback(() => {
-    // Auto-populate advanced search fields from quick search
-    setKeywords(quickKeyword)
-    setPostedAfter(quickPostedDate)
-    setResponseDeadline(quickDeadlineDate)
-    
-    // Also populate advanced search fields so they're in sync
-    setAdvKeywords(quickKeyword)
-    setAdvPostedAfter(quickPostedDate)
-    setAdvResponseDeadline(quickDeadlineDate)
-    
-    // Trigger the actual search
-    runSearch(false)
-  }, [quickKeyword, quickPostedDate, quickDeadlineDate])
-
-  // ✅ NEW: Stop Quick Search
-  const stopQuickSearch = useCallback(() => {
-    setLoading(false)
-    setLoadingMore(false)
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort('Search stopped by user')
-      abortControllerRef.current = null
-    }
-  }, [])
-
-  const runSearch = async (isLoadMore = false) => {
-    // ── Prevent duplicate simultaneous searches ───────────────────────────
-    if (!isLoadMore && loading) return
-    if (isLoadMore && loadingMore) return
-
-    // ── Hard lockout: trial window expired ───────────────────────────────
-    if (showLockoutModal && !hasValidAccess) {
-      return
-    }
-    
-    
-    // PERFORMANCE FIX: Cancel any pending requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort('New search started')
-    }
-
-    // PERFORMANCE FIX: Create new AbortController for this request
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
-
-    if (isLoadMore) {
-      setLoadingMore(true)
-    } else {
-      setLoading(true)
-      setSearchStartTime(new Date()) // Start timer
-      setResultsLimit(DEFAULT_LIMIT)
-      setCurrentPage(1)
-    }
-    
-    setError(null)
-
-    try {
-      const qs = new URLSearchParams()
-      
-      // ===== DIRECT LOOKUPS (Priority - Skip other filters if provided) =====
-      if (solicitationNumber.trim()) {
-        qs.set('solnum', solicitationNumber.trim())
-      }
-      if (noticeId.trim()) {
-        qs.set('noticeid', noticeId.trim())
-      }
-      
-      // ===== TEXT SEARCH =====
-      // PERFORMANCE FIX: Use debounced keywords
-      if (debouncedKeywords.trim()) {
-        const kw = debouncedKeywords.trim()
-        const isNaicsLike = /^\d{2,6}$/.test(kw)
-        if (isNaicsLike && !naics.trim()) { qs.set('ncode', kw) }
-        else if (!isNaicsLike) { qs.set('title', kw) }
-      }
-      
-      // ===== CLASSIFICATION CODES =====
-      // NAICS Code
-      if (naics.trim()) {
-        qs.set('ncode', clamp(naics.trim(), 6))
-      }
-      // PSC Code (NEW - CRITICAL)
-      if (classificationCode.trim()) {
-        qs.set('ccode', classificationCode.trim())
-      }
-      
-      // ===== ORGANIZATION =====
-      // Agency/Department
-      if (agency.trim()) {
-        qs.set('organizationName', clamp(agency.trim(), 120))
-      }
-      // Organization Code (NEW)
-      if (organizationCode.trim()) {
-        qs.set('organizationCode', organizationCode.trim())
-      }
-      
-      // SET-ASIDE TYPE - convert array to comma-separated string for API
-      const setAsideString = setAsideCodesToString(selectedSetAsides)
-      if (setAsideString) {
-        qs.set('typeOfSetAside', setAsideString)
-      }
-
-      // Procurement Type (ptype)
-      if (procurementType.trim()) {
-        qs.set('ptype', procurementType.trim())
-      }
-      
-      // STATE — skip if ncode is set (SAM.gov returns 0 when both sent together)
-      const stateString = locationCodesToString(selectedStates)
-      if (stateString && !qs.has('ncode')) { qs.set('state', stateString) }
-      // ZIP Code (NEW)
-      if (placeOfPerformanceZip.trim()) {
-        qs.set('zip', placeOfPerformanceZip.trim())
-      }
-      
-      // ===== STATUS =====
-      // Full status filter (NEW)
-      if (opportunityStatus.trim()) {
-        qs.set('status', opportunityStatus.trim())
-      }
-      // Active / Inactive status (existing)
-      if (isActive && isActive !== '' && isActive !== 'undefined') {
-        qs.set('isActive', isActive)
-      }
-
-      // ===== POSTED DATE RANGE =====
-      // Only apply postedFrom if user has chosen a specific date (not the auto-default of today)
-      if (postedAfter.trim()) {
-        qs.set('postedFrom', formatDateForAPI(postedAfter.trim()))
-      }
-      // postedTo (upper bound on posted date) — only if explicitly set by user
-      if (postedBefore.trim()) {
-        qs.set('postedTo', formatDateForAPI(postedBefore.trim()))
-      }
-      // NOTE: Do NOT add postedTo=today automatically — it restricts to 1 day and filters too aggressively
-      
-      // ===== RESPONSE DEADLINE (DEADLINE BY - LESS THAN OR EQUAL TO) =====
-      // Use responseDeadlineBefore (the UI date picker) as rdlto upper bound.
-      // Fall back to legacy responseDeadline for saved-search compatibility.
-      const deadlineUpperBound = responseDeadlineBefore.trim() || responseDeadline.trim()
-      if (deadlineUpperBound) {
-        qs.set('rdlto', formatDateForAPI(deadlineUpperBound))
-      }
-      // Only send rdlfrom if user explicitly set it (avoids conflicting with route.ts default)
-      if (responseDeadlineAfter.trim()) {
-        qs.set('rdlfrom', formatDateForAPI(responseDeadlineAfter.trim()))
-      }
-      
-      // ===== PAGINATION =====
-      qs.set('limit', '1000')  // SAM.gov max per request is 1000
-      qs.set('offset', String((currentPage - 1) * DEFAULT_LIMIT))
-
-      // CRITICAL FIX: Prevent duplicate identical searches
-      const searchParamsString = qs.toString()
-      if (!isLoadMore && searchParamsString === lastSearchParamsRef.current) {
-        console.log('⚠️ Duplicate search prevented - params unchanged')
-        setLoading(false)
-        setSearchStartTime(null)
-        setSearchDuration(0)
-        return
-      }
-      lastSearchParamsRef.current = searchParamsString
-
-      console.log('Calling API with corrected SAM.gov parameters:', qsToObj(qs))
-
-      // PERFORMANCE FIX: Pass signal to fetch for cancellation + RELIABILITY FIX: Retry on failures
-      const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, { 
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(canBrowse && !isAuthenticated ? { 'x-browsing-session': 'true' } : {}),
-        },
-        signal: abortController.signal
-      }, 3, 2000) // 3 retries, 2 second initial delay
-      
-      if (!res.ok) {
-        const errorText = await res.text()
-        if (errorText && errorText.trim() !== '' && errorText.trim() !== '{}') {
-          console.error('API request failed:', { status: res.status, errorText })
-        }
-        
-        // Handle payment required (trial ended)
-        // ✅ CRITICAL FIX: Only show modal if user is NOT in free browsing window
-        if (res.status === 402) {
-          if (!canBrowse && !hasValidAccess) {
-            setBlockedFeature('Search Federal Opportunities')
-            setShowAccessModal(true)
-            setError('Your trial has ended. Please upgrade to continue searching.')
-            if (isLoadMore) {
-              setLoadingMore(false)
-            } else {
-              setLoading(false)
-            }
-            return // Don't throw - just return early
-          }
-        }
-        
-        // ===== USER-FRIENDLY ERROR MESSAGES =====
-        let userMessage = 'Search failed. Please try again.'
-        
-        if (res.status === 400) {
-          userMessage = 'Invalid search parameters. Please check your filters and try again.'
-        } else if (res.status === 401 || res.status === 403) {
-          // Guests within their 20-minute window: just show a friendly message, no modal
-          // Only show modal if the 20-minute lockout has actually triggered
-          if (showLockoutModal && !hasValidAccess) {
-            setBlockedFeature('Search Federal Opportunities')
-            setShowAccessModal(true)
-            if (isLoadMore) setLoadingMore(false); else setLoading(false)
-            return
-          }
-          userMessage = 'Search session expired. Please refresh and try again.'
-        } else if (res.status === 404) {
-          userMessage = 'Search service not found. Please refresh the page and try again.'
-        } else if (res.status === 429) {
-          userMessage = 'Too many searches. Please wait a moment and try again.'
-        } else if (res.status === 500) {
-          userMessage = 'SAM.gov service is temporarily unavailable. Please try again in a few moments.'
-        } else if (res.status === 502 || res.status === 503 || res.status === 504) {
-          userMessage = 'Connection to SAM.gov failed. The service may be down. Please try again later.'
-        }
-        
-        // Set error state instead of throwing
-        setError(userMessage)
-        setData(null)
-        if (isLoadMore) {
-          setLoadingMore(false)
-        } else {
-          setLoading(false)
-        }
-        return // Exit early instead of throwing
-      }
-      
-      let json = await res.json()
-
-      const payload: ApiResponse = json
-      const opps = payload.opportunitiesData
-
-      
-      // Check if there are more results available
-      const total = payload.totalCount || 0
-      const loaded = (opps?.length ?? 0)
-      const currentTotalLoaded = isLoadMore 
-        ? (data?.opportunitiesData?.length || 0) + loaded
-        : loaded
-      setHasMoreResults(currentTotalLoaded < total)
-      
-      if (isLoadMore) {
-        setData(prev => ({
-          ...prev,
-          totalRecords: total,
-          opportunitiesData: [...(prev?.opportunitiesData || []), ...(opps ?? [])]
-        }))
-        setCurrentPage(prev => prev + 1)
-      } else {
-        setData(payload)
-        setActiveFilter(null) // reset subset view on fresh search
-        // Save search to history
-        saveSearchToHistory(qs.toString())
-        writeSearchContext(opps || [], qsToObj(qs))
-        if (!stickyPromptDismissed) setShowStickyPrompt(true)
-        // NOTE: Do NOT show access modal here — guests are allowed to see results
-        // The 20-minute timer handles the browse window limit separately
-      }
-
-      console.log('API Search successful', { 
-        results: (opps?.length ?? 0), 
-        totalRecords: total,
-        hasMoreResults: currentTotalLoaded < total,
-        procurementType: procurementType,
-        setAsideFilter: setAsideCodesToString(selectedSetAsides),
-        isLoadMore 
-      })
-      
-    } catch (e: any) {
-      // PERFORMANCE FIX: Don't show errors for aborted requests
-      if (e.name === 'AbortError' || abortController.signal.aborted) {
-        console.log('Request aborted')
-        return
-      }
-      
-      console.error('Search error:', e)
-      setError(e?.message || 'Search failed. Please try again.')
-      if (!isLoadMore) {
-        setData(null)
-      }
-    } finally {
-      // PERFORMANCE FIX: Only update loading state if request wasn't aborted
-      if (!abortController.signal.aborted) {
-        if (isLoadMore) {
-          setLoadingMore(false)
-        } else {
-          setLoading(false)
-          setSearchStartTime(null)
-          setSearchDuration(0)
-        }
-      }
-    }
-  }
-
-  // Load more results
-  const loadMoreResults = () => {
-    runSearch(true)
-  }
-
-  // Reset all filters
-  const resetAll = () => {
-    // ── Quick Date Lookup card fields ──
-    setQuickKeyword('')
-    setQuickPostedDate(getSixMonthsAgo())
-    setQuickDeadlineDate(getToday())
-
-    // ── Shared state (synced from Quick Search) ──
-    setKeywords('')
-    setPostedAfter(getSixMonthsAgo())
-    setResponseDeadlineBefore(getToday())
-    setResponseDeadline(getToday())
-
-    // ── Advanced filter state ──
-    setAdvKeywords('')
-    setAdvPostedAfter(getSixMonthsAgo())
-    setAdvResponseDeadline(getToday())
-    setAdvancedApplied(false)
-
-    // ── All other filters ──
-    setNaics('')
-    setAgency('')
-    setSelectedSetAsides([])
-    setSelectedStates([])
-    setPostedBefore('')
-    setProcurementType('')
-    setIsActive('')
-    setSolicitationNumber('')
-    setClassificationCode('')
-    setResponseDeadlineAfter('')
-    setNoticeId('')
-    setOpportunityStatus('')
-    setPlaceOfPerformanceZip('')
-    setOrganizationCode('')
-
-    // ── UI state ──
-    setError(null)
-    setData(null)
-    setResultsLimit(DEFAULT_LIMIT)
-    setCurrentPage(1)
-    setSortBy('deadline-asc')
-    setSortOrder('asc')
-    setActiveFilter(null)
-    setShowSetAsideDrilldown(false)
-    setShowStateDrilldown(false)
-    setShowNaicsDrilldown(false)
-    setShowAgencyDrilldown(false)
-  }
-
-  // Filter functions
-  const filterBySetAside = (setAsideCode: string) => {
-    setSelectedSetAsides(setAsideCode ? [setAsideCode] : [])
-    setShowSetAsideDrilldown(false)
-  }
-
-  const filterByState = (state: string) => {
-    setSelectedStates(state ? [state] : [])
-    setShowStateDrilldown(false)
-  }
-
-  const filterByNaics = (naicsCode: string) => {
-    setNaics(naicsCode)
-    setShowNaicsDrilldown(false)
-  }
-
-  const filterByAgency = (agencyName: string) => {
-    setAgency(agencyName)
-    setShowAgencyDrilldown(false)
-  }
-
-  // Click-to-filter handlers for breakdown cards
-  const handleBreakdownFilter = useCallback((type: 'setAside' | 'naics' | 'agency' | 'state', value: string) => {
-    // Convert set-aside label to code if needed
-    let filterValue = value
-    if (type === 'setAside') {
-      filterValue = SET_ASIDE_CODE_BY_LABEL[value] || value
-    }
-
-    // Set the filter
-    switch (type) {
-      case 'setAside':
-        setSelectedSetAsides(filterValue ? [filterValue] : [])
-        break
-      case 'naics':
-        setNaics(filterValue)
-        break
-      case 'agency':
-        setAgency(filterValue)
-        break
-      case 'state':
-        setSelectedStates(filterValue ? [filterValue] : [])
-        break
-    }
-
-    // Collapse the breakdown
-    setExpandedBreakdown(null)
-  }, [])
-
-  // Clear specific filters - NO AUTO-REFRESH
-  const clearAllClientFilters = () => {
-    setAgency('')
-    setSelectedSetAsides([])
-    setNaics('')
-    setSelectedStates([])
-  }
-
-  // Update search when filter is removed (user must click search button)
-  const handleFilterRemoveAndSearch = (filterType: string) => {
-    switch (filterType) {
-      case 'agency':
-        setAgency('')
-        break
-      case 'setAside':
-        setSelectedSetAsides([])
-        break
-      case 'naics':
-        setNaics('')
-        break
-      case 'state':
-        setSelectedStates([])
-        break
-    }
-    
-    // User needs to click search button to see updated results
-    // This gives them control over when the search happens
-  }
-
-  // Export functions
-  const exportCsv = () => {
-    if (!filteredResults.length) return
-    
-    // Gate the export action
-    if (!requireAccess('Export to CSV')) return
-    
-    const headers = ['Title', 'Solicitation Number', 'Agency', 'Posted Date', 'Deadline', 'Set-Aside', 'NAICS', 'Location']
-    const rows = filteredResults.map(opp => [
-      opp.title || '',
-      opp.solicitationNumber || '',
-      opp.department || '',
-      opp.postedDate || '',
-      opp.responseDeadLine || '',
-      opp.setAside || '',
-      opp.naicsCode || '',
-      `${opp.placeOfPerformance?.city?.name || ''}, ${opp.placeOfPerformance?.state?.code || ''}`.replace(/^, |, $/g, '')
-    ])
-    
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
-
-  const exportJson = () => {
-    if (!filteredResults.length) return
-    
-    // Gate the export action
-    if (!requireAccess('Export to JSON')) return
-    
-    const dataStr = JSON.stringify(filteredResults, null, 2)
-    const blob = new Blob([dataStr], { type: 'application/json' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
-
-  const exportTxt = () => {
-    if (!filteredResults.length) return
-    if (!requireAccess('Export to TXT')) return
-    
-    const txtContent = filteredResults.map((opp, idx) => {
-      return `
+ // Check if user has access - Robust version
+ /**
+ * Gate a premium action - if user doesn't have access, show modal
+ * @param featureName - The name of the feature being accessed (shown in modal)
+ * @returns true if user has access, false if gated (modal shown)
+ */
+
+ const requireAccess = useCallback((featureName: string): boolean => {
+ // ── SEARCH: always allowed during loading OR while canBrowse ──────────
+ // Never block search itself — the API will reject if truly unauthorised.
+ // Showing the modal BEFORE the search would break the free-browse window.
+ if (featureName.toLowerCase().includes('search')) {
+ return true
+ }
+
+ // ── PREMIUM FEATURES: save / alert / export / download ────────────────
+ // These require a real authenticated account even within the browse window.
+ if (planLoading || status === 'loading') {
+ // Still resolving auth — silently defer, don't show modal yet
+ return false
+ }
+
+ if (status === 'unauthenticated') {
+ setBlockedFeature(featureName)
+ setShowAccessModal(true)
+ return false
+ }
+
+ // Authenticated but no active subscription
+ if (!hasValidAccess) {
+ setBlockedFeature(featureName)
+ setShowAccessModal(true)
+ return false
+ }
+
+ return true
+ }, [hasValidAccess, canBrowse, planLoading, status])
+
+ // ✅ Then define handleOpenSaveModal (line 1898)
+ const handleOpenSaveModal = useCallback((mode: 'save' | 'alert') => {
+ if (!requireAccess(mode === 'save' ? 'Save Searches' : 'Email Alerts for New Opportunities')) {
+ return
+ }
+ setSaveModalMode(mode)
+ setShowSaveModal(true)
+ }, [requireAccess])
+
+ // ✅ Handle successful save
+ const handleSaveSuccess = useCallback(async (payload: any) => {
+ try {
+ console.log('💾 Saving search with payload:', payload)
+ 
+ const endpoint = payload.subscription_enabled 
+ ? '/api/saved-searches/with-subscription' 
+ : '/api/saved-searches'
+ 
+ const response = await fetch(endpoint, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload),
+ })
+
+ if (!response.ok) {
+ // 401 means unauthenticated — prompt sign-in instead of showing a generic error
+ if (response.status === 401) {
+ setShowSaveModal(false)
+ setShowAccessModal(true)
+ setBlockedFeature('Save Searches')
+ return
+ }
+ const errorData = await response.json()
+ throw new Error(errorData.error || 'Failed to save search')
+ }
+
+ const result = await response.json()
+ console.log('✅ Save successful:', result)
+ 
+ setShowSaveModal(false)
+ setSuccessData({
+ searchName: result.search?.name || payload.name,
+ isSubscription: Boolean(payload.subscription_enabled),
+ saved_search_id: result.search?.id || null
+ })
+ setShowSuccessModal(true)
+ router.refresh()
+ } catch (error: any) {
+ console.error('❌ Failed to save:', error)
+ throw error
+ }
+ }, [router])
+
+
+
+
+
+ const handleCreateAlert = () => {
+ if (status === 'loading') return
+ if (!requireAccess('Email Alerts for New Opportunities')) return
+ setShowAlertBuilder(true)
+ }
+ 
+ // Dashboard should be accessible to everyone
+ const handleViewDashboard = () => {
+ router.push('/dashboard')
+ }
+
+ // Helper: Convert YYYY-MM-DD to MM/dd/yyyy for SAM.gov API
+ function formatDateForAPI(isoDate: string): string {
+ if (!isoDate) return ''
+ const date = new Date(isoDate)
+ const month = String(date.getMonth() + 1).padStart(2, '0')
+ const day = String(date.getDate()).padStart(2, '0')
+ const year = date.getFullYear()
+ return `${month}/${day}/${year}` // MM/dd/yyyy format required by SAM.gov
+ }
+
+ // Data validation function
+ const validateSearchParams = useCallback((params: any) => {
+ const errors: string[] = [];
+ 
+ if (params.postedAfter && params.postedBefore) {
+ const start = new Date(params.postedAfter);
+ const end = new Date(params.postedBefore);
+ if (start > end) {
+ errors.push('Start date must be before end date');
+ }
+ }
+ 
+ if (params.naics && !/^\d{2,6}$/.test(params.naics)) {
+ errors.push('NAICS code must be 2-6 digits');
+ }
+ 
+ if (params.placeOfPerformanceZip && !/^\d{5}(-\d{4})?$/.test(params.placeOfPerformanceZip)) {
+ errors.push('ZIP code must be 5 digits or 5+4 format');
+ }
+ 
+ return errors;
+ }, []);
+
+ /**
+ * Execute search with explicit parameters (used for saved searches)
+ * This bypasses state variables to avoid race conditions
+ */
+ const executeSearchWithParams = async (params: any) => {
+ console.log('executeSearchWithParams called with:', params);
+ 
+ // Validate parameters
+ const validationErrors = validateSearchParams(params);
+ if (validationErrors.length > 0) {
+ setError(validationErrors.join('. '));
+ return;
+ }
+
+ // CRITICAL: Check if user can browse
+ // TODO: Reinstate this blocking mechanism after search testing
+ // if (!canBrowse) {
+ // console.log('Search blocked: canBrowse is false');
+ // setShowLockoutModal(true);
+ // return;
+ // }
+
+ // Gate the search action
+ if (!requireAccess('Search Federal Opportunities')) {
+ console.log('Search blocked: requireAccess failed');
+ return;
+ }
+
+ console.log('All checks passed, executing search with saved params...');
+
+ // Cancel any pending requests
+ if (abortControllerRef.current) {
+ abortControllerRef.current.abort('New search started');
+ }
+
+ const abortController = new AbortController();
+ abortControllerRef.current = abortController;
+
+ setLoading(true);
+ setSearchStartTime(new Date());
+ setResultsLimit(DEFAULT_LIMIT);
+ setCurrentPage(1);
+ setError(null);
+
+ try {
+ const qs = new URLSearchParams();
+
+ // Build query from explicit params instead of state variables
+ if (params.solicitationNumber?.trim()) {
+ qs.set('solnum', params.solicitationNumber.trim());
+ }
+ if (params.noticeId?.trim()) {
+ qs.set('noticeid', params.noticeId.trim());
+ }
+ if (params.keywords?.trim()) {
+ qs.set('title', params.keywords.trim());
+ }
+ if (params.naics?.trim()) {
+ qs.set('ncode', clamp(params.naics.trim(), 6));
+ }
+ if (params.classificationCode?.trim()) {
+ qs.set('ccode', params.classificationCode.trim());
+ }
+ if (params.agency?.trim()) {
+ qs.set('organizationName', clamp(params.agency.trim(), 120));
+ }
+ if (params.organizationCode?.trim()) {
+ qs.set('organizationCode', params.organizationCode.trim());
+ }
+ if (params.setAside && params.setAside.trim() !== '') {
+ qs.set('typeOfSetAside', params.setAside.trim());
+ }
+ if (params.procurementType?.trim()) {
+ qs.set('ptype', params.procurementType.trim());
+ }
+ if (params.stateOfPerformance?.trim() && params.stateOfPerformance !== '') {
+ qs.set('state', params.stateOfPerformance.trim());
+ }
+ if (params.placeOfPerformanceZip?.trim()) {
+ qs.set('zip', params.placeOfPerformanceZip.trim());
+ }
+ if (params.opportunityStatus?.trim()) {
+ qs.set('status', params.opportunityStatus.trim());
+ }
+ if (params.is_active && params.is_active !== '' && params.is_active !== 'undefined') {
+ qs.set('isActive', params.is_active);
+ }
+ if (params.postedAfter?.trim()) {
+ qs.set('postedFrom', formatDateForAPI(params.postedAfter.trim()));
+ }
+ if (params.postedBefore?.trim()) {
+ qs.set('postedTo', formatDateForAPI(params.postedBefore.trim()));
+ }
+ // Handle response deadline range
+ if (params.responseDeadlineFrom?.trim()) {
+ qs.set('responseDeadlineFrom', formatDateForAPI(params.responseDeadlineFrom.trim()));
+ }
+ if (params.responseDeadlineTo?.trim()) {
+ qs.set('responseDeadlineTo', formatDateForAPI(params.responseDeadlineTo.trim()));
+ }
+ // Fallback for single deadline field (backward compatibility)
+ if (params.responseDeadline?.trim() && !params.responseDeadlineFrom && !params.responseDeadlineTo) {
+ qs.set('responseDeadline', formatDateForAPI(params.responseDeadline.trim()));
+ }
+
+ qs.set('limit', '1000');
+ qs.set('offset', '0');
+
+ console.log('Calling API with saved search parameters:', qsToObj(qs));
+
+ const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, {
+ method: 'GET',
+ headers: {
+ 'Content-Type': 'application/json',
+ ...(canBrowse && !isAuthenticated ? { 'x-browsing-session': 'true' } : {}),
+ },
+ signal: abortController.signal,
+ }, 3, 2000); // 3 retries, 2 second initial delay
+
+ if (!res.ok) {
+ const errorText = await res.text();
+ console.error('API request failed:', { status: res.status, errorText });
+ 
+ // Handle payment-required status
+ if (res.status === 402) {
+ if (!canBrowse && !hasValidAccess) {
+ setBlockedFeature('Search Federal Opportunities');
+ setShowAccessModal(true);
+ setError('Your trial has ended. Please upgrade to continue searching.');
+ setLoading(false);
+ return; // Don't throw - just return early
+ }
+ }
+
+ // Build user-friendly error message
+ let userMessage = 'Search failed. Please try again.';
+ if (res.status === 400) {
+ userMessage = 'Invalid search parameters. Please check your filters and try again.';
+ } else if (res.status === 401 || res.status === 403) {
+ userMessage = 'You need to sign in to search. Please log in and try again.';
+ } else if (res.status === 404) {
+ userMessage = 'Search service not found. Please refresh the page and try again.';
+ } else if (res.status === 429) {
+ userMessage = 'Too many searches. Please wait a moment and try again.';
+ } else if (res.status === 500) {
+ userMessage = 'SAM.gov service is temporarily unavailable. Please try again in a few moments.';
+ } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+ userMessage = 'Connection to SAM.gov failed. The service may be down. Please try again later.';
+ }
+ 
+ // Set error state instead of throwing
+ setError(userMessage);
+ setData(null);
+ setLoading(false);
+ return; // Exit early instead of throwing
+ }
+
+ const json = await res.json();
+ const payload = json as ApiResponse;
+ const opps = payload.opportunitiesData || [];
+
+ const total = payload.totalCount || 0;
+ const loaded = (opps?.length ?? 0);
+ const currentTotalLoaded = loaded;
+ 
+ setHasMoreResults(currentTotalLoaded < total);
+ setData(payload);
+ setActiveFilter(null);
+ 
+ saveSearchToHistory(qs.toString());
+
+ // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
+ writeSearchContext(opps || [], qsToObj(qs))
+ if (!stickyPromptDismissed) setShowStickyPrompt(true)
+ 
+ console.log('API Search successful:', {
+ results: (opps?.length ?? 0),
+ totalRecords: total,
+ hasMoreResults: currentTotalLoaded < total,
+ });
+
+ } catch (e: any) {
+ if (e.name === 'AbortError' || abortController.signal.aborted) {
+ console.log('Request aborted');
+ return;
+ }
+ 
+ console.error('Search error:', e);
+ setError(e?.message || 'Search failed. Please try again.');
+ setData(null);
+ } finally {
+ if (!abortController.signal.aborted) {
+ setLoading(false);
+ setSearchStartTime(null);
+ setSearchDuration(0);
+ }
+ }
+ };
+
+ // ✅ NEW: Run Quick Search - Auto-populate advanced fields 
+ const runQuickSearch = useCallback(() => {
+ // Auto-populate advanced search fields from quick search
+ setKeywords(quickKeyword)
+ setPostedAfter(quickPostedDate)
+ setResponseDeadline(quickDeadlineDate)
+ 
+ // Also populate advanced search fields so they're in sync
+ setAdvKeywords(quickKeyword)
+ setAdvPostedAfter(quickPostedDate)
+ setAdvResponseDeadline(quickDeadlineDate)
+ 
+ // Trigger the actual search
+ runSearch(false)
+ }, [quickKeyword, quickPostedDate, quickDeadlineDate])
+
+ // ✅ NEW: Stop Quick Search
+ const stopQuickSearch = useCallback(() => {
+ setLoading(false)
+ setLoadingMore(false)
+ if (abortControllerRef.current) {
+ abortControllerRef.current.abort('Search stopped by user')
+ abortControllerRef.current = null
+ }
+ }, [])
+
+ const runSearch = async (isLoadMore = false) => {
+ // ── Prevent duplicate simultaneous searches ───────────────────────────
+ if (!isLoadMore && loading) return
+ if (isLoadMore && loadingMore) return
+
+ // ── Hard lockout: trial window expired ───────────────────────────────
+ if (showLockoutModal && !hasValidAccess) {
+ return
+ }
+ 
+ 
+ // PERFORMANCE FIX: Cancel any pending requests
+ if (abortControllerRef.current) {
+ abortControllerRef.current.abort('New search started')
+ }
+
+ // PERFORMANCE FIX: Create new AbortController for this request
+ const abortController = new AbortController()
+ abortControllerRef.current = abortController
+
+ if (isLoadMore) {
+ setLoadingMore(true)
+ } else {
+ setLoading(true)
+ setSearchStartTime(new Date()) // Start timer
+ setResultsLimit(DEFAULT_LIMIT)
+ setCurrentPage(1)
+ }
+ 
+ setError(null)
+
+ try {
+ const qs = new URLSearchParams()
+ 
+ // ===== DIRECT LOOKUPS (Priority - Skip other filters if provided) =====
+ if (solicitationNumber.trim()) {
+ qs.set('solnum', solicitationNumber.trim())
+ }
+ if (noticeId.trim()) {
+ qs.set('noticeid', noticeId.trim())
+ }
+ 
+ // ===== TEXT SEARCH =====
+ // PERFORMANCE FIX: Use debounced keywords
+ if (debouncedKeywords.trim()) {
+ const kw = debouncedKeywords.trim()
+ const isNaicsLike = /^\d{2,6}$/.test(kw)
+ if (isNaicsLike && !naics.trim()) { qs.set('ncode', kw) }
+ else if (!isNaicsLike) { qs.set('title', kw) }
+ }
+ 
+ // ===== CLASSIFICATION CODES =====
+ // NAICS Code
+ if (naics.trim()) {
+ qs.set('ncode', clamp(naics.trim(), 6))
+ }
+ // PSC Code (NEW - CRITICAL)
+ if (classificationCode.trim()) {
+ qs.set('ccode', classificationCode.trim())
+ }
+ 
+ // ===== ORGANIZATION =====
+ // Agency/Department
+ if (agency.trim()) {
+ qs.set('organizationName', clamp(agency.trim(), 120))
+ }
+ // Organization Code (NEW)
+ if (organizationCode.trim()) {
+ qs.set('organizationCode', organizationCode.trim())
+ }
+ 
+ // SET-ASIDE TYPE - convert array to comma-separated string for API
+ const setAsideString = setAsideCodesToString(selectedSetAsides)
+ if (setAsideString) {
+ qs.set('typeOfSetAside', setAsideString)
+ }
+
+ // Procurement Type (ptype)
+ if (procurementType.trim()) {
+ qs.set('ptype', procurementType.trim())
+ }
+ 
+ // STATE — skip if ncode is set (SAM.gov returns 0 when both sent together)
+ const stateString = locationCodesToString(selectedStates)
+ if (stateString && !qs.has('ncode')) { qs.set('state', stateString) }
+ // ZIP Code (NEW)
+ if (placeOfPerformanceZip.trim()) {
+ qs.set('zip', placeOfPerformanceZip.trim())
+ }
+ 
+ // ===== STATUS =====
+ // Full status filter (NEW)
+ if (opportunityStatus.trim()) {
+ qs.set('status', opportunityStatus.trim())
+ }
+ // Active / Inactive status (existing)
+ if (isActive && isActive !== '' && isActive !== 'undefined') {
+ qs.set('isActive', isActive)
+ }
+
+ // ===== POSTED DATE RANGE =====
+ // Only apply postedFrom if user has chosen a specific date (not the auto-default of today)
+ if (postedAfter.trim()) {
+ qs.set('postedFrom', formatDateForAPI(postedAfter.trim()))
+ }
+ // postedTo (upper bound on posted date) — only if explicitly set by user
+ if (postedBefore.trim()) {
+ qs.set('postedTo', formatDateForAPI(postedBefore.trim()))
+ }
+ // NOTE: Do NOT add postedTo=today automatically — it restricts to 1 day and filters too aggressively
+ 
+ // ===== RESPONSE DEADLINE (DEADLINE BY - LESS THAN OR EQUAL TO) =====
+ // Use responseDeadlineBefore (the UI date picker) as rdlto upper bound.
+ // Fall back to legacy responseDeadline for saved-search compatibility.
+ const deadlineUpperBound = responseDeadlineBefore.trim() || responseDeadline.trim()
+ if (deadlineUpperBound) {
+ qs.set('rdlto', formatDateForAPI(deadlineUpperBound))
+ }
+ // Only send rdlfrom if user explicitly set it (avoids conflicting with route.ts default)
+ if (responseDeadlineAfter.trim()) {
+ qs.set('rdlfrom', formatDateForAPI(responseDeadlineAfter.trim()))
+ }
+ 
+ // ===== PAGINATION =====
+ qs.set('limit', '1000') // SAM.gov max per request is 1000
+ qs.set('offset', String((currentPage - 1) * DEFAULT_LIMIT))
+
+ // CRITICAL FIX: Prevent duplicate identical searches
+ const searchParamsString = qs.toString()
+ if (!isLoadMore && searchParamsString === lastSearchParamsRef.current) {
+ console.log('⚠️ Duplicate search prevented - params unchanged')
+ setLoading(false)
+ setSearchStartTime(null)
+ setSearchDuration(0)
+ return
+ }
+ lastSearchParamsRef.current = searchParamsString
+
+ console.log('Calling API with corrected SAM.gov parameters:', qsToObj(qs))
+
+ // PERFORMANCE FIX: Pass signal to fetch for cancellation + RELIABILITY FIX: Retry on failures
+ const res = await fetchWithRetry(`/api/sam?${qs.toString()}`, { 
+ method: 'GET',
+ headers: {
+ 'Content-Type': 'application/json',
+ ...(canBrowse && !isAuthenticated ? { 'x-browsing-session': 'true' } : {}),
+ },
+ signal: abortController.signal
+ }, 3, 2000) // 3 retries, 2 second initial delay
+ 
+ if (!res.ok) {
+ const errorText = await res.text()
+ if (errorText && errorText.trim() !== '' && errorText.trim() !== '{}') {
+ console.error('API request failed:', { status: res.status, errorText })
+ }
+ 
+ // Handle payment required (trial ended)
+ // ✅ CRITICAL FIX: Only show modal if user is NOT in free browsing window
+ if (res.status === 402) {
+ if (!canBrowse && !hasValidAccess) {
+ setBlockedFeature('Search Federal Opportunities')
+ setShowAccessModal(true)
+ setError('Your trial has ended. Please upgrade to continue searching.')
+ if (isLoadMore) {
+ setLoadingMore(false)
+ } else {
+ setLoading(false)
+ }
+ return // Don't throw - just return early
+ }
+ }
+ 
+ // ===== USER-FRIENDLY ERROR MESSAGES =====
+ let userMessage = 'Search failed. Please try again.'
+ 
+ if (res.status === 400) {
+ userMessage = 'Invalid search parameters. Please check your filters and try again.'
+ } else if (res.status === 401 || res.status === 403) {
+ // Guests within their 20-minute window: just show a friendly message, no modal
+ // Only show modal if the 20-minute lockout has actually triggered
+ if (showLockoutModal && !hasValidAccess) {
+ setBlockedFeature('Search Federal Opportunities')
+ setShowAccessModal(true)
+ if (isLoadMore) setLoadingMore(false); else setLoading(false)
+ return
+ }
+ userMessage = 'Search session expired. Please refresh and try again.'
+ } else if (res.status === 404) {
+ userMessage = 'Search service not found. Please refresh the page and try again.'
+ } else if (res.status === 429) {
+ userMessage = 'Too many searches. Please wait a moment and try again.'
+ } else if (res.status === 500) {
+ userMessage = 'SAM.gov service is temporarily unavailable. Please try again in a few moments.'
+ } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+ userMessage = 'Connection to SAM.gov failed. The service may be down. Please try again later.'
+ }
+ 
+ // Set error state instead of throwing
+ setError(userMessage)
+ setData(null)
+ if (isLoadMore) {
+ setLoadingMore(false)
+ } else {
+ setLoading(false)
+ }
+ return // Exit early instead of throwing
+ }
+ 
+ let json = await res.json()
+
+ const payload: ApiResponse = json
+ const opps = payload.opportunitiesData
+
+ 
+ // Check if there are more results available
+ const total = payload.totalCount || 0
+ const loaded = (opps?.length ?? 0)
+ const currentTotalLoaded = isLoadMore 
+ ? (data?.opportunitiesData?.length || 0) + loaded
+ : loaded
+ setHasMoreResults(currentTotalLoaded < total)
+ 
+ if (isLoadMore) {
+ setData(prev => ({
+ ...prev,
+ totalRecords: total,
+ opportunitiesData: [...(prev?.opportunitiesData || []), ...(opps ?? [])]
+ }))
+ setCurrentPage(prev => prev + 1)
+ } else {
+ setData(payload)
+ setActiveFilter(null) // reset subset view on fresh search
+ // Save search to history
+ saveSearchToHistory(qs.toString())
+ writeSearchContext(opps || [], qsToObj(qs))
+ if (!stickyPromptDismissed) setShowStickyPrompt(true)
+ // NOTE: Do NOT show access modal here — guests are allowed to see results
+ // The 20-minute timer handles the browse window limit separately
+ }
+
+ console.log('API Search successful', { 
+ results: (opps?.length ?? 0), 
+ totalRecords: total,
+ hasMoreResults: currentTotalLoaded < total,
+ procurementType: procurementType,
+ setAsideFilter: setAsideCodesToString(selectedSetAsides),
+ isLoadMore 
+ })
+ 
+ } catch (e: any) {
+ // PERFORMANCE FIX: Don't show errors for aborted requests
+ if (e.name === 'AbortError' || abortController.signal.aborted) {
+ console.log('Request aborted')
+ return
+ }
+ 
+ console.error('Search error:', e)
+ setError(e?.message || 'Search failed. Please try again.')
+ if (!isLoadMore) {
+ setData(null)
+ }
+ } finally {
+ // PERFORMANCE FIX: Only update loading state if request wasn't aborted
+ if (!abortController.signal.aborted) {
+ if (isLoadMore) {
+ setLoadingMore(false)
+ } else {
+ setLoading(false)
+ setSearchStartTime(null)
+ setSearchDuration(0)
+ }
+ }
+ }
+ }
+
+ // Load more results
+ const loadMoreResults = () => {
+ runSearch(true)
+ }
+
+ // Reset all filters
+ const resetAll = () => {
+ // ── Quick Date Lookup card fields ──
+ setQuickKeyword('')
+ setQuickPostedDate(getSixMonthsAgo())
+ setQuickDeadlineDate(getToday())
+
+ // ── Shared state (synced from Quick Search) ──
+ setKeywords('')
+ setPostedAfter(getSixMonthsAgo())
+ setResponseDeadlineBefore(getToday())
+ setResponseDeadline(getToday())
+
+ // ── Advanced filter state ──
+ setAdvKeywords('')
+ setAdvPostedAfter(getSixMonthsAgo())
+ setAdvResponseDeadline(getToday())
+ setAdvancedApplied(false)
+
+ // ── All other filters ──
+ setNaics('')
+ setAgency('')
+ setSelectedSetAsides([])
+ setSelectedStates([])
+ setPostedBefore('')
+ setProcurementType('')
+ setIsActive('')
+ setSolicitationNumber('')
+ setClassificationCode('')
+ setResponseDeadlineAfter('')
+ setNoticeId('')
+ setOpportunityStatus('')
+ setPlaceOfPerformanceZip('')
+ setOrganizationCode('')
+
+ // ── UI state ──
+ setError(null)
+ setData(null)
+ setResultsLimit(DEFAULT_LIMIT)
+ setCurrentPage(1)
+ setSortBy('deadline-asc')
+ setSortOrder('asc')
+ setActiveFilter(null)
+ setShowSetAsideDrilldown(false)
+ setShowStateDrilldown(false)
+ setShowNaicsDrilldown(false)
+ setShowAgencyDrilldown(false)
+ }
+
+ // Filter functions
+ const filterBySetAside = (setAsideCode: string) => {
+ setSelectedSetAsides(setAsideCode ? [setAsideCode] : [])
+ setShowSetAsideDrilldown(false)
+ }
+
+ const filterByState = (state: string) => {
+ setSelectedStates(state ? [state] : [])
+ setShowStateDrilldown(false)
+ }
+
+ const filterByNaics = (naicsCode: string) => {
+ setNaics(naicsCode)
+ setShowNaicsDrilldown(false)
+ }
+
+ const filterByAgency = (agencyName: string) => {
+ setAgency(agencyName)
+ setShowAgencyDrilldown(false)
+ }
+
+ // Click-to-filter handlers for breakdown cards
+ const handleBreakdownFilter = useCallback((type: 'setAside' | 'naics' | 'agency' | 'state', value: string) => {
+ // Convert set-aside label to code if needed
+ let filterValue = value
+ if (type === 'setAside') {
+ filterValue = SET_ASIDE_CODE_BY_LABEL[value] || value
+ }
+
+ // Set the filter
+ switch (type) {
+ case 'setAside':
+ setSelectedSetAsides(filterValue ? [filterValue] : [])
+ break
+ case 'naics':
+ setNaics(filterValue)
+ break
+ case 'agency':
+ setAgency(filterValue)
+ break
+ case 'state':
+ setSelectedStates(filterValue ? [filterValue] : [])
+ break
+ }
+
+ // Collapse the breakdown
+ setExpandedBreakdown(null)
+ }, [])
+
+ // Clear specific filters - NO AUTO-REFRESH
+ const clearAllClientFilters = () => {
+ setAgency('')
+ setSelectedSetAsides([])
+ setNaics('')
+ setSelectedStates([])
+ }
+
+ // Update search when filter is removed (user must click search button)
+ const handleFilterRemoveAndSearch = (filterType: string) => {
+ switch (filterType) {
+ case 'agency':
+ setAgency('')
+ break
+ case 'setAside':
+ setSelectedSetAsides([])
+ break
+ case 'naics':
+ setNaics('')
+ break
+ case 'state':
+ setSelectedStates([])
+ break
+ }
+ 
+ // User needs to click search button to see updated results
+ // This gives them control over when the search happens
+ }
+
+ // Export functions
+ const exportCsv = () => {
+ if (!filteredResults.length) return
+ 
+ // Gate the export action
+ if (!requireAccess('Export to CSV')) return
+ 
+ const headers = ['Title', 'Solicitation Number', 'Agency', 'Posted Date', 'Deadline', 'Set-Aside', 'NAICS', 'Location']
+ const rows = filteredResults.map(opp => [
+ opp.title || '',
+ opp.solicitationNumber || '',
+ opp.department || '',
+ opp.postedDate || '',
+ opp.responseDeadLine || '',
+ opp.setAside || '',
+ opp.naicsCode || '',
+ `${opp.placeOfPerformance?.city?.name || ''}, ${opp.placeOfPerformance?.state?.code || ''}`.replace(/^, |, $/g, '')
+ ])
+ 
+ const csvContent = [headers, ...rows]
+ .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+ .join('\n')
+ 
+ const blob = new Blob([csvContent], { type: 'text/csv' })
+ const url = window.URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `opportunities-${new Date().toISOString().split('T')[0]}.csv`
+ a.click()
+ window.URL.revokeObjectURL(url)
+ }
+
+ const exportJson = () => {
+ if (!filteredResults.length) return
+ 
+ // Gate the export action
+ if (!requireAccess('Export to JSON')) return
+ 
+ const dataStr = JSON.stringify(filteredResults, null, 2)
+ const blob = new Blob([dataStr], { type: 'application/json' })
+ const url = window.URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `opportunities-${new Date().toISOString().split('T')[0]}.json`
+ a.click()
+ window.URL.revokeObjectURL(url)
+ }
+
+ const exportTxt = () => {
+ if (!filteredResults.length) return
+ if (!requireAccess('Export to TXT')) return
+ 
+ const txtContent = filteredResults.map((opp, idx) => {
+ return `
 ==========================================
 OPPORTUNITY ${idx + 1}
 ==========================================
@@ -3150,1047 +3150,1031 @@ Notice ID: ${opp.noticeId || 'N/A'}
 Link: ${opp.uiLink || 'N/A'}
 ==========================================
 `
-    }).join('\n')
-    
-    const blob = new Blob([txtContent], { type: 'text/plain' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.txt`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
+ }).join('\n')
+ 
+ const blob = new Blob([txtContent], { type: 'text/plain' })
+ const url = window.URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `opportunities-${new Date().toISOString().split('T')[0]}.txt`
+ a.click()
+ window.URL.revokeObjectURL(url)
+ }
 
-  const exportXml = () => {
-    if (!filteredResults.length) return
-    if (!requireAccess('Export to XML')) return
-    
-    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+ const exportXml = () => {
+ if (!filteredResults.length) return
+ if (!requireAccess('Export to XML')) return
+ 
+ const xmlContent = `<?xml version="1.0"encoding="UTF-8"?>
 <opportunities>
-${filteredResults.map(opp => `  <opportunity>
-    <title>${escapeXml(opp.title || '')}</title>
-    <solicitationNumber>${escapeXml(opp.solicitationNumber || '')}</solicitationNumber>
-    <agency>${escapeXml(opp.department || '')}</agency>
-    <postedDate>${escapeXml(opp.postedDate || '')}</postedDate>
-    <responseDeadline>${escapeXml(opp.responseDeadLine || '')}</responseDeadline>
-    <setAside>${escapeXml(opp.setAside || '')}</setAside>
-    <naicsCode>${escapeXml(opp.naicsCode || '')}</naicsCode>
-    <noticeId>${escapeXml(opp.noticeId || '')}</noticeId>
-    <uiLink>${escapeXml(opp.uiLink || '')}</uiLink>
-  </opportunity>`).join('\n')}
+${filteredResults.map(opp => ` <opportunity>
+ <title>${escapeXml(opp.title || '')}</title>
+ <solicitationNumber>${escapeXml(opp.solicitationNumber || '')}</solicitationNumber>
+ <agency>${escapeXml(opp.department || '')}</agency>
+ <postedDate>${escapeXml(opp.postedDate || '')}</postedDate>
+ <responseDeadline>${escapeXml(opp.responseDeadLine || '')}</responseDeadline>
+ <setAside>${escapeXml(opp.setAside || '')}</setAside>
+ <naicsCode>${escapeXml(opp.naicsCode || '')}</naicsCode>
+ <noticeId>${escapeXml(opp.noticeId || '')}</noticeId>
+ <uiLink>${escapeXml(opp.uiLink || '')}</uiLink>
+ </opportunity>`).join('\n')}
 </opportunities>`
-    
-    const blob = new Blob([xmlContent], { type: 'application/xml' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.xml`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
+ 
+ const blob = new Blob([xmlContent], { type: 'application/xml' })
+ const url = window.URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `opportunities-${new Date().toISOString().split('T')[0]}.xml`
+ a.click()
+ window.URL.revokeObjectURL(url)
+ }
 
-  const exportEmail = () => {
-    if (!filteredResults.length) return
-    if (!requireAccess('Email Export')) return
-    
-    const subject = `Government Contract Opportunities - ${new Date().toLocaleDateString()}`
-    const body = filteredResults.slice(0, 10).map((opp, idx) => {
-      return `${idx + 1}. ${opp.title}\n   Agency: ${opp.department || 'N/A'}\n   Deadline: ${opp.responseDeadLine || 'N/A'}\n   Link: ${opp.uiLink || 'N/A'}\n`
-    }).join('\n')
-    
-    const fullBody = `Found ${filteredResults.length} opportunities:\n\n${body}\n\n${filteredResults.length > 10 ? `... and ${filteredResults.length - 10} more opportunities. Export to CSV/JSON for full list.` : ''}`
-    
-    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`
-    window.location.href = mailtoLink
-  }
+ const exportEmail = () => {
+ if (!filteredResults.length) return
+ if (!requireAccess('Email Export')) return
+ 
+ const subject = `Government Contract Opportunities - ${new Date().toLocaleDateString()}`
+ const body = filteredResults.slice(0, 10).map((opp, idx) => {
+ return `${idx + 1}. ${opp.title}\n Agency: ${opp.department || 'N/A'}\n Deadline: ${opp.responseDeadLine || 'N/A'}\n Link: ${opp.uiLink || 'N/A'}\n`
+ }).join('\n')
+ 
+ const fullBody = `Found ${filteredResults.length} opportunities:\n\n${body}\n\n${filteredResults.length > 10 ? `... and ${filteredResults.length - 10} more opportunities. Export to CSV/JSON for full list.` : ''}`
+ 
+ const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`
+ window.location.href = mailtoLink
+ }
 
-  const exportBinary = () => {
-    if (!filteredResults.length) return
-    if (!requireAccess('Export to Binary')) return
-    
-    // Create a binary format (MessagePack-like structure)
-    const binaryData = new TextEncoder().encode(JSON.stringify({
-      version: '1.0',
-      exportDate: new Date().toISOString(),
-      count: filteredResults.length,
-      opportunities: filteredResults
-    }))
-    
-    const blob = new Blob([binaryData], { type: 'application/octet-stream' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `opportunities-${new Date().toISOString().split('T')[0]}.bin`
-    a.click()
-    window.URL.revokeObjectURL(url)
-  }
+ const exportBinary = () => {
+ if (!filteredResults.length) return
+ if (!requireAccess('Export to Binary')) return
+ 
+ // Create a binary format (MessagePack-like structure)
+ const binaryData = new TextEncoder().encode(JSON.stringify({
+ version: '1.0',
+ exportDate: new Date().toISOString(),
+ count: filteredResults.length,
+ opportunities: filteredResults
+ }))
+ 
+ const blob = new Blob([binaryData], { type: 'application/octet-stream' })
+ const url = window.URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `opportunities-${new Date().toISOString().split('T')[0]}.bin`
+ a.click()
+ window.URL.revokeObjectURL(url)
+ }
 
-  // Helper function for XML escaping
-  const escapeXml = (str: string) => {
-    return str.replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;')
-              .replace(/'/g, '&apos;')
-  }
+ // Helper function for XML escaping
+ const escapeXml = (str: string) => {
+ return str.replace(/&/g, '&amp;')
+ .replace(/</g, '&lt;')
+ .replace(/>/g, '&gt;')
+ .replace(/"/g, '&quot;')
+ .replace(/'/g, '&apos;')
+ }
 
-  const toggleExpanded = (k: string) => setExpanded((p) => ({ ...p, [k]: !p[k] }))
+ const toggleExpanded = (k: string) => setExpanded((p) => ({ ...p, [k]: !p[k] }))
 
-  const copyText = async (txt: string) => {
-    try {
-      await navigator.clipboard.writeText(txt)
-      setCopiedId(txt)
-      setTimeout(() => setCopiedId(null), 1200)
-    } catch {}
-  }
+ const copyText = async (txt: string) => {
+ try {
+ await navigator.clipboard.writeText(txt)
+ setCopiedId(txt)
+ setTimeout(() => setCopiedId(null), 1200)
+ } catch {}
+ }
 
-  // Results data
-  const totalRecords = data?.totalRecords ?? 0
-  const results = data?.opportunitiesData ?? []
+ // Results data
+ const totalRecords = data?.totalRecords ?? 0
+ const results = data?.opportunitiesData ?? []
 
-  // When Quick Search returns results, pre-populate the Advanced Search date/keyword fields
-  // so they're ready to refine — but DON'T auto-apply the advanced filter
-  useEffect(() => {
-    if (results.length > 0) {
-      // Only sync if user hasn't typed their own filter keyword yet
-      if (!advKeywords) setAdvKeywords(keywords)
-      setAdvPostedAfter(postedAfter)
-      setAdvResponseDeadline(responseDeadlineBefore || responseDeadline)
-      setAdvancedApplied(false)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data])
+ // When Quick Search returns results, pre-populate the Advanced Search date/keyword fields
+ // so they're ready to refine — but DON'T auto-apply the advanced filter
+ useEffect(() => {
+ if (results.length > 0) {
+ // Only sync if user hasn't typed their own filter keyword yet
+ if (!advKeywords) setAdvKeywords(keywords)
+ setAdvPostedAfter(postedAfter)
+ setAdvResponseDeadline(responseDeadlineBefore || responseDeadline)
+ setAdvancedApplied(false)
+ }
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [data])
 
-  // Filtered results with memoization - PERFORMANCE OPTIMIZED
-  // ===== APPLY ADVANCED FILTERS (client-side if results exist, API search if not) =====
-  const applyAdvancedFilters = useCallback(() => {
-    if (results.length === 0) {
-      // No Quick Search results loaded — run a full SAM.gov API search using ONLY advanced fields
-      // DO NOT sync to quick search state - keep them separate
-      // We'll use the advanced field values directly in runSearch
-      
-      // Temporarily set the main search state to advanced values
-      const prevKeywords = keywords
-      const prevPostedAfter = postedAfter  
-      const prevResponseDeadline = responseDeadline
-      
-      if (advKeywords) setKeywords(advKeywords)
-      if (advPostedAfter) setPostedAfter(advPostedAfter)
-      if (advResponseDeadline) setAdvResponseDeadline(advResponseDeadline)
-      
-      // Defer to next tick so state is flushed before runSearch reads it
-      setTimeout(() => {
-        runSearch(false)
-        // Don't restore - let advanced values persist
-      }, 0)
-    } else {
-      // Results already loaded — filter client-side, no API call
-      if (!advPostedAfter) setAdvPostedAfter(postedAfter)
-      if (!advResponseDeadline) setAdvResponseDeadline(responseDeadline)
-      if (!advKeywords) setAdvKeywords(keywords)
-      setAdvancedApplied(true)
-      setActiveFilter(null)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results.length, advPostedAfter, advResponseDeadline, advKeywords, postedAfter, responseDeadline, keywords, selectedSetAsides, naics, selectedStates])
+ // Filtered results with memoization - PERFORMANCE OPTIMIZED
+ // ===== APPLY ADVANCED FILTERS (client-side if results exist, API search if not) =====
+ const applyAdvancedFilters = useCallback(() => {
+ if (results.length === 0) {
+ // No Quick Search results loaded — run a full SAM.gov API search using ONLY advanced fields
+ // DO NOT sync to quick search state - keep them separate
+ // We'll use the advanced field values directly in runSearch
+ 
+ // Temporarily set the main search state to advanced values
+ const prevKeywords = keywords
+ const prevPostedAfter = postedAfter 
+ const prevResponseDeadline = responseDeadline
+ 
+ if (advKeywords) setKeywords(advKeywords)
+ if (advPostedAfter) setPostedAfter(advPostedAfter)
+ if (advResponseDeadline) setAdvResponseDeadline(advResponseDeadline)
+ 
+ // Defer to next tick so state is flushed before runSearch reads it
+ setTimeout(() => {
+ runSearch(false)
+ // Don't restore - let advanced values persist
+ }, 0)
+ } else {
+ // Results already loaded — filter client-side, no API call
+ if (!advPostedAfter) setAdvPostedAfter(postedAfter)
+ if (!advResponseDeadline) setAdvResponseDeadline(responseDeadline)
+ if (!advKeywords) setAdvKeywords(keywords)
+ setAdvancedApplied(true)
+ setActiveFilter(null)
+ }
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [results.length, advPostedAfter, advResponseDeadline, advKeywords, postedAfter, responseDeadline, keywords, selectedSetAsides, naics, selectedStates])
 
-  const clearAdvancedFilters = useCallback(() => {
-    setAdvancedApplied(false)
-    setActiveFilter(null)
-  }, [])
+ const clearAdvancedFilters = useCallback(() => {
+ setAdvancedApplied(false)
+ setActiveFilter(null)
+ }, [])
 
-  const filteredResults = useMemo(() => {
-    let arr = results.slice()
+ const filteredResults = useMemo(() => {
+ let arr = results.slice()
 
-    // ── ALWAYS filter by set-aside if selected (SAM.gov API doesn't filter reliably) ──
-    if (selectedSetAsides.length > 0) {
-      arr = arr.filter(o => {
-        const oppSetAside = (o.typeOfSetAside || o.setAside || o.setAsideCode || '').toUpperCase()
-        const oppSetAsideDesc = (o.typeOfSetAsideDescription || '').toUpperCase()
-        return selectedSetAsides.some(code => {
-          const selectedCode = code.toUpperCase()
-          return oppSetAside === selectedCode || oppSetAsideDesc.includes(selectedCode)
-        })
-      })
-    }
+ // ── ALWAYS filter by set-aside if selected (SAM.gov API doesn't filter reliably) ──
+ if (selectedSetAsides.length > 0) {
+ arr = arr.filter(o => {
+ const oppSetAside = (o.typeOfSetAside || o.setAside || o.setAsideCode || '').toUpperCase()
+ const oppSetAsideDesc = (o.typeOfSetAsideDescription || '').toUpperCase()
+ return selectedSetAsides.some(code => {
+ const selectedCode = code.toUpperCase()
+ return oppSetAside === selectedCode || oppSetAsideDesc.includes(selectedCode)
+ })
+ })
+ }
 
-    // ── ALWAYS filter by status if selected ──
-    if (!opportunityStatus.trim() || opportunityStatus.toLowerCase() === 'active') {
-      // When status=active: ALSO drop past-deadline opportunities.
-      // SAM.gov status=active means "not archived", NOT "deadline in future".
-      // Opportunities with no responseDeadLine are kept (open-ended contracts).
-      const now = Date.now()
-      arr = arr.filter(o => {
-        if (!o.responseDeadLine) return true
-        return new Date(o.responseDeadLine).getTime() >= now
-      })
-    } else {
-      // User selected a specific non-active status (archived, cancelled, etc.)
-      arr = arr.filter(o => {
-        const oppActive = (o.active || '').toString().toLowerCase()
-        const oppStatus = (o.status || '').toLowerCase()
-        return oppActive === opportunityStatus.toLowerCase() || oppStatus === opportunityStatus.toLowerCase()
-      })
-    }
+ // ── ALWAYS filter by status if selected ──
+ if (!opportunityStatus.trim() || opportunityStatus.toLowerCase() === 'active') {
+ // When status=active: ALSO drop past-deadline opportunities.
+ // SAM.gov status=active means"not archived", NOT"deadline in future".
+ // Opportunities with no responseDeadLine are kept (open-ended contracts).
+ const now = Date.now()
+ arr = arr.filter(o => {
+ if (!o.responseDeadLine) return true
+ return new Date(o.responseDeadLine).getTime() >= now
+ })
+ } else {
+ // User selected a specific non-active status (archived, cancelled, etc.)
+ arr = arr.filter(o => {
+ const oppActive = (o.active || '').toString().toLowerCase()
+ const oppStatus = (o.status || '').toLowerCase()
+ return oppActive === opportunityStatus.toLowerCase() || oppStatus === opportunityStatus.toLowerCase()
+ })
+ }
 
-    // ── Always-on Refine Filters (instant client-side) ──
-    if (agency.trim()) { const ag = agency.trim().toLowerCase(); arr = arr.filter(o => (o.organizationName||'').toLowerCase().includes(ag)||(o.fullParentPathName||'').toLowerCase().includes(ag)) }
-    if (naics.trim()) { arr = arr.filter(o => (o.naicsCode||'').startsWith(naics.trim())) }
-    if (classificationCode.trim()) { arr = arr.filter(o => (o.classificationCode||'').toLowerCase().startsWith(classificationCode.trim().toLowerCase())) }
-    if (selectedStates.length > 0) { arr = arr.filter(o => selectedStates.some(code => (o.placeOfPerformance?.state?.code||'').toUpperCase()===code.toUpperCase())) }
-    if (procurementType.trim()) { arr = arr.filter(o => (o.type||'').toLowerCase().startsWith(procurementType.toLowerCase())||(o.baseType||'').toLowerCase().startsWith(procurementType.toLowerCase())) }
-    if (solicitationNumber.trim()) { arr = arr.filter(o => (o.solicitationNumber||'').toLowerCase().includes(solicitationNumber.trim().toLowerCase())) }
-    if (organizationCode.trim()) { arr = arr.filter(o => (o.organizationId||'').toLowerCase().includes(organizationCode.trim().toLowerCase())) }
-    if (advancedApplied) {
-      const kw = advKeywords.trim().toLowerCase()
-      if (kw) { arr = arr.filter(o => (o.title||'').toLowerCase().includes(kw)||(o.description||'').toLowerCase().includes(kw)) }
-      if (advPostedAfter) { const from = new Date(advPostedAfter).getTime(); arr = arr.filter(o => new Date(o.postedDate||0).getTime()>=from) }
-      if (advResponseDeadline) { const to = new Date(advResponseDeadline).getTime(); arr = arr.filter(o => new Date(o.responseDeadLine||0).getTime()<=to) }
-    } else {
-      if (activeFilter !== null) { arr = arr.filter(o => { const isActiveOpp = o.active==="Yes"||o.active==="true"||o.active===(true as any); return activeFilter==="true"?isActiveOpp:!isActiveOpp }) }
-    }
+ // ── Always-on Refine Filters (instant client-side) ──
+ if (agency.trim()) { const ag = agency.trim().toLowerCase(); arr = arr.filter(o => (o.organizationName||'').toLowerCase().includes(ag)||(o.fullParentPathName||'').toLowerCase().includes(ag)) }
+ if (naics.trim()) { arr = arr.filter(o => (o.naicsCode||'').startsWith(naics.trim())) }
+ if (classificationCode.trim()) { arr = arr.filter(o => (o.classificationCode||'').toLowerCase().startsWith(classificationCode.trim().toLowerCase())) }
+ if (selectedStates.length > 0) { arr = arr.filter(o => selectedStates.some(code => (o.placeOfPerformance?.state?.code||'').toUpperCase()===code.toUpperCase())) }
+ if (procurementType.trim()) { arr = arr.filter(o => (o.type||'').toLowerCase().startsWith(procurementType.toLowerCase())||(o.baseType||'').toLowerCase().startsWith(procurementType.toLowerCase())) }
+ if (solicitationNumber.trim()) { arr = arr.filter(o => (o.solicitationNumber||'').toLowerCase().includes(solicitationNumber.trim().toLowerCase())) }
+ if (organizationCode.trim()) { arr = arr.filter(o => (o.organizationId||'').toLowerCase().includes(organizationCode.trim().toLowerCase())) }
+ if (advancedApplied) {
+ const kw = advKeywords.trim().toLowerCase()
+ if (kw) { arr = arr.filter(o => (o.title||'').toLowerCase().includes(kw)||(o.description||'').toLowerCase().includes(kw)) }
+ if (advPostedAfter) { const from = new Date(advPostedAfter).getTime(); arr = arr.filter(o => new Date(o.postedDate||0).getTime()>=from) }
+ if (advResponseDeadline) { const to = new Date(advResponseDeadline).getTime(); arr = arr.filter(o => new Date(o.responseDeadLine||0).getTime()<=to) }
+ } else {
+ if (activeFilter !== null) { arr = arr.filter(o => { const isActiveOpp = o.active==="Yes"||o.active==="true"||o.active===(true as any); return activeFilter==="true"?isActiveOpp:!isActiveOpp }) }
+ }
 
-    // ── Saved-only toggle ──
-    if (showSavedOnly) { arr = arr.filter(o => saved[o.noticeId || '']) }
+ // ── Saved-only toggle ──
+ if (showSavedOnly) { arr = arr.filter(o => saved[o.noticeId || '']) }
 
-    // Apply sorting (always)
-    arr.sort((a, b) => {
-      let aVal, bVal
-      const [field, direction] = sortBy.split('-')
-      switch (field) {
-        case 'deadline':
-          aVal = new Date(a.responseDeadLine || 0).getTime()
-          bVal = new Date(b.responseDeadLine || 0).getTime()
-          break
-        case 'posted':
-          aVal = new Date(a.postedDate || 0).getTime()
-          bVal = new Date(b.postedDate || 0).getTime()
-          break
-        case 'relevance':
-        default:
-          return 0
-      }
-      return direction === 'asc' ? aVal - bVal : bVal - aVal
-    })
+ // Apply sorting (always)
+ arr.sort((a, b) => {
+ let aVal, bVal
+ const [field, direction] = sortBy.split('-')
+ switch (field) {
+ case 'deadline':
+ aVal = new Date(a.responseDeadLine || 0).getTime()
+ bVal = new Date(b.responseDeadLine || 0).getTime()
+ break
+ case 'posted':
+ aVal = new Date(a.postedDate || 0).getTime()
+ bVal = new Date(b.postedDate || 0).getTime()
+ break
+ case 'relevance':
+ default:
+ return 0
+ }
+ return direction === 'asc' ? aVal - bVal : bVal - aVal
+ })
 
-    return arr
-  }, [results, sortBy, activeFilter, advancedApplied, showSavedOnly, saved,
-      advKeywords, advPostedAfter, advResponseDeadline,
-      agency, selectedSetAsides, naics, classificationCode, selectedStates,
-      procurementType, opportunityStatus, solicitationNumber, organizationCode])
+ return arr
+ }, [results, sortBy, activeFilter, advancedApplied, showSavedOnly, saved,
+ advKeywords, advPostedAfter, advResponseDeadline,
+ agency, selectedSetAsides, naics, classificationCode, selectedStates,
+ procurementType, opportunityStatus, solicitationNumber, organizationCode])
 
-  // Summary statistics - ENHANCED with detailed breakdowns
-  const summaryStats = useMemo(() => {
-    const arr = filteredResults
-    const total = arr.length
-    
-    // Calculate quick stats
-    const urgentCount = arr.filter(o => {
-      if (!o.responseDeadLine) return false
-      const daysUntil = Math.ceil((new Date(o.responseDeadLine).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-      return daysUntil <= 7
-    }).length
-    
-    const smallBusinessCount = arr.filter(o => 
-      o.setAside && ['SBA', '8A', 'SDB', 'HUBZone', 'SDVOSB', 'WOSB'].includes(o.setAside)
-    ).length
-    
-    const recentCount = arr.filter(o => {
-      if (!o.postedDate) return false
-      const daysSince = Math.ceil((Date.now() - new Date(o.postedDate).getTime()) / (1000 * 60 * 60 * 24))
-      return daysSince <= 7
-    }).length
+ // Summary statistics - ENHANCED with detailed breakdowns
+ const summaryStats = useMemo(() => {
+ const arr = filteredResults
+ const total = arr.length
+ 
+ // Calculate quick stats
+ const urgentCount = arr.filter(o => {
+ if (!o.responseDeadLine) return false
+ const daysUntil = Math.ceil((new Date(o.responseDeadLine).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+ return daysUntil <= 7
+ }).length
+ 
+ const smallBusinessCount = arr.filter(o => 
+ o.setAside && ['SBA', '8A', 'SDB', 'HUBZone', 'SDVOSB', 'WOSB'].includes(o.setAside)
+ ).length
+ 
+ const recentCount = arr.filter(o => {
+ if (!o.postedDate) return false
+ const daysSince = Math.ceil((Date.now() - new Date(o.postedDate).getTime()) / (1000 * 60 * 60 * 24))
+ return daysSince <= 7
+ }).length
 
-    // NEW: Detailed breakdowns by category
-    const setAsideBreakdown: Record<string, number> = {}
-    const naicsBreakdown: Record<string, number> = {}
-    const agencyBreakdown: Record<string, number> = {}
-    const stateBreakdown: Record<string, number> = {}
+ // NEW: Detailed breakdowns by category
+ const setAsideBreakdown: Record<string, number> = {}
+ const naicsBreakdown: Record<string, number> = {}
+ const agencyBreakdown: Record<string, number> = {}
+ const stateBreakdown: Record<string, number> = {}
 
-    arr.forEach(o => {
-      // Set-aside breakdown
-      const setAsideCode = normalizeSetAsideCode(o)
-      if (setAsideCode) {
-        const label = groupLabelFromSetAside(o)
-        setAsideBreakdown[label] = (setAsideBreakdown[label] || 0) + 1
-      } else {
-        setAsideBreakdown['No Set-Aside'] = (setAsideBreakdown['No Set-Aside'] || 0) + 1
-      }
+ arr.forEach(o => {
+ // Set-aside breakdown
+ const setAsideCode = normalizeSetAsideCode(o)
+ if (setAsideCode) {
+ const label = groupLabelFromSetAside(o)
+ setAsideBreakdown[label] = (setAsideBreakdown[label] || 0) + 1
+ } else {
+ setAsideBreakdown['No Set-Aside'] = (setAsideBreakdown['No Set-Aside'] || 0) + 1
+ }
 
-      // NAICS breakdown
-      const naicsCode = normalizeNaics(o)
-      if (naicsCode) {
-        naicsBreakdown[naicsCode] = (naicsBreakdown[naicsCode] || 0) + 1
-      }
+ // NAICS breakdown
+ const naicsCode = normalizeNaics(o)
+ if (naicsCode) {
+ naicsBreakdown[naicsCode] = (naicsBreakdown[naicsCode] || 0) + 1
+ }
 
-      // Agency breakdown
-      const agencyName = normalizeAgency(o)
-      if (agencyName) {
-        agencyBreakdown[agencyName] = (agencyBreakdown[agencyName] || 0) + 1
-      }
+ // Agency breakdown
+ const agencyName = normalizeAgency(o)
+ if (agencyName) {
+ agencyBreakdown[agencyName] = (agencyBreakdown[agencyName] || 0) + 1
+ }
 
-      // State breakdown
-      const stateCode = normalizeState(o)
-      if (stateCode) {
-        stateBreakdown[stateCode] = (stateBreakdown[stateCode] || 0) + 1
-      }
-    })
+ // State breakdown
+ const stateCode = normalizeState(o)
+ if (stateCode) {
+ stateBreakdown[stateCode] = (stateBreakdown[stateCode] || 0) + 1
+ }
+ })
 
-    // Sort breakdowns by count (descending) and get top items
-    const sortByCount = (obj: Record<string, number>) => 
-      Object.entries(obj)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10) // Top 10
+ // Sort breakdowns by count (descending) and get top items
+ const sortByCount = (obj: Record<string, number>) => 
+ Object.entries(obj)
+ .sort(([, a], [, b]) => b - a)
+ .slice(0, 10) // Top 10
 
-    return {
-      total,
-      urgentCount,
-      smallBusinessCount,
-      recentCount,
-      savedCount: Object.keys(saved).length,
-      // Detailed breakdowns
-      uniqueSetAsides: Object.keys(setAsideBreakdown).length,
-      uniqueNaics: Object.keys(naicsBreakdown).length,
-      uniqueAgencies: Object.keys(agencyBreakdown).length,
-      uniqueStates: Object.keys(stateBreakdown).length,
-      topSetAsides: sortByCount(setAsideBreakdown),
-      topNaics: sortByCount(naicsBreakdown),
-      topAgencies: sortByCount(agencyBreakdown),
-      topStates: sortByCount(stateBreakdown)
-    }
-  }, [filteredResults, saved])
+ return {
+ total,
+ urgentCount,
+ smallBusinessCount,
+ recentCount,
+ savedCount: Object.keys(saved).length,
+ // Detailed breakdowns
+ uniqueSetAsides: Object.keys(setAsideBreakdown).length,
+ uniqueNaics: Object.keys(naicsBreakdown).length,
+ uniqueAgencies: Object.keys(agencyBreakdown).length,
+ uniqueStates: Object.keys(stateBreakdown).length,
+ topSetAsides: sortByCount(setAsideBreakdown),
+ topNaics: sortByCount(naicsBreakdown),
+ topAgencies: sortByCount(agencyBreakdown),
+ topStates: sortByCount(stateBreakdown)
+ }
+ }, [filteredResults, saved])
 
-  // Status breakdown counts from the full loaded set (not filteredResults)
-  // so pills always show accurate totals regardless of selection
-  const statusCounts = useMemo(() => {
-    const active = results.filter(o => o.active === "Yes" || o.active === "true" || o.active === (true as any)).length
-    const inactive = results.length - active
-    return { active, inactive, all: results.length }
-  }, [results])
+ // Status breakdown counts from the full loaded set (not filteredResults)
+ // so pills always show accurate totals regardless of selection
+ const statusCounts = useMemo(() => {
+ const active = results.filter(o => o.active ==="Yes"|| o.active ==="true"|| o.active === (true as any)).length
+ const inactive = results.length - active
+ return { active, inactive, all: results.length }
+ }, [results])
 
-  // Performance monitoring
-  useEffect(() => {
-    if (loading) {
-      const startTime = performance.now();
-      return () => {
-        const endTime = performance.now();
-        console.log(`Search took ${endTime - startTime}ms`);
-        // Could send to analytics here
-      };
-    }
-  }, [loading]);
+ // Performance monitoring
+ useEffect(() => {
+ if (loading) {
+ const startTime = performance.now();
+ return () => {
+ const endTime = performance.now();
+ console.log(`Search took ${endTime - startTime}ms`);
+ // Could send to analytics here
+ };
+ }
+ }, [loading]);
 
-  // Google-style color palette
-  const companyBlue = '#1a73e8'
-  const companyGreen = '#0f9d58'
-  const companyYellow = '#f4b400'
-  const companyRed = '#db4437'
+ // Google-style color palette
+ const companyBlue = '#1a73e8'
+ const companyGreen = '#0f9d58'
+ const companyYellow = '#f4b400'
+ const companyRed = '#db4437'
 
-  return (
-    <SearchErrorBoundary>
-      {/* ── SCOPED STYLE OVERRIDE ─────────────────────────────────────────
-          The app's global CSS resets button/span color to inherit or black.
-          These rules use max specificity to force white text on every
-          green-background element in this page only.
-      ─────────────────────────────────────────────────────────────────── */}
-      <style>{`
-        /* ── PreciseGovCon search page: white text enforcement ────────────
-           The app global CSS has a button color reset that overrides Tailwind
-           and even React inline style in some cascade positions.
-           These rules use :is() + [style] attribute selectors at max
-           specificity to guarantee white text on every green element.
-        ─────────────────────────────────────────────────────────────────── */
+ return (
+ <SearchErrorBoundary>
+ {/* ── SCOPED STYLE OVERRIDE ─────────────────────────────────────────
+ The app's global CSS resets button/span color to inherit or black.
+ These rules use max specificity to force white text on every
+ green-background element in this page only.
+ ─────────────────────────────────────────────────────────────────── */}
+ <style>{`
+ /* ── Green button white text enforcement ─────────────────────── */
+ button[style*="166534"], button[style*="166534"] span, button[style*="166534"] svg,
+ a[style*="166534"], a[style*="166534"] span, a[style*="166534"] svg { color: #ffffff !important; }
+ .pgc-green, .pgc-green * { color: #ffffff !important; }
+ .pgc-green svg path, .pgc-green svg circle, .pgc-green svg line,
+ .pgc-green svg polyline, .pgc-green svg rect,
+ button[style*="166534"] svg path, button[style*="166534"] svg circle,
+ button[style*="166534"] svg line, button[style*="166534"] svg polyline { stroke: #ffffff !important; }
+`}</style>
+ <main
+ className="search-main min-h-screen flex flex-col"
+ style={{
+   fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif",
+   background: '#f4f6f4',
+ }}
+ >
+ {ToastUI}
 
-        /* Target buttons/elements with green inline background */
-        button[style*="166534"],
-        button[style*="166534"] span,
-        button[style*="166534"] svg,
-        a[style*="166534"],
-        a[style*="166534"] span,
-        a[style*="166534"] svg { color: #ffffff !important; }
+ <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
 
-        /* Target by class */
-        .pgc-green,
-        .pgc-green * { color: #ffffff !important; }
+ {/* ── HOW TO USE GUIDE ─────────────────────────────────────────── */}
+ <div className="rounded-2xl overflow-hidden shadow-sm"style={{ border: '1px solid #bbf0d0' }}>
+ <div className="px-5 py-4 flex items-center gap-3"style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
+ <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"style={{ background: 'rgba(255,255,255,0.25)' }}>
+ <HelpCircle className="h-5 w-5"style={{ color: '#ffffff' }} />
+ </div>
+ <h2 className="font-bold text-base"style={{ color: '#ffffff', fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
+ How to Search — 3 Easy Steps
+ </h2>
+ </div>
+ <div className="how-to-steps px-6 py-6 grid grid-cols-1 sm:grid-cols-3 gap-5" style={{ background: '#ffffff', fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" }}>
+ {[
+ {
+ step: '1',
+ icon: <Search className="h-5 w-5" style={{ color: '#16a34a' }} />,
+ title: 'Type a keyword or code',
+ desc: 'Enter a service (e.g. "cybersecurity"), a NAICS code like 541512, an agency name, or a solicitation number.',
+ },
+ {
+ step: '2',
+ icon: <Calendar className="h-5 w-5" style={{ color: '#16a34a' }} />,
+ title: 'Set your date range',
+ desc: 'Pick when solicitations were posted and when they are due. Use the quick-fill buttons for common ranges.',
+ },
+ {
+ step: '3',
+ icon: <CheckCircle className="h-5 w-5" style={{ color: '#16a34a' }} />,
+ title: 'Click Search & refine',
+ desc: 'Hit the green Search button. Use the Refine Filters panel to narrow by agency, set-aside, state, or type.',
+ },
+ ].map(({ step, icon, title, desc }) => (
+ <div key={step} className="how-to-step-card flex gap-4 p-5 rounded-xl" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+ <div className="how-to-step-num flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-black mt-0.5"
+ style={{ background: '#16a34a', color: '#ffffff', fontSize: '15px', flexShrink: 0 }}>
+ {step}
+ </div>
+ <div>
+ <div className="flex items-center gap-2 mb-2">
+ {icon}
+ <span style={{ color: '#111714', fontWeight: 700, fontSize: '18px', fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" }}>{title}</span>
+ </div>
+ <p style={{ color: '#2f3f38', fontWeight: 400, fontSize: '17px', lineHeight: '1.65', margin: 0, fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" }}>{desc}</p>
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
 
-        /* SVG stroke fix for green backgrounds */
-        .pgc-green svg path,
-        .pgc-green svg circle,
-        .pgc-green svg line,
-        .pgc-green svg polyline,
-        .pgc-green svg rect,
-        button[style*="166534"] svg path,
-        button[style*="166534"] svg circle,
-        button[style*="166534"] svg line,
-        button[style*="166534"] svg polyline { stroke: #ffffff !important; }
-      `}</style>
-      <main
-        className="min-h-screen bg-[#f5f7f5] flex flex-col"
-        style={{ fontFamily: "'Aptos', 'Aptos Display', Calibri, 'Segoe UI', Arial, sans-serif" }}
-      >
-        {ToastUI}
+ {/* ── MAIN SEARCH CARD ─────────────────────────────────────────── */}
+ <div className="search-card bg-white rounded-2xl border-2 border-[#166534] shadow-lg overflow-hidden">
 
-        <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
+ {/* Header bar */}
+ <div className="px-6 pt-5 pb-4 border-b border-gray-100">
+ <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+ <div>
+ <h1 className="font-black leading-tight" style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", fontSize: '24px', lineHeight: 1.25, marginBottom: '6px' }}>
+   <span style={{ color: '#ea580c' }}>Welcome to </span>
+   <span style={{ color: '#ea580c' }}>Precise </span><span style={{ color: '#16a34a', fontWeight: 900 }}>GovCon</span><sup style={{ color: '#ea580c', fontSize: '13px', fontWeight: 700, verticalAlign: 'super', lineHeight: 0 }}>®</sup>
+   <span style={{ color: '#ea580c' }}>'s Contract Opportunity Search Platform</span>
+ </h1>
+ <p className="text-gray-500 mt-0.5" style={{ fontSize: '15px', margin: '4px 0 0' }}>
+   Searching live SAM.gov data ·{' '}
+   <span className="font-bold text-[#166534]">
+     {(data?.totalRecords ?? 2143921).toLocaleString()} active opportunities
+   </span>
+ </p>
+ </div>
+ <div className="flex items-center gap-2">
+ <button onClick={() => handleOpenSaveModal('save')}
+ className="save-btn flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold transition-colors" style={{ fontSize: "16px" }}>
+ <Save className="h-3.5 w-3.5"/>Save Search
+ </button>
+ <button onClick={() => handleOpenSaveModal('alert')}
+ className="save-btn flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold transition-colors" style={{ fontSize: "16px" }}>
+ <Bell className="h-3.5 w-3.5"/>Get Alerts
+ </button>
+ </div>
+ </div>
 
-          {/* ── HOW TO USE GUIDE ─────────────────────────────────────────── */}
-          <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: '1px solid #bbf0d0' }}>
-            <div className="px-5 py-4 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.25)' }}>
-                <HelpCircle className="h-5 w-5" style={{ color: '#ffffff' }} />
-              </div>
-              <h2 className="font-bold text-base" style={{ color: '#ffffff', fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
-                How to Search — 3 Easy Steps
-              </h2>
-            </div>
-            <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white">
-              {[
-                {
-                  step: '1',
-                  icon: <Search className="h-5 w-5" style={{ color: '#16a34a' }} />,
-                  title: 'Type a keyword or code',
-                  desc: 'Enter a service (e.g. "cybersecurity"), a NAICS code like 541512, an agency name, or a solicitation number.',
-                },
-                {
-                  step: '2',
-                  icon: <Calendar className="h-5 w-5" style={{ color: '#16a34a' }} />,
-                  title: 'Set your date range',
-                  desc: 'Pick when solicitations were posted and when they are due. Use the quick-fill buttons for common ranges.',
-                },
-                {
-                  step: '3',
-                  icon: <CheckCircle className="h-5 w-5" style={{ color: '#16a34a' }} />,
-                  title: 'Click Search & refine',
-                  desc: 'Hit the green Search button. Use the Refine Filters panel to narrow by agency, set-aside, state, or type.',
-                },
-              ].map(({ step, icon, title, desc }) => (
-                <div key={step} className="flex gap-3">
-                  <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-black text-sm mt-0.5"
-                    style={{ background: '#16a34a', color: '#ffffff' }}>
-                    {step}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      {icon}
-                      <span className="font-black text-sm" style={{ color: '#111827' }}>{title}</span>
-                    </div>
-                    <p className="text-sm font-bold leading-relaxed" style={{ color: '#374151' }}>{desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+ {/* ── KEYWORD SEARCH BAR ── */}
+ <div className="flex gap-0 items-stretch mb-3">
+ <div className="relative flex-1">
+ <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"/>
+ <input
+ type="text"
+ value={keywords}
+ onChange={(e) => setKeywords(e.target.value)}
+ onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+ placeholder="Type a keyword, NAICS code, agency name, or solicitation #"
+ autoFocus
+ style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", fontSize: '1rem' }}
+ className="search-input w-full h-14 pl-11 pr-4 border-2 border-r-0 border-[#166534] rounded-l-xl bg-white text-gray-900 font-medium placeholder-gray-300 focus:outline-none focus:border-[#14532d] transition-colors"
+ />
+ </div>
+ <button
+ onClick={() => runSearch()}
+ disabled={loading}
+ style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", background: '#166534', color: '#ffffff', borderColor: '#166534' }}
+ className="pgc-green h-14 px-8 hover:opacity-90 active:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed font-black text-base rounded-r-xl border-2 flex items-center gap-2 transition-opacity whitespace-nowrap shadow-md"
+ >
+ {loading
+ ? <><Loader2 className="h-5 w-5 animate-spin"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Searching…</span></>
+ : <><Search className="h-5 w-5"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Search</span></>}
+ </button>
+ </div>
 
-          {/* ── MAIN SEARCH CARD ─────────────────────────────────────────── */}
-          <div className="bg-white rounded-2xl border-2 border-[#166534] shadow-lg overflow-hidden">
+ {/* Quick-fill keyword chips */}
+ <div className="flex items-center gap-2 flex-wrap mb-1">
+ <span className="try-label text-gray-400 font-semibold" style={{ fontSize: "16px", fontWeight: 600 }}>Try:</span>
+ {[
+ { label: 'IT Support', value: 'IT support services' },
+ { label: 'Cybersecurity', value: 'cybersecurity' },
+ { label: 'Construction', value: 'construction' },
+ { label: '541512 (IT Systems)', value: '541512' },
+ { label: '238210 (Electrical)', value: '238210' },
+ { label: '336411 (Aircraft)', value: '336411' },
+ ].map(({ label, value }) => (
+ <button
+ key={value}
+ onClick={() => { setKeywords(value); setTimeout(() => runSearch(), 0); }}
+ className="keyword-chip px-3 py-1.5 rounded-full font-semibold bg-gray-50 text-gray-600 border border-gray-200 hover:bg-green-50 hover:text-[#166534] hover:border-green-300 transition-colors" style={{ fontSize: "16px" }}
+ >
+ {label}
+ </button>
+ ))}
+ {results.length > 0 && keywords && (
+ <span className="active-search-badge text-xs font-bold text-[#166534] bg-green-50 px-3 py-1 rounded-full border border-green-200">
+ ✓ &quot;{keywords}&quot;
+ </span>
+ )}
+ <div className="flex-1"/>
+ <button onClick={resetAll}
+ className="reset-btn flex items-center gap-1 px-3 py-1.5 font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors" style={{ fontSize: "14px" }}>
+ <RefreshCw className="h-3 w-3"/>Reset all
+ </button>
+ </div>
+ </div>
 
-            {/* Header bar */}
-            <div className="px-6 pt-5 pb-4 border-b border-gray-100">
-              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-                <div>
-                  <h1 className="font-black text-xl text-gray-900 leading-tight" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
-                    Federal Contract Opportunity Search
-                  </h1>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    Searching live SAM.gov data ·{' '}
-                    <span className="font-bold text-[#166534]">
-                      {(data?.totalRecords ?? 2143921).toLocaleString()} active opportunities
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => handleOpenSaveModal('save')}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
-                    <Save className="h-3.5 w-3.5" />Save Search
-                  </button>
-                  <button onClick={() => handleOpenSaveModal('alert')}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
-                    <Bell className="h-3.5 w-3.5" />Get Alerts
-                  </button>
-                </div>
-              </div>
+ {/* ── DATE FILTERS ── */}
+ <div className="date-section px-6 py-5 bg-gray-50 border-b border-gray-100">
+ <p className="font-black text-gray-500 uppercase mb-3" style={{ fontSize: '13px', letterSpacing: '0.1em', fontWeight: 800, margin: '0 0 12px' }}>
+ Step 2 — Narrow by Date
+ </p>
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-              {/* ── KEYWORD SEARCH BAR ── */}
-              <div className="flex gap-0 items-stretch mb-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={keywords}
-                    onChange={(e) => setKeywords(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && runSearch()}
-                    placeholder="Type a keyword, NAICS code, agency name, or solicitation #"
-                    autoFocus
-                    style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif", fontSize: '1rem' }}
-                    className="w-full h-14 pl-11 pr-4 border-2 border-r-0 border-[#166534] rounded-l-xl bg-white text-gray-900 font-medium placeholder-gray-300 focus:outline-none focus:border-[#14532d] transition-colors"
-                  />
-                </div>
-                <button
-                  onClick={() => runSearch()}
-                  disabled={loading}
-                  style={{ fontFamily: "'Aptos Display', Calibri, sans-serif", background: '#166534', color: '#ffffff', borderColor: '#166534' }}
-                  className="pgc-green h-14 px-8 hover:opacity-90 active:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed font-black text-base rounded-r-xl border-2 flex items-center gap-2 transition-opacity whitespace-nowrap shadow-md"
-                >
-                  {loading
-                    ? <><Loader2 className="h-5 w-5 animate-spin" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Searching…</span></>
-                    : <><Search className="h-5 w-5" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Search</span></>}
-                </button>
-              </div>
+ {/* Posted date */}
+ <div>
+ <label className="flex items-center gap-2 font-bold text-gray-800 mb-2" style={{ fontSize: "17px", fontWeight: 700 }}>
+ <span className="pgc-green w-5 h-5 rounded-full bg-[#166534] text-white flex items-center justify-center text-xs font-black flex-shrink-0">P</span>
+ Solicitation Posted On or After
+ </label>
+ <input
+ type="date"
+ value={postedAfter}
+ onChange={(e) => setPostedAfter(e.target.value)}
+ 
+ className="date-input w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-[#166534] focus:ring-2 focus:ring-green-100 outline-none transition-all mb-2"
+ />
+ <div className="flex flex-wrap gap-1.5">
+ <span className="date-sublabel font-semibold text-gray-400 self-center mr-1" style={{ fontSize: "15px", fontWeight: 600 }}>WITHIN:</span>
+ {[
+ { label: '2 weeks', days: -14 },
+ { label: '30 days', days: -30 },
+ { label: '3 months', days: -91 },
+ { label: '6 months', days: -182 },
+ { label: '9 months', days: -274 },
+ { label: '12 months', days: -365 },
+ ].map(({ label, days }) => (
+ <button
+ key={label}
+ onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setPostedAfter(d.toISOString().split('T')[0]); }}
+ className="date-btn-green pgc-green px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#166534] border border-[#166534] hover:bg-[#166534] hover:text-white transition-all"
+ >
+ {label}
+ </button>
+ ))}
+ </div>
+ </div>
 
-              {/* Quick-fill keyword chips */}
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-xs text-gray-400 font-semibold">Try:</span>
-                {[
-                  { label: 'IT Support', value: 'IT support services' },
-                  { label: 'Cybersecurity', value: 'cybersecurity' },
-                  { label: 'Construction', value: 'construction' },
-                  { label: '541512 (IT Systems)', value: '541512' },
-                  { label: '238210 (Electrical)', value: '238210' },
-                  { label: '336411 (Aircraft)', value: '336411' },
-                ].map(({ label, value }) => (
-                  <button
-                    key={value}
-                    onClick={() => { setKeywords(value); setTimeout(() => runSearch(), 0); }}
-                    className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-500 border border-gray-200 hover:bg-green-50 hover:text-[#166534] hover:border-green-300 transition-colors"
-                  >
-                    {label}
-                  </button>
-                ))}
-                {results.length > 0 && keywords && (
-                  <span className="text-xs font-bold text-[#166534] bg-green-50 px-3 py-1 rounded-full border border-green-200">
-                    ✓ &quot;{keywords}&quot;
-                  </span>
-                )}
-                <div className="flex-1" />
-                <button onClick={resetAll}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors">
-                  <RefreshCw className="h-3 w-3" />Reset all
-                </button>
-              </div>
-            </div>
+ {/* Due date */}
+ <div>
+ <label className="flex items-center gap-2 font-bold text-gray-800 mb-2" style={{ fontSize: "17px", fontWeight: 700 }}>
+ <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black flex-shrink-0">D</span>
+ Response Due Date Up To
+ </label>
+ <input
+ type="date"
+ value={responseDeadlineBefore}
+ onChange={(e) => setResponseDeadlineBefore(e.target.value)}
+ 
+ className="date-input w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition-all mb-2"
+ />
+ <div className="flex flex-wrap gap-1.5">
+ <span className="date-sublabel font-semibold text-gray-400 self-center mr-1" style={{ fontSize: "15px", fontWeight: 600 }}>NEXT:</span>
+ {[
+ { label: '2 weeks', days: 14 },
+ { label: '30 days', days: 30 },
+ { label: '45 days', days: 45 },
+ { label: '60 days', days: 60 },
+ { label: '90 days', days: 90 },
+ ].map(({ label, days }) => (
+ <button
+ key={label}
+ onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setResponseDeadlineBefore(d.toISOString().split('T')[0]); }}
+ className="date-btn-amber px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-amber-600 border border-amber-400 hover:bg-amber-500 hover:text-white transition-all"
+ >
+ {label}
+ </button>
+ ))}
+ </div>
+ </div>
+ </div>
+ </div>
 
-            {/* ── DATE FILTERS ── */}
-            <div className="px-6 py-5 bg-gray-50 border-b border-gray-100">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
-                Step 2 — Narrow by Date
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+ {/* ── SEARCH ACTION ROW ── */}
+ <div className="search-action-row px-6 py-4 flex items-center justify-between gap-3 flex-wrap bg-white border-t border-gray-100">
+ <div className="flex items-center gap-3 flex-wrap">
+ <button
+ onClick={() => runSearch()}
+ disabled={loading}
+ style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", background: '#166534', color: '#ffffff' }}
+ className="pgc-green h-12 px-8 hover:opacity-90 disabled:opacity-50 font-black text-base rounded-xl flex items-center gap-2 transition-opacity shadow-md"
+ >
+ {loading ? <><Loader2 className="h-5 w-5 animate-spin"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Searching…</span></> : <><Search className="h-5 w-5"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Search SAM.gov</span></>}
+ </button>
+ {loading && (
+ <button onClick={stopSearch}
+ className="h-12 px-6 bg-red-500 hover:bg-red-600 text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors">
+ <StopCircle className="h-4 w-4"/>Stop ({searchDuration}s)
+ </button>
+ )}
+ </div>
+ {loading && (
+ <div className="flex items-center gap-2 text-sm text-[#166534] font-semibold bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+ <Loader2 className="h-4 w-4 animate-spin"/>
+ Searching {keywords ? `"${keywords}"` : 'all opportunities'}… {searchDuration}s
+ </div>
+ )}
+ </div>
 
-                {/* Posted date */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-2">
-                    <span className="pgc-green w-5 h-5 rounded-full bg-[#166534] text-white flex items-center justify-center text-xs font-black flex-shrink-0">P</span>
-                    Solicitation Posted On or After
-                  </label>
-                  <input
-                    type="date"
-                    value={postedAfter}
-                    onChange={(e) => setPostedAfter(e.target.value)}
-                    style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                    className="w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-[#166534] focus:ring-2 focus:ring-green-100 outline-none transition-all mb-2"
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="text-[11px] text-gray-400 font-semibold self-center mr-1">WITHIN:</span>
-                    {[
-                      { label: '2 weeks', days: -14 },
-                      { label: '30 days', days: -30 },
-                      { label: '3 months', days: -91 },
-                      { label: '6 months', days: -182 },
-                      { label: '9 months', days: -274 },
-                      { label: '12 months', days: -365 },
-                    ].map(({ label, days }) => (
-                      <button
-                        key={label}
-                        onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setPostedAfter(d.toISOString().split('T')[0]); }}
-                        className="pgc-green px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#166534] border border-[#166534] hover:bg-[#166534] hover:text-white transition-all"
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+ {/* Error */}
+ {error && (
+ <div className="mx-6 mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl flex items-start gap-3">
+ <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5"/>
+ <div>
+ <p className="font-bold text-red-700 text-sm">Search Error</p>
+ <p className="text-red-600 text-sm mt-0.5">{error}</p>
+ </div>
+ </div>
+ )}
+ </div>
 
-                {/* Due date */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-gray-800 mb-2">
-                    <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black flex-shrink-0">D</span>
-                    Response Due Date Up To
-                  </label>
-                  <input
-                    type="date"
-                    value={responseDeadlineBefore}
-                    onChange={(e) => setResponseDeadlineBefore(e.target.value)}
-                    style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                    className="w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition-all mb-2"
-                  />
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="text-[11px] text-gray-400 font-semibold self-center mr-1">NEXT:</span>
-                    {[
-                      { label: '2 weeks', days: 14 },
-                      { label: '30 days', days: 30 },
-                      { label: '45 days', days: 45 },
-                      { label: '60 days', days: 60 },
-                      { label: '90 days', days: 90 },
-                    ].map(({ label, days }) => (
-                      <button
-                        key={label}
-                        onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setResponseDeadlineBefore(d.toISOString().split('T')[0]); }}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-amber-600 border border-amber-400 hover:bg-amber-500 hover:text-white transition-all"
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+ {/* ── RESULTS SECTION ──────────────────────────────────────────── */}
+ {results.length > 0 && (
+ <div ref={resultsRef} className="flex flex-col gap-4">
 
-            {/* ── SEARCH ACTION ROW ── */}
-            <div className="px-6 py-4 flex items-center justify-between gap-3 flex-wrap bg-white">
-              <div className="flex items-center gap-3 flex-wrap">
-                <button
-                  onClick={() => runSearch()}
-                  disabled={loading}
-                  style={{ fontFamily: "'Aptos Display', Calibri, sans-serif", background: '#166534', color: '#ffffff' }}
-                  className="pgc-green h-12 px-8 hover:opacity-90 disabled:opacity-50 font-black text-base rounded-xl flex items-center gap-2 transition-opacity shadow-md"
-                >
-                  {loading ? <><Loader2 className="h-5 w-5 animate-spin" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Searching…</span></> : <><Search className="h-5 w-5" style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Search SAM.gov</span></>}
-                </button>
-                {loading && (
-                  <button onClick={stopSearch}
-                    className="h-12 px-6 bg-red-500 hover:bg-red-600 text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-colors">
-                    <StopCircle className="h-4 w-4" />Stop ({searchDuration}s)
-                  </button>
-                )}
-              </div>
-              {loading && (
-                <div className="flex items-center gap-2 text-sm text-[#166534] font-semibold bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Searching {keywords ? `"${keywords}"` : 'all opportunities'}… {searchDuration}s
-                </div>
-              )}
-            </div>
+ {/* Results header */}
+ <div className="results-card bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4">
+ <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+ <div>
+ <h2 className="text-2xl font-black text-gray-900"style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
+ {filteredResults.length.toLocaleString()} <span className="text-[#166534]">opportunities found</span>
+ </h2>
+ <p className="text-sm text-gray-500 mt-1 flex flex-wrap gap-x-2 gap-y-1 items-center">
+ {keywords && <span className="font-bold text-gray-700">&quot;{keywords}&quot;</span>}
+ {postedAfter && <><span className="text-gray-400">·</span><span>posted ≥ {new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
+ {responseDeadlineBefore && <><span className="text-gray-400">·</span><span>due ≤ {new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
+ {selectedSetAsides.length > 0 && <><span className="text-gray-400">·</span><span>{selectedSetAsides.length === 1 ? getSetAsideLabel(selectedSetAsides[0]) : `${selectedSetAsides.length} set-asides`}</span></>}
+ {selectedStates.length > 0 && <><span className="text-gray-400">·</span><span>{selectedStates.length === 1 ? getLocationLabel(selectedStates[0]) : `${selectedStates.length} states`}</span></>}
+ {data?.totalRecords && data.totalRecords > filteredResults.length && (
+ <span className="text-gray-400">(filtered from {data.totalRecords.toLocaleString()} total)</span>
+ )}
+ </p>
+ </div>
+ <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+ <ExportSharePanel results={filteredResults} searchLabel={keywords || 'All opportunities'} requireAccess={requireAccess} />
+ <button onClick={() => handleOpenSaveModal('save')}
+ className="save-btn flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold transition-colors" style={{ fontSize: "16px" }}>
+ <Save className="h-3.5 w-3.5"/>Save
+ </button>
+ <button onClick={() => handleOpenSaveModal('alert')}
+ className="pgc-green flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#166534] hover:bg-[#14532d] text-white text-xs font-bold transition-colors">
+ <Bell className="h-3.5 w-3.5"/>Get Alerts
+ </button>
+ {Object.values(saved).filter(Boolean).length > 0 && (
+ <button onClick={() => setShowSavedOnly((p) => !p)}
+ className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors border ${showSavedOnly ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 '}`}>
+ <Bookmark className="h-3.5 w-3.5"/>
+ {showSavedOnly ? '← All' : `Saved (${Object.values(saved).filter(Boolean).length})`}
+ </button>
+ )}
+ </div>
+ </div>
 
-            {/* Error */}
-            {error && (
-              <div className="mx-6 mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-red-700 text-sm">Search Error</p>
-                  <p className="text-red-600 text-sm mt-0.5">{error}</p>
-                </div>
-              </div>
-            )}
-          </div>
+ {/* Toolbar: sort + view + filter toggle */}
+ <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-gray-100">
+ <button onClick={() => setShowFilters(!showFilters)}
+ className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${showFilters ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#166534] hover:text-[#166534] '}`}>
+ <SlidersHorizontal className="h-3.5 w-3.5"/>
+ Refine Filters
+ {showFilters ? <ChevronUp className="h-3.5 w-3.5"/> : <ChevronDown className="h-3.5 w-3.5"/>}
+ </button>
+ <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+ 
+ className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 focus:border-[#166534] outline-none">
+ <option value="deadline-asc">Deadline (Soonest first)</option>
+ <option value="deadline-desc">Deadline (Latest first)</option>
+ <option value="posted-desc">Posted (Newest first)</option>
+ <option value="posted-asc">Posted (Oldest first)</option>
+ </select>
+ <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden">
+ <button onClick={() => setViewMode('list')}
+ className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50 '}`}>
+ <List className="h-3.5 w-3.5"/>
+ </button>
+ <button onClick={() => setViewMode('grid')}
+ className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'grid' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50 '}`}>
+ <Grid className="h-3.5 w-3.5"/>
+ </button>
+ </div>
+ </div>
+ </div>
 
-          {/* ── RESULTS SECTION ──────────────────────────────────────────── */}
-          {results.length > 0 && (
-            <div ref={resultsRef} className="flex flex-col gap-4">
+ {/* Filter panel */}
+ {showFilters && (
+ <div className="filter-panel bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+ <div className="flex items-center justify-between mb-4">
+ <h3 className="font-black text-sm text-gray-900 flex items-center gap-2"style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
+ <Filter className="h-4 w-4 text-[#166534]"/>Refine Results
+ </h3>
+ <button
+ onClick={() => { setAgency(''); setSelectedSetAsides([]); setNaics(''); setSelectedStates([]); setProcurementType(''); setClassificationCode(''); setSolicitationNumber(''); setOpportunityStatus('active'); setAdvancedApplied(false); }}
+ className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+ <RefreshCw className="h-3 w-3"/>Reset filters
+ </button>
+ </div>
+ <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+ {/* Keyword refine */}
+ <div>
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>Keyword Filter</label>
+ <input type="text"value={advKeywords}
+ onChange={(e) => { setAdvKeywords(e.target.value); setAdvancedApplied(true); }}
+ placeholder="e.g., cloud services"
+ 
+ className="w-full px-3 rounded-lg border-2 border-gray-200 bg-white font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" style={{ height: "42px", fontSize: "15px" }}/>
+ <p className="text-gray-400" style={{ fontSize: "15px", margin: "4px 0 0" }}>Filters results instantly</p>
+ </div>
+ {/* Set-aside */}
+ <div>
+ <MultiSelectDropdown
+ label="Set-Aside Type"
+ options={SET_ASIDE_OPTIONS.filter(o => o.code !== '')}
+ selected={selectedSetAsides}
+ onChange={setSelectedSetAsides}
+ placeholder="Any set-aside"
+ />
+ </div>
+ {/* State */}
+ <div>
+ <MultiSelectDropdown
+ label="State / Territory"
+ options={US_STATES_AND_TERRITORIES.filter(l => l.code !== '')}
+ selected={selectedStates}
+ onChange={setSelectedStates}
+ placeholder="Any state"
+ />
+ </div>
+ {/* Agency */}
+ <div>
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>Agency</label>
+ <input type="text"value={agency} onChange={(e) => setAgency(e.target.value)}
+ placeholder="e.g., Dept of Defense"
+ 
+ className="w-full px-3 rounded-lg border-2 border-gray-200 bg-white font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" style={{ height: "42px", fontSize: "15px" }}/>
+ </div>
+ {/* NAICS */}
+ <div>
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>NAICS Code</label>
+ <input type="text"value={naics} onChange={(e) => setNaics(e.target.value)}
+ placeholder="e.g., 541512"
+ 
+ className="w-full px-3 rounded-lg border-2 border-gray-200 bg-white font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" style={{ height: "42px", fontSize: "15px" }}/>
+ </div>
+ {/* Procurement type */}
+ <div>
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>Opportunity Type</label>
+ <select value={procurementType} onChange={(e) => setProcurementType(e.target.value)}
+ 
+ className="w-full px-3 rounded-lg border-2 border-gray-200 bg-white font-medium text-gray-900 focus:border-[#166534] outline-none transition-all" style={{ height: "42px", fontSize: "15px" }}>
+ <option value="">All Types</option>
+ <option value="o">Solicitation</option>
+ <option value="k">Combined Synopsis/Solicitation</option>
+ <option value="p">Pre-Solicitation</option>
+ <option value="r">Sources Sought</option>
+ <option value="a">Award Notice</option>
+ <option value="u">Justification (J&amp;A)</option>
+ <option value="s">Special Notice</option>
+ </select>
+ </div>
+ {/* PSC */}
+ <div>
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>PSC Code</label>
+ <input type="text"value={classificationCode} onChange={(e) => setClassificationCode(e.target.value)}
+ placeholder="e.g., R425"
+ 
+ className="w-full px-3 rounded-lg border-2 border-gray-200 bg-white font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" style={{ height: "42px", fontSize: "15px" }}/>
+ </div>
+ {/* Solicitation # */}
+ <div>
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>Solicitation #</label>
+ <input type="text"value={solicitationNumber} onChange={(e) => setSolicitationNumber(e.target.value)}
+ placeholder="e.g., W912DY24R0001"
+ 
+ className="w-full px-3 rounded-lg border-2 border-gray-200 bg-white font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" style={{ height: "42px", fontSize: "15px" }}/>
+ </div>
+ {/* Status */}
+ <div>
+ <label className="block font-bold text-gray-600 mb-1.5 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.08em", fontWeight: 700 }}>Status</label>
+ <select value={opportunityStatus} onChange={(e) => setOpportunityStatus(e.target.value)}
+ 
+ className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 focus:border-[#166534] outline-none transition-all">
+ <option value="">All Statuses</option>
+ <option value="active">Active</option>
+ <option value="archived">Archived</option>
+ <option value="cancelled">Cancelled</option>
+ </select>
+ </div>
+ </div>
 
-              {/* Results header */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4">
-                <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-                  <div>
-                    <h2 className="text-2xl font-black text-gray-900" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
-                      {filteredResults.length.toLocaleString()} <span className="text-[#166534]">opportunities found</span>
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-1 flex flex-wrap gap-x-2 gap-y-1 items-center">
-                      {keywords && <span className="font-bold text-gray-700">&quot;{keywords}&quot;</span>}
-                      {postedAfter && <><span className="text-gray-400">·</span><span>posted ≥ {new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
-                      {responseDeadlineBefore && <><span className="text-gray-400">·</span><span>due ≤ {new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
-                      {selectedSetAsides.length > 0 && <><span className="text-gray-400">·</span><span>{selectedSetAsides.length === 1 ? getSetAsideLabel(selectedSetAsides[0]) : `${selectedSetAsides.length} set-asides`}</span></>}
-                      {selectedStates.length > 0 && <><span className="text-gray-400">·</span><span>{selectedStates.length === 1 ? getLocationLabel(selectedStates[0]) : `${selectedStates.length} states`}</span></>}
-                      {data?.totalRecords && data.totalRecords > filteredResults.length && (
-                        <span className="text-gray-400">(filtered from {data.totalRecords.toLocaleString()} total)</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-                    <ExportSharePanel results={filteredResults} searchLabel={keywords || 'All opportunities'} requireAccess={requireAccess} />
-                    <button onClick={() => handleOpenSaveModal('save')}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
-                      <Save className="h-3.5 w-3.5" />Save
-                    </button>
-                    <button onClick={() => handleOpenSaveModal('alert')}
-                      className="pgc-green flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#166534] hover:bg-[#14532d] text-white text-xs font-bold transition-colors">
-                      <Bell className="h-3.5 w-3.5" />Get Alerts
-                    </button>
-                    {Object.values(saved).filter(Boolean).length > 0 && (
-                      <button onClick={() => setShowSavedOnly((p) => !p)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors border ${showSavedOnly ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
-                        <Bookmark className="h-3.5 w-3.5" />
-                        {showSavedOnly ? '← All' : `Saved (${Object.values(saved).filter(Boolean).length})`}
-                      </button>
-                    )}
-                  </div>
-                </div>
+ {/* Active filter chips */}
+ {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
+ <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+ {agency && <FilterChip label={`Agency: ${agency}`} onRemove={() => setAgency('')} />}
+ {selectedSetAsides.length > 0 && <FilterChip label={`Set-Aside: ${selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} selected`}`} onRemove={() => setSelectedSetAsides([])} />}
+ {naics && <FilterChip label={`NAICS: ${naics}`} onRemove={() => setNaics('')} />}
+ {selectedStates.length > 0 && <FilterChip label={`State: ${selectedStates.length === 1 ? getLocationLabel(selectedStates[0]) : `${selectedStates.length} selected`}`} onRemove={() => setSelectedStates([])} />}
+ {procurementType && <FilterChip label={`Type: ${procurementType}`} onRemove={() => setProcurementType('')} />}
+ {classificationCode && <FilterChip label={`PSC: ${classificationCode}`} onRemove={() => setClassificationCode('')} />}
+ {solicitationNumber && <FilterChip label={`Sol #: ${solicitationNumber}`} onRemove={() => setSolicitationNumber('')} />}
+ {opportunityStatus && <FilterChip label={`Status: ${opportunityStatus}`} onRemove={() => setOpportunityStatus('active')} />}
+ </div>
+ )}
+ </div>
+ )}
 
-                {/* Toolbar: sort + view + filter toggle */}
-                <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-gray-100">
-                  <button onClick={() => setShowFilters(!showFilters)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${showFilters ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#166534] hover:text-[#166534]'}`}>
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    Refine Filters
-                    {showFilters ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </button>
-                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
-                    style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                    className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs font-semibold text-gray-700 focus:border-[#166534] outline-none">
-                    <option value="deadline-asc">Deadline (Soonest first)</option>
-                    <option value="deadline-desc">Deadline (Latest first)</option>
-                    <option value="posted-desc">Posted (Newest first)</option>
-                    <option value="posted-asc">Posted (Oldest first)</option>
-                  </select>
-                  <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden">
-                    <button onClick={() => setViewMode('list')}
-                      className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
-                      <List className="h-3.5 w-3.5" />
-                    </button>
-                    <button onClick={() => setViewMode('grid')}
-                      className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'grid' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
-                      <Grid className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+ {/* Results toolbar count */}
+ <div className="results-count-bar bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+ <span className="font-semibold text-gray-700" style={{ fontSize: "17px" }}>
+ {showSavedOnly
+ ? <>Showing <strong>{filteredResults.length}</strong> saved of {results.length} results</>
+ : <>
+ {filteredResults.length >= 100 ? '🎯 ' : filteredResults.length >= 10 ? '✅ ' : ''}
+ <strong className="text-[#166534]">{filteredResults.length.toLocaleString()}</strong>{' '}
+ {filteredResults.length === 1 ? 'opportunity' : 'opportunities'}
+ {keywords && <> for <em>&quot;{keywords}&quot;</em></>} —{' '}
+ <button onClick={() => handleOpenSaveModal('save')} className="underline text-gray-600 hover:text-[#166534] transition-colors">save this search</button>
+ {' '}or{' '}
+ <button onClick={() => handleOpenSaveModal('alert')} className="underline text-gray-600 hover:text-[#166534] transition-colors">get email alerts</button>
+ </>
+ }
+ </span>
+ </div>
 
-              {/* Filter panel */}
-              {showFilters && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-black text-sm text-gray-900 flex items-center gap-2" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>
-                      <Filter className="h-4 w-4 text-[#166534]" />Refine Results
-                    </h3>
-                    <button
-                      onClick={() => { setAgency(''); setSelectedSetAsides([]); setNaics(''); setSelectedStates([]); setProcurementType(''); setClassificationCode(''); setSolicitationNumber(''); setOpportunityStatus('active'); setAdvancedApplied(false); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                      <RefreshCw className="h-3 w-3" />Reset filters
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {/* Keyword refine */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Keyword Filter</label>
-                      <input type="text" value={advKeywords}
-                        onChange={(e) => { setAdvKeywords(e.target.value); setAdvancedApplied(true); }}
-                        placeholder="e.g., cloud services"
-                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] focus:ring-2 focus:ring-green-50 outline-none transition-all" />
-                      <p className="text-[11px] text-gray-400 mt-1">Filters results instantly</p>
-                    </div>
-                    {/* Set-aside */}
-                    <div>
-                      <MultiSelectDropdown
-                        label="Set-Aside Type"
-                        options={SET_ASIDE_OPTIONS.filter(o => o.code !== '')}
-                        selected={selectedSetAsides}
-                        onChange={setSelectedSetAsides}
-                        placeholder="Any set-aside"
-                      />
-                    </div>
-                    {/* State */}
-                    <div>
-                      <MultiSelectDropdown
-                        label="State / Territory"
-                        options={US_STATES_AND_TERRITORIES.filter(l => l.code !== '')}
-                        selected={selectedStates}
-                        onChange={setSelectedStates}
-                        placeholder="Any state"
-                      />
-                    </div>
-                    {/* Agency */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Agency</label>
-                      <input type="text" value={agency} onChange={(e) => setAgency(e.target.value)}
-                        placeholder="e.g., Dept of Defense"
-                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
-                    </div>
-                    {/* NAICS */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">NAICS Code</label>
-                      <input type="text" value={naics} onChange={(e) => setNaics(e.target.value)}
-                        placeholder="e.g., 541512"
-                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
-                    </div>
-                    {/* Procurement type */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Opportunity Type</label>
-                      <select value={procurementType} onChange={(e) => setProcurementType(e.target.value)}
-                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 focus:border-[#166534] outline-none transition-all">
-                        <option value="">All Types</option>
-                        <option value="o">Solicitation</option>
-                        <option value="k">Combined Synopsis/Solicitation</option>
-                        <option value="p">Pre-Solicitation</option>
-                        <option value="r">Sources Sought</option>
-                        <option value="a">Award Notice</option>
-                        <option value="u">Justification (J&amp;A)</option>
-                        <option value="s">Special Notice</option>
-                      </select>
-                    </div>
-                    {/* PSC */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">PSC Code</label>
-                      <input type="text" value={classificationCode} onChange={(e) => setClassificationCode(e.target.value)}
-                        placeholder="e.g., R425"
-                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
-                    </div>
-                    {/* Solicitation # */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Solicitation #</label>
-                      <input type="text" value={solicitationNumber} onChange={(e) => setSolicitationNumber(e.target.value)}
-                        placeholder="e.g., W912DY24R0001"
-                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-300 focus:border-[#166534] outline-none transition-all" />
-                    </div>
-                    {/* Status */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Status</label>
-                      <select value={opportunityStatus} onChange={(e) => setOpportunityStatus(e.target.value)}
-                        style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}
-                        className="w-full h-10 px-3 rounded-lg border-2 border-gray-200 text-sm font-medium text-gray-900 focus:border-[#166534] outline-none transition-all">
-                        <option value="">All Statuses</option>
-                        <option value="active">Active</option>
-                        <option value="archived">Archived</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                  </div>
+ {/* Results cards */}
+ {filteredResults.length > 0 ? (
+ <>
+ {viewMode === 'list' ? (
+ <div className="space-y-3">
+ {filteredResults.map((opp, idx) => (
+ <div key={opp.noticeId || idx}
+ className="result-list-card bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all p-5"
+ style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
+ {/* Title row */}
+ <div className="flex items-start justify-between gap-3 mb-3">
+ <h3 className="font-bold text-gray-900 leading-snug flex-1" style={{ fontSize: "18px" }}>
+ {opp.uiLink
+ ? <a href={opp.uiLink} target="_blank"rel="noopener noreferrer"className="hover:text-[#166534] hover:underline transition-colors">{opp.title || 'Untitled Opportunity'}</a>
+ : (opp.title || 'Untitled Opportunity')}
+ </h3>
+ <button onClick={() => {
+ if (!requireAccess('Save Opportunities')) return;
+ toggleSaved(opp.noticeId || String(idx), opp);
+ }} className="flex-shrink-0 mt-0.5">
+ <Bookmark className={`h-5 w-5 transition-colors ${saved[opp.noticeId || String(idx)] ? 'fill-current text-orange-500' : 'text-gray-300 hover:text-orange-400'}`} />
+ </button>
+ </div>
+ {/* Key fields grid */}
+ <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 mb-3">
+ {opp.solicitationNumber && (
+ <div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Solicitation #</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{opp.solicitationNumber}</div>
+ </div>
+ )}
+ <div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Agency</div>
+ <div className="text-sm font-semibold text-[#166534] line-clamp-1">{opp.department || opp.fullParentPathName || opp.office || '—'}</div>
+ </div>
+ <div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Set-Aside</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{getSetAsideLabel(opp.typeOfSetAside || opp.setAside || '') || 'None'}</div>
+ </div>
+ <div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Location</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{[opp.placeOfPerformance?.city?.name, opp.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || '—'}</div>
+ </div>
+ {opp.naicsCode && (
+ <div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>NAICS</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{opp.naicsCode}</div>
+ </div>
+ )}
+ {opp.postedDate && (
+ <div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Posted</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{new Date(opp.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+ </div>
+ )}
+ {opp.responseDeadLine && (
+ <div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Response Due</div>
+ <div className={`text-sm font-bold ${new Date(opp.responseDeadLine).getTime() - Date.now() < 7 * 86400000 ? 'text-red-500 ' : 'text-amber-600 '}`}>
+ {new Date(opp.responseDeadLine).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+ </div>
+ </div>
+ )}
+ </div>
+ {/* Actions */}
+ <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+ <button
+ className="font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors" style={{ fontSize: "16px" }}
+ onClick={() => toggleExpanded(opp.noticeId || String(idx))}
+ >
+ {expanded[opp.noticeId || String(idx)] ? 'Hide Details' : 'View Details'}
+ </button>
+ {opp.uiLink && (
+ <a href={opp.uiLink} target="_blank"rel="noopener noreferrer"
+ className="font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors" style={{ fontSize: "16px" }}>
+ SAM.gov <ArrowUpRight className="h-3.5 w-3.5"/>
+ </a>
+ )}
+ {copiedId === opp.noticeId ? (
+ <span className="text-xs text-green-600 font-semibold">Copied!</span>
+ ) : (
+ <button onClick={() => copyText(opp.noticeId || '')}
+ className="font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors" style={{ fontSize: "16px" }}>
+ <Copy className="h-3 w-3"/>Copy ID
+ </button>
+ )}
+ </div>
+ {expanded[opp.noticeId || String(idx)] && isAuthenticated && opp.description && (
+ <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600 leading-relaxed line-clamp-6">
+ {opp.description}
+ </div>
+ )}
+ </div>
+ ))}
+ </div>
+ ) : (
+ <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+ {filteredResults.map((opp, idx) => (
+ <OpportunityCard
+ key={opp.noticeId || idx}
+ opportunity={opp} index={idx}
+ isSaved={!!saved[opp.noticeId || String(idx)]}
+ toggleSaved={toggleSaved}
+ copyText={copyText} copiedId={copiedId}
+ />
+ ))}
+ </div>
+ )}
 
-                  {/* Active filter chips */}
-                  {(agency || selectedSetAsides.length > 0 || naics || selectedStates.length > 0 || procurementType || classificationCode || solicitationNumber || opportunityStatus) && (
-                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
-                      {agency && <FilterChip label={`Agency: ${agency}`} onRemove={() => setAgency('')} />}
-                      {selectedSetAsides.length > 0 && <FilterChip label={`Set-Aside: ${selectedSetAsides.length === 1 ? (getSetAsideLabel(selectedSetAsides[0]) || selectedSetAsides[0]) : `${selectedSetAsides.length} selected`}`} onRemove={() => setSelectedSetAsides([])} />}
-                      {naics && <FilterChip label={`NAICS: ${naics}`} onRemove={() => setNaics('')} />}
-                      {selectedStates.length > 0 && <FilterChip label={`State: ${selectedStates.length === 1 ? getLocationLabel(selectedStates[0]) : `${selectedStates.length} selected`}`} onRemove={() => setSelectedStates([])} />}
-                      {procurementType && <FilterChip label={`Type: ${procurementType}`} onRemove={() => setProcurementType('')} />}
-                      {classificationCode && <FilterChip label={`PSC: ${classificationCode}`} onRemove={() => setClassificationCode('')} />}
-                      {solicitationNumber && <FilterChip label={`Sol #: ${solicitationNumber}`} onRemove={() => setSolicitationNumber('')} />}
-                      {opportunityStatus && <FilterChip label={`Status: ${opportunityStatus}`} onRemove={() => setOpportunityStatus('active')} />}
-                    </div>
-                  )}
-                </div>
-              )}
+ {/* Load more */}
+ {hasMoreResults && (
+ <div className="text-center py-4">
+ <button onClick={() => runSearch(true)} disabled={loadingMore}
+ className="load-more-btn inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-[#166534] text-[#166534] font-bold text-sm hover:bg-green-50 transition-colors disabled:opacity-50">
+ {loadingMore ? <><Loader2 className="h-4 w-4 animate-spin"/>Loading…</> : <><Plus className="h-4 w-4"/>Load more results</>}
+ </button>
+ </div>
+ )}
+ </>
+ ) : (
+ <div className="no-results bg-white rounded-2xl border border-gray-200 shadow-sm py-16 text-center">
+ <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-4"/>
+ <h3 className="text-xl font-black text-gray-900 mb-2"style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>No Results Found</h3>
+ <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">Your filters returned 0 opportunities. Try broadening your search.</p>
+ <button onClick={resetAll}
+ className="pgc-green px-6 py-3 rounded-xl bg-[#166534] hover:bg-[#14532d] text-white font-bold text-sm transition-colors">
+ Clear All Filters &amp; Start Over
+ </button>
+ </div>
+ )}
+ </div>
+ )}
+ </div>
 
-              {/* Results toolbar count */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-                <span className="text-sm font-semibold text-gray-700">
-                  {showSavedOnly
-                    ? <>Showing <strong>{filteredResults.length}</strong> saved of {results.length} results</>
-                    : <>
-                        {filteredResults.length >= 100 ? '🎯 ' : filteredResults.length >= 10 ? '✅ ' : ''}
-                        <strong className="text-[#166534]">{filteredResults.length.toLocaleString()}</strong>{' '}
-                        {filteredResults.length === 1 ? 'opportunity' : 'opportunities'}
-                        {keywords && <> for <em>&quot;{keywords}&quot;</em></>} —{' '}
-                        <button onClick={() => handleOpenSaveModal('save')} className="underline text-gray-600 hover:text-[#166534] transition-colors">save this search</button>
-                        {' '}or{' '}
-                        <button onClick={() => handleOpenSaveModal('alert')} className="underline text-gray-600 hover:text-[#166534] transition-colors">get email alerts</button>
-                      </>
-                  }
-                </span>
-              </div>
+ {/* Sticky prompt */}
+ {showStickyPrompt && !stickyPromptDismissed && filteredResults.length > 0 && (
+ <StickyResultsPrompt
+ count={filteredResults.length} keywords={keywords}
+ postedAfter={postedAfter} responseDeadlineBefore={responseDeadlineBefore}
+ selectedSetAsides={selectedSetAsides} selectedStates={selectedStates}
+ onSave={() => { handleOpenSaveModal('save'); setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
+ onAlert={() => { handleOpenSaveModal('alert'); setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
+ onDismiss={() => { setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
+ />
+ )}
 
-              {/* Results cards */}
-              {filteredResults.length > 0 ? (
-                <>
-                  {viewMode === 'list' ? (
-                    <div className="space-y-3">
-                      {filteredResults.map((opp, idx) => (
-                        <div key={opp.noticeId || idx}
-                          className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#166534]/40 transition-all p-5"
-                          style={{ fontFamily: "'Aptos', Calibri, 'Segoe UI', Arial, sans-serif" }}>
-                          {/* Title row */}
-                          <div className="flex items-start justify-between gap-3 mb-3">
-                            <h3 className="text-base font-bold text-gray-900 leading-snug flex-1">
-                              {opp.uiLink
-                                ? <a href={opp.uiLink} target="_blank" rel="noopener noreferrer" className="hover:text-[#166534] hover:underline transition-colors">{opp.title || 'Untitled Opportunity'}</a>
-                                : (opp.title || 'Untitled Opportunity')}
-                            </h3>
-                            <button onClick={() => {
-                              if (!requireAccess('Save Opportunities')) return;
-                              toggleSaved(opp.noticeId || String(idx), opp);
-                            }} className="flex-shrink-0 mt-0.5">
-                              <Bookmark className={`h-5 w-5 transition-colors ${saved[opp.noticeId || String(idx)] ? 'fill-current text-orange-500' : 'text-gray-300 hover:text-orange-400'}`} />
-                            </button>
-                          </div>
-                          {/* Key fields grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 mb-3">
-                            {opp.solicitationNumber && (
-                              <div>
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Solicitation #</div>
-                                <div className="text-sm font-semibold text-gray-800">{opp.solicitationNumber}</div>
-                              </div>
-                            )}
-                            <div>
-                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Agency</div>
-                              <div className="text-sm font-semibold text-[#166534] line-clamp-1">{opp.department || opp.fullParentPathName || opp.office || '—'}</div>
-                            </div>
-                            <div>
-                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Set-Aside</div>
-                              <div className="text-sm font-semibold text-gray-800">{getSetAsideLabel(opp.typeOfSetAside || opp.setAside || '') || 'None'}</div>
-                            </div>
-                            <div>
-                              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Location</div>
-                              <div className="text-sm font-semibold text-gray-800">{[opp.placeOfPerformance?.city?.name, opp.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || '—'}</div>
-                            </div>
-                            {opp.naicsCode && (
-                              <div>
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">NAICS</div>
-                                <div className="text-sm font-semibold text-gray-800">{opp.naicsCode}</div>
-                              </div>
-                            )}
-                            {opp.postedDate && (
-                              <div>
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Posted</div>
-                                <div className="text-sm font-semibold text-gray-800">{new Date(opp.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                              </div>
-                            )}
-                            {opp.responseDeadLine && (
-                              <div>
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Response Due</div>
-                                <div className={`text-sm font-bold ${new Date(opp.responseDeadLine).getTime() - Date.now() < 7 * 86400000 ? 'text-red-600' : 'text-amber-600'}`}>
-                                  {new Date(opp.responseDeadLine).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          {/* Actions */}
-                          <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                            <button
-                              className="text-xs font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors"
-                              onClick={() => toggleExpanded(opp.noticeId || String(idx))}
-                            >
-                              {expanded[opp.noticeId || String(idx)] ? 'Hide Details' : 'View Details'}
-                            </button>
-                            {opp.uiLink && (
-                              <a href={opp.uiLink} target="_blank" rel="noopener noreferrer"
-                                className="text-xs font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors">
-                                SAM.gov <ArrowUpRight className="h-3.5 w-3.5" />
-                              </a>
-                            )}
-                            {copiedId === opp.noticeId ? (
-                              <span className="text-xs text-green-600 font-semibold">Copied!</span>
-                            ) : (
-                              <button onClick={() => copyText(opp.noticeId || '')}
-                                className="text-xs font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors">
-                                <Copy className="h-3 w-3" />Copy ID
-                              </button>
-                            )}
-                          </div>
-                          {expanded[opp.noticeId || String(idx)] && isAuthenticated && opp.description && (
-                            <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600 leading-relaxed line-clamp-6">
-                              {opp.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {filteredResults.map((opp, idx) => (
-                        <OpportunityCard
-                          key={opp.noticeId || idx}
-                          opportunity={opp} index={idx}
-                          isSaved={!!saved[opp.noticeId || String(idx)]}
-                          toggleSaved={toggleSaved}
-                          copyText={copyText} copiedId={copiedId}
-                        />
-                      ))}
-                    </div>
-                  )}
+ {/* Soft reminder at 10 / 15 min */}
+ <BrowseReminderModal
+ level={showReminderModal ? reminderLevel : 0}
+ onClose={() => setShowReminderModal(false)}
+ onSignUp={() => { setShowReminderModal(false); setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }}
+ />
 
-                  {/* Load more */}
-                  {hasMoreResults && (
-                    <div className="text-center py-4">
-                      <button onClick={() => runSearch(true)} disabled={loadingMore}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-[#166534] text-[#166534] font-bold text-sm hover:bg-green-50 transition-colors disabled:opacity-50">
-                        {loadingMore ? <><Loader2 className="h-4 w-4 animate-spin" />Loading…</> : <><Plus className="h-4 w-4" />Load more results</>}
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm py-16 text-center">
-                  <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-black text-gray-900 mb-2" style={{ fontFamily: "'Aptos Display', Calibri, sans-serif" }}>No Results Found</h3>
-                  <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">Your filters returned 0 opportunities. Try broadening your search.</p>
-                  <button onClick={resetAll}
-                    className="pgc-green px-6 py-3 rounded-xl bg-[#166534] hover:bg-[#14532d] text-white font-bold text-sm transition-colors">
-                    Clear All Filters &amp; Start Over
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+ {/* Hard lockout at 20 min */}
+ {showLockoutModal && !hasValidAccess && (
+ <LockoutModal
+ onSignUp={() => { setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }}
+ onClose={() => setShowLockoutModal(false)}
+ />
+ )}
 
-        {/* Sticky prompt */}
-        {showStickyPrompt && !stickyPromptDismissed && filteredResults.length > 0 && (
-          <StickyResultsPrompt
-            count={filteredResults.length} keywords={keywords}
-            postedAfter={postedAfter} responseDeadlineBefore={responseDeadlineBefore}
-            selectedSetAsides={selectedSetAsides} selectedStates={selectedStates}
-            onSave={() => { handleOpenSaveModal('save'); setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
-            onAlert={() => { handleOpenSaveModal('alert'); setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
-            onDismiss={() => { setStickyPromptDismissed(true); setShowStickyPrompt(false); }}
-          />
-        )}
-
-        {/* Soft reminder at 10 / 15 min */}
-        <BrowseReminderModal
-          level={showReminderModal ? reminderLevel : 0}
-          onClose={() => setShowReminderModal(false)}
-          onSignUp={() => { setShowReminderModal(false); setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }}
-        />
-
-        {/* Hard lockout at 20 min */}
-        {showLockoutModal && !hasValidAccess && (
-          <LockoutModal
-            onSignUp={() => { setBlockedFeature('Search Federal Opportunities'); setShowAccessModal(true); }}
-            onClose={() => setShowLockoutModal(false)}
-          />
-        )}
-
-        {/* Modals */}
-        <UnifiedSaveSearchModal
-          mode={saveModalMode} isOpen={showSaveModal} onClose={() => setShowSaveModal(false)}
-          searchParams={{
-            title: keywords.trim(), postedFrom: postedAfter.trim(),
-            rdlto: responseDeadlineBefore.trim(), solnum: solicitationNumber.trim(),
-            ptype: procurementType, typeOfSetAside: setAsideCodesToString(selectedSetAsides),
-            status: opportunityStatus.trim(), state: locationCodesToString(selectedStates),
-            ncode: naics.trim(), ccode: classificationCode.trim(), organizationName: agency.trim(),
-          }}
-          onSave={handleSaveSuccess}
-        />
-        <SaveSearchSuccessModal
-          isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)}
-          searchName={successData.searchName} isSubscription={successData.isSubscription}
-        />
-        {/* Only render AccessControlModal if explicitly triggered by user action */}
-        {showAccessModal && (
-          <AccessControlModal
-            isOpen={showAccessModal}
-            onClose={() => setShowAccessModal(false)}
-            featureName={blockedFeature}
-          />
-        )}
-      </main>
-    </SearchErrorBoundary>
-  )
+ {/* Modals */}
+ <UnifiedSaveSearchModal
+ mode={saveModalMode} isOpen={showSaveModal} onClose={() => setShowSaveModal(false)}
+ searchParams={{
+ title: keywords.trim(), postedFrom: postedAfter.trim(),
+ rdlto: responseDeadlineBefore.trim(), solnum: solicitationNumber.trim(),
+ ptype: procurementType, typeOfSetAside: setAsideCodesToString(selectedSetAsides),
+ status: opportunityStatus.trim(), state: locationCodesToString(selectedStates),
+ ncode: naics.trim(), ccode: classificationCode.trim(), organizationName: agency.trim(),
+ }}
+ onSave={handleSaveSuccess}
+ />
+ <SaveSearchSuccessModal
+ isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)}
+ searchName={successData.searchName} isSubscription={successData.isSubscription}
+ />
+ {/* Only render AccessControlModal if explicitly triggered by user action */}
+ {showAccessModal && (
+ <AccessControlModal
+ isOpen={showAccessModal}
+ onClose={() => setShowAccessModal(false)}
+ featureName={blockedFeature}
+ />
+ )}
+ </main>
+ </SearchErrorBoundary>
+ )
 }
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-xs font-semibold"
-      style={{ fontFamily: "'Aptos', Calibri, sans-serif" }}>
-      {label}
-      <button onClick={onRemove} className="hover:text-red-500 transition-colors ml-0.5">
-        <X className="h-3 w-3" />
-      </button>
-    </span>
-  );
+ return (
+ <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-gray-700 border border-gray-200 rounded-full text-xs font-semibold"
+ >
+ {label}
+ <button onClick={onRemove} className="hover:text-red-500 transition-colors ml-0.5">
+ <X className="h-3 w-3"/>
+ </button>
+ </span>
+ );
 }

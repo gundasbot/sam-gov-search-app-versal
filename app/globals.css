@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 /* Cookie Consent Styles (moved from CookieConsent.tsx) */
 @keyframes cookieIn {
   from {
@@ -84,10 +86,10 @@
 }
 
 [data-theme="dark"] {
-  --color-bg: #0f1418;
-  --color-surface: #151c21;
-  --color-surface-muted: #1b242b;
-  --color-border: #27323a;
+  --color-bg: #18232c;
+  --color-surface: #1e2d3a;
+  --color-surface-muted: #263545;
+  --color-border: #304558;
 
   --color-text-primary: #e9eef2;
   --color-text-secondary: #d6e0e6;
@@ -680,7 +682,7 @@ select:focus-visible {
 .pg-search-modern .bg-slate-700,
 .pg-search-modern .bg-slate-800,
 .pg-search-modern .bg-slate-900 {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%) !important;
+  background-color: var(--color-surface) !important;
 }
 
 /* Insights page normalization for dark mode readability */
@@ -1231,12 +1233,6 @@ select:focus-visible {
 }
 
 /* Search restraint pass: less glow, less border noise, clearer separation */
-.pg-search-modern {
-  --color-primary: #4e7663;
-  --color-primary-hover: #456755;
-  --color-accent-soft: #eef3f0;
-}
-
 .pg-search-modern .border-2 {
   border-width: 1px !important;
 }
@@ -1246,4 +1242,150 @@ select:focus-visible {
 .pg-search-modern .shadow-lg,
 .pg-search-modern [class*="shadow-"] {
   box-shadow: 0 4px 10px color-mix(in srgb, #0f1720 7%, transparent) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SEARCH PAGE — Inter font + readable text sizes
+   Uses body .search-main specificity to beat p{font-size:17px}
+══════════════════════════════════════════════════════════════════ */
+body .search-main,
+body .search-main * {
+  font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif !important;
+}
+
+/* Beat p{font-size:17px} global rule */
+body .search-main p:not([style*="font-size"]) {
+  font-size: 17px !important;
+  line-height: 1.6 !important;
+}
+body .search-main .text-sm  { font-size: 17px !important; }
+body .search-main .text-xs  { font-size: 15px !important; }
+body .search-main .text-base{ font-size: 18px !important; }
+body .search-main .text-lg  { font-size: 20px !important; }
+body .search-main .text-xl  { font-size: 22px !important; }
+body .search-main .text-2xl { font-size: 26px !important; }
+
+/* Dark mode for search page — covers both data-theme and .dark class */
+[data-theme="dark"] .search-main,
+.dark .search-main {
+  background: #18232c !important;
+}
+[data-theme="dark"] .how-to-steps,
+.dark .how-to-steps {
+  background: #1e2d3a !important;
+}
+[data-theme="dark"] .how-to-step-card,
+.dark .how-to-step-card {
+  background: #263545 !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .how-to-step-card span,
+[data-theme="dark"] .how-to-step-card p,
+.dark .how-to-step-card span,
+.dark .how-to-step-card p {
+  color: #e9eef2 !important;
+}
+[data-theme="dark"] .search-card,
+.dark .search-card {
+  background: #1e2d3a !important;
+  border-color: #22c55e !important;
+}
+[data-theme="dark"] .date-section,
+.dark .date-section {
+  background: #18232c !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .date-input,
+.dark .date-input {
+  background: #263545 !important;
+  color: #e9eef2 !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .search-action-row,
+.dark .search-action-row {
+  background: #1e2d3a !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .results-card,
+.dark .results-card {
+  background: #1e2d3a !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .filter-panel,
+.dark .filter-panel {
+  background: #1e2d3a !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .filter-panel label,
+[data-theme="dark"] .filter-panel p,
+[data-theme="dark"] .filter-panel span,
+.dark .filter-panel label,
+.dark .filter-panel p,
+.dark .filter-panel span {
+  color: #b8cad4 !important;
+}
+[data-theme="dark"] .filter-panel input,
+[data-theme="dark"] .filter-panel select,
+.dark .filter-panel input,
+.dark .filter-panel select {
+  background: #263545 !important;
+  color: #e9eef2 !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .result-list-card,
+.dark .result-list-card {
+  background: #1e2d3a !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .result-list-card h3,
+.dark .result-list-card h3 { color: #e9eef2 !important; }
+[data-theme="dark"] .result-field-label,
+.dark .result-field-label { color: #5a7a8a !important; }
+[data-theme="dark"] .result-field-value,
+.dark .result-field-value { color: #e9eef2 !important; }
+[data-theme="dark"] .results-count-bar,
+.dark .results-count-bar {
+  background: #1e2d3a !important;
+  border-color: #304558 !important;
+  color: #b8cad4 !important;
+}
+[data-theme="dark"] .no-results,
+.dark .no-results {
+  background: #1e2d3a !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .no-results h3,
+.dark .no-results h3 { color: #e9eef2 !important; }
+[data-theme="dark"] .no-results p,
+.dark .no-results p { color: #b8cad4 !important; }
+[data-theme="dark"] .multi-select-trigger,
+.dark .multi-select-trigger {
+  background: #263545 !important;
+  color: #e9eef2 !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .multi-select-dropdown,
+.dark .multi-select-dropdown {
+  background: #1e2d3a !important;
+  border-color: #304558 !important;
+}
+[data-theme="dark"] .multi-select-dropdown label,
+.dark .multi-select-dropdown label { color: #b8cad4 !important; }
+[data-theme="dark"] .save-btn,
+.dark .save-btn {
+  background: #263545 !important;
+  border-color: #304558 !important;
+  color: #b8cad4 !important;
+}
+[data-theme="dark"] .date-btn-green,
+.dark .date-btn-green {
+  background: #263545 !important;
+  color: #86efac !important;
+  border-color: #22c55e !important;
+}
+[data-theme="dark"] .date-btn-amber,
+.dark .date-btn-amber {
+  background: #263545 !important;
+  color: #fbbf24 !important;
+  border-color: #d97706 !important;
 }
