@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Check, Zap, Shield, Users, Star, ArrowRight, Clock, Award, CheckCircle2, Database, Target, Bell, BarChart3, Filter, Download, Share2, Headphones } from 'lucide-react'
 
-const plans = [
+const HARDCODED_PLANS = [
   {
     id: 'basic',
     name: 'Basic',
@@ -98,10 +98,50 @@ const preciseNumberFormatter = new Intl.NumberFormat('en-US', {
 
 export default function PricingClient() {
   const [annual, setAnnual] = useState(false)
+  const [plans, setPlans] = useState(HARDCODED_PLANS)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/stripe/prices')
+      .then(res => res.json())
+      .then((stripePrices) => {
+        if (!Array.isArray(stripePrices) || stripePrices.length === 0) {
+          setLoading(false)
+          return
+        }
+        // Map Stripe prices to plan structure
+        const updatedPlans = HARDCODED_PLANS.map(plan => {
+          const monthly = stripePrices.find(p => p.tier === plan.id.toUpperCase() && p.interval === 'monthly')
+          const annual = stripePrices.find(p => p.tier === plan.id.toUpperCase() && p.interval === 'annual')
+          return {
+            ...plan,
+            monthlyPrice: monthly ? monthly.unitAmount / 100 : plan.monthlyPrice,
+            annualPrice: annual ? annual.unitAmount / 100 : plan.annualPrice,
+            monthlyPriceId: monthly ? monthly.priceId : undefined,
+            annualPriceId: annual ? annual.priceId : undefined,
+            currency: monthly ? monthly.currency : (annual ? annual.currency : 'usd'),
+          }
+        })
+        setPlans(updatedPlans)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
 
   const maxAnnualDiscount = Math.max(
     ...plans.map((plan) => ((plan.monthlyPrice * 12 - plan.annualPrice) / (plan.monthlyPrice * 12)) * 100)
   )
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-(--color-bg)">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-14 w-14 rounded-full border-4 border-[--color-border] border-t-[--color-primary] animate-spin" />
+          <p className="text-lg font-semibold text-[--color-text-secondary]">Loading pricing...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white min-h-screen">
@@ -121,7 +161,7 @@ export default function PricingClient() {
           </div>
           
           {/* Billing Toggle - Fixed with explicit orange color */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <div className="bg-slate-100 rounded-2xl p-1 inline-flex gap-1">
               <button
                 onClick={() => setAnnual(false)}
@@ -165,7 +205,7 @@ export default function PricingClient() {
             {leftFeatures.map((feature, idx) => (
               <div key={idx} className="flex items-start gap-4">
                 <div 
-                  className="rounded-xl p-2.5 flex-shrink-0"
+                  className="rounded-xl p-2.5 shrink-0"
                   style={{ backgroundColor: feature.bgColor }}
                 >
                   <div style={{ color: feature.color }}>{feature.icon}</div>
@@ -243,12 +283,12 @@ export default function PricingClient() {
                         </p>
                       </div>
 
-                      <div className="flex-grow mb-6">
+                      <div className="grow mb-6">
                         <p className="font-bold text-slate-900 mb-3 text-sm">What's included:</p>
                         <ul className="space-y-2.5">
                           {plan.features.map((feature) => (
                             <li key={feature} className="flex items-start gap-2.5">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                               <span className="text-sm text-slate-600">{feature}</span>
                             </li>
                           ))}
@@ -281,7 +321,7 @@ export default function PricingClient() {
             {rightFeatures.map((feature, idx) => (
               <div key={idx} className="flex items-start gap-4">
                 <div 
-                  className="rounded-xl p-2.5 flex-shrink-0"
+                  className="rounded-xl p-2.5 shrink-0"
                   style={{ backgroundColor: feature.bgColor }}
                 >
                   <div style={{ color: feature.color }}>{feature.icon}</div>

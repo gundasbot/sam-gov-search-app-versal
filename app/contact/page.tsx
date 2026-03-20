@@ -167,31 +167,39 @@ function ContactPageContent() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4 py-16">
+      <div
+        className="min-h-screen flex items-center justify-center px-4 py-16"
+        style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+      >
         <div className="max-w-md w-full text-center">
-          <div className="bg-slate-800/50 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm">
-            <div className="h-16 w-16 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="h-8 w-8 text-white" />
+          <div
+            className="rounded-2xl p-8 backdrop-blur-sm"
+            style={{ background: 'var(--color-surface-card)', border: '1.5px solid var(--color-border-card)' }}
+          >
+            <div
+              className="h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6"
+              style={{ background: 'var(--color-accent-muted)' }}
+            >
+              <CheckCircle className="h-8 w-8" style={{ color: 'var(--color-on-accent)' }} />
             </div>
-            
-            <h2 className="text-2xl font-bold text-white mb-4">
+            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
               Thank You!
             </h2>
-            
-            <p className="text-slate-300 mb-6">
+            <p className="mb-6" style={{ color: 'var(--color-text-body)' }}>
               We've received your inquiry and one of our team members will reach out to you within 24 hours.
             </p>
-            
             <div className="flex gap-3 justify-center">
               <Link
                 href="/search"
-                className="inline-flex items-center justify-center bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                style={{ background: 'var(--color-accent)', color: 'var(--color-on-accent)' }}
               >
                 Continue to Search
               </Link>
               <Link
                 href="/services"
-                className="inline-flex items-center justify-center bg-slate-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-600 transition-colors"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)' }}
               >
                 View Services
               </Link>
@@ -203,7 +211,7 @@ function ContactPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Dynamic Header based on service */}
         <div className="mb-10">
@@ -359,7 +367,7 @@ function ContactPageContent() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-linear-to-r from-emerald-500 to-cyan-500 text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -384,7 +392,7 @@ function ContactPageContent() {
               <ul className="space-y-4">
                 {config.benefits.map((benefit, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                     <span className="text-slate-300">{benefit}</span>
                   </li>
                 ))}
@@ -392,7 +400,7 @@ function ContactPageContent() {
             </div>
 
             {/* Schedule a Call with Calendly */}
-            <div className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm">
+            <div className="bg-linear-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm">
               <h3 className="text-xl font-bold text-white mb-4">Schedule a Call</h3>
               <p className="text-slate-300 text-sm mb-4">
                 Prefer to talk? Schedule a time that works for you.
@@ -401,7 +409,7 @@ function ContactPageContent() {
                 href={process.env.NEXT_PUBLIC_CALENDLY_LINK || 'https://calendly.com/contact-preciseanalytics/demo-session-with-precise-govcon'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                className="w-full inline-flex items-center justify-center gap-2 bg-linear-to-r from-emerald-500 to-cyan-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
               >
                 <Calendar className="h-5 w-5" />
                 Book a Meeting
@@ -447,7 +455,7 @@ function ContactPageContent() {
 export default function ContactPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     }>

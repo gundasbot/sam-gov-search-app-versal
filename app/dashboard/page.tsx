@@ -910,7 +910,7 @@ export default function DashboardPage() {
  const notifColorMap: Record<string, string> = { deadline:'text-amber-500', match:'text-emerald-500', alert:'text-rose-500', ai:'text-violet-500' }
 
  return (
- <div className="dashboard-page mx-auto w-full max-w-480 min-h-screen bg-linear-to-br from-white via-slate-50 to-blue-50 text-slate-900">
+ <div className="dashboard-page mx-auto w-full max-w-480 min-h-screen bg-(--color-surface) text-(--color-text-primary)">
  <style>{`
    /* ══════════════════════════════════════════════════════════════
       DASHBOARD DARK MODE — app uses [data-theme="dark"] + .dark
@@ -1302,7 +1302,7 @@ export default function DashboardPage() {
  <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pb-10">
 
  {/* ── Hero section ─────────────────────────────────────────────────── */}
- <section className="relative overflow-hidden rounded-2xl mb-4 shadow-md border border-slate-200 bg-linear-to-br from-white via-slate-50 to-sky-50 ">
+ <section className="relative overflow-hidden rounded-2xl mb-4 shadow-md border border-(--color-border) bg-(--color-surface) ">
  <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6">
  {isAuth ? (
  <div className="flex flex-col gap-5">
@@ -1326,7 +1326,7 @@ export default function DashboardPage() {
  </div>
  )}
  </div>
- <h1 className="text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
+ <h1 className="text-4xl lg:text-5xl font-black leading-tight">
  {dash.loading
  ? <span className="text-slate-400">Loading…</span>
  : <>{greeting}, <span style={{color: hour < 12 ? '#fbbf24' : hour < 17 ? '#f97316' : '#7c3aed'}}>{name}</span>.</>}
@@ -1372,19 +1372,19 @@ export default function DashboardPage() {
  )}
 
  {/* Headline — full width, all colours */}
- <h1 style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif', fontWeight: 900, fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', lineHeight: 1.15, marginBottom: '1.25rem' }}>
- {dash.loading ? (
- <span style={{ color: '#94a3b8' }}>Loading…</span>
- ) : (
- <>
- <span style={{ color: '#f97316' }}>Welcome</span>
- <span style={{ color: '#1e293b' }}> to </span>
- <span style={{ color: '#0ea5e9' }}>PreciseGovCon</span>
- <span style={{ color: '#1e293b' }}>'s </span>
- <span style={{ color: '#10b981' }}>Contract Intelligence</span>
- <span style={{ color: '#1e293b' }}> Dashboard</span>
- </>
- )}
+ <h1 style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif', fontWeight: 900, fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', lineHeight: 1.15, marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>
+   {dash.loading ? (
+     <span style={{ color: 'var(--color-text-tertiary, #94a3b8)' }}>Loading…</span>
+   ) : (
+     <>
+       <span style={{ color: 'var(--color-accent, #f97316)' }}>Welcome</span>
+       <span style={{ color: 'var(--color-text-primary)' }}> to </span>
+       <span style={{ color: 'var(--color-link, #0ea5e9)' }}>PreciseGovCon</span>
+       <span style={{ color: 'var(--color-text-primary)' }}>'s </span>
+       <span style={{ color: 'var(--color-success, #10b981)' }}>Contract Intelligence</span>
+       <span style={{ color: 'var(--color-text-primary)' }}> Dashboard</span>
+     </>
+   )}
  </h1>
 
  {/* Three-column content row — value text spans 2, chips in last col */}
@@ -1392,13 +1392,13 @@ export default function DashboardPage() {
 
  {/* Col 1–2: Value statement — takes up 2/3 of the width */}
  <div className="md:col-span-2">
- <p style={{ fontSize: '19px', fontWeight: 700, color: '#1e293b', lineHeight: 1.7, marginBottom: '12px' }}>
+ <p style={{ fontSize: '19px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.7, marginBottom: '12px' }}>
  Your personalized procurement intelligence hub — live contract opportunities scored against your{' '}
  <span style={{ color: '#1d4ed8', fontWeight: 800 }}>certifications</span>,{' '}
  <span style={{ color: '#6d28d9', fontWeight: 800 }}>NAICS codes</span>, and{' '}
  <span style={{ color: '#047857', fontWeight: 800 }}>agency preferences</span>.
  </p>
- <p style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', lineHeight: 1.6 }}>
+ <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
  <span style={{ color: '#ea580c', fontWeight: 900 }}>Sign in</span> to activate AI match scoring, deadline alerts, and a pipeline built for your business.
  </p>
  {/* Feature chips — 2-col grid, stretches full width */}
@@ -1418,18 +1418,18 @@ export default function DashboardPage() {
  </div>
 
  {/* Col 3: CTA box */}
- <div className="md:col-span-1 p-5 rounded-2xl bg-white border-2 border-orange-200 shadow-xl ">
- <p style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', marginBottom: '4px' }}>Start for free</p>
- <p style={{ fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '16px', lineHeight: 1.5 }}>
+ <div className="md:col-span-1 p-5 rounded-2xl bg-(--color-surface) border-2 border-orange-200 shadow-xl ">
+ <p style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Start for free</p>
+ <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
  Join thousands of small businesses winning government contracts with AI-powered intelligence.
  </p>
- <Link href="/register" style={{ display: 'block', textAlign: 'center', padding: '12px 20px', borderRadius: '10px', background: '#ea580c', color: 'white', fontWeight: 900, fontSize: '14px', textDecoration: 'none', marginBottom: '10px' }} className="hover:brightness-110 transition-all">
+ <Link href="/register" style={{ display: 'block', textAlign: 'center', padding: '12px 20px', borderRadius: '10px', background: 'var(--color-accent)', color: 'white', fontWeight: 900, fontSize: '14px', textDecoration: 'none', marginBottom: '10px' }} className="hover:brightness-110 transition-all">
  Create Free Account
  </Link>
- <Link href="/login" style={{ display: 'block', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', border: '2px solid #d1d5db', color: '#374151', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }} className="hover:bg-slate-50 transition-colors ">
+ <Link href="/login" style={{ display: 'block', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', border: '2px solid var(--color-border)', color: 'var(--color-text-secondary)', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }} className="hover:bg-(--color-surface-muted) transition-colors ">
  Sign In to Your Dashboard
  </Link>
- <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '10px' }}>No credit card required · SDVOSB &amp; VOSB friendly</p>
+ <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', textAlign: 'center', marginTop: '10px' }}>No credit card required · SDVOSB &amp; VOSB friendly</p>
  </div>
  </div>
  </div>

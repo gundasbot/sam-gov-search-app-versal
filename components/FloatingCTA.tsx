@@ -43,9 +43,8 @@ function FloatingCTA() {
     }
   }, [])
 
-  const goToSearch = useCallback(() => {
-    // Pass ?from=cta to trigger modal for non-authenticated visitors
-    router.push("/search?from=cta")
+  const goToSignup = useCallback(() => {
+    router.push("/signup")
   }, [router])
 
   useEffect(() => {
@@ -119,8 +118,8 @@ function FloatingCTA() {
 
           {/* Main CTA Card */}
           <button
-            onClick={goToSearch}
-            className="flex max-w-[22rem] items-center gap-3 rounded-2xl px-4 py-3.5 shadow-2xl hover:scale-[1.02] transition-all duration-300"
+            onClick={goToSignup}
+            className="flex max-w-88 items-center gap-3 rounded-2xl px-4 py-3.5 shadow-2xl hover:scale-[1.02] transition-all duration-300"
             style={{
               background: 'linear-gradient(135deg, #4f8d67 0%, #3e7656 100%)',
             }}
@@ -167,17 +166,17 @@ function FloatingCTA() {
 
           {/* CTA Content */}
           <button
-            onClick={goToSearch}
+            onClick={goToSignup}
             className="w-full px-5 py-3.5 flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 flex-shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 shrink-0">
               <Search className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-bold text-white">Start Your Free Trial</p>
               <p className="text-xs text-white/90">Search 1,000+ government contracts</p>
             </div>
-            <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse flex-shrink-0" />
+            <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse shrink-0" />
           </button>
         </div>
       </div>

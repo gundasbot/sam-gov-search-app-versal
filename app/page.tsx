@@ -8,6 +8,18 @@ import {
   Search, Bell, BarChart3, Shield, ArrowRight, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
+// ─── Theme hook — reads data-theme from <html> and reacts to changes ──────────
+function useIsDark() {
+  const [isDark, setIsDark] = useState(false)
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.getAttribute('data-theme') === 'dark')
+    check()
+    window.addEventListener('pg-theme-change', check)
+    return () => window.removeEventListener('pg-theme-change', check)
+  }, [])
+  return isDark
+}
+
 // ─── Font stack: Aptos (Win11/Office) → Segoe UI → system-ui ─────────────────
 const F = `Aptos, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif`
 
@@ -125,6 +137,7 @@ function Pill({ label }: { label: string }) {
 
 // ─── Hero Slider ──────────────────────────────────────────────────────────────
 function HeroSlider() {
+  const isDark = useIsDark()
   const HERO_W: React.CSSProperties = {
     maxWidth: 1920,
     margin: '0 auto',
@@ -174,7 +187,7 @@ function HeroSlider() {
   return (
     <div style={{ width: '100%' }}>
       <div style={HERO_W}>
-        <div style={{ background: s.bg, transition: 'background 0.5s ease', position: 'relative', overflow: 'hidden', borderRadius: 18 }}>
+        <div style={{ background: isDark ? '#0f172a' : s.bg, transition: 'background 0.5s ease', position: 'relative', overflow: 'hidden', borderRadius: 18 }}>
 
           {/* ── Animated slide content ── */}
           <div style={anim}>
@@ -189,7 +202,7 @@ function HeroSlider() {
                   margin: '0 auto',
                   borderRadius: 22,
                   overflow: 'hidden',
-                  background: `linear-gradient(120deg, #ffffff 0%, #ffffff 52%, ${s.aLight} 100%)`,
+                  background: isDark ? `linear-gradient(120deg, #1e293b 0%, #1e293b 52%, ${s.aLight}22 100%)` : `linear-gradient(120deg, #ffffff 0%, #ffffff 52%, ${s.aLight} 100%)`,
                   border: `1px solid ${s.aMid}2c`,
                   boxShadow: '0 16px 36px rgba(15,23,42,0.09)',
                 }}
@@ -204,7 +217,8 @@ function HeroSlider() {
               </div>
 
               {/* Heading */}
-              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: '#0f172a', margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
+
+              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: 'var(--color-text-primary)', margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
                 {s.heading}
               </h1>
               <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: s.accent, margin: '0 0 14px', letterSpacing: '-0.02em', fontFamily: F }}>
@@ -212,7 +226,7 @@ function HeroSlider() {
               </h1>
 
               {/* Body */}
-              <p style={{ fontSize: 'clamp(18px, 1.35vw, 24px)', color: '#334155', lineHeight: 1.55, maxWidth: 760, margin: '0 0 20px', fontFamily: F }}>
+              <p style={{ fontSize: 'clamp(18px, 1.35vw, 24px)', color: 'var(--color-text-body)', lineHeight: 1.55, maxWidth: 760, margin: '0 0 20px', fontFamily: F }}>
                 {s.body}
               </p>
 
@@ -226,7 +240,20 @@ function HeroSlider() {
                 </Link>
                 <Link
                   href={s.ctaAlt.href}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 22px', borderRadius: 11, background: '#fff', color: '#374151', border: '1.5px solid #d1d5db', fontSize: 16, fontWeight: 600, fontFamily: F, textDecoration: 'none' }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '12px 22px',
+                    borderRadius: 11,
+                    background: 'var(--color-surface-alt)',
+                    color: 'var(--color-text-primary)',
+                    border: '1.5px solid var(--color-border)',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    fontFamily: F,
+                    textDecoration: 'none',
+                  }}
                 >
                   {s.ctaAlt.label}
                 </Link>
@@ -237,7 +264,7 @@ function HeroSlider() {
                 {s.stats.map(st => (
                   <div key={st.l}>
                     <p style={{ fontSize: 'clamp(36px, 2.9vw, 48px)', fontWeight: 800, color: s.accent, margin: 0, lineHeight: 1, fontFamily: F }}>{st.v}</p>
-                    <p style={{ fontSize: 'clamp(14px, 1.05vw, 17px)', color: '#64748b', margin: '4px 0 0', fontWeight: 700, fontFamily: F }}>{st.l}</p>
+                    <p style={{ fontSize: 'clamp(14px, 1.05vw, 17px)', color: 'var(--color-text-secondary)', margin: '4px 0 0', fontWeight: 700, fontFamily: F }}>{st.l}</p>
                   </div>
                 ))}
               </div>
@@ -291,7 +318,7 @@ function HeroSlider() {
                     border: `1px solid ${s.aMid}38`,
                     fontSize: 'clamp(12px, 0.95vw, 14px)',
                     fontWeight: 800,
-                    color: '#334155',
+                    color: isDark ? '#cbd5e1' : '#334155',
                     lineHeight: 1.15,
                     fontFamily: F,
                     whiteSpace: 'nowrap',
@@ -303,18 +330,18 @@ function HeroSlider() {
 
                   {/* Opportunity rows */}
                   {OPPS.map((opp, i) => (
-                    <div key={i} style={{ padding: '12px 13px', borderRadius: 12, background: i === 0 ? s.aLight : 'rgba(248,250,252,0.85)', border: `1px solid ${i === 0 ? s.aMid + '30' : '#e2e8f0'}`, marginBottom: i < 2 ? 9 : 0 }}>
+                    <div key={i} style={{ padding: '12px 13px', borderRadius: 12, background: i === 0 ? (isDark ? s.aLight + '22' : s.aLight) : 'var(--color-surface-alt)', border: `1px solid ${i === 0 ? s.aMid + '30' : 'var(--color-border)'}`, marginBottom: i < 2 ? 9 : 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-                    <p style={{ fontSize: 'clamp(15px, 1.08vw, 18px)', fontWeight: 800, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
+                    <p style={{ fontSize: 'clamp(15px, 1.08vw, 18px)', fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
                     <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: opp.match >= 85 ? '#0d9488' : '#0369a1', background: opp.match >= 85 ? '#f0fdfa' : '#f0f9ff', border: `1px solid ${opp.match >= 85 ? '#99f6e4' : '#bae6fd'}`, borderRadius: 7, padding: '2px 8px', fontFamily: F }}>
                       {opp.match}%
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ fontSize: 'clamp(13px, 1.02vw, 16px)', color: '#334155', fontWeight: 700, fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>{opp.agency}</span>
+                    <span style={{ fontSize: 'clamp(13px, 1.02vw, 16px)', color: 'var(--color-text-secondary)', fontWeight: 700, fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>{opp.agency}</span>
                     <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 5, padding: '1px 7px', fontFamily: F }}>{opp.deadline}</span>
                     <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: s.accent, background: s.aLight, border: `1px solid ${s.aMid}1e`, borderRadius: 5, padding: '1px 7px', fontFamily: F }}>{opp.sa}</span>
-                    <span style={{ fontSize: 'clamp(12px, 0.9vw, 14px)', color: '#1e293b', fontWeight: 800, marginLeft: 'auto', fontFamily: F }}>{opp.val}</span>
+                    <span style={{ fontSize: 'clamp(12px, 0.9vw, 14px)', color: 'var(--color-text-primary)', fontWeight: 800, marginLeft: 'auto', fontFamily: F }}>{opp.val}</span>
                   </div>
                     </div>
                   ))}
@@ -338,7 +365,7 @@ function HeroSlider() {
           </div>
 
           {/* ── Controls bar — same width as hero panel ── */}
-          <div style={{ borderTop: `1px solid ${s.aMid}26`, background: '#ffffff' }}>
+          <div style={{ borderTop: `1px solid ${s.aMid}26`, background: 'var(--color-surface-alt)' }}>
             <div style={{ padding: '0 clamp(14px, 2.2vw, 32px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               {/* Named tabs */}
               <div style={{ display: 'flex' }}>
@@ -346,7 +373,7 @@ function HeroSlider() {
               <button
                 key={i}
                 onClick={() => { goTo(i) }}
-                style={{ padding: '10px 16px', fontSize: 'clamp(13px, 0.95vw, 16px)', fontWeight: 700, color: i === cur ? sl.accent : '#9ca3af', background: 'transparent', border: 'none', borderBottom: `2px solid ${i === cur ? sl.accent : 'transparent'}`, transition: 'all 0.18s', cursor: 'pointer', fontFamily: F }}
+                style={{ padding: '10px 16px', fontSize: 'clamp(13px, 0.95vw, 16px)', fontWeight: 700, color: i === cur ? sl.accent : 'var(--color-text-secondary)', background: 'transparent', border: 'none', borderBottom: `2px solid ${i === cur ? sl.accent : 'transparent'}`, transition: 'all 0.18s', cursor: 'pointer', fontFamily: F }}
               >
                 {sl.tab}
               </button>
@@ -370,7 +397,7 @@ function HeroSlider() {
               <button
                 key={i}
                 onClick={b.fn}
-                style={{ width: 28, height: 28, borderRadius: 6, background: '#f1f5f9', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6b7280' }}
+                style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--color-surface)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-primary)' }}
               >
                 {b.el}
               </button>
@@ -386,6 +413,14 @@ function HeroSlider() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  // Dynamic surfaces
+  // Use CSS variables for theme-aware backgrounds and text
+  const pageBg    = 'var(--color-surface)'
+  const pageFg    = 'var(--color-text-primary)'
+  const cardBg    = 'var(--color-surface-card)'
+  const cardBorder= 'var(--color-border-card)'
+  const mutedBg   = 'var(--color-surface-muted)'
+  const bodyFg    = 'var(--color-text-body)'
   return (
     <>
       <style>{`
@@ -409,7 +444,7 @@ export default function LandingPage() {
         }
       `}</style>
 
-      <div className="land" style={{ fontFamily: F, background: '#f8fafc', color: '#0f172a' }}>
+      <div className="land" style={{ fontFamily: F, background: pageBg, color: pageFg }}>
 
         {/* ── Hero slider — zero gap from nav ── */}
         <HeroSlider />
@@ -418,10 +453,10 @@ export default function LandingPage() {
         <div style={{ ...W, paddingTop: 56, paddingBottom: 56 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <Pill label="Platform Features" />
-            <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: '#0f172a', margin: '0 0 12px', letterSpacing: '-0.02em', fontFamily: F }}>
+            <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: pageFg, margin: '0 0 12px', letterSpacing: '-0.02em', fontFamily: F }}>
               Everything you need to win more contracts
             </h2>
-            <p style={{ fontSize: 18, color: '#1e293b', maxWidth: 560, margin: '0 auto', lineHeight: 1.7, fontFamily: F, fontWeight: 500 }}>
+            <p style={{ fontSize: 18, color: bodyFg, maxWidth: 560, margin: '0 auto', lineHeight: 1.7, fontFamily: F, fontWeight: 500 }}>
               Purpose-built tools for government contractors serious about growing their pipeline.
             </p>
           </div>
@@ -432,13 +467,13 @@ export default function LandingPage() {
                 key={f.title}
                 href={f.href}
                 className="fcard"
-                style={{ display: 'flex', flexDirection: 'column', borderRadius: 14, background: '#fff', border: '1.5px solid #d8e3ef', padding: '22px 20px', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', textDecoration: 'none', minHeight: 252 }}
+                style={{ display: 'flex', flexDirection: 'column', borderRadius: 14, background: cardBg, border: `1.5px solid ${cardBorder}`, padding: '22px 20px', boxShadow: '0 2px 8px var(--color-shadow-card)', textDecoration: 'none', minHeight: 252 }}
               >
                 <div style={{ width: 38, height: 38, borderRadius: 9, background: f.bg, border: `1px solid ${f.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
                   <f.Icon style={{ width: 17, height: 17, color: f.color }} />
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 10px', fontFamily: F }}>{f.title}</h3>
-                <p style={{ fontSize: 16, color: '#1e293b', lineHeight: 1.65, margin: '0 0 16px', fontFamily: F, fontWeight: 500 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: pageFg, margin: '0 0 10px', fontFamily: F }}>{f.title}</h3>
+                <p style={{ fontSize: 16, color: bodyFg, lineHeight: 1.65, margin: '0 0 16px', fontFamily: F, fontWeight: 500 }}>
                   {f.desc}
                 </p>
                 <span style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 800, color: f.color, fontFamily: F }}>
@@ -450,14 +485,14 @@ export default function LandingPage() {
         </div>
 
         {/* ── How it works ── */}
-        <div style={{ background: '#eef2f7', width: '100%', padding: '56px 0' }}>
+        <div style={{ background: mutedBg, width: '100%', padding: '56px 0' }}>
           <div style={{ ...W }}>
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
               <Pill label="How It Works" />
-              <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: '#0f172a', margin: '0 0 12px', letterSpacing: '-0.02em', fontFamily: F }}>
+              <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: pageFg, margin: '0 0 12px', letterSpacing: '-0.02em', fontFamily: F }}>
                 A repeatable bid pipeline in three steps
               </h2>
-              <p style={{ fontSize: 18, color: '#1e293b', maxWidth: 540, margin: '0 auto', lineHeight: 1.7, fontFamily: F, fontWeight: 500 }}>
+              <p style={{ fontSize: 18, color: bodyFg, maxWidth: 540, margin: '0 auto', lineHeight: 1.7, fontFamily: F, fontWeight: 500 }}>
                 Reduce manual effort and improve win rate by turning one-off searching into a system.
               </p>
             </div>
@@ -467,13 +502,13 @@ export default function LandingPage() {
                 <div
                   key={step.n}
                   className="scard"
-                  style={{ borderRadius: 14, background: '#fff', border: `1.5px solid ${step.color}22`, padding: '22px 20px', boxShadow: '0 2px 9px rgba(15,23,42,0.05)', minHeight: 236 }}
+                  style={{ borderRadius: 14, background: cardBg, border: `1.5px solid ${step.color}22`, padding: '22px 20px', boxShadow: '0 2px 9px var(--color-shadow-card)', minHeight: 236 }}
                 >
                   <div style={{ fontSize: 38, fontWeight: 900, lineHeight: 1, color: step.bg, WebkitTextStroke: `2px ${step.color}2e`, marginBottom: 12, fontFamily: F }}>
                     {step.n}
                   </div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 10px', fontFamily: F }}>{step.title}</h3>
-                  <p style={{ fontSize: 16, color: '#1e293b', lineHeight: 1.68, margin: 0, fontFamily: F, fontWeight: 500 }}>{step.desc}</p>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: pageFg, margin: '0 0 10px', fontFamily: F }}>{step.title}</h3>
+                  <p style={{ fontSize: 16, color: bodyFg, lineHeight: 1.68, margin: 0, fontFamily: F, fontWeight: 500 }}>{step.desc}</p>
                   <div style={{ marginTop: 20, height: 2.5, borderRadius: 2, background: `linear-gradient(90deg, ${step.color}, transparent)` }} />
                 </div>
               ))}
@@ -494,10 +529,10 @@ export default function LandingPage() {
         <div style={{ ...W, paddingTop: 52, paddingBottom: 52 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <Pill label="Pricing" />
-            <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: '#0f172a', margin: '0 0 10px', letterSpacing: '-0.02em', fontFamily: F }}>
+            <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: pageFg, margin: '0 0 10px', letterSpacing: '-0.02em', fontFamily: F }}>
               View full monthly and annual pricing
             </h2>
-            <p style={{ fontSize: 17, color: '#334155', maxWidth: 560, margin: '0 auto', lineHeight: 1.65, fontFamily: F, fontWeight: 500 }}>
+            <p style={{ fontSize: 17, color: bodyFg, maxWidth: 560, margin: '0 auto', lineHeight: 1.65, fontFamily: F, fontWeight: 500 }}>
               We moved plan details off the homepage so you can compare all tiers and annual savings in one place.
             </p>
 

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 
 // ─── Plan definitions — mirrors PricingClient exactly ─────────────────────────
-const PLANS = [
+const HARDCODED_PLANS = [
   {
     id: 'BASIC',
     name: 'Basic',
@@ -105,9 +105,9 @@ function PasswordStrength({ password }: { password: string }) {
       {checks.map(c => (
         <div key={c.label} className="flex items-center gap-1">
           {c.pass
-            ? <Check className="w-3 h-3 text-[var(--color-primary)]" />
+            ? <Check className="w-3 h-3 text-(--color-primary)" />
             : <X     className="w-3 h-3 text-red-400" />}
-          <span className={`text-xs ${c.pass ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-subtle)]'}`}>{c.label}</span>
+          <span className={`text-xs ${c.pass ? 'text-(--color-primary)' : 'text-(--color-text-subtle)'}`}>{c.label}</span>
         </div>
       ))}
     </div>
@@ -119,7 +119,9 @@ export default function SignUpClient() {
   const searchParams = useSearchParams()
   const emailParam   = searchParams.get('email') ?? ''
   const planParam    = searchParams.get('plan')?.toUpperCase()
-  const initialPlan  = planParam && PLANS.find(p => p.id === planParam) ? planParam : 'PROFESSIONAL'
+  const [plans, setPlans] = useState(HARDCODED_PLANS)
+  const [plansLoading, setPlansLoading] = useState(true)
+  const initialPlan  = planParam && plans.find(p => p.id === planParam) ? planParam : 'PROFESSIONAL'
 
   const [name,            setName]            = useState('')
   const [company,         setCompany]         = useState('')
@@ -134,6 +136,34 @@ export default function SignUpClient() {
   const [error,           setError]           = useState('')
   const [registered,      setRegistered]      = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
+
+  // Fetch live Stripe prices on mount
+  useEffect(() => {
+    fetch('/api/stripe/prices')
+      .then(res => res.json())
+      .then((stripePrices) => {
+        if (!Array.isArray(stripePrices) || stripePrices.length === 0) {
+          setPlansLoading(false)
+          return
+        }
+        // Map Stripe prices to plan structure
+        const updatedPlans = HARDCODED_PLANS.map(plan => {
+          const monthly = stripePrices.find(p => p.tier === plan.id && p.interval === 'monthly')
+          const annual = stripePrices.find(p => p.tier === plan.id && p.interval === 'annual')
+          return {
+            ...plan,
+            monthlyPrice: monthly ? monthly.unitAmount / 100 : plan.monthlyPrice,
+            annualPrice: annual ? annual.unitAmount / 100 : plan.annualPrice,
+            monthlyPriceId: monthly ? monthly.priceId : undefined,
+            annualPriceId: annual ? annual.priceId : undefined,
+            currency: monthly ? monthly.currency : (annual ? annual.currency : 'usd'),
+          }
+        })
+        setPlans(updatedPlans)
+        setPlansLoading(false)
+      })
+      .catch(() => setPlansLoading(false))
+  }, [])
 
   async function handleOAuth(provider: 'google' | 'azure-ad') {
     setLoading(true)
@@ -165,7 +195,7 @@ export default function SignUpClient() {
     }
   }
 
-  const activePlan    = PLANS.find(p => p.id === selectedPlan)!
+  const activePlan    = plans.find(p => p.id === selectedPlan)!
   const annualTotal   = activePlan.annualPrice
   const displayPrice  = annual ? annualTotal : activePlan.monthlyPrice
   const annualSavings = Math.round((activePlan.monthlyPrice * 12) - activePlan.annualPrice)
@@ -266,40 +296,50 @@ export default function SignUpClient() {
     )
   }
 
+  if (plansLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-(--color-bg)">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-14 w-14 rounded-full border-4 border-[--color-border] border-t-[--color-primary] animate-spin" />
+          <p className="text-lg font-semibold text-[--color-text-secondary]">Loading plans...</p>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="pg-theme-cleanup pg-uniform">
 
       {/* ── Top notice bar ─────────────────────────────────────────────────── */}
-      <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] py-2 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1920px] mx-auto flex items-center justify-between gap-3">
+      <div className="bg-(--color-surface) border-b border-(--color-border) py-2 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-480 mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse flex-shrink-0" />
-            <span className="text-[var(--color-primary)] text-xs sm:text-sm font-bold leading-tight truncate">
+            <div className="w-2 h-2 rounded-full bg-(--color-primary) animate-pulse shrink-0" />
+            <span className="text-(--color-primary) text-xs sm:text-sm font-bold leading-tight truncate">
               7-DAY FREE TRIAL · CANCEL ANYTIME
             </span>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm text-[var(--color-text-secondary)] flex-shrink-0">
-            <span><span className="text-[var(--color-text-primary)] font-bold">2,400+</span> contractors</span>
-            <span><span className="text-[var(--color-text-primary)] font-bold">4.9/5</span> rating</span>
-            <span><span className="text-[var(--color-text-primary)] font-bold">SOC 2</span> secure</span>
+          <div className="hidden md:flex items-center gap-6 text-sm text-(--color-text-secondary) shrink-0">
+            <span><span className="text-(--color-text-primary) font-bold">2,400+</span> contractors</span>
+            <span><span className="text-(--color-text-primary) font-bold">4.9/5</span> rating</span>
+            <span><span className="text-(--color-text-primary) font-bold">SOC 2</span> secure</span>
           </div>
         </div>
       </div>
 
       {/* ── Main two-column layout ──────────────────────────────────────────── */}
       <div
-        className="max-w-[1920px] mx-auto flex flex-col lg:flex-row lg:overflow-hidden"
+        className="max-w-480 mx-auto flex flex-col lg:flex-row lg:overflow-hidden"
         style={{ minHeight: 'calc(100dvh - 144px)' }}
       >
 
         {/* ════════════════════════════════════════════════════════════════════
             LEFT — registration form
         ════════════════════════════════════════════════════════════════════ */}
-        <div className="w-full lg:w-[55%] flex flex-col bg-[var(--color-surface)] border-b lg:border-b-0 lg:border-r border-[var(--color-border)] lg:overflow-y-auto">
+        <div className="w-full lg:w-[55%] flex flex-col bg-(--color-surface) border-b lg:border-b-0 lg:border-r border-(--color-border) lg:overflow-y-auto">
 
           {/* Header banner */}
           <div
-            className="px-4 sm:px-8 py-5 sm:py-6 flex items-start sm:items-center justify-between gap-3 flex-shrink-0"
+            className="px-4 sm:px-8 py-5 sm:py-6 flex items-start sm:items-center justify-between gap-3 shrink-0"
             style={{
               background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
               borderBottom: '1px solid rgba(249,115,22,0.25)',
@@ -324,7 +364,7 @@ export default function SignUpClient() {
                 Get started in 60 seconds · Cancel anytime
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap justify-end">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap justify-end">
               <div
                 className="hidden sm:flex items-center gap-2 rounded-xl px-4 py-2"
                 style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)' }}
@@ -351,7 +391,7 @@ export default function SignUpClient() {
               {/* Error */}
               {error && (
                 <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4">
-                  <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                   <p className="text-sm sm:text-base text-red-700">{error}</p>
                 </div>
               )}
@@ -361,7 +401,7 @@ export default function SignUpClient() {
                 type="button"
                 onClick={() => handleOAuth('google')}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] text-base font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)] transition-all disabled:opacity-50 shadow-sm"
+                className="w-full flex items-center justify-center gap-3 h-12 rounded-xl border-2 border-(--color-border) bg-(--color-surface) text-base font-semibold text-(--color-text-primary) hover:bg-(--color-surface-muted) transition-all disabled:opacity-50 shadow-sm"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -373,9 +413,9 @@ export default function SignUpClient() {
               </button>
 
               <div className="relative">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[var(--color-border)]" /></div>
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-(--color-border)" /></div>
                 <div className="relative flex justify-center">
-                  <span className="bg-[var(--color-surface)] px-4 text-xs font-bold uppercase tracking-widest text-[var(--color-text-subtle)]">or register with email</span>
+                  <span className="bg-(--color-surface) px-4 text-xs font-bold uppercase tracking-widest text-(--color-text-subtle)">or register with email</span>
                 </div>
               </div>
 
@@ -384,33 +424,33 @@ export default function SignUpClient() {
                 {/* Name + Company */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs sm:text-sm font-bold text-[var(--color-text-secondary)] mb-1.5 uppercase tracking-wide">Full Name *</label>
+                    <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">Full Name *</label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" required
-                      className="pg-input h-12 px-4 text-base bg-[var(--color-surface-muted)] placeholder:text-[var(--color-text-subtle)]" />
+                      className="pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-bold text-[var(--color-text-secondary)] mb-1.5 uppercase tracking-wide">Company</label>
+                    <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">Company</label>
                     <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Optional"
-                      className="pg-input h-12 px-4 text-base bg-[var(--color-surface-muted)] placeholder:text-[var(--color-text-subtle)]" />
+                      className="pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" />
                   </div>
                 </div>
 
                 {/* Email */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-[var(--color-text-secondary)] mb-1.5 uppercase tracking-wide">Work Email *</label>
+                  <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">Work Email *</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required
-                    className="pg-input h-12 px-4 text-base bg-[var(--color-surface-muted)] placeholder:text-[var(--color-text-subtle)]" />
+                    className="pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" />
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-[var(--color-text-secondary)] mb-1.5 uppercase tracking-wide">Password *</label>
+                  <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">Password *</label>
                   <div className="relative">
                     <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="Min. 8 characters" required minLength={8}
-                      className="pg-input h-12 px-4 pr-12 text-base bg-[var(--color-surface-muted)] placeholder:text-[var(--color-text-subtle)]" />
+                      className="pg-input h-12 px-4 pr-12 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)] hover:text-[var(--color-text-secondary)]"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-(--color-text-subtle) hover:text-(--color-text-secondary)"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -420,21 +460,21 @@ export default function SignUpClient() {
 
                 {/* Confirm Password */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-[var(--color-text-secondary)] mb-1.5 uppercase tracking-wide">Confirm Password *</label>
+                  <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">Confirm Password *</label>
                   <div className="relative">
                     <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                       placeholder="Re-enter your password" required
                       className={[
-                        'w-full h-12 rounded-xl border bg-[var(--color-surface-muted)] px-4 pr-16 text-base text-[var(--color-text-primary)] placeholder:text-[var(--color-text-subtle)] focus:outline-none focus:ring-2 transition-all',
+                        'w-full h-12 rounded-xl border bg-(--color-surface-muted) px-4 pr-16 text-base text-(--color-text-primary) placeholder:text-(--color-text-subtle) focus:outline-none focus:ring-2 transition-all',
                         passwordsMismatch ? 'border-red-400 focus:ring-red-400/30'
-                          : passwordsMatch ? 'border-[var(--color-primary)] focus:ring-[var(--color-primary)]/30'
-                          : 'border-[var(--color-border)] focus:ring-[var(--color-primary)]/30 focus:border-[var(--color-primary)]',
+                          : passwordsMatch ? 'border-(--color-primary) focus:ring-(--color-primary)/30'
+                          : 'border-(--color-border) focus:ring-(--color-primary)/30 focus:border-(--color-primary)',
                       ].join(' ')} />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                      {passwordsMatch    && <Check className="w-4 h-4 text-[var(--color-primary)]" />}
+                      {passwordsMatch    && <Check className="w-4 h-4 text-(--color-primary)" />}
                       {passwordsMismatch && <X     className="w-4 h-4 text-red-400" />}
                       <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                        className="text-[var(--color-text-subtle)] hover:text-[var(--color-text-secondary)]"
+                        className="text-(--color-text-subtle) hover:text-(--color-text-secondary)"
                         aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}>
                         {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>

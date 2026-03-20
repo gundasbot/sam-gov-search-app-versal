@@ -201,53 +201,65 @@ export default function FeaturesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-8 relative overflow-hidden">
+    <main
+      className="min-h-screen pt-8 relative overflow-hidden"
+      style={{
+        background: 'var(--color-surface)',
+        color: 'var(--color-text-primary)',
+      }}
+    >
       <Script id="precisegovcon-features-jsonld" type="application/ld+json" strategy="afterInteractive">
         {JSON.stringify(jsonLd)}
       </Script>
 
       {/* Animated background elements (matches /login) */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
-        <div
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '1000ms' }}
-        />
-        <div
-          className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: '2000ms' }}
-        />
-      </div>
+      {/* Remove fixed color blobs for theme consistency, or replace with theme-aware variables if needed */}
 
       {/* Grid pattern overlay */}
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+      {/* Remove fixed grid overlay or make theme-aware if needed */}
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-24 pb-16 px-6">
+      <section
+        className="relative z-10 pt-24 pb-16 px-6"
+        style={{ background: 'var(--color-surface)' }}
+      >
         <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 mb-6">
+          <div
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
+            style={{
+              background: 'var(--color-surface-muted)',
+              border: '1px solid var(--color-border-card)',
+            }}
+          >
             <Zap className="w-4 h-4 text-emerald-400" />
             <span className="text-sm font-semibold text-emerald-300">Complete Feature Suite</span>
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-black mb-6">
-            <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-              Everything You Need
-            </span>
+          <h1
+            className="text-5xl md:text-6xl font-black mb-6"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Everything You Need
             <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent">
-              To Win Government Contracts
-            </span>
+            To Win Government Contracts
           </h1>
 
-          <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8 leading-relaxed">
+          <p
+            className="text-xl max-w-3xl mx-auto mb-8 leading-relaxed"
+            style={{ color: 'var(--color-text-body)' }}
+          >
             From real-time opportunity discovery to AI-powered matching and advanced analytics — Precise GovCon provides a complete toolkit
             for federal contractors and growing teams.
           </p>
 
           <Link
             href="/search"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold text-lg rounded-xl shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 px-8 py-4 font-bold text-lg rounded-xl transition-all hover:scale-105"
+            style={{
+              background: 'var(--color-accent)',
+              color: 'var(--color-on-accent)',
+              boxShadow: '0 3px 14px var(--color-shadow-card)',
+            }}
           >
             <Search className="w-5 h-5" />
             Try It Now
@@ -257,34 +269,49 @@ export default function FeaturesPage() {
       </section>
 
       {/* Core Features - Detailed Cards */}
-      <section className="relative z-10 py-16 px-6">
+      <section
+        className="relative z-10 py-16 px-6"
+        style={{ background: 'var(--color-surface)' }}
+      >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Core Platform Features</h2>
-            <p className="text-slate-400 text-lg">Powerful tools that give you the competitive edge</p>
+            <h2
+              className="text-3xl md:text-4xl font-bold mb-4"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Core Platform Features
+            </h2>
+            <p className="text-lg" style={{ color: 'var(--color-text-body)' }}>
+              Powerful tools that give you the competitive edge
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {coreFeatures.map((feature, index) => (
               <div
                 key={feature.title}
-                className="group relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 hover:border-emerald-500/30 transition-all duration-300"
+                className="group relative backdrop-blur-xl border rounded-2xl p-8 transition-all duration-300"
+                style={{
+                  background: 'var(--color-surface-card)',
+                  border: '1.5px solid var(--color-border-card)',
+                  color: 'var(--color-text-primary)',
+                }}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Icon with gradient background */}
                 <div
-                  className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}
+                  className={`inline-flex items-center justify-center w-16 h-16 bg-linear-to-br ${feature.gradient} rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}
                 >
                   <feature.icon className="w-8 h-8 text-white" />
                 </div>
 
-                <h3 className="text-2xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-slate-400 mb-4">{feature.description}</p>
+                <h3 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>{feature.title}</h3>
+                <p className="mb-4" style={{ color: 'var(--color-text-body)' }}>{feature.description}</p>
 
                 <ul className="space-y-2">
                   {feature.details.map((detail) => (
-                    <li key={detail} className="flex items-start gap-2 text-slate-300 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <li key={detail} className="flex items-start gap-2 text-sm" style={{ color: 'var(--color-text-body)' }}>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                       <span>{detail}</span>
                     </li>
                   ))}
@@ -292,7 +319,7 @@ export default function FeaturesPage() {
 
                 {/* Hover gradient border effect */}
                 <div
-                  className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none`}
+                  className={`absolute inset-0 rounded-2xl bg-linear-to-r ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none`}
                 />
               </div>
             ))}
@@ -301,27 +328,42 @@ export default function FeaturesPage() {
       </section>
 
       {/* Business Intelligence Features */}
-      <section className="relative z-10 py-16 px-6 bg-gradient-to-r from-emerald-500/5 via-cyan-500/5 to-teal-500/5">
+      <section
+        className="relative z-10 py-16 px-6"
+        style={{ background: 'var(--color-surface-muted)' }}
+      >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Business Intelligence Tools</h2>
-            <p className="text-slate-400 text-lg">Data-driven insights to guide your strategy</p>
+            <h2
+              className="text-3xl md:text-4xl font-bold mb-4"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Business Intelligence Tools
+            </h2>
+            <p className="text-lg" style={{ color: 'var(--color-text-body)' }}>
+              Data-driven insights to guide your strategy
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {businessFeatures.map((feature) => (
               <div
                 key={feature.title}
-                className="bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl border border-slate-700/30 rounded-xl p-6 hover:border-cyan-500/30 transition-all"
+                className="backdrop-blur-xl border rounded-xl p-6 transition-all"
+                style={{
+                  background: 'var(--color-surface-card)',
+                  border: '1.5px solid var(--color-border-card)',
+                  color: 'var(--color-text-primary)',
+                }}
               >
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 rounded-xl mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-linear-to-br from-cyan-500/20 to-emerald-500/20 rounded-xl mb-4">
                   <feature.icon className="w-6 h-6 text-cyan-400" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">{feature.title}</h4>
-                <p className="text-slate-400 text-sm mb-4">{feature.description}</p>
+                <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>{feature.title}</h4>
+                <p className="text-sm mb-4" style={{ color: 'var(--color-text-body)' }}>{feature.description}</p>
                 <ul className="space-y-1.5">
                   {feature.items.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-slate-400 text-xs">
+                    <li key={item} className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-body)' }}>
                       <div className="w-1 h-1 bg-emerald-400 rounded-full" />
                       <span>{item}</span>
                     </li>
@@ -334,24 +376,39 @@ export default function FeaturesPage() {
       </section>
 
       {/* Platform Features Grid */}
-      <section className="relative z-10 py-16 px-6">
+      <section
+        className="relative z-10 py-16 px-6"
+        style={{ background: 'var(--color-surface)' }}
+      >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Platform Capabilities</h2>
-            <p className="text-slate-400 text-lg">Enterprise-grade features for serious contractors</p>
+            <h2
+              className="text-3xl md:text-4xl font-bold mb-4"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Platform Capabilities
+            </h2>
+            <p className="text-lg" style={{ color: 'var(--color-text-body)' }}>
+              Enterprise-grade features for serious contractors
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {platformFeatures.map((feature) => (
               <div
                 key={feature.title}
-                className="group bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl border border-slate-700/30 rounded-xl p-6 hover:border-emerald-500/30 transition-all text-center"
+                className="group backdrop-blur-xl border rounded-xl p-6 transition-all text-center"
+                style={{
+                  background: 'var(--color-surface-card)',
+                  border: '1.5px solid var(--color-border-card)',
+                  color: 'var(--color-text-primary)',
+                }}
               >
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-xl mb-4 group-hover:scale-110 transition-transform">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-linear-to-br from-emerald-500/20 to-cyan-500/20 rounded-xl mb-4 group-hover:scale-110 transition-transform">
                   <feature.icon className="w-6 h-6 text-emerald-300" />
                 </div>
-                <h4 className="text-lg font-bold text-white mb-2">{feature.title}</h4>
-                <p className="text-slate-400 text-sm">{feature.description}</p>
+                <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>{feature.title}</h4>
+                <p className="text-sm" style={{ color: 'var(--color-text-body)' }}>{feature.description}</p>
               </div>
             ))}
           </div>
@@ -359,14 +416,31 @@ export default function FeaturesPage() {
       </section>
 
       {/* Feature Comparison */}
-      <section className="relative z-10 py-16 px-6 bg-gradient-to-r from-slate-900/50 to-slate-800/50">
+      <section
+        className="relative z-10 py-16 px-6"
+        style={{ background: 'var(--color-surface-muted)' }}
+      >
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Why Precise GovCon Stands Out</h2>
-            <p className="text-slate-400">Built for contractors who need speed, coverage, and clarity — not another spreadsheet.</p>
+            <h2
+              className="text-3xl md:text-4xl font-bold mb-4"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Why Precise GovCon Stands Out
+            </h2>
+            <p style={{ color: 'var(--color-text-body)' }}>
+              Built for contractors who need speed, coverage, and clarity — not another spreadsheet.
+            </p>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden">
+          <div
+            className="backdrop-blur-xl border rounded-2xl overflow-hidden"
+            style={{
+              background: 'var(--color-surface-card)',
+              border: '1.5px solid var(--color-border-card)',
+              color: 'var(--color-text-primary)',
+            }}
+          >
             <div className="grid grid-cols-3 gap-px bg-slate-700/30">
               {/* Header */}
               <div className="bg-slate-900 p-4">
@@ -433,16 +507,16 @@ export default function FeaturesPage() {
       <section className="relative z-10 py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">Ready to Get Started?</span>
+            <span className="bg-linear-to-r from-emerald-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">Ready to Get Started?</span>
           </h2>
           <p className="text-xl text-slate-300 mb-8">Start discovering federal opportunities with a platform designed for speed and clarity.</p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/search"
-              className="group relative px-8 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold text-lg rounded-xl shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all hover:scale-105 overflow-hidden"
+              className="group relative px-8 py-4 bg-linear-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold text-lg rounded-xl shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all hover:scale-105 overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
               <span className="relative flex items-center gap-2">
                 <Search className="w-5 h-5" />
                 Start Searching Now
@@ -451,7 +525,7 @@ export default function FeaturesPage() {
 
             <Link
               href="/about"
-              className="px-8 py-4 border-2 border-slate-600 hover:border-cyan-500/50 bg-gradient-to-r from-slate-800/80 to-slate-900/80 hover:from-slate-800 hover:to-slate-900 text-white font-bold text-lg rounded-xl transition-all hover:scale-105"
+              className="px-8 py-4 border-2 border-slate-600 hover:border-cyan-500/50 bg-linear-to-r from-slate-800/80 to-slate-900/80 hover:from-slate-800 hover:to-slate-900 text-white font-bold text-lg rounded-xl transition-all hover:scale-105"
             >
               Learn More About Us
             </Link>

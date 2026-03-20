@@ -251,17 +251,18 @@ function SimpleBarList({
       {slice.map((it, idx) => (
         <div key={`${it.name}-${idx}`} className="space-y-1">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-semibold text-gray-900 truncate">
+            <div className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>
               {it.name}
             </div>
-            <div className="text-sm font-bold text-gray-700">
+            <div className="text-sm font-bold" style={{ color: 'var(--color-text-body)' }}>
               {formatCompact(it.count)}
             </div>
           </div>
-          <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-2 w-full rounded-full overflow-hidden" style={{ background: 'var(--color-surface-muted)' }}>
             <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-500"
+              className="h-full rounded-full"
               style={{
+                background: 'var(--color-accent)',
                 width: `${Math.max(
                   4,
                   Math.round((it.count / max) * 100)
@@ -298,15 +299,14 @@ function Donut({
     const offset = c * (1 - acc - frac);
     acc += frac;
 
-    const colorClass =
-      idx % 4 === 0
-        ? 'text-emerald-600'
-        : idx % 4 === 1
-        ? 'text-orange-500'
-        : idx % 4 === 2
-        ? 'text-blue-500'
-        : 'text-purple-500';
-
+    // Use theme accent colors for contrast
+    const colorVars = [
+      'var(--color-accent)',
+      'var(--color-accent-alt)',
+      'var(--color-accent-muted)',
+      'var(--color-accent-secondary)'
+    ];
+    const strokeColor = colorVars[idx % colorVars.length];
     return (
       <circle
         key={`${s.name}-${idx}`}
@@ -314,11 +314,10 @@ function Donut({
         cx={60}
         cy={60}
         fill="transparent"
-        stroke="currentColor"
+        stroke={strokeColor}
         strokeWidth={stroke}
         strokeDasharray={`${dash} ${gap}`}
         strokeDashoffset={offset}
-        className={colorClass}
         strokeLinecap="butt"
       />
     );
@@ -1069,14 +1068,14 @@ export default function InsightsPage() {
   };
 
   return (
-    <div className="pg-theme-cleanup pg-insights-modern min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 text-[14px] sm:text-[15px]">
+    <div className="pg-theme-cleanup pg-insights-modern min-h-screen bg-linear-to-br from-slate-50 to-gray-100 text-[14px] sm:text-[15px]">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-5">
+        <div className="max-w-480 mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-5">
           <div className="flex flex-col lg:flex-row lg:items-center items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-emerald-500 flex items-center justify-center shadow-md flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-linear-to-br from-orange-500 to-emerald-500 flex items-center justify-center shadow-md shrink-0">
                   <LineChart className="h-4 w-4 text-white" />
                 </div>
                 <div className="min-w-0">
@@ -1169,7 +1168,7 @@ export default function InsightsPage() {
                     {a.sub}
                   </div>
                 </div>
-                <div className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-900 transition flex-shrink-0">
+                <div className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-900 transition shrink-0">
                   <ArrowUpRight className="h-4 w-4 text-gray-700 group-hover:text-white transition" />
                 </div>
               </button>
@@ -1179,7 +1178,7 @@ export default function InsightsPage() {
       </div>
 
       {/* Main */}
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
+      <div className="max-w-480 mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6" style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
         {!!error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 mt-0.5" />
@@ -1187,7 +1186,7 @@ export default function InsightsPage() {
               <div className="font-bold">
                 Insights could not fully refresh
               </div>
-              <div className="text-red-700 break-words">
+              <div className="text-red-700 wrap-break-word">
                 {error}
               </div>
             </div>
@@ -1198,7 +1197,8 @@ export default function InsightsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <button
             onClick={() => handlePillClick('active')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
+            className="text-left rounded-3xl border shadow-sm hover:shadow-md transition p-4"
+            style={{ background: 'var(--color-surface-card)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border-card)' }}
           >
             <div className="flex items-center justify-between">
               <div>
@@ -1364,7 +1364,7 @@ export default function InsightsPage() {
                         </div>
                         <div className="h-2 w-40 rounded-full bg-gray-100 overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                            className="h-full rounded-full bg-linear-to-r from-blue-500 to-cyan-500"
                             style={{
                               width: `${Math.max(
                                 4,
@@ -1445,7 +1445,7 @@ export default function InsightsPage() {
                           </div>
                           <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500"
+                              className="h-full rounded-full bg-linear-to-r from-orange-500 to-red-500"
                               style={{
                                 width: `${Math.max(
                                   4,
@@ -1656,14 +1656,14 @@ export default function InsightsPage() {
                           </div>
                         </div>
                         <div
-                          className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${kpi.color} text-white flex items-center justify-center`}
+                          className={`h-12 w-12 rounded-2xl bg-linear-to-br ${kpi.color} text-white flex items-center justify-center`}
                         >
                           {kpi.icon}
                         </div>
                       </div>
                       <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
                         <div
-                          className={`h-full rounded-full bg-gradient-to-r ${kpi.color}`}
+                          className={`h-full rounded-full bg-linear-to-r ${kpi.color}`}
                           style={{
                             width: `${Math.min(100, Math.max(8, kpi.progress))}%`,
                           }}
@@ -1718,7 +1718,7 @@ export default function InsightsPage() {
                       >
                         <div className="flex items-center gap-4">
                           <div
-                            className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${executionToneBg[item.tone]} text-white flex items-center justify-center`}
+                            className={`h-12 w-12 rounded-2xl bg-linear-to-br ${executionToneBg[item.tone]} text-white flex items-center justify-center`}
                           >
                             <Icon className="h-5 w-5" />
                           </div>
@@ -1834,7 +1834,7 @@ export default function InsightsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-gray-200 bg-gradient-to-r from-gray-50 to-white p-4 flex items-center justify-between gap-3">
+              <div className="mt-4 rounded-2xl border border-gray-200 bg-linear-to-r from-gray-50 to-white p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-extrabold text-gray-900">
                     Suggested operating rhythm
@@ -1918,9 +1918,9 @@ export default function InsightsPage() {
                             </>
                           )}
                         </div>
-                        <div className="mt-2 h-2 w-20 rounded-full bg-gradient-to-r bg-gray-100 overflow-hidden">
+                        <div className="mt-2 h-2 w-20 rounded-full bg-linear-to-r bg-gray-100 overflow-hidden">
                           <div
-                            className={`h-full w-full rounded-full bg-gradient-to-r ${
+                            className={`h-full w-full rounded-full bg-linear-to-r ${
                               trendColors[
                                 index % trendColors.length
                               ]
@@ -1970,7 +1970,7 @@ export default function InsightsPage() {
                     >
                       <div className="flex items-start gap-3">
                         <div
-                          className={`h-10 w-10 rounded-2xl bg-gradient-to-br ${grad} text-white flex items-center justify-center shadow-sm shrink-0`}
+                          className={`h-10 w-10 rounded-2xl bg-linear-to-br ${grad} text-white flex items-center justify-center shadow-sm shrink-0`}
                         >
                           <CategoryIcon className="h-5 w-5" />
                         </div>

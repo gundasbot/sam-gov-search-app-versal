@@ -144,7 +144,7 @@ export default function Header() {
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
   const activePillClasses = 'bg-[#ff7a18] text-white font-black'
-  const inactivePillClasses = 'text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300'
+  const inactivePillClasses = 'border-b-2 border-transparent hover:border-[#ff7a18]'
 
   // Nav link sizing — compact enough that all 9 items fit at lg without any overflow or clipping
   const navLinkBase = 'flex items-center gap-1.5 whitespace-nowrap font-semibold tracking-tight transition-all flex-shrink-0'
@@ -165,18 +165,18 @@ export default function Header() {
       `}</style>
 
       {/* ── LIVE TICKER ── */}
-      <div ref={tickerRef} className="fixed inset-x-0 top-0 z-50 text-slate-900" style={{ backgroundColor: '#ffffff', borderBottom: 'none' }}>
+      <div ref={tickerRef} className="fixed inset-x-0 top-0 z-50" style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', color: 'var(--color-text-primary)' }}>
         <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="flex items-center justify-between py-2 sm:py-3 min-h-[44px]">
             {/* Label + count */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold">
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
                 <div className="w-2 h-2 rounded-full bg-[#ff7a18] animate-pulse flex-shrink-0" />
                 <span className="hidden sm:inline whitespace-nowrap">LIVE OPPORTUNITIES</span>
                 <span className="sm:hidden">LIVE</span>
               </div>
               {tickerData && (
-                <span className="whitespace-nowrap rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+                <span className="whitespace-nowrap rounded-lg px-2 py-0.5 text-xs font-bold" style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-secondary)' }}>
                   {tickerData.count.toLocaleString()}
                   <span className="hidden sm:inline"> Active</span>
                 </span>
@@ -206,10 +206,10 @@ export default function Header() {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex flex-shrink-0 items-center gap-1.5 text-xs text-slate-800 transition-colors hover:text-[#ff7a18] sm:gap-2 sm:text-sm"
+                        className="group flex flex-shrink-0 items-center gap-1.5 text-xs transition-colors sm:gap-2 sm:text-sm" style={{ color: 'var(--color-text-primary)' }}
                       >
                         <span className="font-semibold truncate max-w-[160px] sm:max-w-[300px]">{item.title}</span>
-                        <span className="hidden whitespace-nowrap text-xs text-slate-500 sm:inline">
+                        <span className="hidden whitespace-nowrap text-xs sm:inline" style={{ color: 'var(--color-text-subtle)' }}>
                           {formatTickerDate(item.postedDate)}
                         </span>
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
@@ -226,7 +226,7 @@ export default function Header() {
       {/* ── MAIN HEADER ── */}
       <header
         className="fixed inset-x-0 top-[44px] sm:top-[52px] z-40 transition-all duration-300 w-full"
-        style={{ backgroundColor: '#ffffff', borderBottom: 'none', boxShadow: scrolled ? '0 2px 8px rgba(0,0,0,0.06)' : 'none' }}
+        style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', boxShadow: scrolled ? '0 4px 12px rgba(0,0,0,0.08)' : 'none' }}
       >
         <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8">
           <div className="flex items-center justify-between gap-2 py-3 lg:py-2 xl:gap-3">
@@ -251,11 +251,11 @@ export default function Header() {
                   className="flex flex-1 items-center h-11 lg:h-14 xl:h-[56px] px-3 font-black leading-none tracking-tight"
                   style={{ backgroundColor: wordmark.colors.background, fontSize: 'clamp(1.9rem, 2.5vw, 2.6rem)' }}
                 >
-                  <span style={{ color: wordmark.colors.precise, marginRight: '0.2em' }}>Precise</span>
-                  <span style={{ color: wordmark.colors.govcon }}>GovCon</span>
+                  <span style={{ color: wordmark.colors.precise || '#ffffff', marginRight: '0.2em', WebkitTextFillColor: wordmark.colors.precise || '#ffffff' }}>Precise</span>
+                  <span style={{ color: wordmark.colors.govcon || '#f97316', WebkitTextFillColor: wordmark.colors.govcon || '#f97316' }}>GovCon</span>
                 </div>
               </Link>
-              <p className="hidden text-[0.72rem] font-black tracking-wide text-slate-500 lg:block xl:text-[0.75rem] mt-1 ml-0.5 w-full">
+              <p className="hidden text-[0.72rem] font-black tracking-wide lg:block xl:text-[0.75rem] mt-1 ml-0.5 w-full" style={{ color: 'var(--color-text-secondary)' }}>
                 Contracting intelligence and procurement experts
               </p>
             </div>
@@ -271,6 +271,7 @@ export default function Header() {
                 ].map(({ href, label, icon }) => (
                   <Link key={href} href={href} prefetch={false}
                     className={`${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
+                  style={isActive(href) ? {} : { color: 'var(--color-text-primary)' }}
                   >
                     {icon}{label}
                   </Link>
@@ -295,6 +296,7 @@ export default function Header() {
                         ? activePillClasses
                         : inactivePillClasses
                     }`}
+                    style={(servicesOpen || pathname.startsWith('/services')) ? {} : { color: 'var(--color-text-primary)' }}
                     aria-haspopup="true"
                     aria-expanded={servicesOpen}
                   >
@@ -359,6 +361,7 @@ export default function Header() {
                 ].map(({ href, label, icon }) => (
                   <Link key={href} href={href} prefetch={false}
                     className={`${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
+                    style={isActive(href) ? {} : { color: 'var(--color-text-primary)' }}
                   >
                     {icon}{label}
                   </Link>
@@ -396,7 +399,7 @@ export default function Header() {
               {/* Hamburger — visible below lg */}
               <button type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setServicesOpen(false) }}
-                className="text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:hidden p-2 rounded-xl flex-shrink-0"
+                className="lg:hidden p-2 rounded-xl flex-shrink-0 transition-colors" style={{ color: 'var(--color-text-primary)' }}
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={mobileMenuOpen}
               >

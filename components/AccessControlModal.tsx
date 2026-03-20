@@ -223,50 +223,63 @@ export default function AccessControlModal({
   const [successMessage, setSuccessMessage] = useState('')
 
   // useMemo MUST be above early return (Rules of Hooks)
+  const [stripePrices, setStripePrices] = useState<any[]>([])
+  const [plansLoading, setPlansLoading] = useState(true)
+  useEffect(() => {
+    fetch('/api/stripe/prices')
+      .then(res => res.json())
+      .then((data) => { setStripePrices(data); setPlansLoading(false) })
+      .catch(() => setPlansLoading(false))
+  }, [])
+
   const plans = useMemo((): PaidPlanCard[] => {
     const isAnnual = billing === 'annual'
-    const basicMonthlyId = 'price_1SrWKwL0qhATKGOJo4ginD8u'
-    const basicAnnualId = 'price_1SrWE8L0qhATKGOJovDYe1T4'
-    const proMonthlyId = 'price_1SpfzWL0qhATKGOJGIiLnkhU'
-    const proAnnualId = 'price_1Spg08L0qhATKGOJlgQeSrUW'
-    const entMonthlyId = 'price_1Spg0aL0qhATKGOJZcXETI7D'
-    const entAnnualId = 'price_1Spg1CL0qhATKGOJG9iRaIhq'
+    const getPrice = (tier: string, interval: string) => {
+      const found = stripePrices.find(p => p.tier === tier && p.interval === interval)
+      return found ? { price: (found.unitAmount / 100).toFixed(2), priceId: found.priceId } : { price: '', priceId: '' }
+    }
     return [
       {
         key: 'basic', name: 'Basic', tagline: 'Perfect for solo contractors',
-        topPrice: isAnnual ? '$249.90' : '$24.99', topPeriod: isAnnual ? '/year' : '/month',
-        monthlyPrice: '$24.99/mo', annualPrice: '$249.90/yr Â· save 16%',
+        topPrice: isAnnual ? `$${getPrice('BASIC', 'annual').price}` : `$${getPrice('BASIC', 'monthly').price}`,
+        topPeriod: isAnnual ? '/year' : '/month',
+        monthlyPrice: `$${getPrice('BASIC', 'monthly').price}/mo`,
+        annualPrice: `$${getPrice('BASIC', 'annual').price}/yr`,
         features: ['Unlimited opportunity searches', 'Advanced filtering (all criteria)', 'Save unlimited opportunities', 'Daily email digest alerts', 'Search history (30 days)', 'Export to CSV', 'Email support'],
         popular: false, buttonText: 'Start 7-Day Trial',
-        priceId: isAnnual ? basicAnnualId : basicMonthlyId,
+        priceId: isAnnual ? getPrice('BASIC', 'annual').priceId : getPrice('BASIC', 'monthly').priceId,
         gradient: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-muted) 100%)',
         accentColor: 'var(--color-primary)', textColor: 'var(--color-text-primary)',
         badgeGradient: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
       },
       {
         key: 'professional', name: 'Professional', tagline: 'For growing businesses',
-        topPrice: isAnnual ? '$499.90' : '$49.99', topPeriod: isAnnual ? '/year' : '/month',
-        monthlyPrice: '$49.99/mo', annualPrice: '$499.90/yr Â· save 16%',
+        topPrice: isAnnual ? `$${getPrice('PROFESSIONAL', 'annual').price}` : `$${getPrice('PROFESSIONAL', 'monthly').price}`,
+        topPeriod: isAnnual ? '/year' : '/month',
+        monthlyPrice: `$${getPrice('PROFESSIONAL', 'monthly').price}/mo`,
+        annualPrice: `$${getPrice('PROFESSIONAL', 'annual').price}/yr`,
         features: ['Everything in Basic', 'Real-time opportunity alerts', 'Advanced analytics dashboard', 'Competitor tracking', '25 custom alert criteria', 'Search history (1 year)', 'API access (1,000 calls/mo)', 'Excel export with formatting', 'Team collaboration (3 users)', 'Priority support'],
         popular: true, buttonText: 'Start 7-Day Trial',
-        priceId: isAnnual ? proAnnualId : proMonthlyId,
+        priceId: isAnnual ? getPrice('PROFESSIONAL', 'annual').priceId : getPrice('PROFESSIONAL', 'monthly').priceId,
         gradient: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-muted)) 0%, var(--color-surface-muted) 100%)',
         accentColor: 'var(--color-primary)', textColor: 'var(--color-text-primary)',
         badgeGradient: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
       },
       {
         key: 'enterprise', name: 'Enterprise', tagline: 'For large prime contractors',
-        topPrice: isAnnual ? '$1,999.90' : '$199.99', topPeriod: isAnnual ? '/year' : '/month',
-        monthlyPrice: '$199.99/mo', annualPrice: '$1,999.90/yr Â· save 16%',
+        topPrice: isAnnual ? `$${getPrice('ENTERPRISE', 'annual').price}` : `$${getPrice('ENTERPRISE', 'monthly').price}`,
+        topPeriod: isAnnual ? '/year' : '/month',
+        monthlyPrice: `$${getPrice('ENTERPRISE', 'monthly').price}/mo`,
+        annualPrice: `$${getPrice('ENTERPRISE', 'annual').price}/yr`,
         features: ['Everything in Professional', 'Unlimited team members', 'Dedicated account manager', 'Custom integrations', 'Unlimited API access', 'White-label reporting', 'Custom training sessions', 'SLA guarantees (99.9%)', 'Phone & priority support', 'Historical data (5+ years)'],
         popular: false, buttonText: 'Start 7-Day Trial',
-        priceId: isAnnual ? entAnnualId : entMonthlyId,
+        priceId: isAnnual ? getPrice('ENTERPRISE', 'annual').priceId : getPrice('ENTERPRISE', 'monthly').priceId,
         gradient: 'linear-gradient(135deg, var(--color-surface-muted) 0%, color-mix(in srgb, var(--color-primary) 10%, var(--color-surface)) 100%)',
         accentColor: 'var(--color-primary)', textColor: 'var(--color-text-primary)',
         badgeGradient: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
       },
     ]
-  }, [billing])
+  }, [billing, stripePrices])
 
   const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 

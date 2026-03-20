@@ -102,7 +102,7 @@ function AlertsHub() {
   }
 
   return (
-    <div className="pg-alerts-modern min-h-screen bg-slate-950 text-white">
+    <div className="pg-alerts-modern min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
       <div className="pg-container py-8">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
