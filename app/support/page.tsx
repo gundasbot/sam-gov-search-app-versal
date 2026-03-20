@@ -730,6 +730,8 @@ export default function SupportPage() {
     setPrefillMessage(params.get('message') || '')
     if (shouldOpen) setSupportModalOpen(true)
   }, [])
+
+
   const topicCards = [
     {
       title: 'Support Center | PreciseGovCon',
@@ -793,20 +795,20 @@ export default function SupportPage() {
       </div>
 
       {/* HERO SECTION */}
-      <div className="mx-auto max-w-[1500px] 2xl:max-w-[1680px] px-4 sm:px-6 lg:px-8 2xl:px-10 pt-8 pb-6">
+      <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 pt-4 pb-4">
         {/* HERO */}
-        <div className="mb-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="mb-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           <div className="lg:col-span-8">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.08]">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.08] mt-0">
               Get help fast — book a meeting or send a message.
             </h1>
 
-            <p className="mt-4 text-lg sm:text-xl text-[var(--color-text-secondary)] max-w-2xl leading-relaxed">
+            <p className="mt-3 text-lg sm:text-xl text-[var(--color-text-secondary)] max-w-2xl leading-relaxed">
               Billing questions, saved searches, alerts, or account access — we&apos;ll get you sorted. If you prefer not to
               book time, use the form and we&apos;ll respond within 1 business day.
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <a
                 href="#book"
                 className="pg-btn pg-btn-primary inline-flex items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-base font-extrabold text-white shadow-lg transition-all"
@@ -825,7 +827,7 @@ export default function SupportPage() {
               </button>
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-4 space-y-2">
               <div className="flex flex-wrap gap-3 text-sm sm:text-base">
                 <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm">
                   Typical response: <span className="font-bold text-[var(--color-text-primary)]">1 business day</span>
@@ -842,6 +844,21 @@ export default function SupportPage() {
                   that works best for you, and our team will get back to you promptly.
                 </p>
               </div>
+
+              {/* CALENDLY — right below Quick Tip */}
+              <div id="book" className="mt-4 rounded-xl overflow-hidden border border-[var(--color-border)]">
+                <div className="px-4 pt-4 pb-2 bg-[var(--color-surface-muted)]">
+                  <h2 className="text-xl sm:text-2xl font-black text-[var(--color-text-primary)]">Book a Meeting</h2>
+                  <p className="mt-1 text-sm sm:text-base text-[var(--color-text-secondary)]">
+                    Schedule a 30-minute call. We&apos;ll walk through your questions and get you the help you need.
+                  </p>
+                </div>
+                <div
+                  className="calendly-inline-widget w-full bg-white"
+                  data-url={CALENDLY_EMBED_URL}
+                  style={{ minWidth: '100%', height: '660px' }}
+                />
+              </div>
             </div>
           </div>
 
@@ -849,7 +866,7 @@ export default function SupportPage() {
           <div className="lg:col-span-4">
             <div
               id="contact"
-              className="rounded-2xl border border-white/12 bg-white/7 backdrop-blur-xl p-5 sm:p-6 shadow-[var(--shadow-lg)]"
+              className="rounded-2xl border border-white/12 bg-white/7 backdrop-blur-xl p-5 sm:p-6 shadow-[var(--shadow-lg)] h-full flex flex-col"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -915,6 +932,26 @@ export default function SupportPage() {
                   <Send className="h-5 w-5 text-orange-200" />
                   Open contact options
                 </button>
+
+                {/* Reassurance message below button */}
+                <div className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-accent-soft)] p-5 flex flex-col justify-between gap-4">
+                  <p className="text-xl font-black text-[var(--color-text-primary)] leading-snug">
+                    🤝 We&apos;re happy to help — no issue is too big or too small.
+                  </p>
+                  <p className="text-base font-bold text-[var(--color-text-secondary)] leading-relaxed">
+                    Whether you prefer a quick email, a phone call, or a dedicated 30-minute meeting, 
+                    our team will make sure you get the support you need to keep winning contracts.
+                  </p>
+                  <p className="text-base font-bold text-[var(--color-text-secondary)] leading-relaxed">
+                    Our specialists understand federal contracting inside and out. 
+                    Bring your questions on SAM.gov registration, set-aside certifications, 
+                    proposal strategy, or platform features — we&apos;ve got you covered.
+                  </p>
+                  <p className="text-base font-black text-[var(--color-primary)] leading-relaxed">
+                    📅 Schedule a meeting and let us walk you through your questions one-on-one — 
+                    we&apos;re here every step of the way.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -955,33 +992,10 @@ export default function SupportPage() {
           ))}
         </div>
 
-        {/* CALENDLY EMBED */}
-        <section id="book" className="rounded-2xl border border-white/12 bg-white/7 backdrop-blur-xl p-5 sm:p-6">
-          <div className="mb-6">
-            <h2 className="text-2xl sm:text-3xl font-black">Book a Meeting</h2>
-            <p className="mt-2.5 text-base sm:text-lg text-white/70">
-              Schedule a 30-minute call with our team. We&apos;ll walk through your questions and get you the help you need.
-            </p>
-          </div>
 
-          <div className="rounded-xl overflow-hidden border border-white/10 bg-black/40 backdrop-blur-sm">
-            <iframe
-              src={CALENDLY_EMBED_URL}
-              width="100%"
-              height="100%"
-              frameBorder="0"
-              className="block w-full bg-white h-[72vh] min-h-[560px] max-h-[760px] sm:h-[76vh] sm:min-h-[640px] sm:max-h-[840px] lg:h-[80vh] lg:max-h-[920px]"
-              title="Schedule a meeting"
-            />
-          </div>
-        </section>
       </div>
 
       <Script src="https://assets.calendly.com/assets/external/widget.js" strategy="lazyOnload" />
     </main>
   )
 }
-
-
-
-

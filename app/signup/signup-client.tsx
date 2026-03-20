@@ -275,7 +275,7 @@ export default function SignUpClient() {
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse flex-shrink-0" />
             <span className="text-[var(--color-primary)] text-xs sm:text-sm font-bold leading-tight truncate">
-              7-DAY FREE TRIAL - NO CREDIT CARD REQUIRED
+              7-DAY FREE TRIAL · CANCEL ANYTIME
             </span>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm text-[var(--color-text-secondary)] flex-shrink-0">
@@ -298,21 +298,46 @@ export default function SignUpClient() {
         <div className="w-full lg:w-[55%] flex flex-col bg-[var(--color-surface)] border-b lg:border-b-0 lg:border-r border-[var(--color-border)] lg:overflow-y-auto">
 
           {/* Header banner */}
-          <div className="pg-cta-bg px-4 sm:px-8 py-4 sm:py-5 flex items-start sm:items-center justify-between gap-3 flex-shrink-0">
+          <div
+            className="px-4 sm:px-8 py-5 sm:py-6 flex items-start sm:items-center justify-between gap-3 flex-shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
+              borderBottom: '1px solid rgba(249,115,22,0.25)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            }}
+          >
             <div className="min-w-0">
-              <h1 className="text-white font-black text-xl sm:text-2xl leading-tight">Create your account</h1>
-              <p className="text-white/80 text-sm sm:text-base mt-0.5 leading-snug">
-                Get started in 60 seconds - no credit card needed
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-widest text-orange-400">
+                  7-Day Free Trial
+                </span>
+              </div>
+              <h1
+                className="font-black text-xl sm:text-2xl leading-tight"
+                style={{ color: '#ffffff' }}
+              >
+                Create your{' '}
+                <span style={{ color: '#f97316' }}>account</span>
+              </h1>
+              <p className="text-sm sm:text-base mt-0.5 leading-snug" style={{ color: '#94a3b8' }}>
+                Get started in 60 seconds · Cancel anytime
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap justify-end">
-              <div className="hidden sm:flex items-center gap-2 bg-white/20 rounded-xl px-4 py-2">
-                <Check className="w-5 h-5 text-white" />
-                <span className="text-white text-base font-bold">Free 7-day trial</span>
+              <div
+                className="hidden sm:flex items-center gap-2 rounded-xl px-4 py-2"
+                style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)' }}
+              >
+                <Check className="w-4 h-4 text-orange-400" />
+                <span className="text-orange-300 text-sm font-bold">Free 7-day trial</span>
               </div>
               <Link
                 href={`/login${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white/80 hover:text-white hover:bg-white/10 transition-all"
+                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition-all"
+                style={{ color: 'rgba(255,255,255,0.55)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
               >
                 <ArrowRight className="w-4 h-4 rotate-180" />
                 Back to Sign In
@@ -350,7 +375,7 @@ export default function SignUpClient() {
               <div className="relative">
                 <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[var(--color-border)]" /></div>
                 <div className="relative flex justify-center">
-                  <span className="bg-[var(--color-surface)] px-4 text-sm text-[var(--color-text-subtle)] font-medium">or register with email</span>
+                  <span className="bg-[var(--color-surface)] px-4 text-xs font-bold uppercase tracking-widest text-[var(--color-text-subtle)]">or register with email</span>
                 </div>
               </div>
 
@@ -451,8 +476,17 @@ export default function SignUpClient() {
                 </div>
 
                 {/* Submit */}
-                <button type="submit" disabled={loading || passwordsMismatch}
-                  className="pg-btn pg-btn-primary w-full py-4 rounded-xl text-white text-lg font-black flex items-center justify-center gap-2 disabled:opacity-60">
+                <button
+                  type="submit"
+                  disabled={loading || passwordsMismatch}
+                  className="w-full py-4 rounded-xl text-white text-lg font-black flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                    boxShadow: '0 4px 18px rgba(249,115,22,0.4)',
+                  }}
+                  onMouseEnter={e => { if (!loading && !passwordsMismatch) (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 24px rgba(249,115,22,0.6)' }}
+                  onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 18px rgba(249,115,22,0.4)'}
+                >
                   {loading
                     ? <Loader2 className="w-5 h-5 animate-spin" />
                     : <><span>Start My Free Trial</span><ArrowRight className="w-5 h-5" /></>}
@@ -462,7 +496,7 @@ export default function SignUpClient() {
                   By signing up you agree to our{' '}
                   <Link href="/terms" className="underline hover:text-[var(--color-text-primary)]">Terms</Link> &amp;{' '}
                   <Link href="/privacy" className="underline hover:text-[var(--color-text-primary)]">Privacy Policy</Link>.{' '}
-                  No card required.{' · '}
+                  
                   <Link href="/signin" className="text-[var(--color-primary)] font-semibold hover:text-[var(--color-primary-hover)]">Sign in</Link>
                 </p>
               </form>
@@ -473,30 +507,52 @@ export default function SignUpClient() {
         {/* ════════════════════════════════════════════════════════════════════
             RIGHT — plan picker
         ════════════════════════════════════════════════════════════════════ */}
-        <div className="w-full lg:w-[45%] flex flex-col gap-4 px-4 sm:px-6 py-5 bg-[var(--color-surface-muted)] lg:overflow-y-auto">
+        <div className="w-full lg:w-[45%] flex flex-col gap-4 px-4 sm:px-6 py-5 lg:overflow-y-auto" style={{ background: "var(--color-surface-muted, #f1f5f9)" }}>
 
           {/* Header: title + monthly/annual toggle */}
           <div className="flex items-center justify-between gap-3 flex-shrink-0 flex-wrap">
-            <p className="text-sm sm:text-base font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">
+            <p className="text-sm sm:text-base font-black text-[var(--color-text-primary)] uppercase tracking-widest">
               Choose your plan
             </p>
 
-            {/* Billing toggle — exact same design as PricingClient */}
-            <div className="inline-flex items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+            {/* Billing toggle */}
+            <div
+              className="inline-flex items-center rounded-xl p-1"
+              style={{
+                background: '#1e293b',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setAnnual(false)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${!annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                className="rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
+                style={{
+                  background: !annual ? '#ffffff' : 'transparent',
+                  color: !annual ? '#0f172a' : 'rgba(255,255,255,0.55)',
+                  boxShadow: !annual ? '0 1px 6px rgba(0,0,0,0.25)' : 'none',
+                }}
               >
                 Monthly
               </button>
               <button
                 type="button"
                 onClick={() => setAnnual(true)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${annual ? 'bg-[var(--color-primary)] text-white shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+                className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition-all"
+                style={{
+                  background: annual ? '#f97316' : 'transparent',
+                  color: annual ? '#ffffff' : 'rgba(255,255,255,0.55)',
+                  boxShadow: annual ? '0 1px 8px rgba(249,115,22,0.45)' : 'none',
+                }}
               >
                 Annual
-                <span className={`rounded px-1 py-0.5 text-[9px] font-black ${annual ? 'bg-white/25 text-white' : 'bg-[var(--color-primary)] text-white'}`}>
+                <span
+                  className="rounded px-1.5 py-0.5 text-[9px] font-black"
+                  style={{
+                    background: annual ? 'rgba(255,255,255,0.25)' : 'rgba(249,115,22,0.35)',
+                    color: annual ? '#fff' : '#fb923c',
+                  }}
+                >
                   SAVE 20%
                 </span>
               </button>

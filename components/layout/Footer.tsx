@@ -72,152 +72,116 @@ export default function Footer() {
     }
   }
 
-  const colLink = 'text-[1.3125rem] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors'
-
   return (
     <>
-      <footer className="mt-16 border-t border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm">
-        <div className="pg-container max-w-[1920px] px-3 sm:px-5 lg:px-6 py-10">
+      <footer className="mt-16 bg-white">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+          {/* Single row: Logo col + 5 nav columns — all equal, no divider */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8">
 
-            {/* ── Brand column ── */}
-            <div className="col-span-1 sm:col-span-2 md:col-span-1">
-              <Link href="/" className="group mb-3 flex items-center gap-2.5" aria-label="Navigate to Precise GovCon homepage" prefetch={false}>
-                <Image src="/logo.png" alt="Precise GovCon logo" width={56} height={56} className="h-10 w-10 flex-shrink-0 rounded-lg transition-transform group-hover:scale-105" />
-                <div className="flex flex-col gap-0.5">
-                  <div className="inline-flex w-fit items-center rounded-md px-2 py-1 text-[1.5rem] font-black leading-none tracking-tight" style={{ backgroundColor: wordmark.colors.background }}>
-                    <span style={{ color: wordmark.colors.precise, marginRight: '0.28em' }}>{wordmark.preciseText}</span>
-                    <span style={{ color: wordmark.colors.govcon }}>{wordmark.govconText}</span>
-                  </div>
-                  <div className="text-[1.125rem] font-semibold tracking-wide text-[var(--color-text-secondary)]">
-                    {formattedTagline}
-                  </div>
+            {/* Col 1: Logo + tagline + contact — mirrors header */}
+            <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-0 overflow-hidden rounded-md transition-all mb-2"
+                aria-label="Navigate to Precise GovCon homepage"
+                prefetch={false}
+              >
+                <Image
+                  src="/logo.png"
+                  alt="Precise GovCon logo"
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 flex-shrink-0"
+                />
+                <div
+                  className="inline-flex items-center h-11 px-3 font-black leading-none tracking-tight"
+                  style={{ backgroundColor: wordmark.colors.background, fontSize: 'clamp(1.1rem, 1.5vw, 1.4rem)' }}
+                >
+                  <span style={{ color: wordmark.colors.precise, marginRight: '0.2em' }}>Precise</span>
+                  <span style={{ color: wordmark.colors.govcon }}>GovCon</span>
                 </div>
               </Link>
-
-              <div className="mb-4" />
-
-              {/* Contact */}
-              <div className="space-y-1.5 mb-6">
-                <a href={`mailto:${contact.email}`} className={`flex items-center gap-2 ${colLink}`}>
-                  <Mail className="h-4 w-4 shrink-0" /> {contact.email}
+              <p className="text-[0.82rem] font-black tracking-wide text-slate-600 mb-3">{formattedTagline}</p>
+              <div className="flex flex-col gap-1.5 text-[0.85rem] font-medium text-slate-600">
+                <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 hover:text-slate-900 transition-colors">
+                  <Mail className="h-3.5 w-3.5 flex-shrink-0" /> {contact.email}
                 </a>
-                <a href={`tel:${contact.phone.replace(/[^0-9]/g, '')}`} className={`flex items-center gap-2 ${colLink}`}>
-                  <Phone className="h-4 w-4 shrink-0" /> {contact.phone}
+                <a href={`tel:${contact.phone.replace(/[^0-9]/g, '')}`} className="flex items-center gap-1.5 hover:text-slate-900 transition-colors">
+                  <Phone className="h-3.5 w-3.5 flex-shrink-0" /> {contact.phone}
                 </a>
               </div>
+            </div>
 
-              {/* Social icons */}
-              <div>
-                <p className="mb-2.5 text-[0.75rem] font-black uppercase tracking-widest" style={{ color: '#ea580c' }}>
-                  Connect With Us
-                </p>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {social.map(({ label, href, icon, color }) => (
-                    <a
-                      key={label}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={label}
-                      title={`Follow us on ${label}`}
-                      className="flex items-center justify-center w-9 h-9 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] transition-all duration-200 hover:scale-110 hover:shadow-md"
-                      style={{ color: 'var(--color-text-subtle)' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = color; (e.currentTarget as HTMLAnchorElement).style.borderColor = color }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-subtle)'; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-border)' }}
-                    >
-                      {icon}
-                    </a>
-                  ))}
-                </div>
+            {/* Col 2: Platform */}
+            <div>
+              <h4 className="text-[0.95rem] font-black tracking-wide mb-3" style={{ color: '#f97316' }}>Platform</h4>
+              <ul className="space-y-2">
+                <li><Link href="/search" onClick={(e) => handleNav(e, '/search')} className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Search</Link></li>
+                <li><Link href="/dashboard" onClick={(e) => handleNav(e, '/dashboard')} className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Dashboard</Link></li>
+                <li><Link href="/opportunities" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Opportunities</Link></li>
+                <li><Link href="/alerts" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Alerts</Link></li>
+              </ul>
+            </div>
+
+            {/* Col 3: Services */}
+            <div>
+              <h4 className="text-[0.95rem] font-black tracking-wide mb-3" style={{ color: '#f97316' }}>Services</h4>
+              <ul className="space-y-2">
+                <li><Link href="/services/sam-registration" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">SAM registration</Link></li>
+                <li><Link href="/services/proposal-writing" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Proposal writing</Link></li>
+                <li><Link href="/services/bid-no-bid-review" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Bid/no-bid analysis</Link></li>
+                <li><Link href="/services/set-aside-certifications" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Certifications</Link></li>
+              </ul>
+            </div>
+
+            {/* Col 4: Company */}
+            <div>
+              <h4 className="text-[0.95rem] font-black tracking-wide mb-3" style={{ color: '#f97316' }}>Company</h4>
+              <ul className="space-y-2">
+                <li><Link href="/about" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">About</Link></li>
+                <li><Link href="/pricing" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Pricing</Link></li>
+                <li><Link href="/support" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Support</Link></li>
+                <li><Link href="/privacy" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Privacy</Link></li>
+                <li><Link href="/cookie-policy" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Cookie policy</Link></li>
+              </ul>
+            </div>
+
+            {/* Col 5: Get Started */}
+            <div>
+              <h4 className="text-[0.95rem] font-black tracking-wide mb-3" style={{ color: '#f97316' }}>Get started</h4>
+              <ul className="space-y-2">
+                <li><Link href="/support#book" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Book a meeting</Link></li>
+                <li><button onClick={() => setIsContactModalOpen(true)} className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors bg-transparent border-none cursor-pointer p-0 text-left">Contact us</button></li>
+                <li><Link href="/signup" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Start free trial</Link></li>
+              </ul>
+            </div>
+
+            {/* Col 6: Follow Us */}
+            <div>
+              <h4 className="text-[0.95rem] font-black tracking-wide mb-3" style={{ color: '#f97316' }}>Follow us</h4>
+              <div className="flex flex-wrap gap-2">
+                {social.map(({ label, href, icon, color }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    title={`Follow us on ${label}`}
+                    className="flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 transition-all duration-200 hover:scale-110 hover:shadow-md"
+                    style={{ color: '#64748b' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = color; (e.currentTarget as HTMLAnchorElement).style.borderColor = color }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#64748b'; (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e2e8f0' }}
+                  >
+                    {icon}
+                  </a>
+                ))}
               </div>
             </div>
 
-            {/* ── Platform ── */}
-            <div>
-              <h4 className="mb-2.5 text-[1.125rem] font-black uppercase tracking-wider" style={{ color: '#ea580c' }}>Platform</h4>
-              <ul className="space-y-2">
-                {[
-                  { label: 'Search', href: '/search' },
-                  { label: 'Dashboard', href: '/dashboard' },
-                  { label: 'Opportunities', href: '/opportunities' },
-                  { label: 'Alerts', href: '/alerts' },
-                ].map(({ label, href }) => (
-                  <li key={href}>
-                    <Link href={href} onClick={(e) => handleNav(e, href)} className={colLink}>{label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* ── Services ── */}
-            <div>
-              <h4 className="mb-2.5 text-[1.125rem] font-black uppercase tracking-wider" style={{ color: '#ea580c' }}>Services</h4>
-              <ul className="space-y-2">
-                {[
-                  { label: 'SAM Registration', href: '/services/sam-registration' },
-                  { label: 'Proposal Writing', href: '/services/proposal-writing' },
-                  { label: 'Bid/No-Bid Analysis', href: '/services/bid-no-bid-review' },
-                  { label: 'Certifications', href: '/services/set-aside-certifications' },
-                ].map(({ label, href }) => (
-                  <li key={href}>
-                    <Link href={href} className={colLink}>{label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* ── Company ── */}
-            <div>
-              <h4 className="mb-2.5 text-[1.125rem] font-black uppercase tracking-wider" style={{ color: '#ea580c' }}>Company</h4>
-              <ul className="space-y-2">
-                {[
-                  { label: 'About', href: '/about' },
-                  { label: 'Pricing', href: '/pricing' },
-                  { label: 'Support', href: '/support' },
-                  { label: 'Privacy', href: '/privacy' },
-                ].map(({ label, href }) => (
-                  <li key={href}>
-                    <Link href={href} className={colLink}>{label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* ── Get Started ── */}
-            <div className="col-span-1 sm:col-span-2 md:col-span-4 lg:col-span-1">
-              <h4 className="mb-2.5 text-[1.125rem] font-black uppercase tracking-wider" style={{ color: '#ea580c' }}>Get Started</h4>
-              <ul className="space-y-2">
-                <li>
-                  <Link href="/support#book" className={colLink}>Book a Meeting</Link>
-                </li>
-                <li>
-                  <button onClick={() => setIsContactModalOpen(true)} className={`${colLink} bg-transparent border-none cursor-pointer p-0 text-left`}>
-                    Contact Us
-                  </button>
-                </li>
-                <li>
-                  <Link href="/signup" className={colLink}>Start Free Trial</Link>
-                </li>
-              </ul>
-            </div>
           </div>
-
-          {/* ── Bottom bar ── */}
-          <div className="mt-10 pt-6 border-t border-[var(--color-border)] flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[0.875rem] text-[var(--color-text-subtle)] text-center sm:text-left">
-              © {new Date().getFullYear()} Precise GovCon®. All rights reserved.
-              <span className="mx-1.5 hidden sm:inline">·</span>
-              <span className="block sm:inline">SDVOSB · VOSB · Minority-Owned Small Business</span>
-            </p>
-            <div className="flex items-center gap-4 text-[0.875rem] text-[var(--color-text-subtle)]">
-              <Link href="/privacy" className="hover:text-[var(--color-text-primary)] transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-[var(--color-text-primary)] transition-colors">Terms</Link>
-              <Link href="/sitemap" className="hover:text-[var(--color-text-primary)] transition-colors">Sitemap</Link>
-            </div>
-          </div>
-
         </div>
       </footer>
 
@@ -225,12 +189,12 @@ export default function Footer() {
 
       {showLoginPrompt && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-modal)]">
-            <h3 className="mb-2 text-lg font-bold text-[var(--color-text-primary)]">Sign In Required</h3>
-            <p className="mb-4 text-sm text-[var(--color-text-secondary)]">Please sign in to access Contract Search.</p>
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-lg font-bold text-slate-900">Sign In Required</h3>
+            <p className="mb-4 text-sm text-slate-600">Please sign in to access Contract Search.</p>
             <div className="flex gap-3">
-              <Link href="/login" className="pg-btn pg-btn-primary flex-1 rounded-lg px-4 py-2 text-sm font-semibold" onClick={() => setShowLoginPrompt(false)}>Sign In</Link>
-              <button onClick={() => setShowLoginPrompt(false)} className="pg-btn pg-btn-secondary flex-1 rounded-lg px-4 py-2 text-sm font-semibold">Cancel</button>
+              <Link href="/login" className="flex-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-sm font-semibold text-center" onClick={() => setShowLoginPrompt(false)}>Sign In</Link>
+              <button onClick={() => setShowLoginPrompt(false)} className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
             </div>
           </div>
         </div>

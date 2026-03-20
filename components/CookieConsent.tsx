@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { X, Shield, BarChart3, Cookie } from 'lucide-react'
 
 interface CookiePreferences {
@@ -137,7 +138,7 @@ export default function CookieConsent() {
         >
           {/* Content container - centered with max width */}
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex w-full min-w-0 flex-col py-2 justify-between sm:flex-row sm:items-center sm:py-4 lg:py-4">
+            <div className="flex w-full min-w-0 flex-col py-5 justify-between sm:flex-row sm:items-center sm:py-6 lg:py-6">
 
               {/* ── Left: icon + text ── */}
               <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3 sm:items-center">
@@ -145,22 +146,21 @@ export default function CookieConsent() {
                   className="mt-0.5 flex-shrink-0 rounded-lg p-1.5 sm:p-2 sm:mt-0"
                   style={{ background: 'rgba(255,122,24,0.15)', border: '1px solid rgba(255,122,24,0.3)' }}
                 >
-                  <Cookie className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#ff7a18' }} />
+                  <Cookie className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#ff7a18' }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold sm:text-sm md:text-base" style={{ color: '#ffffff', marginBottom: 2 }}>
+                  <p className="text-sm font-bold sm:text-base md:text-lg" style={{ color: '#ffffff', marginBottom: 2 }}>
                     We value your privacy
                   </p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed sm:text-xs md:text-sm" style={{ color: '#94a3b8' }}>
+                  <p className="mt-0.5 text-xs leading-relaxed sm:text-sm md:text-base" style={{ color: '#94a3b8' }}>
                     We use cookies to improve functionality and measure performance.{' '}
-                    <button
-                      type="button"
-                      onClick={() => setShowSettings(true)}
+                    <Link
+                      href="/cookie-policy"
                       className="font-semibold underline underline-offset-2 transition-colors hover:text-white focus:outline-none"
                       style={{ color: '#ff7a18' }}
                     >
                       Cookie Policy
-                    </button>
+                    </Link>
                   </p>
                 </div>
               </div>
@@ -173,7 +173,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={() => setShowSettings(true)}
-                  className="rounded-lg border px-2 py-1 text-[11px] font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-sm whitespace-nowrap"
+                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-base whitespace-nowrap"
                   style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
                 >
                   Customize Settings
@@ -182,7 +182,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={rejectAll}
-                  className="rounded-lg border px-2 py-1 text-[11px] font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-sm whitespace-nowrap"
+                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-base whitespace-nowrap"
                   style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
                 >
                   Essential Only
@@ -191,7 +191,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={acceptAll}
-                  className="rounded-lg px-3 py-1 text-[11px] font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1 sm:px-5 sm:text-sm whitespace-nowrap"
+                  className="rounded-lg px-3 py-1.5 text-xs font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1 sm:px-5 sm:text-base whitespace-nowrap"
                   style={{
                     background: 'linear-gradient(135deg, #ff7a18, #f97316)',
                     boxShadow: '0 4px 14px rgba(255,122,24,0.4)',
