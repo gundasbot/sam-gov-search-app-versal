@@ -66,10 +66,10 @@ export async function POST(req: NextRequest) {
 
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);padding:28px 32px;text-align:center">
-      <div style="display:inline-flex;align-items:center;gap:12px;background:#1e293b;border-radius:10px;padding:10px 18px;border:1px solid rgba(249,115,22,0.35)">
+      <a href="https://precisegovcon.com" style="display:inline-flex;align-items:center;gap:12px;background:#1e293b;border-radius:10px;padding:10px 18px;border:1px solid rgba(249,115,22,0.35);text-decoration:none">
         <img src="https://precisegovcon.com/logo.svg" alt="PreciseGovCon" width="36" height="36" style="display:block;border-radius:6px;flex-shrink:0" />
         <span style="font-size:22px;font-weight:900;color:#ffffff;font-family:Inter,Arial,sans-serif">Precise</span><span style="font-size:22px;font-weight:900;color:#f97316;font-family:Inter,Arial,sans-serif">GovCon</span>
-      </div>
+      </a>
       <p style="color:#94a3b8;font-size:11px;margin:10px 0 0;letter-spacing:0.1em;text-transform:uppercase;font-weight:600">Federal Opportunity Intelligence</p>
     </div>
 
