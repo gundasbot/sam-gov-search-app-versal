@@ -671,19 +671,17 @@ function SignInContent() {
                     />
                   </div>
 
-                  {/* Magic link sent state */}
-                  {magicLinkSent && (
+                  {magicLinkSent ? (
+                    /* ── MAGIC LINK SENT ── */
                     <div className="rounded-xl p-4 text-center" style={{ background: '#0f172a', border: '1.5px solid #f97316' }}>
                       <p className="font-black text-base" style={{ color: '#ffffff' }}>✓ Sign-in link sent to {otpEmail}</p>
                       <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>Check your inbox and click the link to sign in</p>
-                      <button type="button" onClick={() => { setMagicLinkSent(false); setOtpSent(false) }}
+                      <button type="button" onClick={() => { setMagicLinkSent(false); setOtpSent(false); setOtpCode(''); setErrorState(null); }}
                         className="mt-3 text-xs font-bold hover:underline" style={{ color: '#f97316', background: 'none', border: 'none', cursor: 'pointer' }}>
                         Use a different method
                       </button>
                     </div>
-                  )}
-
-                  {!otpSent && !magicLinkSent ? (
+                  ) : !otpSent ? (
                     <div className="space-y-2">
                       {/* Magic link button — primary option */}
                       <button
@@ -712,7 +710,7 @@ function SignInContent() {
                         {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send 6-Digit Code</>}
                       </button>
                     </div>
-                  ) : otpTimeRemaining === 0 ? (
+                  ) : !magicLinkSent && otpTimeRemaining === 0 ? (
                     /* ── EXPIRED STATE ── */
                     <div className="space-y-3">
                       <div className="rounded-xl p-4 text-center" style={{ background: '#fef2f2', border: '1.5px solid #fecaca' }}>
