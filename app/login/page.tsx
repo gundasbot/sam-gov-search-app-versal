@@ -612,10 +612,10 @@ function SignInContent() {
                       </label>
                       <Link
                         href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                        className="text-xs font-semibold hover:underline"
-                        style={{ color: '#ea580c' }}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-all hover:-translate-y-0.5"
+                        style={{ background: '#f97316', color: '#ffffff', boxShadow: '0 2px 6px rgba(249,115,22,0.3)' }}
                       >
-                        Forgot?
+                        <KeyRound className="h-3 w-3" /> Forgot password?
                       </Link>
                     </div>
                     <div className="relative">
@@ -644,10 +644,10 @@ function SignInContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="h-14 w-full inline-flex items-center justify-center gap-2 rounded-xl text-xl font-extrabold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                    className="h-12 inline-flex items-center justify-center gap-2 rounded-xl text-base font-black transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60 px-10"
                     style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 14px #f97316a0' }}
                   >
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Access Dashboard <ArrowRight className="h-4 w-4" /></>}
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Log In <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </form>
                 )}
@@ -673,42 +673,77 @@ function SignInContent() {
 
                   {magicLinkSent ? (
                     /* ── MAGIC LINK SENT ── */
-                    <div className="rounded-xl p-4 text-center" style={{ background: '#0f172a', border: '1.5px solid #f97316' }}>
-                      <p className="font-black text-base" style={{ color: '#ffffff' }}>✓ Sign-in link sent to {otpEmail}</p>
-                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>Check your inbox and click the link to sign in</p>
-                      <button type="button" onClick={() => { setMagicLinkSent(false); setOtpSent(false); setOtpCode(''); setErrorState(null); }}
-                        className="mt-3 text-xs font-bold hover:underline" style={{ color: '#f97316', background: 'none', border: 'none', cursor: 'pointer' }}>
-                        Use a different method
-                      </button>
+                    <div className="rounded-xl overflow-hidden" style={{ border: '2px solid #f97316' }}>
+                      {/* Header */}
+                      <div className="p-5" style={{ background: '#0f172a', borderBottom: '1px solid rgba(249,115,22,0.3)' }}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#f97316' }}>
+                            <span style={{ color: '#fff', fontSize: 13, fontWeight: 900 }}>✓</span>
+                          </div>
+                          <p className="font-black text-lg" style={{ color: '#ffffff' }}>Sign-in link sent!</p>
+                        </div>
+                        <p className="font-bold text-sm mt-1 ml-8" style={{ color: '#f97316' }}>{otpEmail}</p>
+                      </div>
+                      {/* Instructions */}
+                      <div className="p-5" style={{ background: 'var(--color-surface)' }}>
+                        <p className="font-black text-sm mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                          Check your inbox and click the sign-in button in the email.
+                        </p>
+                        <p className="text-sm mb-4 font-medium" style={{ color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                          Look for <strong style={{ color: 'var(--color-text-primary)' }}>Precise GovCon</strong> · subject: <strong style={{ color: 'var(--color-text-primary)' }}>"Your sign-in link"</strong>. Check spam if missing.
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          <button type="button"
+                            onClick={() => { setMagicLinkSent(false); setOtpSent(false); setOtpCode(''); setErrorState(null); handleSendMagicLink(); }}
+                            disabled={magicLinkSending}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                            style={{ background: '#f97316', color: '#ffffff', boxShadow: '0 2px 8px rgba(249,115,22,0.35)' }}>
+                            <Mail className="h-4 w-4" /> Resend link
+                          </button>
+                          <button type="button"
+                            onClick={() => { setMagicLinkSent(false); setOtpSent(false); setOtpCode(''); setErrorState(null); }}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
+                            style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}>
+                            Use a different method
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ) : !otpSent ? (
-                    <div className="space-y-2">
-                      {/* Magic link button — primary option */}
-                      <button
-                        type="button"
-                        onClick={handleSendMagicLink}
-                        disabled={magicLinkSending || !otpEmail}
-                        className="h-12 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-                        style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
-                      >
-                        {magicLinkSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Mail className="h-4 w-4" /> Send Sign-In Link</>}
-                      </button>
-                      {/* Divider */}
-                      <div className="flex items-center gap-2 py-1">
-                        <div className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
-                        <span className="text-xs font-bold" style={{ color: 'var(--color-text-subtle)' }}>or enter a code instead</span>
-                        <div className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
+                    <div className="space-y-3">
+                      {/* Toggle row — Sign-In Link | 6-Digit Code */}
+                      <div className="flex gap-1 rounded-xl p-1" style={{ background: 'var(--color-surface-muted)', border: '1.5px solid var(--color-border)' }}>
+                        <button
+                          type="button"
+                          onClick={handleSendMagicLink}
+                          disabled={magicLinkSending || otpSending || !otpEmail}
+                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-black transition-all disabled:cursor-not-allowed"
+                          style={{
+                            background: '#f97316',
+                            color: '#ffffff',
+                            boxShadow: '0 2px 8px rgba(249,115,22,0.4)',
+                            opacity: otpSending ? 0.35 : 1,
+                          }}
+                        >
+                          {magicLinkSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Sign-In Link</>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSendOTP}
+                          disabled={otpSending || magicLinkSending || !otpEmail}
+                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-black transition-all disabled:cursor-not-allowed"
+                          style={{
+                            background: 'transparent',
+                            color: 'var(--color-text-secondary)',
+                            opacity: magicLinkSending ? 0.35 : 1,
+                          }}
+                        >
+                          {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>6-Digit Code</>}
+                        </button>
                       </div>
-                      {/* Code button — secondary option */}
-                      <button
-                        type="button"
-                        onClick={handleSendOTP}
-                        disabled={otpSending || !otpEmail}
-                        className="h-11 w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
-                        style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
-                      >
-                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send 6-Digit Code</>}
-                      </button>
+                      <p className="text-xs font-semibold text-center" style={{ color: 'var(--color-text-subtle)' }}>
+                        Link = one click · Code = manual entry
+                      </p>
                     </div>
                   ) : !magicLinkSent && otpTimeRemaining === 0 ? (
                     /* ── EXPIRED STATE ── */
@@ -809,80 +844,84 @@ function SignInContent() {
               </div>
             </div>
 
-            {/* Sign-up prompt — inside card bottom */}
-            <div className="mx-6 mb-6 rounded-xl p-3 flex items-center justify-between gap-2" style={{ background: 'var(--color-surface-muted)', border: '1.5px solid var(--color-border)' }}>
-              <div>
-                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>No account yet?</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>7-day free trial — no card required.</p>
-              </div>
+            {/* Sign-up prompt — single bold CTA */}
+            <div className="mx-6 mb-6">
               <Link
                 href="/signup"
-                className="shrink-0 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#f97316,#f59e0b)', color: '#ffffff', boxShadow: '0 4px 12px rgba(249,115,22,0.3)', textDecoration: 'none' }}
+                className="flex items-center justify-between gap-4 rounded-xl px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ background: 'var(--color-primary)', boxShadow: '0 4px 16px rgba(22,101,52,0.35)', textDecoration: 'none' }}
               >
-                Create account <ArrowRight className="h-4 w-4" />
+                <p className="text-sm font-black leading-tight" style={{ color: '#ffffff', whiteSpace: 'nowrap' }}>
+                  No account? <span style={{ color: '#86efac' }}>7-day free trial</span>
+                </p>
+                <div className="flex items-center gap-1 rounded-lg px-3 py-1.5 flex-shrink-0" style={{ background: '#ffffff' }}>
+                  <span className="text-sm font-black" style={{ color: 'var(--color-primary)' }}>Start Free Trial</span>
+                  <ArrowRight className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
+                </div>
               </Link>
             </div>
           </div>
 
           {/* ── RIGHT: Value Panel ── */}
-          <div className="flex flex-col justify-between space-y-6 p-6 sm:p-8 h-full">
+          <div className="flex flex-col gap-5 p-6 sm:p-8 h-full" style={{ background: 'var(--color-surface-muted)' }}>
 
             {/* Headline */}
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: '#f97316' }}>Why PreciseGovCon</p>
-              <h3 className="text-3xl font-black leading-tight" style={{ color: C.textPrimary }}>
-                Built for serious federal pursuit teams
+            <div className="text-center">
+              <p className="font-black mb-2" style={{ color: '#f97316', fontSize: '2.75rem', lineHeight: 1.1, fontWeight: 900 }}>
+                Why Precise GovCon®
+              </p>
+              <h3 className="text-4xl font-black leading-tight mb-3" style={{ color: 'var(--color-text-primary)' }}>
+                Win More Federal Contracts — Faster.
               </h3>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-                Your login is the front door to live opportunities, AI-ranked fit signals, and automated alert workflows.
+              <p className="text-base font-bold leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
+                The smartest government contractors use Precise GovCon to find, track, and win SAM.gov opportunities before their competitors even see them.
               </p>
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3 text-center">
               {stats.map((stat) => (
-                <div key={stat.label} className="rounded-2xl p-5 text-center" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                  <p className="text-3xl font-black" style={{ color: '#f97316' }}>{stat.value}</p>
-                  <p className="text-xs font-semibold uppercase tracking-wide mt-1" style={{ color: C.textSecondary }}>{stat.label}</p>
+                <div key={stat.label} className="rounded-xl p-4 text-center" style={{ background: '#f97316', boxShadow: '0 4px 12px rgba(249,115,22,0.3)' }}>
+                  <p className="text-3xl font-black" style={{ color: '#ffffff' }}>{stat.value}</p>
+                  <p className="text-xs font-black uppercase tracking-wide mt-1" style={{ color: '#fff7ed' }}>{stat.label}</p>
                 </div>
               ))}
             </div>
 
             {/* Feature highlights */}
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-3">
               {loginHighlights.map((item) => (
-                <div key={item.title} className="rounded-2xl p-4 flex gap-3 items-start" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)' }}>
-                  <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5" style={{ background: 'var(--color-accent-soft)' }}>
-                    <item.icon className="h-4 w-4" style={{ color: '#f97316' }} />
+                <div key={item.title} className="rounded-xl p-4 flex gap-3 items-center" style={{ background: 'var(--color-surface)', border: '2px solid var(--color-border)' }}>
+                  <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#f97316' }}>
+                    <item.icon className="h-5 w-5" style={{ color: '#ffffff' }} />
                   </div>
-                  <p className="text-sm font-semibold leading-snug" style={{ color: C.textPrimary }}>{item.title}</p>
+                  <p className="text-sm font-black leading-snug" style={{ color: 'var(--color-text-primary)' }}>{item.title}</p>
                 </div>
               ))}
             </div>
 
             {/* Testimonial */}
-            <div className="rounded-2xl p-6" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div className="rounded-xl p-5" style={{ background: 'var(--color-surface)', border: '2px solid var(--color-border)' }}>
               <div className="flex gap-0.5 mb-3">
                 {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="h-4 w-4" fill="#f97316" viewBox="0 0 20 20">
+                  <svg key={i} className="h-5 w-5" fill="#f97316" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                 ))}
               </div>
-              <p className="text-base leading-relaxed font-medium" style={{ color: C.textPrimary }}>
+              <p className="text-base leading-relaxed font-bold" style={{ color: 'var(--color-text-primary)' }}>
                 &ldquo;We went from missing bids to winning contracts within our first month. The alerts alone are worth the subscription.&rdquo;
               </p>
-              <p className="mt-3 text-xs font-bold" style={{ color: C.textMuted }}>Marcus T. · CEO, Federal Solutions Group</p>
+              <p className="mt-3 text-sm font-black" style={{ color: '#f97316' }}>Marcus T. · CEO, Federal Solutions Group</p>
             </div>
 
             {/* Security note */}
-            <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: 'var(--color-accent-soft)', border: '1px solid var(--color-border)' }}>
-              <ShieldCheck className="h-5 w-5 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+            <div className="rounded-xl p-4 flex items-center gap-3" style={{ background: 'var(--color-surface)', border: '2px solid var(--color-border)' }}>
+              <ShieldCheck className="h-6 w-6 shrink-0" style={{ color: '#16a34a' }} />
               <div>
-                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Security-first access</p>
-                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  Auth sessions are encrypted end-to-end. Account recovery is always available from the sign-in page.
+                <p className="text-sm font-black" style={{ color: 'var(--color-text-primary)' }}>Bank-grade security. SOC 2 compliant.</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-text-primary)', opacity: 0.8 }}>
+                  Your data is encrypted end-to-end. Always.
                 </p>
               </div>
             </div>
@@ -910,3 +949,7 @@ export default function SignInPage() {
     </Suspense>
   )
 }
+
+
+
+

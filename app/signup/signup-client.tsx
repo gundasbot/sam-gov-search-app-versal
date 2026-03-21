@@ -381,12 +381,18 @@ export default function SignUpClient() {
               </div>
               <Link
                 href={`/login${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-base font-extrabold transition-all border border-orange-400 shadow-md hover:bg-orange-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
-                style={{ color: '#fff', background: 'rgba(249,115,22,0.18)', textShadow: '0 1px 4px #0006' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#f97316')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(249,115,22,0.18)')}
+                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-base font-extrabold transition-all border border-orange-500 shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400"
+                style={{ color: '#fff', background: 'linear-gradient(135deg, #f97316 60%, #f59e0b 100%)', textShadow: '0 1px 4px #0006' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#f97316';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #f97316 60%, #f59e0b 100%)';
+                  e.currentTarget.style.color = '#fff';
+                }}
               >
-                <ArrowRight className="w-7 h-7 rotate-180" style={{ color: '#22ff6e' }} />
+                <ArrowRight className="w-7 h-7 rotate-180" style={{ color: '#fff' }} />
                 <span>Back to Sign In</span>
               </Link>
             </div>
@@ -493,31 +499,36 @@ export default function SignUpClient() {
 
                 {/* ── Selected plan summary bar ────────────────────────────── */}
                 <div
-                  className="rounded-xl px-4 sm:px-5 py-5 flex items-start sm:items-center justify-between gap-3 border-2 border-[var(--color-primary)] bg-white shadow-lg"
-                  style={{ color: 'var(--color-primary)' }}
+                  className="rounded-xl px-4 sm:px-5 py-5 flex items-start sm:items-center justify-between gap-3 border-2 shadow-lg"
+                  style={{
+                    color: activePlan.accentSolid,
+                    borderColor: activePlan.accentSolid,
+                    background: '#fff',
+                  }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-lg bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0 shadow">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 shadow"
+                      style={{ background: activePlan.accentSolid }}>
                       {(() => { const Icon = activePlan.icon; return <Icon className="w-7 h-7 text-white" /> })()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[var(--color-primary)] text-sm font-extrabold uppercase tracking-wide">Selected plan</p>
-                      <p className="text-[var(--color-primary)] text-xl sm:text-2xl font-black leading-tight truncate">{activePlan.name}</p>
+                      <p style={{ color: activePlan.accentSolid }} className="text-sm font-extrabold uppercase tracking-wide">Selected plan</p>
+                      <p style={{ color: activePlan.accentSolid }} className="text-xl sm:text-2xl font-black leading-tight truncate">{activePlan.name}</p>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-3xl sm:text-4xl font-black leading-none text-[var(--color-primary)]">
+                    <p className="text-3xl sm:text-4xl font-black leading-none" style={{ color: activePlan.accentSolid }}>
                       ${annual ? fmt0.format(displayPrice) : fmt2.format(displayPrice)}
-                      <span className="text-lg font-bold text-[var(--color-primary)]">{annual ? '/yr' : '/mo'}</span>
+                      <span className="text-lg font-bold" style={{ color: activePlan.accentSolid }}>{annual ? '/yr' : '/mo'}</span>
                     </p>
                     {annual && annualSavings > 0
                       ? (
-                        <p className="mt-2 rounded-md px-3 py-1 text-base font-extrabold leading-tight text-[var(--color-primary)] bg-white border border-[var(--color-primary)]/20">
+                        <p className="mt-2 rounded-md px-3 py-1 text-base font-extrabold leading-tight" style={{ color: activePlan.accentSolid, borderColor: activePlan.accentSolid, background: '#fff', borderWidth: 1, borderStyle: 'solid' }}>
                           Save ${annualSavings}/yr
                           <span className="text-[var(--color-text-secondary)] font-bold"> · ${fmt2.format(annualMonthlyEquivalent)}/mo equivalent</span>
                         </p>
                       )
-                      : <p className="text-[var(--color-primary)] text-base font-bold mt-1">Free 7-day trial</p>
+                      : <p className="text-base font-bold mt-1" style={{ color: activePlan.accentSolid }}>Free 7-day trial</p>
                     }
                   </div>
                 </div>
