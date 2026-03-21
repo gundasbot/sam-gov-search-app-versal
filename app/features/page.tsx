@@ -295,8 +295,8 @@ export default function FeaturesPage() {
                   background: 'var(--color-surface-card)',
                   border: '1.5px solid var(--color-border-card)',
                   color: 'var(--color-text-primary)',
+                  animationDelay: `${index * 100}ms`,
                 }}
-                style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Icon with gradient background */}
                 <div

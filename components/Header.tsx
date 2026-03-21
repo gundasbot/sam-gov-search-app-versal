@@ -355,9 +355,7 @@ export default function Header() {
                   { href: '/insights', label: 'Insights', icon: <LineChart className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/support', label: 'Support', icon: <Mail className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
-                  ...(isAuthed
-                    ? [{ href: '/account', label: 'Account', icon: <User className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> }]
-                    : []),
+                  // Account moved to auth button area to prevent nav overflow
                 ].map(({ href, label, icon }) => (
                   <Link key={href} href={href} prefetch={false}
                     className={`${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
@@ -375,16 +373,27 @@ export default function Header() {
                 <ThemeToggle />
               </div>
               {isAuthed ? (
-                <button
-                  type="button"
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
-                  style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}
-                  aria-label="Logout"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </button>
+                <>
+                  <Link
+                    href="/account"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-xl transition-all hover:scale-[1.02] flex-shrink-0"
+                    style={{ background: 'var(--color-surface-muted)', border: '1.5px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                    aria-label="Account"
+                    title="Account"
+                  >
+                    <User className="w-4 h-4" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}
+                    aria-label="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                </>
               ) : (
                 <Link
                   href="/login"

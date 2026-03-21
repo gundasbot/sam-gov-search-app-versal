@@ -138,6 +138,23 @@ function Pill({ label }: { label: string }) {
 // ─── Hero Slider ──────────────────────────────────────────────────────────────
 function HeroSlider() {
   const isDark = useIsDark()
+  const heroBg  = isDark ? '#1e293b' : '#ffffff'
+  const headFg  = isDark ? '#f1f5f9' : '#0f172a'
+  const bodyFg2 = isDark ? '#cbd5e1' : '#334155'
+  const statFg  = isDark ? '#94a3b8' : '#64748b'
+  const ctaAltBg= isDark ? '#334155' : '#fff'
+  const ctaAltFg= isDark ? '#e2e8f0' : '#374151'
+  const ctaAltBorder = isDark ? '#475569' : '#d1d5db'
+  const tabBarBg= isDark ? '#1e293b' : '#ffffff'
+  const tabInact= isDark ? '#64748b' : '#9ca3af'
+  const ctrlBg  = isDark ? '#334155' : '#f1f5f9'
+  const ctrlBorder = isDark ? '#475569' : '#e2e8f0'
+  const ctrlFg  = isDark ? '#94a3b8' : '#6b7280'
+  const oppRowAlt = isDark ? 'rgba(30,41,59,0.9)' : 'rgba(248,250,252,0.85)'
+  const oppRowBorder = isDark ? '#334155' : '#e2e8f0'
+  const oppTitleFg = isDark ? '#f1f5f9' : '#0f172a'
+  const oppAgencyFg = isDark ? '#cbd5e1' : '#334155'
+  const oppValFg = isDark ? '#e2e8f0' : '#1e293b'
   const HERO_W: React.CSSProperties = {
     maxWidth: 1920,
     margin: '0 auto',
@@ -217,8 +234,7 @@ function HeroSlider() {
               </div>
 
               {/* Heading */}
-
-              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: 'var(--color-text-primary)', margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
+              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: headFg, margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
                 {s.heading}
               </h1>
               <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: s.accent, margin: '0 0 14px', letterSpacing: '-0.02em', fontFamily: F }}>
@@ -226,7 +242,7 @@ function HeroSlider() {
               </h1>
 
               {/* Body */}
-              <p style={{ fontSize: 'clamp(18px, 1.35vw, 24px)', color: 'var(--color-text-body)', lineHeight: 1.55, maxWidth: 760, margin: '0 0 20px', fontFamily: F }}>
+              <p style={{ fontSize: 'clamp(18px, 1.35vw, 24px)', color: bodyFg2, lineHeight: 1.55, maxWidth: 760, margin: '0 0 20px', fontFamily: F }}>
                 {s.body}
               </p>
 
@@ -240,20 +256,7 @@ function HeroSlider() {
                 </Link>
                 <Link
                   href={s.ctaAlt.href}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '12px 22px',
-                    borderRadius: 11,
-                    background: 'var(--color-surface-alt)',
-                    color: 'var(--color-text-primary)',
-                    border: '1.5px solid var(--color-border)',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    fontFamily: F,
-                    textDecoration: 'none',
-                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '12px 22px', borderRadius: 11, background: ctaAltBg, color: ctaAltFg, border: `1.5px solid ${ctaAltBorder}`, fontSize: 16, fontWeight: 600, fontFamily: F, textDecoration: 'none' }}
                 >
                   {s.ctaAlt.label}
                 </Link>
@@ -264,7 +267,7 @@ function HeroSlider() {
                 {s.stats.map(st => (
                   <div key={st.l}>
                     <p style={{ fontSize: 'clamp(36px, 2.9vw, 48px)', fontWeight: 800, color: s.accent, margin: 0, lineHeight: 1, fontFamily: F }}>{st.v}</p>
-                    <p style={{ fontSize: 'clamp(14px, 1.05vw, 17px)', color: 'var(--color-text-secondary)', margin: '4px 0 0', fontWeight: 700, fontFamily: F }}>{st.l}</p>
+                    <p style={{ fontSize: 'clamp(14px, 1.05vw, 17px)', color: statFg, margin: '4px 0 0', fontWeight: 700, fontFamily: F }}>{st.l}</p>
                   </div>
                 ))}
               </div>
@@ -330,18 +333,18 @@ function HeroSlider() {
 
                   {/* Opportunity rows */}
                   {OPPS.map((opp, i) => (
-                    <div key={i} style={{ padding: '12px 13px', borderRadius: 12, background: i === 0 ? (isDark ? s.aLight + '22' : s.aLight) : 'var(--color-surface-alt)', border: `1px solid ${i === 0 ? s.aMid + '30' : 'var(--color-border)'}`, marginBottom: i < 2 ? 9 : 0 }}>
+                    <div key={i} style={{ padding: '12px 13px', borderRadius: 12, background: i === 0 ? (isDark ? s.aLight + '22' : s.aLight) : oppRowAlt, border: `1px solid ${i === 0 ? s.aMid + '30' : oppRowBorder}`, marginBottom: i < 2 ? 9 : 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-                    <p style={{ fontSize: 'clamp(15px, 1.08vw, 18px)', fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
+                    <p style={{ fontSize: 'clamp(15px, 1.08vw, 18px)', fontWeight: 800, color: oppTitleFg, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: F }}>{opp.title}</p>
                     <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: opp.match >= 85 ? '#0d9488' : '#0369a1', background: opp.match >= 85 ? '#f0fdfa' : '#f0f9ff', border: `1px solid ${opp.match >= 85 ? '#99f6e4' : '#bae6fd'}`, borderRadius: 7, padding: '2px 8px', fontFamily: F }}>
                       {opp.match}%
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ fontSize: 'clamp(13px, 1.02vw, 16px)', color: 'var(--color-text-secondary)', fontWeight: 700, fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>{opp.agency}</span>
+                    <span style={{ fontSize: 'clamp(13px, 1.02vw, 16px)', color: oppAgencyFg, fontWeight: 700, fontFamily: F, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240 }}>{opp.agency}</span>
                     <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 5, padding: '1px 7px', fontFamily: F }}>{opp.deadline}</span>
                     <span style={{ flexShrink: 0, fontSize: 'clamp(12px, 0.9vw, 14px)', fontWeight: 800, color: s.accent, background: s.aLight, border: `1px solid ${s.aMid}1e`, borderRadius: 5, padding: '1px 7px', fontFamily: F }}>{opp.sa}</span>
-                    <span style={{ fontSize: 'clamp(12px, 0.9vw, 14px)', color: 'var(--color-text-primary)', fontWeight: 800, marginLeft: 'auto', fontFamily: F }}>{opp.val}</span>
+                    <span style={{ fontSize: 'clamp(12px, 0.9vw, 14px)', color: oppValFg, fontWeight: 800, marginLeft: 'auto', fontFamily: F }}>{opp.val}</span>
                   </div>
                     </div>
                   ))}
@@ -365,7 +368,7 @@ function HeroSlider() {
           </div>
 
           {/* ── Controls bar — same width as hero panel ── */}
-          <div style={{ borderTop: `1px solid ${s.aMid}26`, background: 'var(--color-surface-alt)' }}>
+          <div style={{ borderTop: `1px solid ${s.aMid}26`, background: tabBarBg }}>
             <div style={{ padding: '0 clamp(14px, 2.2vw, 32px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               {/* Named tabs */}
               <div style={{ display: 'flex' }}>
@@ -373,7 +376,7 @@ function HeroSlider() {
               <button
                 key={i}
                 onClick={() => { goTo(i) }}
-                style={{ padding: '10px 16px', fontSize: 'clamp(13px, 0.95vw, 16px)', fontWeight: 700, color: i === cur ? sl.accent : 'var(--color-text-secondary)', background: 'transparent', border: 'none', borderBottom: `2px solid ${i === cur ? sl.accent : 'transparent'}`, transition: 'all 0.18s', cursor: 'pointer', fontFamily: F }}
+                style={{ padding: '10px 16px', fontSize: 'clamp(13px, 0.95vw, 16px)', fontWeight: 700, color: i === cur ? sl.accent : tabInact, background: 'transparent', border: 'none', borderBottom: `2px solid ${i === cur ? sl.accent : 'transparent'}`, transition: 'all 0.18s', cursor: 'pointer', fontFamily: F }}
               >
                 {sl.tab}
               </button>
@@ -397,7 +400,7 @@ function HeroSlider() {
               <button
                 key={i}
                 onClick={b.fn}
-                style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--color-surface)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-primary)' }}
+                style={{ width: 28, height: 28, borderRadius: 6, background: ctrlBg, border: `1px solid ${ctrlBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: ctrlFg }}
               >
                 {b.el}
               </button>
@@ -413,14 +416,15 @@ function HeroSlider() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const isDark = useIsDark()
   // Dynamic surfaces
-  // Use CSS variables for theme-aware backgrounds and text
-  const pageBg    = 'var(--color-surface)'
-  const pageFg    = 'var(--color-text-primary)'
-  const cardBg    = 'var(--color-surface-card)'
-  const cardBorder= 'var(--color-border-card)'
-  const mutedBg   = 'var(--color-surface-muted)'
-  const bodyFg    = 'var(--color-text-body)'
+  const pageBg    = isDark ? '#0f172a' : '#f8fafc'
+  const pageFg    = isDark ? '#e2e8f0' : '#0f172a'
+  const cardBg    = isDark ? '#1e293b' : '#ffffff'
+  const cardBorder= isDark ? '#334155' : '#d8e3ef'
+  const mutedBg   = isDark ? '#1e293b' : '#eef2f7'
+  const bodyFg    = isDark ? '#cbd5e1' : '#1e293b'
+  const subtleFg  = isDark ? '#94a3b8' : '#64748b'
   return (
     <>
       <style>{`
@@ -467,7 +471,7 @@ export default function LandingPage() {
                 key={f.title}
                 href={f.href}
                 className="fcard"
-                style={{ display: 'flex', flexDirection: 'column', borderRadius: 14, background: cardBg, border: `1.5px solid ${cardBorder}`, padding: '22px 20px', boxShadow: '0 2px 8px var(--color-shadow-card)', textDecoration: 'none', minHeight: 252 }}
+                style={{ display: 'flex', flexDirection: 'column', borderRadius: 14, background: cardBg, border: `1.5px solid ${cardBorder}`, padding: '22px 20px', boxShadow: '0 2px 8px rgba(15,23,42,0.05)', textDecoration: 'none', minHeight: 252 }}
               >
                 <div style={{ width: 38, height: 38, borderRadius: 9, background: f.bg, border: `1px solid ${f.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
                   <f.Icon style={{ width: 17, height: 17, color: f.color }} />
@@ -502,7 +506,7 @@ export default function LandingPage() {
                 <div
                   key={step.n}
                   className="scard"
-                  style={{ borderRadius: 14, background: cardBg, border: `1.5px solid ${step.color}22`, padding: '22px 20px', boxShadow: '0 2px 9px var(--color-shadow-card)', minHeight: 236 }}
+                  style={{ borderRadius: 14, background: cardBg, border: `1.5px solid ${step.color}22`, padding: '22px 20px', boxShadow: '0 2px 9px rgba(15,23,42,0.05)', minHeight: 236 }}
                 >
                   <div style={{ fontSize: 38, fontWeight: 900, lineHeight: 1, color: step.bg, WebkitTextStroke: `2px ${step.color}2e`, marginBottom: 12, fontFamily: F }}>
                     {step.n}

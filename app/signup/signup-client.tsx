@@ -2,7 +2,7 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -349,38 +349,45 @@ export default function SignUpClient() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-widest text-orange-400">
+                <span className="text-sm font-extrabold uppercase tracking-widest text-orange-500 drop-shadow" style={{letterSpacing: '0.08em', textShadow: '0 1px 2px #0008'}}>
                   7-Day Free Trial
                 </span>
               </div>
               <h1
-                className="font-black text-xl sm:text-2xl leading-tight"
-                style={{ color: '#ffffff' }}
+                className="font-black text-2xl sm:text-3xl leading-tight drop-shadow"
+                style={{ color: '#fff', textShadow: '0 2px 8px #000a' }}
               >
                 Create your{' '}
-                <span style={{ color: '#f97316' }}>account</span>
+                <span style={{ color: '#f97316', textShadow: '0 2px 8px #000a' }}>account</span>
               </h1>
-              <p className="text-sm sm:text-base mt-0.5 leading-snug" style={{ color: '#94a3b8' }}>
-                Get started in 60 seconds · Cancel anytime
+              <p className="text-base sm:text-lg mt-1 leading-snug font-semibold" style={{ color: '#f1f5f9', textShadow: '0 1px 4px #0006' }}>
+                Get started in 60 seconds · <span className="font-bold">Cancel anytime</span>
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap justify-end">
               <div
-                className="hidden sm:flex items-center gap-2 rounded-xl px-4 py-2"
-                style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)' }}
+                className="hidden sm:flex items-center gap-2 rounded-lg px-4 py-2 text-base font-extrabold border shadow-md transition-all focus:outline-none focus:ring-2"
+                style={{
+                  color: '#22ff6e',
+                  background: 'rgba(34,255,110,0.12)',
+                  border: '2px solid #22ff6e',
+                  boxShadow: '0 2px 8px 0 rgba(34,255,110,0.08)'
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#22ff6e')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(34,255,110,0.12)')}
               >
-                <Check className="w-4 h-4 text-orange-400" />
-                <span className="text-orange-300 text-sm font-bold">Free 7-day trial</span>
+                <Check className="w-6 h-6" style={{ color: '#22ff6e' }} />
+                <span style={{ color: 'inherit' }}>Free 7-day trial</span>
               </div>
               <Link
                 href={`/login${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition-all"
-                style={{ color: 'rgba(255,255,255,0.55)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
+                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-base font-extrabold transition-all border border-orange-400 shadow-md hover:bg-orange-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                style={{ color: '#fff', background: 'rgba(249,115,22,0.18)', textShadow: '0 1px 4px #0006' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#f97316')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(249,115,22,0.18)')}
               >
-                <ArrowRight className="w-4 h-4 rotate-180" />
-                Back to Sign In
+                <ArrowRight className="w-7 h-7 rotate-180" style={{ color: '#22ff6e' }} />
+                <span>Back to Sign In</span>
               </Link>
             </div>
           </div>
@@ -486,31 +493,31 @@ export default function SignUpClient() {
 
                 {/* ── Selected plan summary bar ────────────────────────────── */}
                 <div
-                  className={`rounded-xl px-4 sm:px-5 py-4 flex items-start sm:items-center justify-between gap-3 border bg-gradient-to-r ${activePlan.gradientActive}`}
-                  style={{ borderColor: activePlan.accentSolid + '55' }}
+                  className="rounded-xl px-4 sm:px-5 py-5 flex items-start sm:items-center justify-between gap-3 border-2 border-[var(--color-primary)] bg-white shadow-lg"
+                  style={{ color: 'var(--color-primary)' }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${activePlan.accent} flex items-center justify-center flex-shrink-0 shadow`}>
-                      {(() => { const Icon = activePlan.icon; return <Icon className="w-5 h-5 text-white" /> })()}
+                    <div className="w-12 h-12 rounded-lg bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0 shadow">
+                      {(() => { const Icon = activePlan.icon; return <Icon className="w-7 h-7 text-white" /> })()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[var(--color-text-secondary)] text-xs font-semibold uppercase tracking-wide">Selected plan</p>
-                      <p className="text-[var(--color-text-primary)] text-base sm:text-lg font-black leading-tight truncate">{activePlan.name}</p>
+                      <p className="text-[var(--color-primary)] text-sm font-extrabold uppercase tracking-wide">Selected plan</p>
+                      <p className="text-[var(--color-primary)] text-xl sm:text-2xl font-black leading-tight truncate">{activePlan.name}</p>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className={`text-xl sm:text-2xl font-black leading-none ${activePlan.accentLight}`}>
+                    <p className="text-3xl sm:text-4xl font-black leading-none text-[var(--color-primary)]">
                       ${annual ? fmt0.format(displayPrice) : fmt2.format(displayPrice)}
-                      <span className="text-sm font-medium text-[var(--color-text-secondary)]">{annual ? '/yr' : '/mo'}</span>
+                      <span className="text-lg font-bold text-[var(--color-primary)]">{annual ? '/yr' : '/mo'}</span>
                     </p>
                     {annual && annualSavings > 0
                       ? (
-                        <p className={`mt-1 rounded-md px-2 py-1 text-sm font-extrabold leading-tight ${activePlan.accentLight} bg-white/70 border border-black/10`}>
+                        <p className="mt-2 rounded-md px-3 py-1 text-base font-extrabold leading-tight text-[var(--color-primary)] bg-white border border-[var(--color-primary)]/20">
                           Save ${annualSavings}/yr
                           <span className="text-[var(--color-text-secondary)] font-bold"> · ${fmt2.format(annualMonthlyEquivalent)}/mo equivalent</span>
                         </p>
                       )
-                      : <p className="text-[var(--color-primary)] text-xs font-semibold mt-0.5">Free 7-day trial</p>
+                      : <p className="text-[var(--color-primary)] text-base font-bold mt-1">Free 7-day trial</p>
                     }
                   </div>
                 </div>
@@ -625,7 +632,7 @@ export default function SignUpClient() {
 
           {/* ── Plan cards ──────────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {PLANS.map(plan => {
+            {plans.map(plan => {
               const Icon    = plan.icon
               const active  = selectedPlan === plan.id
               const annualPlanTotal = plan.annualPrice
@@ -640,11 +647,11 @@ export default function SignUpClient() {
                   onClick={() => setSelectedPlan(plan.id)}
                   className={[
                     'relative w-full text-left rounded-2xl border-2 transition-all duration-200 overflow-hidden group flex flex-col',
-                    `bg-gradient-to-b ${active ? plan.gradientActive : plan.gradient}`,
                     active
-                      ? `border-transparent ring-2 ${plan.ring} shadow-2xl`
-                      : `border-[var(--color-border)] hover:shadow-xl hover:border-transparent hover:ring-2 ${plan.ring}`,
+                      ? 'bg-white border-[var(--color-primary)] ring-2 ring-[var(--color-primary)] shadow-2xl'
+                      : 'bg-white border-[var(--color-border)] hover:shadow-xl hover:border-[var(--color-primary)] hover:ring-2 hover:ring-[var(--color-primary)]',
                   ].join(' ')}
+                  style={{ color: active ? 'var(--color-primary)' : 'var(--color-text-primary)' }}
                 >
                   {/* Most Popular banner */}
                   {'badge' in plan && (plan as typeof plan & { badge?: string }).badge && (
@@ -659,22 +666,22 @@ export default function SignUpClient() {
                   <div className="p-4 flex flex-col flex-1">
                     {/* Icon + plan name */}
                     <div className="flex items-center gap-2.5 mb-3 flex-shrink-0">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${plan.accent} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                      <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-lg flex-shrink-0">
                         <Icon className="w-5 h-5 text-white" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[var(--color-text-primary)] font-black text-sm truncate">{plan.name}</p>
-                        <p className="text-[var(--color-text-secondary)] text-xs truncate">{plan.tagline}</p>
+                        <p className="text-[var(--color-primary)] font-black text-base truncate">{plan.name}</p>
+                        <p className="text-[var(--color-text-secondary)] text-sm truncate font-semibold">{plan.tagline}</p>
                       </div>
                     </div>
 
                     {/* Price */}
                     <div className="mb-3 pb-3 border-b border-black/10 flex-shrink-0">
                       <div className="flex items-baseline gap-1">
-                        <span className={`text-3xl sm:text-4xl font-black ${active ? plan.accentLight : 'text-[var(--color-text-primary)]'}`}>
+                        <span className={`text-3xl sm:text-4xl font-black ${active ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-primary)]'}`}>
                           ${annual ? fmt0.format(price) : fmt2.format(price)}
                         </span>
-                        <span className="text-[var(--color-text-secondary)] text-sm">{annual ? '/yr' : '/mo'}</span>
+                        <span className="text-[var(--color-text-secondary)] text-base font-bold">{annual ? '/yr' : '/mo'}</span>
                       </div>
 
                       {/* Annual savings badge OR free trial label */}
@@ -746,7 +753,7 @@ export default function SignUpClient() {
                 <thead>
                   <tr className="border-b border-[var(--color-border)]">
                     <th className="px-5 py-3 text-left font-bold text-[var(--color-text-secondary)]">Feature</th>
-                    {PLANS.map(plan => (
+                    {plans.map(plan => (
                       <th key={plan.id} className={`px-4 py-3 text-center font-bold whitespace-nowrap ${plan.highlight ? 'bg-[var(--color-accent-soft)]' : ''}`}>
                         <span className={plan.highlight ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-primary)]'}>{plan.name}</span>
                       </th>

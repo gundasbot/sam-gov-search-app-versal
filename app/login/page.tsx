@@ -7,21 +7,7 @@ import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle, Mail, KeyRound, CheckCircle2, Clock3, Sparkles } from 'lucide-react'
 
 // Aptos font stack — Microsoft's modern default, falls back to Calibri then Noto Sans
-const aptosFontStyle = `
-  .aptos-page, .aptos-page * {
-    font-family: 'Aptos', 'Aptos Display', 'Calibri', ui-sans-serif, system-ui, -apple-system, sans-serif !important;
-    -webkit-font-smoothing: antialiased;
-  }
-  .aptos-page h1, .aptos-page h2, .aptos-page h3, .aptos-page h4,
-  .aptos-page .font-black, .aptos-page .font-extrabold, .aptos-page .font-bold {
-    font-weight: 800 !important;
-    letter-spacing: -0.01em;
-  }
-  .aptos-page p, .aptos-page span, .aptos-page a, .aptos-page label {
-    font-weight: 600;
-  }
-  .aptos-page input::placeholder { font-weight: 400; }
-`
+const aptosFontStyle = ''
 
 const stats = [
   { value: '900+', label: 'Live opportunities' },
@@ -36,12 +22,12 @@ const loginHighlights = [
 ]
 
 const C = {
-  textPrimary:   '#111827',
-  textSecondary: '#374151',
-  textMuted:     '#6b7280',
-  border:        '#e5e7eb',
-  surface:       '#ffffff',
-  surfaceMuted:  '#f9fafb',
+  textPrimary:   'var(--color-text-primary)',
+  textSecondary: 'var(--color-text-secondary)',
+  textMuted:     'var(--color-text-subtle)',
+  border:        'var(--color-border)',
+  surface:       'var(--color-surface)',
+  surfaceMuted:  'var(--color-surface-muted)',
 }
 
 type ErrorType = 'EMAIL_NOT_VERIFIED' | 'ACCOUNT_NOT_FOUND' | 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'GENERIC'
@@ -66,54 +52,77 @@ function buildSupportHref(email: string, errorState: ErrorState): string {
 function parseError(error: string): ErrorState {
   const e = error.toLowerCase()
 
-  if (e.includes('credentialssignin') || e.includes('invalid') || e.includes('credentials') || e.includes('password')) {
+  // OTP-specific errors
+  if (e.includes('not found') || e === 'account not found') {
     return {
-      type: 'INVALID_CREDENTIALS',
-      message: 'The password you entered is incorrect.',
-      suggestion: 'Try again, reset your password, or request a one-time sign-in code.',
+      type: 'ACCOUNT_NOT_FOUND',
+      message: 'No account found with that email address.',
+      suggestion: 'Double-check your email or create a free account to get started.',
     }
   }
-  if (e.includes('oauthaccountnotlinked')) {
-    return {
-      type: 'GENERIC',
-      message: 'This email is linked to a different sign-in method.',
-      suggestion: 'Use your original OAuth provider, or reset password to continue with email access.',
-    }
-  }
-  if (e.includes('oauthsignin') || e.includes('oauthcallback') || e.includes('callback')) {
-    return {
-      type: 'GENERIC',
-      message: 'Your identity provider sign-in did not complete.',
-      suggestion: 'Try again in a new tab, or use email/password while we verify provider access.',
-    }
-  }
-  if (e.includes('accessdenied')) {
-    return {
-      type: 'SUSPENDED',
-      message: 'Access to this account is currently restricted.',
-      suggestion: 'Contact support to restore account access or update permissions.',
-    }
-  }
-
-  if (error === 'EMAIL_NOT_VERIFIED' || error.toLowerCase().includes('not verified')) {
+  if (e.includes('not verified') || e === 'email_not_verified') {
     return {
       type: 'EMAIL_NOT_VERIFIED',
       message: "Your email address hasn't been verified yet.",
       suggestion: 'Check your inbox for a verification email, or request a new one below.',
     }
   }
-  if (error === 'Account not found' || error.toLowerCase().includes('not found')) {
+  if (e.includes('expired')) {
     return {
-      type: 'ACCOUNT_NOT_FOUND',
-      message: 'No account found with that email address.',
-      suggestion: 'Double-check your email or create a new account to get started.',
+      type: 'GENERIC',
+      message: 'Your sign-in code has expired.',
+      suggestion: 'Request a new code and try again — codes are valid for 15 minutes.',
     }
   }
-  if (error.toLowerCase().includes('suspended')) {
+  if (e.includes('already used')) {
+    return {
+      type: 'GENERIC',
+      message: 'This code has already been used.',
+      suggestion: 'Request a new code to sign in.',
+    }
+  }
+  if (e.includes('invalid code') || e.includes('invalid_code')) {
+    return {
+      type: 'INVALID_CREDENTIALS',
+      message: 'The code you entered is incorrect.',
+      suggestion: 'Double-check the 6-digit code from your email and try again.',
+    }
+  }
+  if (e.includes('failed to send') || e.includes('send otp')) {
+    return {
+      type: 'GENERIC',
+      message: 'We couldn\'t send the sign-in code.',
+      suggestion: 'Check your email address and try again. If the problem persists, use password sign-in or contact support.',
+    }
+  }
+
+  // Password / credentials errors
+  if (e.includes('credentialssignin') || (e.includes('invalid') && !e.includes('code')) || e.includes('credentials') || e.includes('password')) {
+    return {
+      type: 'INVALID_CREDENTIALS',
+      message: 'The password you entered is incorrect.',
+      suggestion: 'Try again, reset your password, or use the Code tab for a one-time sign-in.',
+    }
+  }
+  if (e.includes('oauthaccountnotlinked')) {
+    return {
+      type: 'GENERIC',
+      message: 'This email is linked to a different sign-in method.',
+      suggestion: 'Use your original sign-in method, or reset your password to use email/password.',
+    }
+  }
+  if (e.includes('oauthsignin') || e.includes('oauthcallback') || e.includes('callback')) {
+    return {
+      type: 'GENERIC',
+      message: 'Google sign-in didn\'t complete.',
+      suggestion: 'Try again, or use email + password or the Code tab instead.',
+    }
+  }
+  if (e.includes('accessdenied') || e.includes('suspended')) {
     return {
       type: 'SUSPENDED',
-      message: 'Your account has been suspended.',
-      suggestion: 'Contact support@precisegovcon.com to resolve this.',
+      message: 'Access to this account is currently restricted.',
+      suggestion: 'Contact support@precisegovcon.com to restore access.',
     }
   }
 
@@ -266,6 +275,8 @@ function SignInContent() {
   const [otpSending, setOtpSending] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [otpTimeRemaining, setOtpTimeRemaining] = useState(0)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkSending, setMagicLinkSending] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -276,6 +287,10 @@ function SignInContent() {
   useEffect(() => {
     if (!errorParam) return
     setErrorState(parseError(errorParam))
+    // Clear the error from the URL so it doesn't re-appear after OTP login
+    const url = new URL(window.location.href)
+    url.searchParams.delete('error')
+    window.history.replaceState({}, '', url.toString())
   }, [errorParam])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -344,9 +359,14 @@ function SignInContent() {
       if (res.ok) {
         setOtpSent(true)
         setOtpTimeRemaining(900) // 15 minutes = 900 seconds
+        setErrorState(null) // Clear any previous errors
+        setErrorState(null) // Clear any stale password errors
       } else {
         const data = await res.json()
+        // Pass raw API error so parseError can match specific messages
         setErrorState(parseError(data.error || 'Failed to send code'))
+        // Log for debugging
+        console.error('send-otp error:', data)
       }
     } catch (err) {
       setErrorState(parseError('Failed to send code'))
@@ -398,6 +418,29 @@ function SignInContent() {
     }
   }
 
+  async function handleSendMagicLink() {
+    if (!otpEmail) return
+    setMagicLinkSending(true)
+    setErrorState(null)
+    try {
+      const res = await fetch('/api/auth/magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: otpEmail }),
+      })
+      if (res.ok) {
+        setMagicLinkSent(true)
+      } else {
+        const data = await res.json()
+        setErrorState(parseError(data.error || 'Failed to send link'))
+      }
+    } catch {
+      setErrorState(parseError('Failed to send link'))
+    } finally {
+      setMagicLinkSending(false)
+    }
+  }
+
   // Countdown timer effect
   useEffect(() => {
     if (!otpSent || otpTimeRemaining <= 0) return
@@ -408,7 +451,7 @@ function SignInContent() {
   }, [otpSent, otpTimeRemaining])
 
   return (
-    <div className="aptos-page min-h-screen" style={{ background: '#f1f5f9' }}>
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
       {status === 'authenticated' ? (
         <div className="pg-container flex min-h-screen items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
@@ -416,29 +459,52 @@ function SignInContent() {
       ) : (
       <>
       <style dangerouslySetInnerHTML={{ __html: aptosFontStyle }} />
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
 
-        {/* ── TWO-COLUMN LAYOUT ── */}
-        <div className="grid gap-6 lg:grid-cols-5 lg:gap-10 items-start">
+      <div className="mx-auto max-w-[1920px] px-4 pt-4 pb-0 sm:px-6 lg:px-8" style={{ minHeight: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
 
-          {/* ── LEFT: Login Form Card (2 cols) ── */}
-          <div className="lg:col-span-2">
-            <div className="rounded-3xl bg-white shadow-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
+        {/* ── SINGLE UNIFIED CARD containing both panels ── */}
+        <div className="rounded-3xl shadow-xl overflow-hidden flex-1 flex flex-col" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)' }}>
+          <div className="grid lg:grid-cols-2 lg:items-stretch flex-1">
 
-              {/* Card header bar */}
-              <div className="px-6 py-4" style={{ background: 'linear-gradient(135deg,#f97316 0%,#ea580c 100%)', borderBottom: '2px solid #f97316' }}>
-                <p className="text-xs font-black uppercase tracking-widest" style={{ color: '#ffffff' }}>Account Access</p>
-                <h2 className="text-2xl font-black text-white mt-0.5">Sign in to Precise GovCon</h2>
-                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: 'rgba(255,255,255,0.25)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.4)' }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  AES-256 encrypted
+          {/* ── LEFT: Login Form ── */}
+          <div className="flex flex-col" style={{ borderRight: '1px solid var(--color-border)' }}>
+            <div className="overflow-hidden">
+              {/* Card header bar styled like signup */}
+              <div className="px-6 py-5 flex items-start sm:items-center justify-between gap-3 shrink-0" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)', borderBottom: '1px solid rgba(249,115,22,0.25)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                    <span className="text-sm font-extrabold uppercase tracking-widest text-orange-400" style={{letterSpacing: '0.08em'}}>7-Day Free Trial</span>
+                  </div>
+                  <h1 className="font-black text-2xl sm:text-3xl leading-tight" style={{ color: '#fff', textShadow: '0 2px 8px #000a' }}>
+                    Sign in to <span style={{ color: '#f97316', textShadow: '0 2px 8px #000a' }}>Precise GovCon</span>
+                  </h1>
+                  <p className="text-base sm:text-lg mt-1 leading-snug font-semibold" style={{ color: '#f1f5f9', textShadow: '0 1px 4px #0006' }}>
+                    Secure access · Cancel anytime
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap justify-end">
+                  <div className="hidden sm:flex items-center gap-2 rounded-lg px-4 py-2" style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid #fb923c' }}>
+                    <CheckCircle2 className="w-6 h-6" style={{ color: '#fb923c' }} />
+                    <span className="text-lg font-extrabold" style={{ color: '#fb923c' }}>Free 7-day trial</span>
+                  </div>
+                  <Link
+                    href="/signup"
+                    className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-base font-extrabold transition-all focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    style={{ color: '#ffffff', background: '#f97316', boxShadow: '0 2px 8px rgba(249,115,22,0.4)' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = '#ea580c')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = '#f97316')}
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    Create Account
+                  </Link>
                 </div>
               </div>
 
-              <div className="px-6 py-5 space-y-4">
+              <div className="px-6 py-6 space-y-3" suppressHydrationWarning>
 
-                {/* Error block */}
-                {errorState && (
+                {/* Error block — hide when OTP was sent successfully */}
+                {errorState && !(authMode === 'otp' && otpSent) && (
                   <ErrorBlock
                     errorState={errorState}
                     email={email}
@@ -454,8 +520,8 @@ function SignInContent() {
                   type="button"
                   onClick={handleGoogleOAuth}
                   disabled={loading}
-                  className="h-11 w-full inline-flex items-center justify-center gap-3 rounded-xl text-sm font-semibold transition-all hover:shadow-md hover:-translate-y-0.5 disabled:opacity-60"
-                  style={{ background: '#ffffff', color: C.textPrimary, border: '1.5px solid #d1d5db', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
+                  className="h-14 w-full inline-flex items-center justify-center gap-3 rounded-xl text-xl font-extrabold transition-all hover:shadow-md hover:-translate-y-0.5 disabled:opacity-60"
+                  style={{ background: '#fff', color: '#0f172a', border: '2px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
                 >
                   <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -465,19 +531,19 @@ function SignInContent() {
                   </svg>
                   Continue with Google
                 </button>
-                <p className="text-center text-xs" style={{ color: C.textMuted }}>
+                <p className="text-center text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
                   New here? Google sign-in creates your account automatically.
                 </p>
 
                 {/* Divider */}
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1" style={{ background: C.border }} />
-                  <span className="text-xs font-bold uppercase tracking-widest" style={{ color: C.textMuted }}>or</span>
-                  <div className="h-px flex-1" style={{ background: C.border }} />
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
+                  <span className="text-xs font-extrabold uppercase tracking-widest" style={{ color: 'var(--color-text-subtle)', letterSpacing: '0.15em' }}>or</span>
+                  <div className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
                 </div>
 
                 {/* Auth mode toggle */}
-                <div className="flex items-center gap-2 rounded-xl border" style={{ borderColor: C.border, background: C.surfaceMuted, padding: '6px' }}>
+                <div className="flex items-center gap-1 rounded-xl border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface-muted)', padding: '4px' }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -486,11 +552,12 @@ function SignInContent() {
                       setOtpCode('')
                       setOtpSent(false)
                       setOtpTimeRemaining(0)
+                      setMagicLinkSent(false)
                     }}
-                    className="flex-1 rounded-lg px-3 py-2.5 text-sm font-bold transition-all"
+                    className="flex-1 rounded-lg px-3 py-3 text-lg font-extrabold transition-all"
                     style={{
                       background: authMode === 'password' ? 'var(--color-primary)' : 'transparent',
-                      color: authMode === 'password' ? '#ffffff' : C.textSecondary,
+                      color: authMode === 'password' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                     }}
                   >
                     Password
@@ -503,10 +570,10 @@ function SignInContent() {
                       setPassword('')
                       setOtpEmail(email)
                     }}
-                    className="flex-1 rounded-lg px-3 py-2.5 text-sm font-bold transition-all"
+                    className="flex-1 rounded-lg px-3 py-3 text-lg font-extrabold transition-all"
                     style={{
                       background: authMode === 'otp' ? 'var(--color-primary)' : 'transparent',
-                      color: authMode === 'otp' ? '#ffffff' : C.textSecondary,
+                      color: authMode === 'otp' ? '#ffffff' : 'var(--color-text-secondary)',
                     }}
                   >
                     Code
@@ -515,9 +582,9 @@ function SignInContent() {
 
                 {/* Password form */}
                 {authMode === 'password' && (
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} className="space-y-2" suppressHydrationWarning>
                   <div>
-                    <label htmlFor="email" className="mb-1 block text-xs font-bold uppercase tracking-wide" style={{ color: C.textSecondary }}>
+                    <label htmlFor="email" className="mb-1 block text-base font-extrabold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
                       Email
                     </label>
                     <input
@@ -527,14 +594,14 @@ function SignInContent() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@company.com"
                       required
-                      className="h-10 w-full rounded-xl px-3 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-300"
-                      style={{ background: C.surfaceMuted, color: C.textPrimary, border: `1.5px solid ${C.border}` }}
+                      className="h-14 w-full rounded-xl px-5 text-lg outline-none transition-all focus:ring-2 focus:ring-orange-300"
+                      style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '2px solid var(--color-border)' }}
                     />
                   </div>
 
                   <div>
                     <div className="mb-1 flex items-center justify-between">
-                      <label htmlFor="password" className="text-xs font-bold uppercase tracking-wide" style={{ color: C.textSecondary }}>
+                      <label htmlFor="password" className="text-base font-extrabold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
                         Password
                       </label>
                       <Link
@@ -553,13 +620,13 @@ function SignInContent() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter your password"
                         required
-                        className="h-10 w-full rounded-xl px-3 pr-10 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-300"
-                        style={{ background: C.surfaceMuted, color: C.textPrimary, border: `1.5px solid ${C.border}` }}
+                        className="h-14 w-full rounded-xl px-5 pr-12 text-lg outline-none transition-all focus:ring-2 focus:ring-orange-300"
+                        style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '2px solid var(--color-border)' }}
                       />
                       <button
                         type="button"
                         className="absolute right-3 top-1/2 -translate-y-1/2"
-                        style={{ color: C.textMuted }}
+                        style={{ color: '#f97316' }}
                         onClick={() => setShowPassword((v) => !v)}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -571,8 +638,8 @@ function SignInContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="h-11 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
+                    className="h-14 w-full inline-flex items-center justify-center gap-2 rounded-xl text-xl font-extrabold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                    style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 14px #f97316a0' }}
                   >
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Access Dashboard <ArrowRight className="h-4 w-4" /></>}
                   </button>
@@ -581,46 +648,103 @@ function SignInContent() {
 
                 {/* OTP form */}
                 {authMode === 'otp' && (
-                <form onSubmit={(e) => { e.preventDefault(); handleVerifyOTP() }} className="space-y-3">
+                <form onSubmit={(e) => { e.preventDefault(); handleVerifyOTP() }} className="space-y-2" suppressHydrationWarning>
                   <div>
-                    <label htmlFor="otp-email" className="mb-1 block text-xs font-bold uppercase tracking-wide" style={{ color: C.textSecondary }}>
+                    <label htmlFor="otp-email" className="mb-1 block text-base font-extrabold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
                       Email
                     </label>
                     <input
                       id="otp-email"
                       type="email"
                       value={otpEmail}
-                      onChange={(e) => setOtpEmail(e.target.value)}
+                      onChange={(e) => { setOtpEmail(e.target.value); setOtpSent(false); setMagicLinkSent(false) }}
                       placeholder="you@company.com"
-                      disabled={otpSent}
-                      className="h-10 w-full rounded-xl px-3 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-300 disabled:opacity-60"
-                      style={{ background: C.surfaceMuted, color: C.textPrimary, border: `1.5px solid ${C.border}` }}
+                      disabled={otpSent || magicLinkSent}
+                      className="h-14 w-full rounded-xl px-5 text-lg outline-none transition-all focus:ring-2 focus:ring-orange-300 disabled:opacity-60"
+                      style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '2px solid var(--color-border)' }}
                     />
                   </div>
 
-                  {!otpSent ? (
-                    <button
-                      type="button"
-                      onClick={handleSendOTP}
-                      disabled={otpSending || !otpEmail}
-                      className="h-11 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-                      style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
-                    >
-                      {otpSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Send Code <Mail className="h-4 w-4" /></>}
-                    </button>
+                  {/* Magic link sent state */}
+                  {magicLinkSent && (
+                    <div className="rounded-xl p-4 text-center" style={{ background: '#0f172a', border: '1.5px solid #f97316' }}>
+                      <p className="font-black text-base" style={{ color: '#ffffff' }}>✓ Sign-in link sent to {otpEmail}</p>
+                      <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>Check your inbox and click the link to sign in</p>
+                      <button type="button" onClick={() => { setMagicLinkSent(false); setOtpSent(false) }}
+                        className="mt-3 text-xs font-bold hover:underline" style={{ color: '#f97316', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Use a different method
+                      </button>
+                    </div>
+                  )}
+
+                  {!otpSent && !magicLinkSent ? (
+                    <div className="space-y-2">
+                      {/* Magic link button — primary option */}
+                      <button
+                        type="button"
+                        onClick={handleSendMagicLink}
+                        disabled={magicLinkSending || !otpEmail}
+                        className="h-12 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
+                      >
+                        {magicLinkSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Mail className="h-4 w-4" /> Send Sign-In Link</>}
+                      </button>
+                      {/* Divider */}
+                      <div className="flex items-center gap-2 py-1">
+                        <div className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
+                        <span className="text-xs font-bold" style={{ color: 'var(--color-text-subtle)' }}>or enter a code instead</span>
+                        <div className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
+                      </div>
+                      {/* Code button — secondary option */}
+                      <button
+                        type="button"
+                        onClick={handleSendOTP}
+                        disabled={otpSending || !otpEmail}
+                        className="h-11 w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                        style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
+                      >
+                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send 6-Digit Code</>}
+                      </button>
+                    </div>
+                  ) : otpTimeRemaining === 0 ? (
+                    /* ── EXPIRED STATE ── */
+                    <div className="space-y-3">
+                      <div className="rounded-xl p-4 text-center" style={{ background: '#fef2f2', border: '1.5px solid #fecaca' }}>
+                        <p className="font-black text-base" style={{ color: '#991b1b' }}>⏱ Your sign-in code has expired</p>
+                        <p className="text-sm mt-1" style={{ color: '#b91c1c' }}>
+                          Codes are valid for 15 minutes. Request a new one to continue.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setOtpSent(false); setOtpCode(''); setOtpTimeRemaining(0); handleSendOTP(); }}
+                        disabled={otpSending}
+                        className="h-12 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.3)' }}
+                      >
+                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Send a new code</>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setAuthMode('password'); setOtpSent(false); setOtpCode(''); setOtpTimeRemaining(0); setErrorState(null); }}
+                        className="h-10 w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
+                        style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
+                      >
+                        <KeyRound className="h-4 w-4" /> Sign in with password instead
+                      </button>
+                    </div>
                   ) : (
+                    /* ── ACTIVE CODE STATE ── */
                     <>
-                      <div style={{ background: '#fef8f0', border: `1.5px solid #fed7aa`, borderRadius: '12px', padding: '12px 16px', textAlign: 'center' }}>
-                        <p style={{ margin: 0, color: '#b45309', fontSize: '13px', fontWeight: 600 }}>
+                      <div className="rounded-xl p-4 text-center" style={{ background: '#0f172a', border: '1.5px solid #f97316' }}>
+                        <p className="font-black text-base" style={{ color: '#ffffff' }}>
                           ✓ Code sent to {otpEmail}
                         </p>
-                        <p style={{ margin: '4px 0 0', color: '#a16207', fontSize: '12px' }}>
-                          Expires in {Math.floor(otpTimeRemaining / 60)}:{String(otpTimeRemaining % 60).padStart(2, '0')}
-                        </p>
+                        <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>Check your inbox and enter the 6-digit code below</p>
                       </div>
 
                       <div>
-                        <label htmlFor="otp-code" className="mb-1 block text-xs font-bold uppercase tracking-wide" style={{ color: C.textSecondary }}>
+                        <label htmlFor="otp-code" className="mb-1 block text-base font-extrabold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
                           6-Digit Code
                         </label>
                         <input
@@ -631,28 +755,28 @@ function SignInContent() {
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                           placeholder="000000"
-                          className="h-10 w-full rounded-xl px-4 text-lg font-mono text-center outline-none transition-all focus:ring-2 focus:ring-orange-300"
-                          style={{ background: C.surfaceMuted, color: C.textPrimary, border: `1.5px solid ${C.border}`, letterSpacing: '12px' }}
+                          className="h-14 w-full rounded-xl px-5 text-2xl font-mono text-center outline-none transition-all focus:ring-2 focus:ring-orange-300"
+                          style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '2px solid var(--color-border)', letterSpacing: '12px' }}
                         />
                       </div>
 
                       <button
                         type="submit"
-                        disabled={loading || otpCode.length !== 6 || otpTimeRemaining === 0}
-                        className="h-11 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-                        style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.35)' }}
+                        disabled={loading || otpCode.length !== 6}
+                        className="h-14 w-full inline-flex items-center justify-center gap-2 rounded-xl text-xl font-extrabold transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                        style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 14px #f97316a0' }}
                       >
                         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Verify & Sign In <ArrowRight className="h-4 w-4" /></>}
                       </button>
 
                       <button
                         type="button"
-                        onClick={handleSendOTP}
-                        disabled={otpSending || otpTimeRemaining > 60}
-                        className="w-full text-xs font-semibold hover:underline disabled:opacity-60"
-                        style={{ color: '#ea580c', background: 'none', border: 'none', padding: '8px', cursor: 'pointer' }}
+                        onClick={async () => { setOtpCode(''); setOtpTimeRemaining(0); setOtpSent(false); await handleSendOTP(); }}
+                        disabled={otpSending}
+                        className="h-10 w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                        style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
                       >
-                        {otpTimeRemaining > 60 ? 'Didn\'t receive it?' : 'Resend code'}
+                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Didn't receive it? Send a new code</>}
                       </button>
                     </>
                   )}
@@ -660,32 +784,32 @@ function SignInContent() {
                 )}
 
                 {/* Footer helpers */}
-                <div className="pt-3 flex items-center justify-center gap-3 flex-wrap" style={{ borderTop: `1px solid ${C.border}` }}>
+                <div className="pt-3 flex items-center justify-center gap-3 flex-wrap" style={{ borderTop: '1.5px solid var(--color-border)' }}>
                   <Link
                     href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5"
-                    style={{ background: '#dc2626', color: '#ffffff', border: '1px solid #991b1b' }}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
+                    style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
                   >
-                    <KeyRound className="h-4 w-4" />
+                    <KeyRound className="h-3.5 w-3.5" />
                     Reset Password
                   </Link>
                   <Link
                     href="/support?openContact=1&category=Account%20%26%20Access"
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5"
-                    style={{ background: '#0284c7', color: '#ffffff', border: '1px solid #0369a1' }}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
+                    style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
                   >
-                    <Mail className="h-4 w-4" />
+                    <Mail className="h-3.5 w-3.5" />
                     Support
                   </Link>
                 </div>
               </div>
             </div>
 
-            {/* Sign-up prompt below card */}
-            <div className="mt-3 rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: '#fff7ed', border: '1.5px solid #fed7aa' }}>
+            {/* Sign-up prompt — inside card bottom */}
+            <div className="mx-6 mb-6 rounded-xl p-3 flex items-center justify-between gap-2" style={{ background: 'var(--color-surface-muted)', border: '1.5px solid var(--color-border)' }}>
               <div>
-                <p className="text-sm font-bold" style={{ color: C.textPrimary }}>No account yet?</p>
-                <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>7-day free trial — no card required.</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>No account yet?</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>7-day free trial — no card required.</p>
               </div>
               <Link
                 href="/signup"
@@ -697,14 +821,14 @@ function SignInContent() {
             </div>
           </div>
 
-          {/* ── RIGHT: Value Panel (3 cols) ── */}
-          <div className="lg:col-span-3 space-y-6">
+          {/* ── RIGHT: Value Panel ── */}
+          <div className="flex flex-col justify-between space-y-6 p-6 sm:p-8 h-full">
 
             {/* Headline */}
             <div>
               <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: '#f97316' }}>Why PreciseGovCon</p>
               <h3 className="text-3xl font-black leading-tight" style={{ color: C.textPrimary }}>
-                Built for serious<br />federal pursuit teams
+                Built for serious federal pursuit teams
               </h3>
               <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
                 Your login is the front door to live opportunities, AI-ranked fit signals, and automated alert workflows.
@@ -714,7 +838,7 @@ function SignInContent() {
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-4">
               {stats.map((stat) => (
-                <div key={stat.label} className="rounded-2xl p-5 text-center" style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                <div key={stat.label} className="rounded-2xl p-5 text-center" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                   <p className="text-3xl font-black" style={{ color: '#f97316' }}>{stat.value}</p>
                   <p className="text-xs font-semibold uppercase tracking-wide mt-1" style={{ color: C.textSecondary }}>{stat.label}</p>
                 </div>
@@ -724,8 +848,8 @@ function SignInContent() {
             {/* Feature highlights */}
             <div className="grid gap-3 sm:grid-cols-3">
               {loginHighlights.map((item) => (
-                <div key={item.title} className="rounded-2xl p-4 flex gap-3 items-start" style={{ background: '#ffffff', border: '1.5px solid #e2e8f0' }}>
-                  <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5" style={{ background: '#fff7ed' }}>
+                <div key={item.title} className="rounded-2xl p-4 flex gap-3 items-start" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)' }}>
+                  <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center mt-0.5" style={{ background: 'var(--color-accent-soft)' }}>
                     <item.icon className="h-4 w-4" style={{ color: '#f97316' }} />
                   </div>
                   <p className="text-sm font-semibold leading-snug" style={{ color: C.textPrimary }}>{item.title}</p>
@@ -734,7 +858,7 @@ function SignInContent() {
             </div>
 
             {/* Testimonial */}
-            <div className="rounded-2xl p-6" style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div className="rounded-2xl p-6" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
               <div className="flex gap-0.5 mb-3">
                 {[...Array(5)].map((_, i) => (
                   <svg key={i} className="h-4 w-4" fill="#f97316" viewBox="0 0 20 20">
@@ -749,18 +873,19 @@ function SignInContent() {
             </div>
 
             {/* Security note */}
-            <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-              <ShieldCheck className="h-5 w-5 shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+            <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: 'var(--color-accent-soft)', border: '1px solid var(--color-border)' }}>
+              <ShieldCheck className="h-5 w-5 shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
               <div>
-                <p className="text-sm font-bold" style={{ color: '#14532d' }}>Security-first access</p>
-                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#166534' }}>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>Security-first access</p>
+                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
                   Auth sessions are encrypted end-to-end. Account recovery is always available from the sign-in page.
                 </p>
               </div>
             </div>
           </div>
 
-        </div>
+          </div>{/* end grid */}
+        </div>{/* end unified card */}
       </div>
       </>
       )}
@@ -772,7 +897,7 @@ export default function SignInPage() {
   return (
     <Suspense
       fallback={
-        <div className="aptos-page pg-container flex min-h-[40vh] items-center justify-center">
+        <div className="pg-container flex min-h-[40vh] items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
         </div>
       }

@@ -132,11 +132,31 @@ export const authOptions: NextAuthOptions = {
       },
 
       async authorize(credentials) {
-        if (!credentials?.email) return null
+        const autoLoginToken = String((credentials as any)?.autoLoginToken ?? '').trim()
 
+        // ── OTP TOKEN PATH — no email required ───────────────────────────────
+        if (autoLoginToken) {
+          const tokenHash = sha256Hex(autoLoginToken)
+          const now = new Date()
+          const tokenRow = await prisma.auto_login_tokens.findFirst({
+            where: { token_hash: tokenHash, used_at: null, expires_at: { gt: now } },
+            select: { id: true, user_id: true },
+          })
+          if (!tokenRow) throw new Error('Invalid or expired sign-in code')
+          await prisma.auto_login_tokens.update({ where: { id: tokenRow.id }, data: { used_at: now } })
+          const tokenUser = await prisma.users.findUnique({
+            where: { id: tokenRow.user_id },
+            select: { id: true, email: true, name: true, first_name: true, last_name: true, role: true, plan: true, plan_tier: true, plan_status: true, trial_active: true, trial_ends_at: true, trial_expires_at: true, subscription_status: true, billing_interval: true, stripe_subscription_id: true, stripe_customer_id: true, is_suspended: true },
+          })
+          if (!tokenUser) throw new Error('Account not found')
+          if (tokenUser.is_suspended) throw new Error('Account suspended')
+          return buildUserPayload(tokenUser)
+        }
+
+        // ── PASSWORD PATH ────────────────────────────────────────────────────
+        if (!credentials?.email) return null
         const email    = credentials.email.toLowerCase().trim()
         const password = String(credentials.password ?? '')
-        const autoLoginToken = String((credentials as any).autoLoginToken ?? '').trim()
 
         // ── 1. Load user ──────────────────────────────────────────────────────
         const user = await prisma.users.findUnique({

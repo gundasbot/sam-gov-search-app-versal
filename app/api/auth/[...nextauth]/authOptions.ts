@@ -131,46 +131,12 @@ export const authOptions: NextAuthOptions = {
         autoLoginToken: { label: "Auto Login Token", type: "text" },
       },
       async authorize(credentials) {
-        const rawEmail = credentials?.email
-        if (!rawEmail) return null
-
-        const email = rawEmail.toLowerCase().trim()
-        const password = String(credentials?.password ?? "")
+        console.log('[OTP-AUTH] credentials keys:', Object.keys(credentials || {}))
+        console.log('[OTP-AUTH] autoLoginToken length:', String((credentials as any)?.autoLoginToken ?? '').trim().length)
         const autoLoginToken = String((credentials as any)?.autoLoginToken ?? "").trim()
 
-        const user = await prisma.users.findUnique({
-          where: { email },
-          select: {
-            id: true,
-            email: true,
-            password_hash: true,
-            email_verified: true,
-            first_name: true,
-            last_name: true,
-            name: true,
-            role: true,
-            plan: true,
-            plan_tier: true,
-            plan_status: true,
-            subscription_status: true,
-            billing_interval: true,
-            trial_ends_at: true,
-            trial_expires_at: true,
-            trial_active: true,
-            stripe_subscription_id: true,
-            stripe_customer_id: true,
-            is_suspended: true,
-          },
-        })
-
-        if (!user) {
-          throw new Error("Account not found")
-        }
-
-        if (!user.email_verified) {
-          throw new Error("Email not verified. Please check your inbox.")
-        }
-
+        // ── AUTO-LOGIN TOKEN PATH (OTP sign-in) ─────────────────────────────
+        // Handle token-only flow first — no email required
         if (autoLoginToken) {
           const tokenHash = sha256Hex(autoLoginToken)
           const now = new Date()
@@ -181,43 +147,73 @@ export const authOptions: NextAuthOptions = {
               used_at: null,
               expires_at: { gt: now },
             },
-            select: {
-              id: true,
-              user_id: true,
-              expires_at: true,
-              used_at: true,
-            },
+            select: { id: true, user_id: true },
           })
 
           if (!tokenRow) {
-            throw new Error("Invalid or expired auto-login token")
+            throw new Error("Invalid or expired sign-in code")
           }
 
-          // Mark token used
+          // Mark token used immediately
           await prisma.auto_login_tokens.update({
             where: { id: tokenRow.id },
             data: { used_at: now },
           })
 
-          if (user.is_suspended) {
-            throw new Error("Your account has been suspended. Contact support@precisegovcon.com.")
-          }
+          // Load user by ID from token
+          const tokenUser = await prisma.users.findUnique({
+            where: { id: tokenRow.user_id },
+            select: {
+              id: true, email: true, name: true,
+              first_name: true, last_name: true,
+              role: true, plan: true, plan_tier: true,
+              plan_status: true, trial_active: true,
+              trial_ends_at: true, subscription_status: true,
+              billing_interval: true, is_suspended: true,
+            },
+          })
 
-          // Successful login via token
+          if (!tokenUser) throw new Error("Account not found")
+          if (tokenUser.is_suspended) throw new Error("Your account has been suspended. Contact support@precisegovcon.com.")
+
           return {
-            id: user.id,
-            email: user.email,
-            name: user.name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email,
-            role: user.role || "user",
-            plan: user.plan || null,
-            plan_tier: user.plan_tier || null,
-            plan_status: user.plan_status || null,
-            trial_active: !!user.trial_active,
-            trial_ends_at: user.trial_ends_at || null,
-            subscription_status: user.subscription_status || null,
-            billing_interval: user.billing_interval || null,
+            id: tokenUser.id,
+            email: tokenUser.email,
+            name: tokenUser.name || `${tokenUser.first_name || ""} ${tokenUser.last_name || ""}`.trim() || tokenUser.email,
+            role: tokenUser.role || "user",
+            plan: tokenUser.plan || null,
+            plan_tier: tokenUser.plan_tier || null,
+            plan_status: tokenUser.plan_status || null,
+            trial_active: !!tokenUser.trial_active,
+            trial_ends_at: tokenUser.trial_ends_at || null,
+            subscription_status: tokenUser.subscription_status || null,
+            billing_interval: tokenUser.billing_interval || null,
           } as any
         }
+
+        // ── PASSWORD PATH ────────────────────────────────────────────────────
+        const rawEmail = credentials?.email
+        if (!rawEmail) return null
+
+        const email = rawEmail.toLowerCase().trim()
+        const password = String(credentials?.password ?? "")
+
+        const user = await prisma.users.findUnique({
+          where: { email },
+          select: {
+            id: true, email: true, password_hash: true,
+            email_verified: true, first_name: true, last_name: true,
+            name: true, role: true, plan: true, plan_tier: true,
+            plan_status: true, subscription_status: true,
+            billing_interval: true, trial_ends_at: true,
+            trial_expires_at: true, trial_active: true,
+            stripe_subscription_id: true, stripe_customer_id: true,
+            is_suspended: true,
+          },
+        })
+
+        if (!user) throw new Error("Account not found")
+        if (!user.email_verified) throw new Error("Email not verified. Please check your inbox.")
 
         if (!user.password_hash) {
           throw new Error("Password login not enabled for this account")
@@ -356,3 +352,4 @@ export const authOptions: NextAuthOptions = {
 }
 
 export default NextAuth(authOptions)
+
