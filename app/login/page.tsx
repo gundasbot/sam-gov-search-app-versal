@@ -430,6 +430,9 @@ function SignInContent() {
       })
       if (res.ok) {
         setMagicLinkSent(true)
+        setErrorState(null)  // clear any stale errors
+        setOtpSent(false)    // clear OTP state
+        setOtpCode('')
       } else {
         const data = await res.json()
         setErrorState(parseError(data.error || 'Failed to send link'))
@@ -504,7 +507,7 @@ function SignInContent() {
               <div className="px-6 py-6 space-y-3" suppressHydrationWarning>
 
                 {/* Error block — hide when OTP was sent successfully */}
-                {errorState && !(authMode === 'otp' && otpSent) && (
+                {errorState && !(authMode === 'otp' && otpSent) && !magicLinkSent && (
                   <ErrorBlock
                     errorState={errorState}
                     email={email}
@@ -569,6 +572,9 @@ function SignInContent() {
                       setErrorState(null)
                       setPassword('')
                       setOtpEmail(email)
+                      setOtpSent(false)
+                      setOtpCode('')
+                      setMagicLinkSent(false)
                     }}
                     className="flex-1 rounded-lg px-3 py-3 text-lg font-extrabold transition-all"
                     style={{
@@ -657,7 +663,7 @@ function SignInContent() {
                       id="otp-email"
                       type="email"
                       value={otpEmail}
-                      onChange={(e) => { setOtpEmail(e.target.value); setOtpSent(false); setMagicLinkSent(false) }}
+                      onChange={(e) => { setOtpEmail(e.target.value); setOtpSent(false); setMagicLinkSent(false); setErrorState(null) }}
                       placeholder="you@company.com"
                       disabled={otpSent || magicLinkSent}
                       className="h-14 w-full rounded-xl px-5 text-lg outline-none transition-all focus:ring-2 focus:ring-orange-300 disabled:opacity-60"
