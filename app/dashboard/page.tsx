@@ -1391,10 +1391,10 @@ export default function DashboardPage() {
  { label: 'Deadlines', value: dash.upcomingDeadlines.length, bg: '#b91c1c' },
  { label: 'Avg Match', value: dash.avgMatchScore ? `${dash.avgMatchScore}%` : '—', bg: '#4f46e5' },
  ].map(s => (
- <div key={s.label} style={{ background: s.bg, color: 'white' }} className="text-center px-4 py-2 rounded-xl">
- <p className="text-xl font-black text-white">{dash.loading ? '—' : s.value}</p>
- <p className="text-xs font-semibold text-white/70">{s.label}</p>
- </div>
+ <div key={s.label} style={{ background: s.bg, minWidth: 90 }} className="text-center px-5 py-3 rounded-xl shadow-lg">
+                 <p style={{ color: '#fff', fontSize: 26, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>{dash.loading ? '—' : s.value}</p>
+                 <p style={{ color: '#fff', fontSize: 13, fontWeight: 700, margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>
+                 </div>
  ))}
  <button type="button" onClick={() => router.push('/dashboard/onboarding?next=/dashboard')} className="inline-flex items-center gap-2.5 px-7 py-3 rounded-xl text-white font-black text-base cursor-pointer transition-all hover:brightness-110 ml-2 group" style={{ background: '#ea580c', color: 'white' }}>
  {userPrefs ? 'Update Preferences' : 'Set Up Preferences'}
@@ -1615,7 +1615,7 @@ export default function DashboardPage() {
  </h3>
  <Link
  href="/opportunities?sort=match&view=list"
- className="px-4 py-1.5 rounded-lg bg-white text-emerald-700 text-sm font-black hover:bg-emerald-50 transition-colors"
+ style={{background:'#ea580c',color:'#fff',fontWeight:800,fontSize:13,padding:'6px 14px',borderRadius:8,textDecoration:'none',display:'inline-flex',alignItems:'center'}} className="hover:opacity-90 transition-opacity"
  >
  View All Matches
  </Link>
@@ -1659,9 +1659,9 @@ export default function DashboardPage() {
  {/* Match score pill */}
  <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black text-white text-sm ${
  (o.match ?? 0) >= 85 ? 'bg-emerald-600' :
- (o.match ?? 0) >= 70 ? 'bg-sky-600' : 'bg-slate-500'
+ (o.match ?? 0) >= 70 ? 'bg-sky-600' : 'bg-orange-600'
  }`}>
- <span className="text-base leading-none">{o.match ?? '—'}</span>
+ <span style={{fontSize:18,fontWeight:900,color:'#fff',lineHeight:1}} className="leading-none">{o.match ?? '—'}</span>
  <span className="text-[10px] font-bold opacity-80">%</span>
  </div>
 
@@ -1674,7 +1674,7 @@ export default function DashboardPage() {
  <span className="px-2 py-0.5 rounded bg-emerald-700 text-white text-[11px] font-bold">{o.setAside}</span>
  )}
  {o.naics && (
- <span className="px-2 py-0.5 rounded bg-slate-700 text-slate-200 text-[11px] font-mono font-bold">{o.naics}</span>
+ <span style={{background:'#1e40af',color:'#bfdbfe',borderRadius:4,padding:'1px 6px',fontSize:11,fontWeight:700,fontFamily:'monospace'}}>{o.naics}</span>
  )}
  </div>
  </div>
@@ -1709,7 +1709,7 @@ export default function DashboardPage() {
  href="/opportunities?sort=match&view=list"
  className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-800 transition-colors"
  >
- See All Matches
+ See All Matches →
  </Link>
  </div>
  </div>

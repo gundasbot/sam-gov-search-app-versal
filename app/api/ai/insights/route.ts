@@ -53,29 +53,44 @@ function safeJsonParse(text: string): any | null {
 }
 
 function buildPrompt(payload: { statistics: any; opportunities: any[]; userProfile: any }) {
+  const profile = payload.userProfile
+  const profileSection = profile ? `
+Business Profile:
+- Company certifications: ${(profile.setAsides || []).join(', ') || 'None specified'}
+- NAICS codes: ${(profile.naicsCodes || []).join(', ') || 'None specified'}
+- PSC codes: ${(profile.pscCodes || []).join(', ') || 'None specified'}
+- Target states: ${(profile.states || []).join(', ') || 'Nationwide'}
+- Contract size range: ${profile.contractSizeMin ? `${(profile.contractSizeMin/1000).toFixed(0)}K` : 'Any'} - ${profile.contractSizeMax ? `${(profile.contractSizeMax/1e6).toFixed(1)}M` : 'Any'}
+` : 'No business profile provided — generate general GovCon recommendations.'
+
   return `
-You are a GovCon intelligence analyst.
+You are a GovCon intelligence analyst specializing in federal contracting for small businesses.
 
 Task:
-Generate 6 concise, actionable insights to help a contractor decide what to do next.
+Generate 6 concise, actionable insights tailored to this specific contractor.
+
+${profileSection}
 
 Rules:
 - Output ONLY valid JSON
 - Do NOT use markdown
 - Return an ARRAY (not an object)
 - Each item MUST have:
-  - title (string)
-  - description (string, 2–3 sentences)
+  - title (string, specific and actionable)
+  - description (string, 2-3 sentences, reference the contractor's specific certifications/NAICS when relevant)
   - priority ("high" | "medium" | "low")
   - category ("opportunity" | "trend" | "recommendation" | "alert")
 
-Be conservative. If data is weak, phrase insights as recommendations.
+Prioritize:
+1. Set-aside opportunities matching their certifications (SDVOSB, VOSB, SBA, etc.)
+2. Opportunities in their NAICS codes
+3. Deadlines within 72 hours
+4. Agencies with high volume in their sectors
 
-Input:
+Market Data:
 ${JSON.stringify(
   {
     statistics: payload.statistics ?? null,
-    userProfile: payload.userProfile ?? null,
     opportunitiesSample: payload.opportunities.slice(0, 20),
     opportunitiesCount: payload.opportunities.length,
   },

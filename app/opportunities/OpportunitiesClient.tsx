@@ -74,7 +74,7 @@ type ViewMode = 'list' | 'grid' | 'compact';
 type GroupMode = 'none' | 'department' | 'urgency' | 'setaside' | 'naics' | 'state' | 'deadline_month';
 type SortMode = 'deadline_asc' | 'deadline_desc' | 'posted_desc' | 'posted_asc' | 'title_asc' | 'agency_asc';
 
-const USE_MOCK_OPPORTUNITIES = true;
+const USE_MOCK_OPPORTUNITIES = false;
 
 // 📌 IMPROVED: Static placeholder data for immediate display
 const PLACEHOLDER_OPPORTUNITIES: SamOpportunity[] = Array.from({ length: 10 }, (_, i) => ({
@@ -763,6 +763,7 @@ export default function OpportunitiesClient() {
   const [viewedOpportunities, setViewedOpportunities] = useState<Set<string>>(new Set());
   const [analyzingOpps, setAnalyzingOpps] = useState<Set<string>>(new Set());
   const [opportunityPreferences, setOpportunityPreferences] = useState<any>(null);
+  const [accountPreferences, setAccountPreferences] = useState<any>(null);
   const [selectedAgency, setSelectedAgency] = useState<string>('all');
   const [selectedNAICS, setSelectedNAICS] = useState<string>('all');
   const [selectedUrgency, setSelectedUrgency] = useState<string>('all');
@@ -1443,6 +1444,27 @@ Provide analysis in JSON format with:
     }));
   }, [savedOpportunities]);
 
+  // Load account preferences (NAICS, set-asides, states) and apply to feed
+  useEffect(() => {
+    if (!isLoggedIn) return
+    fetch('/api/account/preferences', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(prefs => {
+        if (!prefs) return
+        setAccountPreferences(prefs)
+        // Auto-apply as opportunity preferences so feed filters immediately
+        if (!opportunityPreferences) {
+          setOpportunityPreferences({
+            naicsCodes: prefs.naicsCodes || [],
+            setAsides: prefs.setAsides || [],
+            states: prefs.states || [],
+            pscCodes: prefs.pscCodes || [],
+          })
+        }
+      })
+      .catch(() => {})
+  }, [isLoggedIn])
+
   // On login, load a standard set of live opportunities (filtered by preferences and due date if possible). Never show mock data for logged-in users.
   useEffect(() => {
     if (sessionStatus === 'loading') return;
@@ -1453,11 +1475,18 @@ Provide analysis in JSON format with:
         setLoading(true);
         try {
           // Example: filter by preferences and due date (customize as needed)
-          let url = '/api/sam/opportunities?limit=40';
-          if (opportunityPreferences?.naicsCodes?.length) {
-            url += `&naics=${encodeURIComponent(opportunityPreferences.naicsCodes[0])}`;
+          // Build URL using account preferences (NAICS, set-aside, state)
+          const prefs = accountPreferences || opportunityPreferences
+          let url = '/api/sam/opportunities?limit=40&status=active';
+          if (prefs?.naicsCodes?.length) {
+            url += `&naics=${encodeURIComponent(prefs.naicsCodes[0])}`;
           }
-          url += '&status=active';
+          if (prefs?.setAsides?.length) {
+            url += `&typeOfSetAside=${encodeURIComponent(prefs.setAsides[0])}`;
+          }
+          if (prefs?.states?.length && prefs.states[0] !== 'Remote/Nationwide') {
+            url += `&state=${encodeURIComponent(prefs.states[0])}`;
+          }
           const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
@@ -1847,7 +1876,7 @@ Provide analysis in JSON format with:
                     setShowSignInNudge(true);
                     return;
                   }
-                  setSurveyOpen(true);
+                  window.location.href = '/dashboard/onboarding?next=/opportunities';
                 }}
                 disabled={!isLoggedIn}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 px-4 py-2.5 text-sm font-bold text-white transition shadow-lg hover:shadow-xl disabled:opacity-50"
@@ -1989,8 +2018,8 @@ Provide analysis in JSON format with:
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={() => setSurveyOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-lg transition-all shadow-md text-sm whitespace-nowrap"
+                  onClick={() => { window.location.href = '/dashboard/onboarding?next=/opportunities'; }}
+                  style={{background:'#ea580c',color:'#fff',fontWeight:800,fontSize:14,padding:'8px 16px',borderRadius:8,display:'inline-flex',alignItems:'center',gap:8,border:'none',cursor:'pointer',boxShadow:'0 2px 8px rgba(234,88,12,0.4)'}} className="hover:opacity-90 transition-opacity whitespace-nowrap"
                 >
                   <Settings className="w-4 h-4" />
                   Set My Preferences
@@ -2019,7 +2048,7 @@ Provide analysis in JSON format with:
                   Showing {displayedOpportunities.length} opportunities matched to your profile. Update preferences anytime to refine your results.
                 </p>
               </div>
-              <button onClick={() => setSurveyOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-bold rounded-lg transition-all text-sm whitespace-nowrap flex-shrink-0">
+              <button onClick={() => window.location.href = '/dashboard/onboarding?next=/opportunities'} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-bold rounded-lg transition-all text-sm whitespace-nowrap flex-shrink-0">
                 <Settings className="w-4 h-4" />
                 Update Preferences
               </button>
@@ -2941,8 +2970,8 @@ Provide analysis in JSON format with:
                                 <div className="text-sm font-bold text-white">{opp.aiAnalysis.winProbability}</div>
                               </div>
                               <div>
-                                <div className="text-xs text-slate-400 mb-1">Match Score</div>
-                                <div className="text-sm font-bold text-white">{opp.aiAnalysis.matchScore}%</div>
+                                <div style={{color:'#94a3b8',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4}}>Match Score</div>
+                                <div style={{color:'#67e8f9',fontSize:18,fontWeight:900,lineHeight:1}}>{opp.aiAnalysis.matchScore}%</div>
                               </div>
                             </div>
                             {opp.aiAnalysis.recommendation && (
@@ -3358,8 +3387,8 @@ Provide analysis in JSON format with:
                           <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">🤖 AI Analysis</p>
                           <div className="grid grid-cols-3 gap-2 text-center mb-2">
                             <div className="bg-slate-800/60 rounded-lg p-2">
-                              <p className="text-xs text-slate-400">Match</p>
-                              <p className="text-sm font-bold text-cyan-300">{opp.aiAnalysis.matchScore}%</p>
+                              <p style={{color:'#94a3b8',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',margin:0,marginBottom:2}}>Match</p>
+                              <p style={{color:'#67e8f9',fontSize:18,fontWeight:900,lineHeight:1,margin:0}}>{opp.aiAnalysis.matchScore}%</p>
                             </div>
                             <div className="bg-slate-800/60 rounded-lg p-2">
                               <p className="text-xs text-slate-400">Competition</p>
@@ -3434,7 +3463,7 @@ Provide analysis in JSON format with:
                   </p>
                   <div className="space-y-3">
                     <button
-                      onClick={() => { setShowPrefsReminder(false); setSurveyOpen(true); }}
+                      onClick={() => { setShowPrefsReminder(false); window.location.href = '/dashboard/onboarding?next=/opportunities'; }}
                       className="w-full py-4 rounded-xl text-white font-black text-base transition-all hover:scale-[1.02]"
                       style={{background: 'linear-gradient(135deg,#ea580c,#f97316)'}}
                     >

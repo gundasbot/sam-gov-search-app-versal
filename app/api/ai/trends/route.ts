@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     const prompt = buildPrompt({ statistics, opportunities })
 
     const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929', // ✅ Fixed: updated to current model
+      model: 'claude-sonnet-4-20250514', // ✅ Fixed: updated to current model
       temperature: 0.2,
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],

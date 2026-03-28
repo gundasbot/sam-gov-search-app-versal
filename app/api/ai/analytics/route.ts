@@ -169,7 +169,7 @@ Be specific and data-driven. Focus on competitive intelligence and strategic opp
 Return ONLY a valid JSON object matching the schema provided in the system prompt.`
 
     const resp = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 2500,
       temperature: 0.4,
       system,
