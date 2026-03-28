@@ -191,6 +191,7 @@ export default function DashboardOnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [prefs, setPrefs] = useState<Partial<UserPreferences>>({
     setAsides:[],naicsCodes:[],pscCodes:[],keywords:[],states:[],
   })
@@ -659,9 +660,9 @@ export default function DashboardOnboardingPage() {
                 {label:'PSC Codes', n:prefs.pscCodes?.length||0},
                 {label:'States',    n:prefs.states?.length||0},
               ].map(({label,n})=>(
-                <div key={label} style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:8,padding:'9px 5px',textAlign:'center'}}>
-                  <p style={{fontSize:22,fontWeight:900,color:n>0?'#f97316':'#cbd5e1',margin:0}}>{n}</p>
-                  <p style={{fontSize:13,color:'#374151',fontWeight:700,marginTop:2}}>{label}</p>
+                <div key={label} style={{background:n>0?'#f97316':'#94a3b8',border:'none',borderRadius:8,padding:'9px 5px',textAlign:'center'}}>
+                  <p style={{fontSize:22,fontWeight:900,color:'#fff',margin:0}}>{n}</p>
+                  <p style={{fontSize:13,color:'#fff',fontWeight:700,marginTop:2,opacity:0.85}}>{label}</p>
                 </div>
               ))}
             </div>
@@ -684,6 +685,17 @@ export default function DashboardOnboardingPage() {
         </div>
       </div>{/* end px-3 inner padding */}
 
+      {/* ── Success Toast ── */}
+      {showSuccessToast&&(
+        <div style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',zIndex:9999,
+          background:'#15803d',color:'#fff',borderRadius:12,padding:'14px 28px',
+          display:'inline-flex',alignItems:'center',gap:10,
+          boxShadow:'0 8px 32px rgba(0,0,0,0.25)',fontSize:16,fontWeight:900,whiteSpace:'nowrap'}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Preferences saved! Redirecting…
+        </div>
+      )}
+
       {/* ── Confirmation Modal ── */}
       {showModal&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200,padding:16}}>
@@ -691,7 +703,7 @@ export default function DashboardOnboardingPage() {
             <div style={{background:'#0f172a',color:'#fff',padding:'16px 22px',borderRadius:'18px 18px 0 0',borderBottom:'4px solid #f97316',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0}}>
               <div>
                 <p style={{fontSize:20,fontWeight:900,margin:0}}>Confirm Your Preferences</p>
-                <p style={{fontSize:14,color:'#94a3b8',marginTop:2}}>Review selections before going live</p>
+                <p style={{fontSize:14,color:'#fb923c',fontWeight:700,marginTop:2}}>Review your selections before saving</p>
               </div>
               <button onClick={()=>setShowModal(false)} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer'}}><X style={{width:19,height:19}}/></button>
             </div>
@@ -741,16 +753,22 @@ export default function DashboardOnboardingPage() {
                 <button onClick={()=>setShowModal(false)} style={{padding:'9px 18px',borderRadius:8,border:'2px solid #e2e8f0',background:'#fff',color:'#374151',fontWeight:700,fontSize:15,cursor:'pointer'}}>Back to Editing</button>
                 <button onClick={async()=>{
                   up({completedOnboarding:true})
-                  // Warm up the AI feed in the background so dashboard loads instantly
                   fetch('/api/ai/personalized-feed',{method:'POST'}).catch(()=>{})
-                  await new Promise(r=>setTimeout(r,600))
+                  setShowModal(false)
+                  setShowSuccessToast(true)
+                  await new Promise(r=>setTimeout(r,1800))
                   router.refresh()
                   router.push('/dashboard')
-                }} style={{padding:'9px 18px',borderRadius:8,border:'none',background:'#334155',color:'#fff',fontWeight:900,fontSize:15,cursor:'pointer'}}>Go to Dashboard</button>
+                }} style={{padding:'9px 18px',borderRadius:8,border:'none',background:'#16a34a',color:'#fff',fontWeight:900,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  Save &amp; Go to Dashboard
+                </button>
                 <button onClick={async()=>{
                   up({completedOnboarding:true})
                   fetch('/api/ai/personalized-feed',{method:'POST'}).catch(()=>{})
-                  await new Promise(r=>setTimeout(r,600))
+                  setShowModal(false)
+                  setShowSuccessToast(true)
+                  await new Promise(r=>setTimeout(r,1800))
                   router.refresh()
                   router.push('/opportunities')
                 }}

@@ -1,4 +1,32 @@
 'use client'
+// ── DARK MODE TEMPORARILY DISABLED ──────────────────────────────────────────
+// Uncomment the original implementation below to re-enable dark mode.
+// Dark mode caused rendering inconsistencies across pages (mixed Tailwind
+// dark: variants, [data-theme="dark"] selectors, and inline styles).
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useEffect } from 'react'
+
+export default function ThemeToggle() {
+  useEffect(() => {
+    // Force light mode globally — clear any stored preference
+    const root = document.documentElement
+    root.setAttribute('data-theme', 'light')
+    root.classList.remove('dark')
+    try {
+      localStorage.removeItem('theme')
+      localStorage.removeItem('color-theme')
+      localStorage.removeItem('pgc-theme')
+      localStorage.setItem('theme', 'light')
+    } catch {}
+  }, [])
+
+  // Render nothing — toggle is hidden until dark mode is properly implemented
+  return null
+}
+
+/* ── ORIGINAL IMPLEMENTATION (restore when ready) ───────────────────────────
+'use client'
 
 import { Moon, Sun } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
@@ -116,3 +144,5 @@ export default function ThemeToggle() {
     </button>
   )
 }
+
+─────────────────────────────────────────────────────────────────────────────*/

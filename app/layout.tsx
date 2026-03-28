@@ -104,7 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       suppressHydrationWarning
       className={`${manrope.variable} ${sora.variable} ${inter.variable} h-full antialiased scroll-smooth`}
-    >
+     data-theme="light">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#ffffff" />
@@ -130,6 +130,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           isolation: 'isolate'
         }}
       >
+      <script dangerouslySetInnerHTML={{__html:`
+    (function(){
+      try{localStorage.setItem('theme','light')}catch(e){}
+      document.documentElement.setAttribute('data-theme','light');
+      document.documentElement.classList.remove('dark');
+    })();
+  `}} />
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
