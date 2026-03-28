@@ -97,6 +97,9 @@ const preciseNumberFormatter = new Intl.NumberFormat('en-US', {
 })
 
 export default function PricingClient() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const isLoggedIn = status === 'authenticated'
   const [annual, setAnnual] = useState(false)
   const [plans, setPlans] = useState(HARDCODED_PLANS)
   const [loading, setLoading] = useState(true)
@@ -138,6 +141,39 @@ export default function PricingClient() {
         <div className="text-center">
           <div className="mx-auto mb-4 h-14 w-14 rounded-full border-4 border-[--color-border] border-t-[--color-primary] animate-spin" />
           <p className="text-lg font-semibold text-[--color-text-secondary]">Loading pricing...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show logged-in plan management view
+  if (isLoggedIn) {
+    const userName = session?.user?.name?.split(' ')[0] || 'there'
+    return (
+      <div style={{minHeight:'100vh',background:'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
+        <div style={{maxWidth:520,width:'100%',background:'#fff',borderRadius:20,boxShadow:'0 4px 32px rgba(0,0,0,0.08)',padding:'40px',textAlign:'center'}}>
+          <div style={{width:64,height:64,background:'#fff7ed',borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <h1 style={{fontSize:26,fontWeight:900,color:'#0f172a',marginBottom:8}}>
+            You're already a member, {userName}!
+          </h1>
+          <p style={{color:'#64748b',fontSize:15,lineHeight:1.6,marginBottom:28}}>
+            You have an active PreciseGovCon subscription. Manage your plan, billing, and usage from your account settings.
+          </p>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            <a href="/account/settings" style={{background:'#ea580c',color:'#fff',fontWeight:800,fontSize:15,padding:'14px 24px',borderRadius:12,textDecoration:'none',display:'block',boxShadow:'0 2px 12px rgba(234,88,12,0.35)'}}>
+              Manage My Subscription
+            </a>
+            <a href="/dashboard" style={{background:'#f1f5f9',color:'#334155',fontWeight:700,fontSize:14,padding:'12px 24px',borderRadius:12,textDecoration:'none',display:'block'}}>
+              Back to Dashboard
+            </a>
+          </div>
+          <p style={{color:'#94a3b8',fontSize:12,marginTop:20}}>
+            Need to upgrade? Contact us at <a href="mailto:support@preciseanalytics.io" style={{color:'#ea580c'}}>support@preciseanalytics.io</a>
+          </p>
         </div>
       </div>
     )

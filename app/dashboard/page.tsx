@@ -129,8 +129,8 @@ const MOCK_REFRESH_MS = 25000
 function clone<T>(v: T): T { return JSON.parse(JSON.stringify(v)) }
 
 const BASE: Omit<DashboardData,'dataSource'> = {
- activeSearchesCount: 3, savedOppCount: 5, avgMatchScore: 82, thisWeekCount: 12,
- totalActiveOpportunities: 1328,
+ activeSearchesCount: 0, savedOppCount: 0, avgMatchScore: null, thisWeekCount: 0,
+ totalActiveOpportunities: 0,
  activeSearches: [
  { id: 's1', name: 'Cybersecurity – VA', query: 'zero trust modernization', filters: { naics:'541512', state:'VA', setaside:'SDVOSB', agency:'Dept of Veterans Affairs' }, resultsCount: 186, newCount: 5 },
  { id: 's2', name: 'Cloud Migration – DHS', query: 'cloud migration devsecops', filters: { naics:'541519', setaside:'SBA', agency:'Dept of Homeland Security' }, resultsCount: 142, newCount: 3 },
@@ -177,8 +177,8 @@ function makePublicData(): DashboardData {
  }))
  const all = [...b.savedOpportunities,...b.recentOpportunities].filter((o: SavedOpportunity) => o.match)
  b.avgMatchScore = all.length ? Math.round(all.reduce((s: number,o: SavedOpportunity) => s+(o.match??0),0)/all.length) : b.avgMatchScore
- b.thisWeekCount = Math.max(6, b.activeSearches.reduce((s: number,sr: ActiveSearch) => s+(sr.newCount??0),0)+rand(3,8))
- b.totalActiveOpportunities = rand(1290,1380)
+ b.thisWeekCount = b.activeSearches.reduce((s: number,sr: ActiveSearch) => s+(sr.newCount??0),0)
+ // totalActiveOpportunities set from real API data only
  b.upcomingDeadlines = b.savedOpportunities.slice(0,3).map((o: SavedOpportunity) => ({
  title:o.title, agency:o.agency, deadline:o.deadline??'',
  value: o.value ? `$${(o.value/1_000_000).toFixed(1)}M` : 'TBD',
@@ -762,7 +762,7 @@ export default function DashboardPage() {
  const state = prefs?.states?.[0] || ''
  const oppFetches = naicsList.map((naics: string|undefined) => {
  const pq = [naics ? `&naics=${naics}` : '', setAside ? `&setAside=${setAside}` : '', state ? `&state=${state}` : ''].join('')
- return fetch(`/api/sam/opportunities?limit=10&postedFrom=${since}${pq}`).then(r=>r.ok?r.json():{totalRecords:0,opportunitiesData:[]}).catch(()=>({totalRecords:0,opportunitiesData:[]}))
+ return fetch(`/api/sam/opportunities?limit=40&postedFrom=${since}${pq}`).then(r=>r.ok?r.json():{totalRecords:0,opportunitiesData:[]}).catch(()=>({totalRecords:0,opportunitiesData:[]}))
  })
  const wResults = await Promise.all(oppFetches)
  const seenIds = new Set<string>()
@@ -1207,8 +1207,8 @@ export default function DashboardPage() {
  className="w-full text-left rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-3 transition-colors cursor-pointer">
  <div className="flex items-start justify-between gap-2">
  <div className="min-w-0">
- <p className="font-semibold text-sm text-slate-900 truncate mb-1">{o.title}</p>
- <p className="text-xs text-slate-500 flex flex-wrap gap-2">
+ <p style={{fontWeight:700,fontSize:13,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:4}}>{o.title}</p>
+ <p style={{fontSize:11,color:'#475569',display:'flex',flexWrap:'wrap',gap:8}}>
  <span>{o.agency}</span>
  {o.setAside && <span className="text-emerald-600 ">{o.setAside}</span>}
  {o.deadline && <span className="text-amber-600 ">Closes {o.deadline}</span>}
@@ -1330,7 +1330,7 @@ export default function DashboardPage() {
  <p className="text-slate-500 mb-2">Email: <strong className="text-slate-900 ">{session?.user?.email}</strong></p>
  {userPrefs?.setAsides?.length && <p className="text-slate-500 ">Certifications: <strong className="text-emerald-600 ">{userPrefs.setAsides.join(', ')}</strong></p>}
  </div>
- <button onClick={()=>{router.push('/dashboard/onboarding?next=/dashboard');setDrawer(null)}} className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-sm font-bold cursor-pointer hover:bg-slate-200 transition-colors">
+ <button onClick={()=>{router.push('/dashboard/onboarding?next=/dashboard');setDrawer(null)}} style={{background:'#ea580c',color:'#fff',border:'none',borderRadius:10,padding:'10px 18px',fontSize:14,fontWeight:800,cursor:'pointer',boxShadow:'0 2px 8px rgba(234,88,12,0.35)',whiteSpace:'nowrap'}}>
  Update Preferences →
  </button>
  </div>
@@ -1386,7 +1386,7 @@ export default function DashboardPage() {
  {/* Live stat pills */}
  <div className="flex items-center gap-2 shrink-0 flex-wrap">
  {[
- { label: 'Live Opps', value: dash.totalActiveOpportunities.toLocaleString(), bg: '#047857' },
+ { label: 'Live Opps', value: (dash.totalActiveOpportunities || 0).toLocaleString(), bg: '#047857' },
  { label: 'New Matches', value: dash.thisWeekCount, bg: '#b45309' },
  { label: 'Deadlines', value: dash.upcomingDeadlines.length, bg: '#b91c1c' },
  { label: 'Avg Match', value: dash.avgMatchScore ? `${dash.avgMatchScore}%` : '—', bg: '#4f46e5' },
