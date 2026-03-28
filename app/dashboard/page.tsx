@@ -637,6 +637,9 @@ export default function DashboardPage() {
  const [drawer, setDrawer] = useState<DrawerKey>(null)
  const [userPrefs, setUserPrefs] = useState<UserPreferences|null>(null)
 
+ // Survey modal state
+ const [showSurvey, setShowSurvey] = useState(false);
+
  const [dash, setDash] = useState<DashboardData>({
  activeSearchesCount:0, savedOppCount:0, avgMatchScore:null, thisWeekCount:0,
  totalActiveOpportunities:0, activeSearches:[], savedOpportunities:[],
@@ -661,7 +664,28 @@ export default function DashboardPage() {
  return window.localStorage.getItem(surveyDismissKey) === '1'
  }, [surveyDismissKey])
 
+ // Handler for survey dismiss/skip
+ const handleSurveyDismiss = useCallback((dontShowAgain?: boolean) => {
+ if (dontShowAgain || dontShowAgain === undefined) {
+   // Always set localStorage if 'Don't show again' is checked or on skip
+   if (typeof window !== 'undefined') {
+     window.localStorage.setItem(surveyDismissKey, '1');
+   }
+ }
+ setShowSurvey(false);
+ }, [surveyDismissKey])
+
  useEffect(() => { setMounted(true) }, [])
+
+ // Show survey modal if onboarding not completed and not suppressed
+ useEffect(() => {
+   if (!mounted || sessionStatus !== 'authenticated' || !session?.user?.email) return;
+   fetch('/api/account/preferences').then(r=>r.ok?r.json():null)
+     .then(d => {
+       if (d?.completedOnboarding) return;
+       if (!shouldSuppressSurvey()) setShowSurvey(true);
+     });
+ }, [mounted, sessionStatus, session?.user?.email, shouldSuppressSurvey])
 
  const [activityLog] = useState<ActivityLog[]>([
  {id:'1',type:'search',title:'Searched: "Zero Trust Modernization"',timestamp:new Date(Date.now()-3600000).toISOString()},
@@ -721,18 +745,37 @@ export default function DashboardPage() {
  async function load() {
  try {
  const since = new Date(Date.now()-7*86400000).toISOString().split('T')[0].replace(/-/g,'/')
- const pq = [userPrefs?.naicsCodes?.[0]?`&naics=${userPrefs.naicsCodes[0]}`:'',userPrefs?.setAsides?.[0]?`&setAside=${userPrefs.setAsides[0]}`:'',userPrefs?.states?.[0]?`&state=${userPrefs.states[0]}`:''].join('')
- const [sR,oR,wR,pR,prR] = await Promise.allSettled([
+ // Fetch prefs fresh — never rely on userPrefs state which may be stale on first render
+ const [sR,oR,pR,prR] = await Promise.allSettled([
  fetch('/api/saved-searches').then(r=>r.ok?r.json():{searches:[]}),
  fetch('/api/saved-opportunities').then(r=>r.ok?r.json():{savedOpportunities:[]}),
- fetch(`/api/sam/opportunities?limit=10&postedFrom=${since}${pq}`).then(r=>r.ok?r.json():{totalRecords:0,opportunities:[]}),
  fetch('/api/account/profile').then(r=>r.ok?r.json():{goals:[]}),
  fetch('/api/account/preferences').then(r=>r.ok?r.json():null),
  ])
+ const prefs: UserPreferences|null = prR.status==='fulfilled' ? prR.value : null
+ if (prefs) setUserPrefs(prefs)
  const searches: ActiveSearch[] = sR.status==='fulfilled' ? (sR.value?.searches??[]).map((s:any) => ({id:s.id,name:s.name,query:s.keywords||s.query||'',filters:{naics:s.naics||'',state:s.state||'',setaside:s.setAside||'',agency:s.agency||''},resultsCount:s._count?.search_runs,newCount:s.newResults??0})) : []
- const prefs: UserPreferences|null = prR.status==='fulfilled' ? prR.value : userPrefs
  const goals: string[] = pR.status==='fulfilled' ? (pR.value?.goals??[]) : []
- const weekly = wR.status==='fulfilled' ? wR.value : {totalRecords:0,opportunities:[]}
+ // Fan-out: one SAM.gov call per NAICS code (API only accepts one ncode at a time)
+ const naicsList = prefs?.naicsCodes?.length ? prefs.naicsCodes.slice(0,5) : [undefined]
+ const setAside = prefs?.setAsides?.[0] || ''
+ const state = prefs?.states?.[0] || ''
+ const oppFetches = naicsList.map((naics: string|undefined) => {
+ const pq = [naics ? `&naics=${naics}` : '', setAside ? `&setAside=${setAside}` : '', state ? `&state=${state}` : ''].join('')
+ return fetch(`/api/sam/opportunities?limit=10&postedFrom=${since}${pq}`).then(r=>r.ok?r.json():{totalRecords:0,opportunitiesData:[]}).catch(()=>({totalRecords:0,opportunitiesData:[]}))
+ })
+ const wResults = await Promise.all(oppFetches)
+ const seenIds = new Set<string>()
+ const mergedOpps: any[] = []
+ for (const result of wResults) {
+ for (const opp of (result.opportunitiesData || result.opportunities || [])) {
+ const id = opp.noticeId||opp.id||opp.solicitationNumber
+ if (id && seenIds.has(id)) continue
+ if (id) seenIds.add(id)
+ mergedOpps.push(opp)
+ }
+ }
+ const weekly = { totalRecords: wResults[0]?.totalRecords ?? mergedOpps.length, opportunities: mergedOpps }
  const savedOpps: SavedOpportunity[] = oR.status==='fulfilled' ? (oR.value?.savedOpportunities??[]).map((o:any) => ({noticeId:o.notice_id||o.noticeId||o.id,title:o.title||'Untitled',agency:o.organization_name||o.agency||'',value:o.awardValue||o.value,posted:(o.posted_date||o.postedDate)?fmtRel(o.posted_date||o.postedDate):undefined,deadline:o.response_deadline?`${Math.ceil((new Date(o.response_deadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics_code||o.naics,setAside:o.setAside||o.set_aside,match:matchScore(o,searches,[],prefs||undefined)})) : []
  const recentOpps: SavedOpportunity[] = (weekly.opportunities??[]).slice(0,5).map((o:any) => ({noticeId:o.noticeId||o.id,title:o.title||'Untitled',agency:o.department||o.agency||'',value:o.awardValue||o.value,posted:o.postedDate?fmtRel(o.postedDate):undefined,deadline:o.responseDeadline?`${Math.ceil((new Date(o.responseDeadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics||o.naicsCode,setAside:o.setAside,match:matchScore(o,searches,goals,prefs||undefined)}))
  const notifs: DashNotification[] = [...savedOpps.filter(o=>o.deadline&&parseInt(o.deadline)<=7&&!o.deadline.includes('Expired')).slice(0,2).map(o=>({type:'deadline' as const,title:`Deadline in ${o.deadline}: ${o.title}`,time:o.agency,iconType:'deadline' as const})),...recentOpps.filter(o=>(o.match??0)>=80).slice(0,2).map(o=>({type:'match' as const,title:`${o.match}% match: ${o.title}`,time:`Posted ${o.posted}`,iconType:'match' as const}))].slice(0,5)
@@ -746,7 +789,7 @@ export default function DashboardPage() {
  load()
  const id = setInterval(load,5*60*1000)
  return () => clearInterval(id)
- }, [session?.user?.email, sessionStatus, userPrefs])
+ }, [session?.user?.email, sessionStatus])
 
  const buildAnalysis = useCallback((d: DashboardData) => {
  const top = [...d.savedOpportunities,...d.recentOpportunities].filter(o=>typeof o.match==='number').sort((a,b)=>(b.match??0)-(a.match??0)).slice(0,3)
@@ -1319,10 +1362,11 @@ export default function DashboardPage() {
  {hour < 12 ? 'Morning Briefing' : hour < 17 ? 'Afternoon Update' : 'Evening Review'}
  </span>
  {dash.dataSource!=='loading' && (
- <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-emerald-500 border-2 border-emerald-500">
- <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
- <span className="text-sm font-black text-white">Live · SAM.gov</span>
- {dash.lastRefreshed && <span className="text-sm font-semibold text-white">· {fmtRel(dash.lastRefreshed.toISOString())}</span>}
+ <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4" style={{ background: '#047857', color: 'white' }}>
+ <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'white', flexShrink: 0, animation: 'pulse 2s infinite' }} />
+ <span style={{ color: 'white', fontWeight: 900, fontSize: '14px', letterSpacing: '0.02em' }}>
+ Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities
+ </span>
  </div>
  )}
  </div>
@@ -1467,7 +1511,7 @@ export default function DashboardPage() {
  <ChevronRight style={{ color: 'rgba(255,255,255,0.6)', width: 18, height: 18 }} className="group-hover:translate-x-0.5 transition-all" />
  </div>
  <p style={{ color: 'white', fontSize: '3rem', fontWeight: 900, lineHeight: 1, marginBottom: '8px' }}>
- {dash.loading ? <Loader2 style={{ color: 'rgba(255,255,255,0.7)', width: 24, height: 24 }} className="animate-spin" /> : (value ?? '—')}
+ {dash.loading ? <Loader2 style={{ color: 'rgba(255,255,255,0.7)', width: 24, height: 24 }} className="animate-spin" /> : (value ?? '—' )}
  </p>
  <p style={{ color: 'white', fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>{sub}</p>
  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, lineHeight: 1.4 }} className="line-clamp-2">{detail}</p>
@@ -1761,7 +1805,7 @@ export default function DashboardPage() {
  const days = parseInt(dl.deadline)
  const bg = days <= 3 ? '#7f1d1d' : days <= 7 ? '#991b1b' : '#b91c1c'
  return (
- <div key={i} style={{ background: bg, color: 'white', padding: '12px 16px', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
+ <div key={i} style={{ background: bg, color: 'white', padding: '12px 16px', borderTop: i > 0 ? '1px solid #ffffff1a' : 'none' }}>
  <p style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dl.title}</p>
  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
  <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: 600 }}>{dl.value || ''}</p>
@@ -1770,8 +1814,7 @@ export default function DashboardPage() {
  </p>
  </div>
  </div>
- )
- })}
+ )})}
  </div>
  </div>
  )}
@@ -1872,11 +1915,10 @@ export default function DashboardPage() {
  </div>
  </div>
  </div>
-
- </div>
- </div>
  </div>
 
+ </div>
+ </div>
  {/* AI Analysis is now inline in the main column — no modal needed */}
  </div>
  )
