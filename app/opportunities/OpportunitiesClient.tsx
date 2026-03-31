@@ -788,6 +788,8 @@ export default function OpportunitiesClient() {
   
   // Γ£à NEW: Toggle for showing/hiding all opportunities including no-deadline
   const [showAllOpportunities, setShowAllOpportunities] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // Share tray state
   const [shareOpen, setShareOpen] = useState(false);
@@ -1096,13 +1098,8 @@ export default function OpportunitiesClient() {
       });
     }
 
-    // Date-based filtering - only filter out expired opportunities
-    const now = new Date();
-    filtered = filtered.filter(opp => {
-      const deadline = getEffectiveDeadline(opp);
-      if (!deadline) return showAll;
-      return deadline >= now;
-    });
+    // Show ALL opportunities — no deadline filtering
+    // Expired opps get sorted to bottom, no-deadline opps shown with "No deadline" label
 
     // Default sort: soonest deadline first (callers can re-sort after)
     filtered.sort((a, b) => {
@@ -1471,17 +1468,8 @@ Provide analysis in JSON format with:
         try {
           // Example: filter by preferences and due date (customize as needed)
           // Build URL using account preferences (NAICS, set-aside, state)
-          const prefs = accountPreferences || opportunityPreferences
-          let url = '/api/sam/opportunities?limit=100&status=active';
-          if (prefs?.naicsCodes?.length) {
-            url += `&naics=${encodeURIComponent(prefs.naicsCodes[0])}`;
-          }
-          if (prefs?.setAsides?.length) {
-            url += `&typeOfSetAside=${encodeURIComponent(prefs.setAsides[0])}`;
-          }
-          if (prefs?.states?.length && prefs.states[0] !== 'Remote/Nationwide') {
-            url += `&state=${encodeURIComponent(prefs.states[0])}`;
-          }
+          // Fetch broad unfiltered set — client-side filtering handles preferences
+          const url = '/api/sam/opportunities?limit=100&status=active';
           const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
@@ -1538,6 +1526,14 @@ Provide analysis in JSON format with:
         return arr;
     }
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 when filters change
+  }, [keywordSearch, searchTerm, selectedType, selectedSetAside, activeFilter, selectedAgency, selectedNAICS, sortMode]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 when filters change
+  }, [keywordSearch, searchTerm, selectedType, selectedSetAside, activeFilter, selectedAgency, selectedNAICS, sortMode]);
 
   useEffect(() => {
     // For logged-out users, always use mock data — never allow live data to leak in
@@ -1650,8 +1646,13 @@ Provide analysis in JSON format with:
   // Combined search across ALL static SAM.gov fields with synonym expansion
   const keywordFiltered = useMemo(() => {
     const terms = normalizeSearch(keywordSearch || searchTerm);
-    if (terms.length === 0 || (terms.length === 1 && terms[0] === '')) return displayedOpportunities;
-    return displayedOpportunities.filter(opp => {
+    // Use displayedOpportunities (preference-filtered) for logged-in users UNLESS showAllOpportunities is true
+    // Use displayedOpportunities for guests (which are curated mock data)
+    const source = isLoggedIn 
+      ? (showAllOpportunities ? allOpportunities : displayedOpportunities)
+      : displayedOpportunities;
+    if (terms.length === 0 || (terms.length === 1 && terms[0] === '')) return source;
+    return source.filter(opp => {
       const fields = [
         opp.title,
         opp.department,
@@ -1675,13 +1676,17 @@ Provide analysis in JSON format with:
       ].filter(Boolean).join(' ').toLowerCase();
       return terms.some(t => t && fields.includes(t));
     });
-  }, [displayedOpportunities, keywordSearch, searchTerm]);
+  }, [allOpportunities, displayedOpportunities, isLoggedIn, keywordSearch, searchTerm, showAllOpportunities]);
   // visibleOpportunities: the actual set shown in list/compact views.
   // For guests, cap at MOCK_OPPORTUNITIES.length (no duplication/padding).
   // For logged-in users, respect displayCount.
+  const totalPages = Math.ceil(keywordFiltered.length / PAGE_SIZE);
+  // keywordFiltered now uses allOpportunities for logged-in — should show all 100
   const visibleOpportunities = !isLoggedIn
-    ? keywordFiltered          // guests see all mock data (16 items)
-    : keywordFiltered.slice(0, displayCount);
+    ? keywordFiltered
+    : viewMode === 'grid'
+      ? keywordFiltered.slice(0, displayCount)
+      : keywordFiltered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const hasMore = !isLoggedIn
     ? false  // guests always see all mock items — no "load more"
     : showAllOpportunities
@@ -2417,7 +2422,7 @@ Provide analysis in JSON format with:
                 </span>
               ) : (
                 <span className="text-slate-300 text-sm font-semibold">
-                  Showing <span className="text-cyan-400 font-bold">{viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length}</span> opportunities
+                  Showing <span className="text-cyan-400 font-bold">{viewMode === 'grid' ? boardFiltered.length : keywordFiltered.length}</span> opportunities
                   {guestDataFreshAt && <span className="text-slate-500 text-xs ml-1.5">· data from {guestDataFreshAt}</span>}
                 </span>
               )}
@@ -2430,6 +2435,19 @@ Provide analysis in JSON format with:
             <h3 className="text-xl font-bold text-white">
               <span className="text-slate-300">
                 No opportunities available at this time. Click <b>Refresh</b> to try again.
+              </span>
+            </h3>
+          ) : keywordFiltered.length === 0 && (searchTerm || keywordSearch) ? (
+            <h3 className="text-xl font-bold text-white">
+              <span className="text-slate-300">
+                No opportunities match "{searchTerm || keywordSearch}". {' '}
+                <button 
+                  onClick={() => { setSearchTerm(''); setKeywordSearch(''); }}
+                  className="text-cyan-400 hover:text-cyan-300 underline transition-colors"
+                >
+                  Clear search
+                </button>
+                {displayedOpportunities.length > 0 && !showAllOpportunities ? ` — ${displayedOpportunities.length} match your preferences` : ''}
               </span>
             </h3>
           ) : (
@@ -2446,15 +2464,13 @@ Provide analysis in JSON format with:
               })()}
               Showing{' '}
               <span className="text-cyan-400">
-                {(viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length).toLocaleString()}
+                {viewMode === 'grid' 
+                  ? `${boardFiltered.length} opportunities`
+                  : `${visibleOpportunities.length} of ${keywordFiltered.length} | Page ${currentPage} of ${totalPages}`}
               </span>
-              {displayedOpportunities.length !== allOpportunities.length && (
-                <> of <span className="text-cyan-400">{allOpportunities.length.toLocaleString()}</span> available</>
-              )}
-              {opportunityPreferences && !showAllOpportunities
-                ? <span className="text-slate-400 font-normal text-base"> curated opportunities</span>
-                : <span className="text-slate-400 font-normal text-base"> opportunities</span>
-              }
+              <span className="text-slate-400 font-normal text-base">
+                {viewMode !== 'grid' ? '' : ' opportunities'}
+              </span>
               {opportunityPreferences && !showAllOpportunities && displayedOpportunities.length < allOpportunities.length && (
                 <span className="ml-2 text-sm font-normal text-amber-400">
                   ({allOpportunities.length - displayedOpportunities.length} filtered by your preferences —{' '}
@@ -2715,7 +2731,7 @@ Provide analysis in JSON format with:
               {/* COMPACT VIEW */}
               {viewMode === 'compact' && (
                 <div className="space-y-2">
-                  {sortedOpportunities.map((opp) => {
+                  {sortedOpportunities.map((opp, oppIndex) => {
                     const isPlaceholder = opp.noticeId.startsWith('placeholder');
                     const deadline = isPlaceholder ? null : getEffectiveDeadline(opp);
                     const postedDate = getEffectivePostedDate(opp);
@@ -2723,6 +2739,7 @@ Provide analysis in JSON format with:
                     const isSaved = savedOpportunities.has(opp.noticeId);
                     const isViewed = viewedOpportunities.has(opp.noticeId);
                     const hasRealDeadline = !!opp.responseDeadLine;
+                    const compactIndex = (currentPage - 1) * PAGE_SIZE + oppIndex + 1;
 
                     const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getNoDeadlineGradient();
                     const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : getNoDeadlineTextColor();
@@ -2731,7 +2748,17 @@ Provide analysis in JSON format with:
                     return (
                       <div
                         key={opp.noticeId}
-                        className={`group p-3 bg-gradient-to-r ${urgencyGradient} rounded-lg border-2 hover:shadow-lg transition-all ${
+                        style={{borderLeft: `4px solid ${
+                          businessDays === null ? '#94a3b8' :
+                          businessDays <= 3 ? '#dc2626' :
+                          businessDays <= 5 ? '#ea580c' :
+                          businessDays <= 7 ? '#d97706' :
+                          businessDays <= 10 ? '#ca8a04' :
+                          businessDays <= 14 ? '#65a30d' :
+                          businessDays <= 21 ? '#16a34a' :
+                          businessDays <= 30 ? '#059669' : '#0d9488'
+                        }`}}
+                        className={`group p-3 bg-white rounded-lg border border-slate-100 hover:shadow-md transition-all ${
                           isPlaceholder ? 'animate-pulse' : ''
                         } ${isViewed ? 'opacity-75' : ''}`}
                       >
@@ -2739,7 +2766,7 @@ Provide analysis in JSON format with:
                           {/* Urgency Badge */}
                           {!isPlaceholder && (
                             <div className="flex flex-col gap-2 w-[132px] sm:w-[190px] shrink-0">
-                              <div className={`px-3 py-1 rounded-lg font-bold text-sm ${urgencyTextColor} bg-slate-900/60 border border-current inline-flex items-center justify-between`}>
+                              <div style={{fontWeight:800,fontSize:12,padding:'4px 10px',borderRadius:8,display:'inline-flex',alignItems:'center',justifyContent:'space-between',gap:6,color:'#fff',background: businessDays !== null && businessDays <= 3 ? '#dc2626' : businessDays !== null && businessDays <= 5 ? '#ea580c' : businessDays !== null && businessDays <= 7 ? '#d97706' : businessDays !== null && businessDays <= 10 ? '#ca8a04' : businessDays !== null && businessDays <= 14 ? '#65a30d' : '#16a34a'}}>
                                 <span>{urgencyLabel}</span>
                                 <span className="ml-2">{businessDays !== null ? `${businessDays}bd` : 'Γê₧'}</span>
                               </div>
@@ -2759,8 +2786,8 @@ Provide analysis in JSON format with:
                                   <span className="ml-2 text-xs text-cyan-400">(Updated)</span>
                                 )}
                               </div>
-                              <div className="mt-1 pt-1 border-t border-slate-700/50 text-xs text-slate-400">
-                                Posted: {formatDate(postedDate)}
+                              <div className="mt-1 pt-1 border-t border-slate-100 text-xs text-slate-500">
+                                Due: {deadline ? formatDate(deadline) : 'No deadline'} · Posted: {formatDate(postedDate)}
                                 {opp.updatedPostedDate && opp.updatedPostedDate !== opp.postedDate && (
                                   <span className="ml-2 text-cyan-400">ΓÇó Updated: {formatDate(opp.updatedPostedDate)}</span>
                                 )}
@@ -2770,6 +2797,9 @@ Provide analysis in JSON format with:
 
                           {/* Title and Department */}
                           <div className="flex-1 min-w-0">
+                            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                              <span style={{background:'#334155',color:'#94a3b8',fontSize:10,fontWeight:800,padding:'1px 6px',borderRadius:4,flexShrink:0}}>#{compactIndex}</span>
+                            </div>
                             <h4 className="text-sm font-semibold text-white mb-0.5 truncate">
                               {isPlaceholder ? (
                                 <span className="inline-block h-4 w-64 bg-slate-700 rounded"></span>
@@ -2817,7 +2847,7 @@ Provide analysis in JSON format with:
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={() => handleViewOpportunity(opp.noticeId)}
-                                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all text-xs flex items-center gap-2"
+                                  style={{background:'#ea580c',color:'#fff',fontWeight:700,fontSize:12,padding:'6px 12px',borderRadius:8,display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none'}} className="hover:opacity-90 transition-opacity"
                                 >
                                   View
                                   <ExternalLink className="w-3 h-3" />
@@ -2836,7 +2866,7 @@ Provide analysis in JSON format with:
               {/* LIST VIEW */}
               {viewMode === 'list' && (
                 <div className="space-y-4">
-                  {sortedOpportunities.map((opp) => {
+                  {sortedOpportunities.map((opp, oppIndex) => {
                     const isPlaceholder = opp.noticeId.startsWith('placeholder');
                     const deadline = isPlaceholder ? null : getEffectiveDeadline(opp);
                     const postedDate = getEffectivePostedDate(opp);
@@ -2847,6 +2877,7 @@ Provide analysis in JSON format with:
                     const hasAnalysis = opp.aiAnalysis !== undefined;
                     const isAnalyzing = analyzingOpps.has(opp.noticeId);
                     const hasRealDeadline = !!opp.responseDeadLine;
+                    const globalIndex = (currentPage - 1) * PAGE_SIZE + oppIndex + 1;
 
                     const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getNoDeadlineGradient();
                     const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : getNoDeadlineTextColor();
@@ -2854,17 +2885,38 @@ Provide analysis in JSON format with:
                     return (
                       <div
                         key={opp.noticeId}
-                        className={`group p-4 sm:p-6 bg-gradient-to-br ${urgencyGradient} rounded-xl border-2 hover:shadow-xl transition-all ${
+                        style={{
+                          borderLeft: `6px solid ${
+                            businessDays === null ? '#94a3b8' :
+                            businessDays <= 3 ? '#dc2626' :
+                            businessDays <= 5 ? '#ea580c' :
+                            businessDays <= 7 ? '#d97706' :
+                            businessDays <= 10 ? '#ca8a04' :
+                            businessDays <= 14 ? '#65a30d' :
+                            businessDays <= 21 ? '#16a34a' :
+                            businessDays <= 30 ? '#059669' : '#0d9488'
+                          }`,
+                          background: businessDays === null ? '#e2e8f0' :
+                            businessDays <= 3 ? '#fee2e2' :
+                            businessDays <= 5 ? '#fed7aa' :
+                            businessDays <= 7 ? '#fde68a' :
+                            businessDays <= 10 ? '#fef08a' :
+                            businessDays <= 14 ? '#d9f99d' :
+                            businessDays <= 21 ? '#bbf7d0' :
+                            businessDays <= 30 ? '#a7f3d0' : '#99f6e4',
+                          opacity: isViewed ? 0.7 : 1
+                        }}
+                        className={`group p-3 rounded-xl hover:shadow-md transition-all border border-slate-100 ${
                           isPlaceholder ? 'animate-pulse' : ''
                         } ${isViewed ? 'opacity-75' : ''}`}
                       >
                         <div className="flex items-start justify-between gap-3 sm:gap-6">
                           <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2 mb-2 sm:mb-3">
+                            <div className="flex flex-wrap items-center gap-1.5 mb-1">
                               {!isPlaceholder && isSaved && (
-                                <div className="px-2 sm:px-3 py-1 bg-rose-500/20 rounded-lg flex items-center gap-1.5 border border-rose-500/40">
-                                  <Bookmark className="w-3.5 h-3.5 text-rose-400" fill="currentColor" />
-                                  <span className="text-xs font-bold text-rose-400">Saved</span>
+                                <div className="px-2 py-1 bg-rose-50 rounded-lg flex items-center gap-1.5 border border-rose-200">
+                                  <Bookmark className="w-3.5 h-3.5 text-rose-500" fill="currentColor" />
+                                  <span className="text-xs font-bold text-rose-600">Saved</span>
                                 </div>
                               )}
                               {!isPlaceholder && hasAnalysis && (
@@ -2875,7 +2927,15 @@ Provide analysis in JSON format with:
                               )}
                             </div>
 
-                            <h3 className="text-base sm:text-xl font-bold text-white mb-2 sm:mb-3 leading-tight">
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                              <span style={{background:'#f1f5f9',color:'#475569',fontSize:11,fontWeight:800,padding:'2px 7px',borderRadius:4,flexShrink:0,border:'1px solid #e2e8f0'}}>#{globalIndex}</span>
+                              {businessDays !== null && (
+                                <span style={{background:businessDays<=3?'#dc2626':businessDays<=5?'#ea580c':businessDays<=7?'#d97706':businessDays<=10?'#ca8a04':businessDays<=14?'#65a30d':businessDays<=21?'#16a34a':businessDays<=30?'#059669':'#0d9488',color:'#fff',fontSize:10,fontWeight:800,padding:'2px 7px',borderRadius:4,whiteSpace:'nowrap'}}>
+                                  {businessDays<=3?'CRITICAL':businessDays<=5?'URGENT':businessDays<=7?'HIGH':businessDays<=10?'ACT SOON':businessDays<=14?'NORMAL':businessDays<=21?'COMFORTABLE':businessDays<=30?'AMPLE':'PLENTY'} · {businessDays}d
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-900 mb-1 leading-tight" style={{color:'#0f172a'}}>
                               {isPlaceholder ? (
                                 <>
                                   <span className="inline-block h-6 w-full max-w-2xl bg-slate-700 rounded mb-2"></span>
@@ -2886,7 +2946,7 @@ Provide analysis in JSON format with:
                               )}
                             </h3>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-1.5 sm:gap-y-2 text-xs sm:text-sm text-slate-300">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-slate-300">
                               <span className="flex items-center gap-2">
                                 <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                                 {isPlaceholder ? (
@@ -2928,26 +2988,17 @@ Provide analysis in JSON format with:
                           </div>
 
                           {!isPlaceholder && (
-                            <div className="text-right flex-shrink-0 min-w-[56px]">
+                            <div className="text-right flex-shrink-0 min-w-[90px]">
                               {businessDays !== null ? (
-                                <>
-                                  <div className={`text-xl sm:text-2xl font-bold ${urgencyTextColor} mb-0.5`}>
-                                    {businessDays}
-                                  </div>
-                                  <div className="text-xs text-slate-400 mb-1.5">
-                                    {businessDays === 1 ? 'day' : 'days'}
-                                  </div>
-                                </>
+                                <div className={`text-lg font-black ${urgencyTextColor}`}>{businessDays}d left</div>
                               ) : (
-                                <div className="text-sm text-slate-400 mb-2">
-                                  No deadline
-                                </div>
+                                <div className="text-xs text-slate-400">No deadline</div>
                               )}
-                              <div className="text-xs sm:text-sm text-slate-300">
-                                {deadline ? formatDate(deadline) : 'ΓÇö'}
-                                {opp.updatedResponseDeadLine && (
-                                  <span className="ml-1 text-xs text-cyan-400">(Updated)</span>
-                                )}
+                              <div style={{fontSize:11,fontWeight:700,color:'#374151',marginTop:2}}>
+                                Due: {deadline ? formatDate(deadline) : '—'}
+                              </div>
+                              <div style={{fontSize:11,color:'#6b7280',marginTop:1}}>
+                                Posted: {formatDate(postedDate)}
                               </div>
                             </div>
                           )}
@@ -2975,7 +3026,7 @@ Provide analysis in JSON format with:
                           </div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-slate-700 mt-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 mt-1">
                           <div className="flex items-center gap-2">
                             {!isPlaceholder ? (
                               <a
@@ -2983,7 +3034,7 @@ Provide analysis in JSON format with:
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => handleViewOpportunity(opp.noticeId)}
-                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all text-sm shadow-sm hover:shadow-md"
+                                style={{background:'#ea580c',color:'#fff',fontWeight:700,fontSize:12,padding:'6px 14px',borderRadius:8,display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',whiteSpace:'nowrap'}}
                               >
                                 View on SAM.gov
                                 <ExternalLink className="w-4 h-4" />
@@ -3019,7 +3070,7 @@ Provide analysis in JSON format with:
                               </button>
                             )}
                           </div>
-                          <span className="text-sm text-slate-500 font-mono">
+                          <span className="text-xs text-slate-400 font-mono">
                             {isPlaceholder ? (
                               <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
                             ) : (
@@ -3043,19 +3094,17 @@ Provide analysis in JSON format with:
             {/* Count text */}
             {isLoggedIn ? (
               <p className="text-sm text-slate-500">
-                Showing{' '}
                 <span className="text-slate-300 font-semibold">
-                  {(viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length).toLocaleString()}
-                </span>{' '}
-                of{' '}
-                <span className="text-slate-300 font-semibold">
-                  {(showAllOpportunities ? allOpportunities.length : displayedOpportunities.length).toLocaleString()}
-                </span>{' '}
-                opportunities
+                  {keywordFiltered.length}
+                </span> total opportunities 
+                across <span className="text-slate-300 font-semibold">
+                  {totalPages}
+                </span> page{totalPages !== 1 ? 's' : ''} 
+                ({visibleOpportunities.length} per page)
               </p>
             ) : (
               <p className="text-sm text-slate-500">
-                Showing <span className="text-slate-300 font-semibold">{(viewMode === 'grid' ? boardFiltered.length : visibleOpportunities.length).toLocaleString()}</span> sample opportunities
+                Showing <span className="text-slate-300 font-semibold">{(viewMode === 'grid' ? boardFiltered.length : keywordFiltered.length).toLocaleString()}</span> sample opportunities
                 {guestDataFreshAt && <span className="text-slate-600"> · SAM.gov data from {guestDataFreshAt}</span>}
               </p>
             )}
@@ -3078,7 +3127,7 @@ Provide analysis in JSON format with:
             )}
 
             {/* Load More button — logged-in only */}
-            {isLoggedIn && hasMore && (
+            {isLoggedIn && hasMore && viewMode === 'grid' && (
               <button
                 onClick={() => {
                   if (!loadingMore) {
@@ -3134,15 +3183,13 @@ Provide analysis in JSON format with:
             )}
 
             {/* Completion badge — logged-in only */}
-            {isLoggedIn && !hasMore && dataLoaded && (
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: '8px',
-                padding: '7px 18px',
-                background: '#0f2820', border: '1.5px solid #166534',
-                borderRadius: '9px', color: '#86efac', fontSize: '13px', fontWeight: 600,
-              }}>
+            {isLoggedIn && dataLoaded && viewMode === 'grid' && (
+              <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'7px 18px',background:'#0f2820',border:'1.5px solid #166534',borderRadius:9,color:'#86efac',fontSize:13,fontWeight:600}}>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                All {allOpportunities.length.toLocaleString()} opportunities loaded
+                {boardFiltered.length} with deadlines · {allOpportunities.length - boardFiltered.length} without deadline —{' '}
+                <button onClick={() => setViewMode('list')} style={{color:'#67e8f9',background:'none',border:'none',cursor:'pointer',fontWeight:800,fontSize:13,textDecoration:'underline',padding:0}}>
+                  Switch to List view →
+                </button>
                 {opportunityPreferences && !showAllOpportunities && displayedOpportunities.length < allOpportunities.length && (
                   <span style={{ color: '#fbbf24', fontSize: '12px' }}>
                     {' '}·{' '}
@@ -3154,6 +3201,34 @@ Provide analysis in JSON format with:
               </div>
             )}
 
+
+            {/* Pagination — list/compact view only */}
+            {isLoggedIn && dataLoaded && viewMode !== 'grid' && totalPages > 1 && (
+              <div style={{display:'flex',alignItems:'center',gap:8,justifyContent:'center',flexWrap:'wrap',marginTop:8}}>
+                <button
+                  onClick={() => { setCurrentPage(p => Math.max(1,p-1)); window.scrollTo({top:0,behavior:'smooth'}); }}
+                  disabled={currentPage===1}
+                  style={{background:'#1e293b',color:currentPage===1?'#475569':'#cbd5e1',border:'1px solid #334155',borderRadius:8,padding:'7px 14px',fontSize:13,fontWeight:700,cursor:currentPage===1?'not-allowed':'pointer',opacity:currentPage===1?0.5:1}}
+                >← Prev</button>
+                {Array.from({length:Math.min(5,totalPages)},(_,i) => {
+                  const page = Math.max(1,Math.min(currentPage-2,totalPages-4))+i;
+                  return page<=totalPages ? (
+                    <button key={page}
+                      onClick={() => { setCurrentPage(page); window.scrollTo({top:0,behavior:'smooth'}); }}
+                      style={{background:currentPage===page?'#ea580c':'#1e293b',color:'#fff',border:currentPage===page?'1px solid #ea580c':'1px solid #334155',borderRadius:8,padding:'7px 12px',fontSize:13,fontWeight:700,cursor:'pointer',minWidth:36}}
+                    >{page}</button>
+                  ) : null;
+                })}
+                <button
+                  onClick={() => { setCurrentPage(p => Math.min(totalPages,p+1)); window.scrollTo({top:0,behavior:'smooth'}); }}
+                  disabled={currentPage===totalPages}
+                  style={{background:'#1e293b',color:currentPage===totalPages?'#475569':'#cbd5e1',border:'1px solid #334155',borderRadius:8,padding:'7px 14px',fontSize:13,fontWeight:700,cursor:currentPage===totalPages?'not-allowed':'pointer',opacity:currentPage===totalPages?0.5:1}}
+                >Next →</button>
+                <span style={{color:'#64748b',fontSize:12,marginLeft:4}}>
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
