@@ -9,8 +9,16 @@ type ProfilePayload = {
   first_name?: string
   last_name?: string
   phone?: string
+  office_phone?: string
+  personal_phone?: string
+  work_email?: string
+  personal_email?: string
   company?: string
   title?: string
+  linkedin?: string
+  twitter?: string
+  facebook?: string
+  instagram?: string
   address_line1?: string
   address_line2?: string
   city?: string
@@ -56,6 +64,7 @@ export async function GET(_request: NextRequest) {
         state: true,
         postal_code: true,
         country: true,
+        subscriptions: true,
 
         updated_at: true,
         created_at: true,
@@ -65,6 +74,15 @@ export async function GET(_request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+
+    const rawSubscriptions =
+      user.subscriptions && typeof user.subscriptions === 'object' && !Array.isArray(user.subscriptions)
+        ? (user.subscriptions as Record<string, any>)
+        : {}
+    const profileContact =
+      rawSubscriptions.profile_contact && typeof rawSubscriptions.profile_contact === 'object' && !Array.isArray(rawSubscriptions.profile_contact)
+        ? (rawSubscriptions.profile_contact as Record<string, any>)
+        : {}
 
     // Return FLAT shape (matches your /account page.tsx usage: setProfile({ ...profile, ...profileData }))
     return NextResponse.json({
@@ -76,6 +94,14 @@ export async function GET(_request: NextRequest) {
       last_name: user.last_name || '',
       phone: user.phone || '',
       phone_verified: !!user.phone_verified,
+      office_phone: String(profileContact.office_phone || ''),
+      personal_phone: String(profileContact.personal_phone || ''),
+      work_email: String(profileContact.work_email || ''),
+      personal_email: String(profileContact.personal_email || ''),
+      linkedin: String(profileContact.linkedin || ''),
+      twitter: String(profileContact.twitter || ''),
+      facebook: String(profileContact.facebook || ''),
+      instagram: String(profileContact.instagram || ''),
 
       company: user.company || '',
       title: user.title || '',
@@ -110,6 +136,27 @@ export async function PUT(request: NextRequest) {
 
     const body = (await request.json().catch(() => ({}))) as ProfilePayload
 
+    const validEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+    const validPhone = (value: string) => /^[0-9+()\-\s]{7,20}$/.test(value)
+
+    const officePhone = pickString(body.office_phone)
+    const personalPhone = pickString(body.personal_phone)
+    const workEmail = pickString(body.work_email)
+    const personalEmail = pickString(body.personal_email)
+
+    if (officePhone && !validPhone(officePhone)) {
+      return NextResponse.json({ error: 'Invalid office phone format' }, { status: 400 })
+    }
+    if (personalPhone && !validPhone(personalPhone)) {
+      return NextResponse.json({ error: 'Invalid personal phone format' }, { status: 400 })
+    }
+    if (workEmail && !validEmail(workEmail)) {
+      return NextResponse.json({ error: 'Invalid work email format' }, { status: 400 })
+    }
+    if (personalEmail && !validEmail(personalEmail)) {
+      return NextResponse.json({ error: 'Invalid personal email format' }, { status: 400 })
+    }
+
     // IMPORTANT:
     // Your UI currently allows editing "email" field, but changing email safely requires:
     // - unique constraint handling
@@ -139,6 +186,37 @@ export async function PUT(request: NextRequest) {
         ? `${firstName || ''} ${lastName || ''}`.trim()
         : null
 
+    const existing = await prisma.users.findUnique({
+      where: { email: sessionEmail },
+      select: { subscriptions: true },
+    })
+
+    const existingSubscriptions =
+      existing?.subscriptions && typeof existing.subscriptions === 'object' && !Array.isArray(existing.subscriptions)
+        ? (existing.subscriptions as Record<string, any>)
+        : {}
+    const existingProfileContact =
+      existingSubscriptions.profile_contact && typeof existingSubscriptions.profile_contact === 'object' && !Array.isArray(existingSubscriptions.profile_contact)
+        ? (existingSubscriptions.profile_contact as Record<string, any>)
+        : {}
+
+    const nextProfileContact = {
+      ...existingProfileContact,
+      office_phone: officePhone || '',
+      personal_phone: personalPhone || '',
+      work_email: workEmail || '',
+      personal_email: personalEmail || '',
+      linkedin: pickString(body.linkedin) || '',
+      twitter: pickString(body.twitter) || '',
+      facebook: pickString(body.facebook) || '',
+      instagram: pickString(body.instagram) || '',
+    }
+
+    const mergedSubscriptions = {
+      ...existingSubscriptions,
+      profile_contact: nextProfileContact,
+    }
+
     const dataToUpdate: any = {
       first_name: firstName,
       last_name: lastName,
@@ -152,6 +230,7 @@ export async function PUT(request: NextRequest) {
       state: pickString(body.state),
       postal_code: pickString(body.postal_code),
       country: pickString(body.country),
+      subscriptions: mergedSubscriptions,
 
       // keep timestamps consistent with your schema
       updated_at: new Date(),
@@ -184,11 +263,21 @@ export async function PUT(request: NextRequest) {
         state: true,
         postal_code: true,
         country: true,
+        subscriptions: true,
 
         updated_at: true,
         created_at: true,
       },
     })
+
+    const updatedSubscriptions =
+      updated.subscriptions && typeof updated.subscriptions === 'object' && !Array.isArray(updated.subscriptions)
+        ? (updated.subscriptions as Record<string, any>)
+        : {}
+    const updatedProfileContact =
+      updatedSubscriptions.profile_contact && typeof updatedSubscriptions.profile_contact === 'object' && !Array.isArray(updatedSubscriptions.profile_contact)
+        ? (updatedSubscriptions.profile_contact as Record<string, any>)
+        : {}
 
     return NextResponse.json({
       success: true,
@@ -201,6 +290,14 @@ export async function PUT(request: NextRequest) {
         last_name: updated.last_name || '',
         phone: updated.phone || '',
         phone_verified: !!updated.phone_verified,
+        office_phone: String(updatedProfileContact.office_phone || ''),
+        personal_phone: String(updatedProfileContact.personal_phone || ''),
+        work_email: String(updatedProfileContact.work_email || ''),
+        personal_email: String(updatedProfileContact.personal_email || ''),
+        linkedin: String(updatedProfileContact.linkedin || ''),
+        twitter: String(updatedProfileContact.twitter || ''),
+        facebook: String(updatedProfileContact.facebook || ''),
+        instagram: String(updatedProfileContact.instagram || ''),
 
         company: updated.company || '',
         title: updated.title || '',

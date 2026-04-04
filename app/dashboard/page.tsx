@@ -1462,18 +1462,50 @@ export default function DashboardPage() {
  </div>
 
  {/* Col 3: CTA box */}
- <div className="md:col-span-1 p-5 rounded-2xl bg-(--color-surface) border-2 border-orange-200 shadow-xl ">
- <p style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Start for free</p>
- <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+ <div className="md:col-span-1 p-6 rounded-2xl shadow-2xl"
+ style={{
+ background: 'linear-gradient(135deg, #10b981, #0ea5e9, #6366f1)',
+ color: 'white',
+ border: 'none',
+ transform: 'translateZ(0)'
+ }}>
+ <p style={{ fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.9)', marginBottom: '6px' }}>Start for free</p>
+ <p style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.5, marginBottom: '16px' }}>
  Join thousands of small businesses winning government contracts with AI-powered intelligence.
  </p>
- <Link href="/register" style={{ display: 'block', textAlign: 'center', padding: '12px 20px', borderRadius: '10px', background: 'var(--color-accent)', color: 'white', fontWeight: 900, fontSize: '14px', textDecoration: 'none', marginBottom: '10px' }} className="hover:brightness-110 transition-all">
+ <Link href="/register"
+ style={{
+ display: 'block',
+ textAlign: 'center',
+ padding: '14px 22px',
+ borderRadius: '12px',
+ background: '#0f172a',
+ color: 'white',
+ fontWeight: 900,
+ fontSize: '16px',
+ textDecoration: 'none',
+ marginBottom: '12px',
+ boxShadow: '0 10px 30px rgba(15,23,42,0.35)'
+ }}
+ className="hover:brightness-110 transition-all">
  Create Free Account
  </Link>
- <Link href="/login" style={{ display: 'block', textAlign: 'center', padding: '10px 20px', borderRadius: '10px', border: '2px solid var(--color-border)', color: 'var(--color-text-secondary)', fontWeight: 700, fontSize: '14px', textDecoration: 'none' }} className="hover:bg-(--color-surface-muted) transition-colors ">
+ <Link href="/login"
+ style={{
+ display: 'block',
+ textAlign: 'center',
+ padding: '12px 22px',
+ borderRadius: '12px',
+ border: '2px solid rgba(255,255,255,0.65)',
+ color: 'white',
+ fontWeight: 800,
+ fontSize: '15px',
+ textDecoration: 'none',
+ backdropFilter: 'blur(4px)'
+ }}
+ className="hover:bg-white/10 transition-all">
  Sign In to Your Dashboard
  </Link>
- <p style={{ fontSize: '12px', color: 'var(--color-text-tertiary)', textAlign: 'center', marginTop: '10px' }}>No credit card required · SDVOSB &amp; VOSB friendly</p>
  </div>
  </div>
  </div>
@@ -1483,17 +1515,25 @@ export default function DashboardPage() {
 
  {/* ── Visitor info strip ──────────────────────────────────────────── */}
  {!isAuth && !dash.loading && (
- <div className="mb-4 rounded-2xl flex flex-wrap items-center gap-3 px-5 py-4" style={{ background: '#ea580c', color: 'white' }}>
- <CheckCircle style={{ color: 'white', width: 20, height: 20, flexShrink: 0 }} />
- <p style={{ color: 'white', fontSize: '15px', fontWeight: 600, flex: 1 }}>
- <strong style={{ color: 'white', fontWeight: 900 }}>You're viewing a public sample of live SAM.gov data.</strong>
- {' '}Sign in to filter by your certifications, activate AI match scores, and track your deadline pipeline.
+ <div className="mb-4 rounded-2xl flex flex-wrap items-center gap-3 px-5 py-4 shadow-lg"
+ style={{ background: 'linear-gradient(135deg, #10b981, #0ea5e9)', color: 'white' }}>
+ <CheckCircle style={{ color: 'white', width: 22, height: 22, flexShrink: 0 }} />
+ <p style={{ color: 'white', fontSize: '16px', fontWeight: 700, flex: 1, lineHeight: 1.5 }}>
+ <strong style={{ color: 'white', fontWeight: 900 }}>Log in to see your personalized dashboard.</strong>
+ {' '}Access your saved searches, AI match scores, deadline alerts, and tailored recommendations.
  </p>
+ <div className="flex gap-2 flex-wrap">
  <Link href="/login"
- style={{ background: 'white', color: '#c2410c', fontWeight: 900, fontSize: '14px', padding: '8px 20px', borderRadius: '8px', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
- className="hover:bg-orange-50 transition-colors">
- Sign In Now
+ style={{ background: 'white', color: '#0f172a', fontWeight: 900, fontSize: '14px', padding: '9px 18px', borderRadius: '10px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}
+ className="hover:bg-slate-100 transition-colors">
+ Sign In
  </Link>
+ <Link href="/register"
+ style={{ border: '2px solid rgba(255,255,255,0.7)', color: 'white', fontWeight: 800, fontSize: '14px', padding: '9px 18px', borderRadius: '10px', textDecoration: 'none', whiteSpace: 'nowrap' }}
+ className="hover:bg-white/10 transition-colors">
+ Create Free Account
+ </Link>
+ </div>
  </div>
  )}
 
@@ -1787,134 +1827,137 @@ export default function DashboardPage() {
  {/* Right sidebar */}
  <div className="flex flex-col gap-5">
 
- {/* Deadlines */}
- {dash.upcomingDeadlines.length > 0 && (
- <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid #7f1d1d' }}>
- <div style={{ background: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}>
- <h3 style={{ color: 'white', fontWeight: 900, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
- <AlertTriangle style={{ width: 16, height: 16, color: 'white' }} />Upcoming Deadlines
+{/* Deadlines */}
+{dash.upcomingDeadlines.length > 0 && (
+ <div className="rounded-2xl border border-amber-200 bg-white shadow-lg overflow-hidden">
+ <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500">
+ <h3 className="text-sm font-black text-white flex items-center gap-2">
+ <AlertTriangle className="w-4 h-4" />Upcoming Deadlines
  </h3>
  <Link href="/opportunities?filter=expiring&view=list"
- style={{ color: 'white', fontWeight: 700, fontSize: '12px', background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: '6px', textDecoration: 'none' }}
- className="hover:bg-white/30 transition-colors">
+ className="text-xs font-bold bg-white text-orange-700 px-3 py-1 rounded-lg hover:bg-orange-50 transition-colors">
  View All Deadlines
  </Link>
  </div>
- <div>
+ <div className="divide-y divide-amber-100">
  {dash.upcomingDeadlines.map((dl, i) => {
  const days = parseInt(dl.deadline)
- const bg = days <= 3 ? '#7f1d1d' : days <= 7 ? '#991b1b' : '#b91c1c'
+ const pill =
+ days <= 3 ? 'bg-rose-100 text-rose-700' :
+ days <= 7 ? 'bg-amber-100 text-amber-700' :
+ 'bg-emerald-100 text-emerald-700'
  return (
- <div key={i} style={{ background: bg, color: 'white', padding: '12px 16px', borderTop: i > 0 ? '1px solid #ffffff1a' : 'none' }}>
- <p style={{ color: 'white', fontWeight: 700, fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dl.title}</p>
- <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
- <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: 600 }}>{dl.value || ''}</p>
- <p style={{ color: 'white', fontWeight: 900, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
- <Clock style={{ width: 12, height: 12, color: 'white' }} />{dl.deadline}
- </p>
+ <div key={i} className="px-4 py-3 bg-white hover:bg-amber-50 transition-colors">
+ <p className="text-sm font-bold text-slate-900 mb-1 truncate">{dl.title}</p>
+ <div className="flex items-center justify-between gap-3">
+ <p className="text-sm text-slate-600 font-semibold">{dl.value || ''}</p>
+ <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${pill}`}>
+ <Clock className="w-3.5 h-3.5" />
+ {dl.deadline}
+ </span>
  </div>
  </div>
  )})}
  </div>
  </div>
- )}
+)}
 
- {/* Alerts */}
- <div className="rounded-2xl overflow-hidden border border-teal-800">
- <div className="flex items-center justify-between px-4 py-3 bg-teal-700">
+{/* Alerts */}
+ <div className="rounded-2xl overflow-hidden border border-emerald-200 bg-white shadow-lg">
+ <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-500">
  <h3 className="text-sm font-black text-white flex items-center gap-2">
  <Bell className="w-4 h-4" />
  Your Alerts
  </h3>
- <Link href="/alerts" className="text-xs font-bold text-white bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors">
+ <Link href="/alerts" className="text-xs font-bold text-emerald-900 bg-white px-3 py-1 rounded-lg transition-colors hover:bg-emerald-50">
  Manage Alerts
  </Link>
  </div>
- <div className="divide-y divide-teal-900/30 bg-teal-950">
+ <div className="divide-y divide-slate-100 bg-white">
  {dash.activeSearches.length === 0 ? (
  <div className="px-4 py-6 text-center">
- <p className="text-sm text-teal-300 mb-3">No active alert subscriptions yet.</p>
- <Link href="/alerts" className="px-4 py-2 rounded-lg bg-teal-700 text-white text-sm font-bold hover:bg-teal-600 transition-colors">
+ <p className="text-sm text-slate-600 mb-3">No active alert subscriptions yet.</p>
+ <Link href="/alerts" className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors">
  Create Your First Alert
  </Link>
  </div>
  ) : (
  dash.activeSearches.slice(0, 4).map(s => (
  <Link key={s.id} href={`/alerts/${s.id}`}
- className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-teal-900 transition-colors">
+ className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-emerald-50 transition-colors">
  <div className="min-w-0">
- <p className="text-sm font-bold text-white truncate">{s.name}</p>
- <p className="text-xs text-teal-300 mt-0.5 truncate">
+ <p className="text-sm font-bold text-slate-900 truncate">{s.name}</p>
+ <p className="text-xs text-slate-600 mt-0.5 truncate">
  "{s.query}"
- {s.filters?.naics && <span className="text-cyan-300 font-mono ml-1">· NAICS {s.filters.naics}</span>}
+ {s.filters?.naics && <span className="text-emerald-700 font-mono ml-1">· NAICS {s.filters.naics}</span>}
  </p>
  <div className="flex items-center gap-2 mt-1">
- <span className="text-[11px] font-bold text-emerald-400">● Live</span>
- <span className="text-[11px] text-teal-400">{s.resultsCount ?? 0} results</span>
+ <span className="text-[11px] font-bold text-emerald-600">● Live</span>
+ <span className="text-[11px] text-slate-600">{s.resultsCount ?? 0} results</span>
  </div>
  </div>
  {(s.newCount ?? 0) > 0 && (
- <span className="shrink-0 px-2 py-0.5 rounded bg-rose-700 text-white text-xs font-black">+{s.newCount} new</span>
+ <span className="shrink-0 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-black">+{s.newCount} new</span>
  )}
  </Link>
  ))
  )}
  </div>
- <div className="px-4 py-3 bg-teal-800">
- <Link href="/alerts" className="flex items-center justify-center gap-2 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-bold transition-colors">
+ <div className="px-4 py-3 bg-emerald-50 border-t border-emerald-100">
+ <Link href="/alerts" className="flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors">
  <Plus className="w-4 h-4" />New Alert Subscription
  </Link>
  </div>
  </div>
 
  {/* AI Insights */}
- <div className="rounded-2xl overflow-hidden border border-violet-800">
- <div className="px-4 py-3 bg-violet-800">
+ <div className="rounded-2xl overflow-hidden border border-violet-200 bg-white shadow-lg">
+ <div className="px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-500">
  <h3 className="text-sm font-black text-white flex items-center gap-2">
  <Brain className="w-4 h-4" />AI Insights
  </h3>
  </div>
- <div className="p-4 bg-violet-950">
- <ul className="flex flex-col gap-3 mb-4">
- {(analysis?.recs || [
- `Your ${userPrefs?.setAsides?.[0] || 'SDVOSB'} certification matches active DoD solicitations`,
- 'SDVOSB set-asides trending up this quarter',
- 'Cloud modernization demand peaks in Q3',
- ]).slice(0, 3).map((r, i) => (
- <li key={i} className="flex items-start gap-2 text-sm text-violet-100 leading-snug font-medium">
- <ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-violet-400" />{r}
- </li>
- ))}
- </ul>
- <Link href="/insights"
- className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors">
- <Brain className="w-4 h-4" />View Full AI Analysis
- </Link>
+ <div className="p-4 bg-white">
+<ul className="flex flex-col gap-3 mb-4">
+{(analysis?.recs || [
+`Your ${userPrefs?.setAsides?.[0] || 'SDVOSB'} certification matches active DoD solicitations`,
+'SDVOSB set-asides trending up this quarter',
+'Cloud modernization demand peaks in Q3',
+]).slice(0, 3).map((r, i) => (
+ <li key={i} className="flex items-start gap-2 text-sm text-slate-800 leading-snug font-semibold">
+ <ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-violet-500" />{r}
+</li>
+))}
+</ul>
+<Link href="/insights"
+className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors">
+<Brain className="w-4 h-4" />View Full AI Analysis
+</Link>
 
- <div className="mt-4 pt-4 border-t border-violet-800">
- <h3 className="text-sm font-black text-violet-200 flex items-center gap-2 mb-3">
- <Activity className="w-4 h-4 text-sky-400" />Recent Activity
- </h3>
- <div className="flex flex-col gap-2">
- {activityLog.slice(0, 4).map(log => (
+ <div className="mt-4 pt-4 border-t border-slate-200">
+ <h3 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+ <Activity className="w-4 h-4 text-violet-500" />Recent Activity
+</h3>
+<div className="flex flex-col gap-2">
+{activityLog.slice(0, 4).map(log => (
  <div key={log.id} className="flex items-start gap-2.5">
- <div className="w-7 h-7 rounded-lg bg-violet-900 border border-violet-700 flex items-center justify-center shrink-0">
- {log.type === 'search' && <Search className="w-3 h-3 text-sky-400" />}
- {log.type === 'alert' && <Bell className="w-3 h-3 text-amber-400" />}
- {log.type === 'ai' && <Brain className="w-3 h-3 text-violet-400" />}
- {log.type === 'save' && <Target className="w-3 h-3 text-emerald-400" />}
- {log.type === 'share' && <Share2 className="w-3 h-3 text-blue-400" />}
+ <div className="w-7 h-7 rounded-lg bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
+ {log.type === 'search' && <Search className="w-3 h-3 text-violet-600" />}
+ {log.type === 'alert' && <Bell className="w-3 h-3 text-amber-500" />}
+ {log.type === 'ai' && <Brain className="w-3 h-3 text-violet-600" />}
+ {log.type === 'save' && <Target className="w-3 h-3 text-emerald-600" />}
+ {log.type === 'share' && <Share2 className="w-3 h-3 text-blue-600" />}
  </div>
  <div className="flex-1 min-w-0">
- <p className="text-xs font-semibold text-violet-100 truncate leading-snug">{log.title}</p>
- <p className="text-xs text-violet-400 mt-0.5">{fmtRel(log.timestamp)}</p>
+ <p className="text-xs font-semibold text-slate-900 truncate leading-snug">{log.title}</p>
+ <p className="text-xs text-slate-500 mt-0.5">{fmtRel(log.timestamp)}</p>
  </div>
  </div>
- ))}
- </div>
- </div>
- </div>
- </div>
+))}
+</div>
+</div>
+</div>
+</div>
  </div>
 
  </div>

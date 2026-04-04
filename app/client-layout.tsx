@@ -13,17 +13,11 @@ import { useEffect } from 'react'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const applyTheme = () => {
-      const pref = (localStorage.getItem('theme-preference') || 'system') as 'light' | 'dark' | 'system'
-      const resolved = pref === 'system' ? (media.matches ? 'dark' : 'light') : pref
-      document.documentElement.setAttribute('data-theme', resolved)
-      document.documentElement.setAttribute('data-theme-preference', pref)
-      document.documentElement.style.colorScheme = resolved
-    }
-
-    applyTheme()
-    media.addEventListener('change', applyTheme)
+    // Force light theme everywhere to avoid dark-mode overrides conflicting with pill/text colors.
+    const resolved: 'light' = 'light'
+    document.documentElement.setAttribute('data-theme', resolved)
+    document.documentElement.setAttribute('data-theme-preference', resolved)
+    document.documentElement.style.colorScheme = resolved
 
     if ('serviceWorker' in navigator) {
       if (process.env.NODE_ENV === 'production') {
@@ -47,7 +41,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           })
       }
     }
-    return () => media.removeEventListener('change', applyTheme)
   }, [])
 
   return (

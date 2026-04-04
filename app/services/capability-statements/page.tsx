@@ -10,39 +10,39 @@ export const metadata = {
 
 export default function CapabilityStatementsPage() {
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-blue-50">
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00djJoLTJ2LTJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40" />
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-blue-50 text-slate-900">
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 opacity-90" />
         <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 backdrop-blur-sm rounded-full text-slate-100 text-sm font-bold mb-4 border border-blue-500/30">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 rounded-full text-blue-700 text-sm font-bold mb-4 shadow-sm">
                 <Palette className="w-4 h-4" /><span>Professional Design + Strategic Positioning</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">Your Capability Statement Opens Doors—Make It Count</h1>
-              <p className="text-lg text-white font-semibold mb-3 leading-relaxed">Get a modern, scannable one-pager that contracting officers actually want to read. No more outdated templates.</p>
-              <p className="text-base text-slate-100 mb-6">We create capability statements designed for busy federal buyers—clear value proposition, easy-to-scan format, tailored to your target agencies and NAICS codes.</p>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Your Capability Statement Opens Doors—Make It Count</h1>
+              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Get a modern, scannable one-pager that contracting officers actually want to read. No more outdated templates.</p>
+              <p className="text-base text-slate-600 mb-6">We create capability statements designed for busy federal buyers—clear value proposition, easy-to-scan format, tailored to your target agencies and NAICS codes.</p>
               <div className="flex flex-wrap gap-3 mb-6">
-                <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
-                <Link href="#examples" className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-xl font-bold text-base hover:bg-white/30 transition-all"><Eye className="w-5 h-5" />View Examples</Link>
+                <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
+                <Link href="#examples" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 border border-blue-200 rounded-xl font-bold text-base shadow-sm hover:bg-blue-50 transition-all"><Eye className="w-5 h-5" />View Examples</Link>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-white">
-                <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-slate-200" /><span className="font-semibold text-sm">5-7 day delivery</span></div>
-                <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-slate-200" /><span className="font-semibold text-sm">Prime & sub versions</span></div>
-                <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-slate-200" /><span className="font-semibold text-sm">Unlimited revisions</span></div>
+              <div className="flex flex-wrap items-center gap-4 text-slate-700">
+                <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-blue-600" /><span className="font-semibold text-sm">5-7 day delivery</span></div>
+                <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-blue-600" /><span className="font-semibold text-sm">Prime & sub versions</span></div>
+                <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-blue-600" /><span className="font-semibold text-sm">Unlimited revisions</span></div>
               </div>
             </div>
             <div className="space-y-4">
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
-                <div className="flex items-center gap-4 mb-4"><Star className="w-12 h-12 text-yellow-400 fill-yellow-400" /><div><div className="text-4xl font-black text-white">500+</div><div className="text-sm font-bold text-slate-100">Statements Created</div></div></div>
-                <p className="text-sm text-slate-100">Trusted by contractors nationwide to make lasting first impressions</p>
+              <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4"><Star className="w-12 h-12 text-yellow-500 fill-yellow-500" /><div><div className="text-4xl font-black text-slate-900">500+</div><div className="text-sm font-bold text-slate-600">Statements Created</div></div></div>
+                <p className="text-sm text-slate-700">Trusted by contractors nationwide to make lasting first impressions</p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
-                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-400" /><div><div className="text-4xl font-black text-white">3x</div><div className="text-sm font-bold text-slate-100">More Meeting Requests</div></div></div>
-                <p className="text-sm text-slate-100">Our clients report significantly more opportunities after using our statements</p>
+              <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-500" /><div><div className="text-4xl font-black text-slate-900">3x</div><div className="text-sm font-bold text-slate-600">More Meeting Requests</div></div></div>
+                <p className="text-sm text-slate-700">Our clients report significantly more opportunities after using our statements</p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
-                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-cyan-400" /><div><div className="text-2xl font-black text-white">Partner with Experts</div><div className="text-sm font-semibold text-slate-100 mt-1">Decades of GovCon experience on your side</div></div></div>
+              <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-cyan-500" /><div><div className="text-2xl font-black text-slate-900">Partner with Experts</div><div className="text-sm font-semibold text-slate-600 mt-1">Decades of GovCon experience on your side</div></div></div>
               </div>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function CapabilityStatementsPage() {
           <p className="text-lg text-white mb-8 max-w-2xl mx-auto">Let's create a capability statement that opens doors and wins meetings. Our team is ready to partner with you.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Link href="/contact" className="inline-flex items-center gap-2 rounded-xl bg-white text-blue-600 px-8 py-4 text-lg font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-6 h-6" />Schedule Consultation</Link>
-            <a href="tel:804-404-6005" className="inline-flex items-center gap-2 rounded-xl border-2 border-white/50 bg-white/20 backdrop-blur-sm text-white px-8 py-4 text-lg font-bold hover:bg-white/30 transition-all"><Phone className="w-6 h-6" />(804) 404-6005</a>
+            <a href="tel:804-404-6005" className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-8 py-4 text-lg font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-50"><Phone className="w-6 h-6" />(804) 404-6005</a>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-100">
             <div className="flex items-center gap-2"><Clock className="w-4 h-4" />5-7 day turnaround</div>

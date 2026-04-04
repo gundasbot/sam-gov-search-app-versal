@@ -195,6 +195,18 @@ a {
   color: var(--color-text-primary) !important;
 }
 
+/* Strengthen low-contrast utility colors globally */
+.text-slate-200,
+.text-slate-300,
+.text-gray-200,
+.text-gray-300 {
+  color: var(--color-text-primary) !important;
+}
+.text-slate-400,
+.text-gray-400 {
+  color: var(--color-text-secondary) !important;
+}
+
 [data-theme="dark"] [class*="text-white/"],
 [data-theme="dark"] [class*="text-black/"],
 [data-theme="dark"] [class*="text-gray-"][class*="/"],
@@ -363,9 +375,9 @@ a {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-primary);
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+  color: #ffffff;
+  background: color-mix(in srgb, var(--color-primary) 80%, var(--accent-soft));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 60%, transparent);
   border-radius: 999px;
   padding: 0.38rem 0.7rem;
 }
@@ -1055,8 +1067,17 @@ select:focus-visible {
   background-color: var(--color-surface) !important;
 }
 
-.pg-account-modern [class*="text-white"] {
+/* Keep readability guard only for alpha white utilities; full text-white should remain white on filled controls. */
+.pg-account-modern [class*="text-white/"] {
   color: var(--color-text-primary) !important;
+}
+
+/* Preserve true white text for dark filled controls and badges in Account (including plan/pricing cards). */
+.pg-account-modern button[class*="text-white"],
+.pg-account-modern a[class*="text-white"],
+.pg-account-modern span[class*="text-white"],
+.pg-account-modern [class*="text-white!"] {
+  color: #ffffff !important;
 }
 
 .pg-account-modern [class*="text-slate-300"] {
@@ -1345,9 +1366,9 @@ body .search-main .text-2xl { font-size: 26px !important; }
 .dark .result-field-value { color: #e9eef2 !important; }
 [data-theme="dark"] .results-count-bar,
 .dark .results-count-bar {
-  background: #1e2d3a !important;
-  border-color: #304558 !important;
-  color: #b8cad4 !important;
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #111827 !important;
 }
 [data-theme="dark"] .no-results,
 .dark .no-results {
@@ -1388,4 +1409,40 @@ body .search-main .text-2xl { font-size: 26px !important; }
   background: #263545 !important;
   color: #fbbf24 !important;
   border-color: #d97706 !important;
+}
+
+/* ═════════ Accessibility & readability overrides (force light theme) ═════════ */
+:root {
+  color-scheme: light;
+}
+[data-theme="dark"],
+.dark {
+  color-scheme: light !important;
+  --color-bg: #f7f8f7;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f5f4;
+  --color-border: #e2e8f0;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #1f2937;
+  --color-text-subtle: #4b5563;
+  background: #f7f8f7 !important;
+}
+/* Make all dark backgrounds readable with light text */
+[class*="bg-slate-7"], [class*="bg-slate-8"], [class*="bg-slate-9"],
+[class*="bg-emerald-6"], [class*="bg-emerald-7"], [class*="bg-emerald-8"], [class*="bg-emerald-9"],
+[class*="bg-green-6"], [class*="bg-green-7"], [class*="bg-green-8"], [class*="bg-green-9"],
+[class*="bg-cyan-7"], [class*="bg-teal-7"], [class*="bg-blue-7"], [class*="bg-indigo-7"],
+[class*="bg-red-6"], [class*="bg-red-7"], [class*="bg-orange-6"], [class*="bg-orange-7"],
+[class*="bg-amber-7"], [class*="bg-violet-7"], [class*="bg-fuchsia-7"] {
+  color: #ffffff !important;
+}
+/* Pills and tags: use solid color & bigger touch target */
+.pill,
+.badge,
+[class*="rounded-full"][class*="px-2"],
+[class*="rounded-full"][class*="px-3"] {
+  border-radius: 9999px !important;
+  padding: 0.4rem 0.75rem !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14) !important;
 }

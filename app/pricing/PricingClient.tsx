@@ -1,875 +1,564 @@
 'use client'
 
-import { useState, useEffect, Suspense, useRef } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import {
-  User, CreditCard, Shield, MapPin, Building2, Phone, Mail, AlertCircle, ExternalLink,
-  Loader2, Download, FileText, Settings, Bell, Crown, ChevronRight, CheckCircle2, RefreshCw,
-  HeadphonesIcon, MessageSquare, Gavel, TrendingUp, Package, Key, Send, XCircle, AlertTriangle,
-  Check, Eye, EyeOff, Plus, Pencil, Trash2, CalendarDays, DollarSign, ClipboardList, Trophy,
-  BarChart2, ArrowUpRight, Clock, Building, Camera, AtSign, PhoneCall, Link2, Lock, ShieldCheck, Upload,
+  Check, Crown, TrendingUp, ShieldCheck, Loader2, Zap,
+  Users, Lock, Globe, ArrowRight, Star, ChevronDown, ChevronUp,
+  Phone, Mail, CalendarClock, Rocket, BadgeCheck,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-type PlanTier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
+// ─── Plan data ────────────────────────────────────────────────────────────────
 
-type Plan = {
-  tier: PlanTier
-  status: string
-  interval: 'month' | 'year' | null
-  current_period_end: string | null
-  cancel_at_period_end: boolean
-  subscription_id: string | null
-  price?: number
-}
-
-type ProfileData = {
-  email: string
-  email_verified: boolean
-  first_name: string
-  last_name: string
-  phone: string
-  phone_verified: boolean
-  company: string
-  title: string
-  address_line1: string
-  address_line2: string
-  city: string
-  state: string
-  postal_code: string
-  country: string
-  recovery_email: string
-  alternate_phone: string
-  profile_photo: string
-}
-
-type PaymentMethod = {
-  id: string
-  brand: string
-  last4: string
-  expMonth: number
-  expYear: number
-  isDefault: boolean
-}
-
-type BidData = {
-  id: string
-  opportunityId: string
-  opportunityTitle: string
-  dueDate: string
-  status: 'draft' | 'submitted' | 'awarded' | 'not_awarded'
-  value?: number
-}
-
-type Invoice = {
-  id: string
-  date: string
-  amount: number
-  status: string
-  invoicePdf: string
-}
-
-type Usage = {
-  searches: number
-  exports: number
-  savedOpportunities: number
-  alerts: number
-  available: boolean
-  limits?: {
-    searches: number
-    exports: number
-    savedOpportunities: number
-  }
-}
-
-type TabType = 'overview' | 'profile' | 'billing' | 'support' | 'bids'
-
-const PLAN_DETAILS = {
-  BASIC: {
+const PLANS: {
+  id: string; name: string; tagline: string; monthlyPrice: number; annualPrice: number; annualPerMonth: number
+  description: string; icon: React.ElementType; ctaIcon: React.ElementType; popular?: boolean
+  gradient: string; headerGradient: string; glowColor: string; accentColor: string; badgeText?: string
+  features: string[]; notIncluded: string[]
+}[] = [
+  {
+    id: 'BASIC',
     name: 'Basic',
+    tagline: 'Start winning contracts',
     monthlyPrice: 24.99,
     annualPrice: 240,
-    color: 'from-blue-500 to-cyan-500',
-    icon: Shield,
-    features: ['500 searches/month', '10 exports/month', '5 saved opportunities', 'Email alerts'],
+    annualPerMonth: 20,
+    description: 'Perfect for individual contractors getting started with SAM.gov searches and opportunity tracking.',
+    icon: ShieldCheck,
+    ctaIcon: Rocket,
+    gradient: 'linear-gradient(160deg, #1e3a5f 0%, #1d4ed8 50%, #3b82f6 100%)',
+    headerGradient: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 60%, #60a5fa 100%)',
+    glowColor: 'rgba(59,130,246,0.45)',
+    accentColor: '#60a5fa',
+    features: [
+      '500 searches / month',
+      '10 CSV exports / month',
+      '5 saved opportunities',
+      'Email alerts',
+      'Basic filtering & keyword search',
+    ],
+    notIncluded: ['API access', 'Dedicated support', 'Custom integrations'],
   },
-  PROFESSIONAL: {
+  {
+    id: 'PROFESSIONAL',
     name: 'Professional',
+    tagline: 'Serious bidders only',
     monthlyPrice: 49,
     annualPrice: 490,
-    color: 'from-emerald-500 to-teal-500',
+    annualPerMonth: 40.83,
+    description: 'Full platform access for GovCon teams actively bidding on federal opportunities every week.',
     icon: TrendingUp,
-    features: ['5,000 searches/month', '100 exports/month', '50 saved opportunities', 'Real-time alerts', 'API access'],
+    ctaIcon: TrendingUp,
+    popular: true,
+    badgeText: 'MOST POPULAR',
+    gradient: 'linear-gradient(160deg, #1a3a2a 0%, #15803d 50%, #22c55e 100%)',
+    headerGradient: 'linear-gradient(135deg, #166534 0%, #16a34a 55%, #4ade80 100%)',
+    glowColor: 'rgba(34,197,94,0.5)',
+    accentColor: '#4ade80',
+    features: [
+      '5,000 searches / month',
+      '100 CSV exports / month',
+      '50 saved opportunities',
+      'Real-time alerts',
+      'Advanced filters (NAICS, PSC, set-aside)',
+      'API access',
+      'Priority email support',
+    ],
+    notIncluded: ['Dedicated account manager', 'Custom integrations'],
   },
-  ENTERPRISE: {
+  {
+    id: 'ENTERPRISE',
     name: 'Enterprise',
+    tagline: 'Unlimited everything',
     monthlyPrice: 199,
     annualPrice: 1990,
-    color: 'from-amber-500 to-orange-500',
+    annualPerMonth: 165.83,
+    description: 'Built for organizations managing high-volume GovCon operations with dedicated support and SLA.',
     icon: Crown,
-    features: ['Unlimited searches', 'Unlimited exports', 'Unlimited opportunities', 'Dedicated support', 'Custom integrations'],
+    ctaIcon: BadgeCheck,
+    badgeText: 'BEST VALUE',
+    gradient: 'linear-gradient(160deg, #431407 0%, #c2410c 50%, #f97316 100%)',
+    headerGradient: 'linear-gradient(135deg, #9a3412 0%, #ea580c 55%, #fb923c 100%)',
+    glowColor: 'rgba(249,115,22,0.5)',
+    accentColor: '#fb923c',
+    features: [
+      'Unlimited searches',
+      'Unlimited CSV exports',
+      'Unlimited saved opportunities',
+      'Custom alerts & webhooks',
+      'Full API access',
+      'Dedicated account manager',
+      'Custom integrations',
+      'SLA guarantee',
+    ],
+    notIncluded: [],
   },
-} as const
+]
 
-export default function AccountPage() {
+const FAQS = [
+  {
+    q: 'Can I cancel at any time?',
+    a: 'Yes. You can cancel your subscription from your account page at any time. Access continues until the end of your current billing period.',
+  },
+  {
+    q: 'What counts as a "search"?',
+    a: 'Each query submitted to the SAM.gov opportunity feed counts as one search. Browsing and filtering results does not consume additional searches.',
+  },
+  {
+    q: 'Is there a free trial?',
+    a: 'Yes — we offer a free trial so you can evaluate the platform before committing. No credit card required to start.',
+  },
+  {
+    q: 'Can I switch plans later?',
+    a: 'Absolutely. You can upgrade or downgrade your plan at any time from the Billing tab in your account. Prorated credits are applied automatically.',
+  },
+  {
+    q: 'What payment methods do you accept?',
+    a: 'We accept all major credit and debit cards through Stripe. Annual plans can also be invoiced — contact us for details.',
+  },
+  {
+    q: 'Do you offer discounts for non-profits or government?',
+    a: 'Yes — reach out to our team and we\'ll be happy to discuss options.',
+  },
+]
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
+
+export default function PricingClient() {
   return (
-    <Suspense fallback={<LoadingPage />}>
-      <AccountPageContent />
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'var(--color-primary)' }} />
+      </div>
+    }>
+      <PricingContent />
     </Suspense>
   )
 }
 
-function LoadingPage() {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50" style={{ fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif" }}>
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-    </div>
-  )
-}
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
-function AccountPageContent() {
+function PricingContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const [interval, setInterval] = useState<'monthly' | 'annual'>('monthly')
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [currentTier, setCurrentTier] = useState<'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'>('NONE')
+  const [currentTierLoaded, setCurrentTierLoaded] = useState(false)
 
-  const [activeTab, setActiveTab] = useState<TabType>('overview')
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-
-  const [profile, setProfile] = useState<ProfileData>({
-    email: session?.user?.email || '',
-    email_verified: false,
-    first_name: '',
-    last_name: '',
-    phone: '',
-    phone_verified: false,
-    company: '',
-    title: '',
-    address_line1: '',
-    address_line2: '',
-    city: '',
-    state: '',
-    postal_code: '',
-    country: 'United States',
-    recovery_email: '',
-    alternate_phone: '',
-    profile_photo: '',
-  })
-
-  const [plan, setPlan] = useState<Plan | null>(null)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [usage, setUsage] = useState<Usage | null>(null)
-  const [bids, setBids] = useState<BidData[]>([])
-  const [editMode, setEditMode] = useState<string | null>(null)
-  const [verificationSent, setVerificationSent] = useState(false)
-  const [loadingPlanChange, setLoadingPlanChange] = useState<string | null>(null)
+  const PLAN_RANK: Record<'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE', number> = {
+    NONE: 0,
+    BASIC: 1,
+    PROFESSIONAL: 2,
+    ENTERPRISE: 3,
+  }
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.replace('/login?callbackUrl=/account')
-  }, [status, router])
+    let cancelled = false
 
-  useEffect(() => {
-    if (status === 'authenticated') loadAccountData()
+    const loadCurrentTier = async () => {
+      if (status !== 'authenticated') {
+        setCurrentTier('NONE')
+        setCurrentTierLoaded(true)
+        return
+      }
+
+      setCurrentTierLoaded(false)
+
+      try {
+        const res = await fetch('/api/account/plan', { cache: 'no-store' })
+        if (!res.ok) {
+          if (!cancelled) setCurrentTierLoaded(true)
+          return
+        }
+
+        const data = await res.json()
+        const tier = String(data?.tier || 'NONE').toUpperCase()
+        const normalized = tier === 'BASIC' || tier === 'PROFESSIONAL' || tier === 'ENTERPRISE' ? tier : 'NONE'
+        if (!cancelled) {
+          setCurrentTier(normalized)
+          setCurrentTierLoaded(true)
+        }
+      } catch {
+        if (!cancelled) {
+          setCurrentTier('NONE')
+          setCurrentTierLoaded(true)
+        }
+      }
+    }
+
+    loadCurrentTier()
+    return () => { cancelled = true }
   }, [status])
 
-  useEffect(() => {
-    const success = searchParams.get('success')
-    if (success) setMessage({ type: 'success', text: 'Payment successful! Billing updated.' })
-  }, [searchParams])
-
-  const loadAccountData = async () => {
-    setLoading(true)
-    try {
-      const [profileRes, planRes, paymentsRes, invoicesRes, usageRes, bidsRes] = await Promise.all([
-        fetch('/api/account/profile'),
-        fetch('/api/account/plan'),
-        fetch('/api/account/payment-methods'),
-        fetch('/api/stripe/invoices'),
-        fetch('/api/account/usage'),
-        fetch('/api/account/bids'),
-      ])
-      if (profileRes.ok) { const d = await profileRes.json(); setProfile(p => ({ ...p, ...d })) }
-      if (planRes.ok) {
-        const d = await planRes.json(); setPlan(d)
-        if (d.interval) setBillingInterval(d.interval === 'year' ? 'annual' : 'monthly')
-      }
-      if (paymentsRes.ok) setPaymentMethods(await paymentsRes.json())
-      if (invoicesRes.ok) { const d = await invoicesRes.json(); setInvoices(d.invoices || []) }
-      if (usageRes.ok) setUsage(await usageRes.json())
-      if (bidsRes.ok) setBids(await bidsRes.json())
-    } catch (error) {
-      console.error('Error loading account data:', error)
-      setMessage({ type: 'error', text: 'Failed to load account data' })
-    } finally {
-      setLoading(false)
+  const getPlanAction = (targetTier: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE', targetName: string) => {
+    if (!session) {
+      return { allowed: true, label: 'Start Free Trial', type: 'signup' as const }
     }
+
+    if (!currentTierLoaded) {
+      return { allowed: false, label: 'Checking plan...', type: 'loading' as const }
+    }
+
+    if (currentTier === 'NONE') {
+      return { allowed: true, label: `Get ${targetName}`, type: 'change' as const }
+    }
+
+    if (targetTier === currentTier) {
+      return { allowed: true, label: 'Manage Billing', type: 'manage' as const }
+    }
+
+    const diff = PLAN_RANK[targetTier] - PLAN_RANK[currentTier]
+    if (Math.abs(diff) > 1) {
+      return { allowed: false, label: 'Unavailable', type: 'blocked' as const }
+    }
+
+    if (diff > 0) {
+      return { allowed: true, label: `Upgrade to ${targetName}`, type: 'change' as const }
+    }
+
+    return { allowed: true, label: `Downgrade to ${targetName}`, type: 'change' as const }
   }
 
-  const saveProfile = async () => {
-    setSaving(true)
-    try {
-      const response = await fetch('/api/account/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profile),
-      })
-      if (response.ok) { setMessage({ type: 'success', text: 'Profile updated' }); setEditMode(null) }
-      else throw new Error('Failed')
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to save' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const sendEmailVerification = async () => {
-    try {
-      const response = await fetch('/api/account/verify-email', { method: 'POST' })
-      if (response.ok) {
-        setVerificationSent(true)
-        setMessage({ type: 'success', text: 'Verification email sent' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to send verification email' })
-    }
-  }
-
-  const managePaymentMethod = async () => {
-    try {
-      setSaving(true)
-      const res = await fetch('/api/stripe/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-      if (res.ok) {
-        const { url } = await res.json()
-        window.open(url, '_blank', 'noopener,noreferrer')
-      } else {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed')
-      }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to open billing portal' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCancelSubscription = async () => {
-    if (!plan?.subscription_id) return
-    if (!confirm('Cancel subscription?')) return
-    try {
-      setSaving(true)
-      const res = await fetch('/api/stripe/subscription/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription_id: plan.subscription_id }),
-      })
-      if (res.ok) {
-        setMessage({ type: 'success', text: 'Subscription cancelled' })
-        await loadAccountData()
-      } else throw new Error('Failed')
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to cancel' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handlePlanChange = async (newTier: PlanTier, interval: 'month' | 'year') => {
-    if (!plan || !session) return
-    const requestedInterval = interval === 'year' ? 'annual' : 'monthly'
-    if (plan.tier === newTier && plan.interval === interval) {
-      setMessage({ type: 'error', text: 'Already on this plan' })
+  const handleSelectPlan = async (planId: string) => {
+    if (!session) {
+      router.push(`/signup?plan=${planId}&interval=${interval}`)
       return
     }
+
+    const plan = PLANS.find((p) => p.id === planId)
+    if (!plan) return
+    const action = getPlanAction(plan.id as 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE', plan.name)
+    if (!action.allowed) return
+    if (action.type === 'manage') {
+      router.push('/account?tab=billing')
+      return
+    }
+
+    setLoadingPlan(planId)
     try {
-      setLoadingPlanChange(newTier)
-      if (plan.tier === newTier && plan.tier !== 'NONE') {
-        // Changing billing interval only
-        const res = await fetch('/api/stripe/change-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier: newTier, interval: requestedInterval }),
-        })
-        if (!res.ok) throw new Error('Failed to change interval')
-        const data = await res.json()
-        setMessage({ type: 'success', text: data.message || 'Billing interval updated' })
-        await loadAccountData()
-      } else {
-        // Creating checkout for new plan - let backend resolve price IDs
-        const res = await fetch('/api/stripe/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tier: newTier,
-            interval: requestedInterval,
-            successUrl: `${window.location.origin}/account?success=true`,
-            cancelUrl: `${window.location.origin}/account`,
-          }),
-        })
-        if (!res.ok) {
-          const errData = await res.json()
-          throw new Error(errData.error || 'Failed to create checkout')
-        }
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: planId,
+          interval: interval === 'annual' ? 'annual' : 'monthly',
+          successUrl: `${window.location.origin}/account?success=true`,
+          cancelUrl: `${window.location.origin}/pricing`,
+        }),
+      })
+      if (res.ok) {
         const { url } = await res.json()
         if (url) window.location.href = url
-        else throw new Error('No checkout URL returned')
       }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to update plan' })
+    } catch (err) {
+      console.error('Checkout error:', err)
     } finally {
-      setLoadingPlanChange(null)
+      setLoadingPlan(null)
     }
   }
 
-  if (status === 'loading' || loading) {
-    return <LoadingPage />
-  }
-
-  const currentPlanDetails = plan?.tier && plan.tier !== 'NONE' ? PLAN_DETAILS[plan.tier] : null
-
   return (
-    <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif" }}>
-      {/* Header */}
-      <div className="border-b border-slate-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-6">
-            <div className="relative flex-shrink-0">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm">
-                {profile.profile_photo ? (
-                  <img src={profile.profile_photo} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-4xl font-bold text-white">
-                    {(profile.first_name?.[0] || 'U').toUpperCase()}
-                  </span>
-                )}
-              </div>
-            </div>
+    <main
+      className="min-h-screen bg-gray-50"
+      style={{ fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+    >
 
-            <div className="flex-1 min-w-0">
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
-                {profile.first_name && profile.last_name ? `${profile.first_name} ${profile.last_name}` : 'Account'}
-              </h1>
-              {currentPlanDetails && (
-                <div className="flex flex-wrap items-center gap-3 mt-3">
-                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r ${currentPlanDetails.color} text-white`}>
-                    <currentPlanDetails.icon className="h-4 w-4" />
-                    {currentPlanDetails.name}
-                  </span>
-                  {plan?.status === 'active' && (
-                    <span className="px-3 py-1.5 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700">
-                      Active
-                    </span>
-                  )}
-                </div>
-              )}
-              {profile.company && <p className="text-slate-600 text-sm mt-2">{profile.company}</p>}
-            </div>
+      <div className="mx-auto max-w-480 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 
-            {/* Stats - responsive */}
-            <div className="hidden lg:flex items-end gap-2">
-              {[
-                { label: 'Active Bids', value: bids.filter((b: BidData) => b.status === 'draft' || b.status === 'submitted').length, bg: 'bg-blue-50' },
-                { label: 'Awarded', value: bids.filter((b: BidData) => b.status === 'awarded').length, bg: 'bg-emerald-50' },
-              ].map((stat) => (
-                <div key={stat.label} className={`text-center px-4 py-3 rounded-lg ${stat.bg} border border-slate-200`}>
-                  <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-                  <p className="text-xs text-slate-600 mt-1">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <nav className="flex flex-wrap gap-1 mt-8 border-b border-slate-200">
-            {[
-              { id: 'overview', label: 'Overview', icon: TrendingUp },
-              { id: 'profile', label: 'Profile', icon: User },
-              { id: 'billing', label: 'Billing', icon: CreditCard },
-              { id: 'support', label: 'Support', icon: HeadphonesIcon },
-              { id: 'bids', label: 'Bids', icon: Gavel },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <tab.icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* Message */}
-      {message && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-          <div className={`px-4 py-3 rounded-lg flex items-center gap-3 ${
-            message.type === 'success'
-              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-              : 'bg-red-50 border border-red-200 text-red-800'
-          }`}>
-            {message.type === 'success' ? <CheckCircle2 className="h-5 w-5 flex-shrink-0" /> : <AlertCircle className="h-5 w-5 flex-shrink-0" />}
-            <span className="text-sm font-medium flex-1">{message.text}</span>
-            <button onClick={() => setMessage(null)} className="text-slate-500 hover:text-slate-700">
-              <XCircle className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'overview' && (
-          <OverviewTab profile={profile} setProfile={setProfile} plan={plan} currentPlanDetails={currentPlanDetails}
-            paymentMethods={paymentMethods} usage={usage} bids={bids} setActiveTab={setActiveTab} />
-        )}
-        {activeTab === 'profile' && (
-          <ProfileTab profile={profile} setProfile={setProfile} editMode={editMode} setEditMode={setEditMode}
-            saving={saving} saveProfile={saveProfile} sendEmailVerification={sendEmailVerification} verificationSent={verificationSent} />
-        )}
-        {activeTab === 'billing' && (
-          <BillingTab plan={plan} currentPlanDetails={currentPlanDetails} paymentMethods={paymentMethods} invoices={invoices}
-            billingInterval={billingInterval} setBillingInterval={setBillingInterval} handlePlanChange={handlePlanChange}
-            managePaymentMethod={managePaymentMethod} handleCancelSubscription={handleCancelSubscription} loadingPlanChange={loadingPlanChange} />
-        )}
-        {activeTab === 'support' && <SupportTab profile={profile} plan={plan} />}
-        {activeTab === 'bids' && <BidsTab bids={bids} setBids={setBids} />}
-      </div>
-    </div>
-  )
-}
-
-// Tabs remain the same as ORIGINAL - only styling improved
-function OverviewTab({ profile, setProfile, plan, currentPlanDetails, paymentMethods, usage, bids, setActiveTab }: any) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [photoUploading, setPhotoUploading] = useState(false)
-  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null)
-  const activePhoto = pendingPhoto || profile.profile_photo
-
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setPhotoUploading(true)
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      setPendingPhoto(ev.target?.result as string)
-      setPhotoUploading(false)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const savePendingPhoto = () => {
-    if (!pendingPhoto) return
-    setProfile((prev: any) => ({ ...prev, profile_photo: pendingPhoto }))
-    setPendingPhoto(null)
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Stats Grid - Responsive */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: 'Active Bids', value: bids.filter((b: BidData) => b.status === 'draft' || b.status === 'submitted').length },
-          { label: 'Awarded', value: bids.filter((b: BidData) => b.status === 'awarded').length },
-          { label: 'Plan', value: currentPlanDetails?.name || 'None' },
-          { label: 'Email', value: profile.email_verified ? 'Verified' : 'Pending' },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white rounded-lg border border-slate-200 p-5">
-            <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
-            <p className="text-sm text-slate-600 mt-1">{stat.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Profile Card */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <div className="flex items-center gap-6 mb-6">
-          <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-            {activePhoto ? (
-              <img src={activePhoto} alt="Profile" className="w-full h-full object-cover rounded-lg" />
-            ) : (
-              <span className="text-3xl font-bold text-white">{(profile.first_name?.[0] || 'U').toUpperCase()}</span>
-            )}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-slate-900">Profile Photo</h3>
-            <p className="text-sm text-slate-600 mt-1">Upload a professional photo</p>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              {photoUploading ? 'Uploading...' : 'Upload Photo'}
-            </button>
-            {pendingPhoto && (
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={savePendingPhoto}
-                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded"
+        {/* ── Hero ── */}
+        <div className="mb-8">
+          <div className="flex flex-col gap-5 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 items-center gap-4 lg:gap-8 text-center">
+              <div className="flex justify-center lg:justify-center">
+                <div
+                  className="inline-flex items-center rounded-2xl border-2 overflow-hidden shadow-sm"
+                  style={{ background: '#ffffff', borderColor: '#fb923c' }}
                 >
-                  Save
+                  <span
+                    className="inline-flex items-center justify-center px-3 py-2"
+                    style={{ background: '#fff7ed', borderRight: '2px solid #fdba74' }}
+                  >
+                    <Star className="h-3.5 w-3.5" style={{ color: '#ea580c' }} />
+                  </span>
+                  <span className="px-4 py-2.5 text-sm font-black tracking-wide">
+                    <span style={{ color: '#ea580c' }}>Simple, Transparent Pricing</span>
+                    <span style={{ color: '#15803d' }}> · 7-Day Free Trial</span>
+                  </span>
+                </div>
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-gray-900 lg:whitespace-nowrap">
+                Win more{' '}
+                <span className="font-black" style={{ background: 'linear-gradient(90deg, #f97316, #ea580c)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  federal contracts
+                </span>
+              </h1>
+              <p className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight max-w-2xl mx-auto">
+                <span className="font-black" style={{ color: '#1d4ed8' }}>Real-time SAM.gov data</span>,{' '}
+                <span className="font-black" style={{ color: '#15803d' }}>AI-powered bid scoring</span>,{' '}
+                <span className="font-black" style={{ color: '#ea580c' }}>and smart alerts</span>{' '}
+                <span className="font-black" style={{ color: '#111827' }}>- built for serious government contractors.</span>
+              </p>
+            </div>
+
+            {/* Interval toggle */}
+            <div className="flex items-center justify-center gap-4 shrink-0 pt-1">
+              <div className="inline-flex items-center rounded-2xl border p-1.5 shadow-sm" style={{ background: '#ffffff', borderColor: '#d1d5db' }}>
+                <button
+                  onClick={() => setInterval('monthly')}
+                  className="px-6 py-2.5 rounded-xl text-base font-black transition-all"
+                  style={{
+                    background: interval === 'monthly' ? '#111827' : '#e5e7eb',
+                    color: interval === 'monthly' ? '#ffffff' : '#4b5563',
+                  }}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setInterval('annual')}
+                  className="px-6 py-2.5 rounded-xl text-base font-black transition-all"
+                  style={{
+                    background: interval === 'annual' ? '#111827' : '#e5e7eb',
+                    color: interval === 'annual' ? '#ffffff' : '#4b5563',
+                  }}
+                >
+                  Annual
                 </button>
               </div>
-            )}
-          </div>
+              <span className="text-sm font-black px-4 py-2 rounded-full" style={{ background: '#f97316', color: '#ffffff' }}>
+                Save ~20%
+              </span>
+            </div>
         </div>
-      </div>
+        </div>
 
-      {/* Usage */}
-      {usage?.available && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Usage This Month</h3>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-            {[
-              { label: 'Searches', current: usage.searches, limit: currentPlanDetails?.limits?.searches ?? -1 },
-              { label: 'Exports', current: usage.exports, limit: currentPlanDetails?.limits?.exports ?? -1 },
-              { label: 'Saved', current: usage.savedOpportunities, limit: currentPlanDetails?.limits?.savedOpportunities ?? -1 },
-            ].map((item) => {
-              const pct = item.limit === -1 ? 100 : Math.min((item.current / item.limit) * 100, 100)
-              return (
-                <div key={item.label}>
-                  <p className="text-2xl font-bold text-slate-900">{item.current}</p>
-                  <p className="text-xs text-slate-600 mt-1">{item.label}</p>
-                  {item.limit !== -1 && (
-                    <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600" style={{ width: `${pct}%` }} />
+        {/* ── Plan cards ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-16 items-stretch">
+          {PLANS.map((plan, idx) => {
+            const isLoading = loadingPlan === plan.id
+            const isHovered = hoveredPlan === plan.id
+            const CTA = plan.ctaIcon
+            const action = getPlanAction(plan.id as 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE', plan.name)
+            const isCurrentPlan = !!session && currentTier === plan.id
+
+            return (
+              <div
+                key={plan.id}
+                className="relative flex flex-col rounded-3xl overflow-hidden cursor-pointer select-none"
+                style={{
+                  transform: isHovered ? 'translateY(-6px) scale(1.01)' : 'translateY(0)',
+                  transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
+                  boxShadow: isHovered
+                    ? `0 16px 36px ${plan.glowColor}, 0 0 0 2px ${plan.accentColor}`
+                    : '0 4px 14px rgba(15,23,42,0.16)',
+                }}
+                onMouseEnter={() => setHoveredPlan(plan.id)}
+                onMouseLeave={() => setHoveredPlan(null)}
+              >
+                {/* Badge ribbon */}
+                {plan.badgeText && (
+                  <div
+                    className="absolute top-5 -right-8 z-10 px-10 py-1 text-[11px] font-black tracking-widest text-white rotate-45 shadow-lg"
+                    style={{ background: plan.accentColor }}
+                  >
+                    {plan.badgeText}
+                  </div>
+                )}
+
+                {/* Gradient header */}
+                <div className="relative px-7 pt-8 pb-7 overflow-hidden" style={{ background: plan.headerGradient }}>
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
+                        style={{ background: '#0f172a', border: '1px solid #111827' }}>
+                        <plan.icon className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white/70 text-sm font-semibold uppercase tracking-widest">{plan.tagline}</p>
+                        <h2 className="text-2xl font-black text-white">{plan.name}</h2>
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex items-end gap-2">
+                      <span className="text-5xl font-black text-white leading-none">
+                        ${interval === 'annual' ? Math.round(plan.annualPerMonth) : plan.monthlyPrice}
+                      </span>
+                      <div className="mb-2">
+                        <span className="text-white/60 text-lg font-bold">/mo</span>
+                        {interval === 'annual' && (
+                          <p className="text-sm font-bold mt-0.5" style={{ color: plan.accentColor }}>
+                            ${plan.annualPrice}/yr
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card body */}
+                <div className="flex flex-col flex-1 px-7 py-6 bg-white">
+
+                  <p className="text-gray-700 text-base font-semibold leading-relaxed mb-6">{plan.description}</p>
+
+                  {isCurrentPlan && (
+                    <div className="mb-4 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-black text-white bg-orange-500 border border-orange-600 w-fit">
+                      <Check className="h-4 w-4" />
+                      This is your current plan
                     </div>
                   )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
-function ProfileTab({ profile, setProfile, editMode, setEditMode, saving, saveProfile, sendEmailVerification, verificationSent }: any) {
-  const inputClass = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 disabled:bg-slate-100 text-sm"
-
-  return (
-    <div className="space-y-4">
-      {['Personal', 'Company', 'Address'].map((section) => (
-        <div key={section} className="bg-white rounded-lg border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-slate-900">{section} Information</h3>
-            {editMode !== section.toLowerCase() ? (
-              <button onClick={() => setEditMode(section.toLowerCase())} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                Edit
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button onClick={() => setEditMode(null)} className="text-sm text-slate-600 hover:text-slate-900">Cancel</button>
-                <button onClick={saveProfile} disabled={saving} className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50">
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {section === 'Personal' && (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase">First Name</label>
-                <input type="text" value={profile.first_name || ''} onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-                  disabled={editMode !== 'personal'} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase">Last Name</label>
-                <input type="text" value={profile.last_name || ''} onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-                  disabled={editMode !== 'personal'} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase">Email</label>
-                <div className="relative">
-                  <input type="email" value={profile.email || ''} onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    disabled={editMode !== 'personal'} className={inputClass} />
-                  {profile.email_verified && <CheckCircle2 className="absolute right-3 top-2.5 h-5 w-5 text-emerald-600" />}
-                </div>
-                {!profile.email_verified && (
-                  <button onClick={sendEmailVerification} disabled={verificationSent} className="text-xs text-blue-600 hover:text-blue-700 mt-2 font-medium">
-                    {verificationSent ? 'Sent' : 'Send verification'}
-                  </button>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase">Phone</label>
-                <input type="tel" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                  disabled={editMode !== 'personal'} className={inputClass} />
-              </div>
-            </div>
-          )}
-
-          {section === 'Company' && (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase">Company</label>
-                <input type="text" value={profile.company || ''} onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                  disabled={editMode !== 'company'} className={inputClass} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 uppercase">Job Title</label>
-                <input type="text" value={profile.title || ''} onChange={(e) => setProfile({ ...profile, title: e.target.value })}
-                  disabled={editMode !== 'company'} className={inputClass} />
-              </div>
-            </div>
-          )}
-
-          {section === 'Address' && (
-            <div className="space-y-4">
-              <input type="text" value={profile.address_line1 || ''} onChange={(e) => setProfile({ ...profile, address_line1: e.target.value })}
-                disabled={editMode !== 'address'} placeholder="Street" className={inputClass} />
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-                <input type="text" value={profile.city || ''} onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                  disabled={editMode !== 'address'} placeholder="City" className={inputClass} />
-                <input type="text" value={profile.state || ''} onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                  disabled={editMode !== 'address'} placeholder="State" className={inputClass} />
-                <input type="text" value={profile.postal_code || ''} onChange={(e) => setProfile({ ...profile, postal_code: e.target.value })}
-                  disabled={editMode !== 'address'} placeholder="ZIP" className={inputClass} />
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billingInterval, setBillingInterval, handlePlanChange, managePaymentMethod, handleCancelSubscription, loadingPlanChange }: any) {
-  const currentTier: keyof typeof PLAN_DETAILS | null = plan?.tier && plan.tier !== 'NONE' ? plan.tier : null
-
-  return (
-    <div className="space-y-6">
-      {currentPlanDetails && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Current Plan</h3>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <div>
-              <p className="text-lg font-bold text-slate-900">{currentPlanDetails.name}</p>
-              <p className="text-sm text-slate-600">${plan.interval === 'year' ? currentPlanDetails.annualPrice : currentPlanDetails.monthlyPrice}/{plan.interval === 'year' ? 'year' : 'month'}</p>
-            </div>
-            <button onClick={managePaymentMethod} className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 text-sm font-medium rounded-lg transition-colors">
-              Manage in Stripe →
-            </button>
-          </div>
-          {!plan.cancel_at_period_end && (
-            <button onClick={handleCancelSubscription} className="mt-4 text-sm text-slate-600 hover:text-red-600 font-medium">
-              Cancel subscription
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Plan Selection - RESPONSIVE PILLS */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">Change Plan</h3>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {Object.entries(PLAN_DETAILS).map(([tier, details]) => {
-            const isCurrentMonthly = plan?.tier === tier && plan?.interval === 'month'
-            const isCurrentAnnual = plan?.tier === tier && plan?.interval === 'year'
-            return (
-              <div key={tier} className="border border-slate-200 rounded-lg p-4">
-                <h4 className="font-bold text-slate-900 mb-3">{details.name}</h4>
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  <div className={`p-2 rounded text-center ${isCurrentMonthly ? 'bg-blue-100 border border-blue-300' : 'bg-slate-50 border border-slate-200'}`}>
-                    <p className="text-xs text-slate-600">Monthly</p>
-                    <p className="font-bold text-slate-900">${details.monthlyPrice}</p>
-                  </div>
-                  <div className={`p-2 rounded text-center ${isCurrentAnnual ? 'bg-blue-100 border border-blue-300' : 'bg-slate-50 border border-slate-200'}`}>
-                    <p className="text-xs text-slate-600">Annual</p>
-                    <p className="font-bold text-slate-900">${details.annualPrice}</p>
-                  </div>
-                </div>
-                <ul className="text-xs space-y-1 mb-4 text-slate-700">
-                  {details.features.slice(0, 3).map((f, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />{f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="grid grid-cols-2 gap-2">
+                  {/* CTA button */}
                   <button
-                    onClick={() => handlePlanChange(tier as PlanTier, 'month')}
-                    disabled={loadingPlanChange === tier || isCurrentMonthly}
-                    className={`py-2 px-3 rounded text-xs font-medium transition-colors ${
-                      isCurrentMonthly ? 'bg-slate-100 text-slate-600 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'
-                    } disabled:opacity-50`}
+                    onClick={() => handleSelectPlan(plan.id)}
+                    disabled={isLoading || !action.allowed}
+                    className="w-full py-4 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-2.5 mb-8 disabled:cursor-not-allowed"
+                    style={{
+                      background: action.allowed ? plan.accentColor : '#9ca3af',
+                      color: '#fff',
+                      border: '1.5px solid transparent',
+                      boxShadow: isHovered ? `0 8px 24px ${plan.glowColor}` : 'none',
+                      transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+                      transition: 'all 0.2s ease',
+                    }}
                   >
-                    {isCurrentMonthly ? 'Current' : 'Monthly'}
+                    {isLoading
+                      ? <Loader2 className="h-5 w-5 animate-spin" />
+                      : session
+                        ? <><ArrowRight className="h-5 w-5" /> {action.label}</>
+                        : <><CTA className="h-5 w-5" /> Start Free Trial</>}
                   </button>
-                  <button
-                    onClick={() => handlePlanChange(tier as PlanTier, 'year')}
-                    disabled={loadingPlanChange === tier || isCurrentAnnual}
-                    className={`py-2 px-3 rounded text-xs font-medium transition-colors ${
-                      isCurrentAnnual ? 'bg-slate-100 text-slate-600 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-700'
-                    } disabled:opacity-50`}
-                  >
-                    {isCurrentAnnual ? 'Current' : 'Annual'}
-                  </button>
+
+                  {/* Divider */}
+                  <div className="mb-6 h-px bg-gray-100" />
+
+                  {/* Feature list */}
+                  <ul className="space-y-3.5 flex-1">
+                    {plan.features.map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-base font-semibold text-gray-800">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                          style={{ background: `color-mix(in srgb, white 75%, ${plan.accentColor} 25%)` }}>
+                          <Check className="h-3 w-3" style={{ color: plan.accentColor }} />
+                        </div>
+                        {f}
+                      </li>
+                    ))}
+                    {plan.notIncluded.map((f, i) => (
+                      <li key={i} className="flex items-start gap-3 text-base text-gray-500">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-gray-100">
+                          <span className="text-xs leading-none">—</span>
+                        </div>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )
           })}
         </div>
-      </div>
 
-      {/* Payment Methods */}
-      <div className="bg-white rounded-lg border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-slate-900">Payment Methods</h3>
-          <button onClick={managePaymentMethod} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium">
-            Manage
-          </button>
-        </div>
-        {paymentMethods.length > 0 ? (
-          <div className="space-y-2">
-            {paymentMethods.map((m: PaymentMethod) => (
-              <div key={m.id} className="p-3 border border-slate-200 rounded flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-slate-900 text-sm">{m.brand} •••• {m.last4}</p>
-                  <p className="text-xs text-slate-600">Exp {m.expMonth}/{m.expYear}</p>
+        {/* ── Included in all plans ── */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-10 mb-16">
+          <h2 className="text-3xl font-black text-center mb-10 text-gray-900">
+            Included in every plan
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-7">
+            {[
+              { icon: Globe,      label: 'Live SAM.gov data',    desc: 'Real-time opportunity feed',      color: '#60a5fa' },
+              { icon: Zap,        label: 'AI bid scoring',       desc: 'Instant match percentages',       color: '#4ade80' },
+              { icon: Lock,       label: 'Secure & encrypted',   desc: 'SOC 2 compliant platform',        color: '#f97316' },
+              { icon: Users,      label: 'Account management',   desc: 'Profile, billing & support',      color: '#a78bfa' },
+              { icon: Mail,       label: 'Email alerts',         desc: 'Keyword-matched notifications',   color: '#fb923c' },
+              { icon: ArrowRight, label: 'CSV exports',          desc: 'Download opportunity data',       color: '#34d399' },
+              { icon: ShieldCheck,label: 'Set-aside filters',    desc: 'SDVOSB, 8(a), HUBZone & more',   color: '#f472b6' },
+              { icon: Star,       label: '7-day free trial',     desc: 'No credit card required',         color: '#facc15' },
+            ].map(item => (
+              <div key={item.label} className="flex items-start gap-4 group">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-transform group-hover:scale-110"
+                  style={{ background: item.color, border: `1px solid ${item.color}` }}>
+                  <item.icon className="h-5 w-5" style={{ color: '#ffffff' }} />
                 </div>
-                {m.isDefault && <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded">Default</span>}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-600">No payment methods saved</p>
-        )}
-      </div>
-
-      {/* Invoices */}
-      {invoices.length > 0 && (
-        <div className="bg-white rounded-lg border border-slate-200 p-6">
-          <h3 className="text-lg font-bold text-slate-900 mb-4">Invoices</h3>
-          <div className="space-y-2">
-            {invoices.slice(0, 5).map((inv: Invoice) => (
-              <div key={inv.id} className="p-3 border border-slate-200 rounded flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-slate-900 text-sm">${(inv.amount / 100).toFixed(2)}</p>
-                  <p className="text-xs text-slate-600">{new Date(inv.date).toLocaleDateString()}</p>
+                  <p className="font-bold text-base text-gray-800">{item.label}</p>
+                  <p className="text-sm mt-0.5 text-gray-500">{item.desc}</p>
                 </div>
-                <span className={`text-xs font-semibold px-2 py-1 rounded ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {inv.status}
-                </span>
               </div>
             ))}
           </div>
         </div>
-      )}
-    </div>
-  )
-}
 
-function SupportTab({ profile, plan }: any) {
-  const [subject, setSubject] = useState('')
-  const [message, setMessage] = useState('')
-  const [priority, setPriority] = useState<'normal'>('normal')
-  const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSending(true)
-    try {
-      const response = await fetch('/api/support/ticket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, message, priority, userInfo: { email: profile.email, name: `${profile.first_name} ${profile.last_name}`.trim(), plan: plan?.tier || 'NONE' } }),
-      })
-      if (response.ok) {
-        setSent(true)
-        setSubject('')
-        setMessage('')
-      }
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setSending(false)
-    }
-  }
-
-  return (
-    <div className="bg-white rounded-lg border border-slate-200 p-6 max-w-2xl">
-      <h3 className="text-lg font-bold text-slate-900 mb-4">Submit Support Ticket</h3>
-      {sent ? (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-          <p className="text-sm font-medium text-emerald-900">Ticket submitted! We'll respond within 24 hours.</p>
+        {/* ── FAQ ── */}
+        <div className="mb-20">
+          <h2 className="text-4xl font-black text-center mb-10 text-gray-900">
+            Frequently asked questions
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {FAQS.map((faq, i) => (
+              <div key={i} className="rounded-2xl border overflow-hidden transition-all h-fit"
+                style={{
+                  borderColor: openFaq === i ? '#f97316' : '#e5e7eb',
+                  background: openFaq === i ? '#fff7ed' : '#fff',
+                }}>
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between px-6 py-5 text-left min-h-30"
+                >
+                  <span className="font-bold text-lg pr-4 text-gray-900">{faq.q}</span>
+                  {openFaq === i
+                    ? <ChevronUp className="h-5 w-5 shrink-0 text-orange-500" />
+                    : <ChevronDown className="h-5 w-5 shrink-0 text-gray-400" />}
+                </button>
+                {openFaq === i && (
+                  <div className="px-6 pb-6 text-base leading-relaxed text-gray-600 border-t border-orange-100">
+                    <p className="pt-4">{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Subject</label>
-            <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Message</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} required rows={5}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 text-sm resize-none" />
-          </div>
-          <button type="submit" disabled={sending} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50">
-            {sending ? 'Submitting...' : 'Submit Ticket'}
-          </button>
-        </form>
-      )}
-      <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-        <p className="text-sm text-slate-700"><strong>Email:</strong> <a href="mailto:support@preciseanalytics.io" className="text-blue-600 hover:underline">support@preciseanalytics.io</a></p>
-        <p className="text-sm text-slate-700 mt-2"><strong>Phone:</strong> <a href="tel:+18044046005" className="text-blue-600 hover:underline">(804) 404-6005</a></p>
-      </div>
-    </div>
-  )
-}
 
-function BidsTab({ bids, setBids }: any) {
-  const [filter, setFilter] = useState<'all' | 'draft' | 'submitted' | 'awarded' | 'not_awarded'>('all')
-  const filteredBids = filter === 'all' ? bids : bids.filter((b: BidData) => b.status === filter)
-
-  return (
-    <div className="bg-white rounded-lg border border-slate-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-slate-900">Bid Tracker</h3>
-        <a href="#" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium">Add Bid</a>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mb-6">
-        {['all', 'draft', 'submitted', 'awarded', 'not_awarded'].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f as any)}
-            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-              filter === f ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            {f.replace('_', ' ').charAt(0).toUpperCase() + f.replace('_', ' ').slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {filteredBids.length > 0 ? (
-        <div className="space-y-2">
-          {filteredBids.map((bid: BidData) => (
-            <div key={bid.id} className="p-4 border border-slate-200 rounded-lg">
-              <p className="font-semibold text-slate-900 text-sm">{bid.opportunityTitle}</p>
-              <p className="text-xs text-slate-600 mt-1">{bid.opportunityId}</p>
+        {/* ── Enterprise CTA ── */}
+        <div className="rounded-3xl p-8 sm:p-10 text-center border border-orange-200 bg-linear-to-r from-orange-50 to-amber-50">
+          <div className="relative">
+            <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-4">Need a custom solution?</h2>
+            <p className="text-gray-700 text-xl font-semibold mb-8 max-w-2xl mx-auto">
+              Large teams, volume licensing, or specific integrations — talk to us and we&apos;ll build a plan that fits.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a href="mailto:support@preciseanalytics.io"
+                className="flex items-center gap-3 px-7 py-4 rounded-2xl font-black text-base transition-all hover:scale-105"
+                style={{ background: '#f3f4f6', color: '#111827', border: '1.5px solid #e5e7eb' }}>
+                <Mail className="h-5 w-5" /> Email Sales
+              </a>
+              <a href="tel:+18044046005"
+                className="flex items-center gap-3 px-7 py-4 rounded-2xl font-black text-base transition-all hover:scale-105"
+                style={{ background: '#f3f4f6', color: '#111827', border: '1.5px solid #e5e7eb' }}>
+                <Phone className="h-5 w-5" /> (804) 404-6005
+              </a>
+              <a href="https://calendly.com/precisegovcon/30min" target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-base transition-all hover:scale-105 hover:shadow-xl"
+                style={{ background: 'linear-gradient(90deg, #f97316, #ea580c)', color: '#fff' }}>
+                <CalendarClock className="h-5 w-5" /> Book Priority Support
+              </a>
             </div>
-          ))}
+          </div>
         </div>
-      ) : (
-        <p className="text-center text-slate-600 py-8">No bids</p>
-      )}
-    </div>
+
+        <p className="text-center text-base mt-10 text-gray-400 font-bold">
+          All plans include a 7-day free trial. No credit card required to start.{' '}
+          <Link href="/support" className="font-semibold hover:underline text-gray-600">
+            Questions? Contact support →
+          </Link>
+        </p>
+      </div>
+    </main>
   )
 }

@@ -17,27 +17,27 @@ export default function SAMRegistrationPage() {
   return (
     <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900">
       {/* Compact Hero - 2 Column */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00djJoLTJ2LTJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40" />
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 opacity-90" />
         
         <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Left: Content */}
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 backdrop-blur-sm rounded-full text-slate-100 text-sm font-bold mb-4 border border-blue-500/30">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 rounded-full text-blue-700 text-sm font-bold mb-4 shadow-sm">
                 <ShieldCheck className="w-4 h-4" />
                 <span>Most Popular Service</span>
               </div>
               
-              <h1 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">
                 SAM Registration Made Simple—We Handle Everything
               </h1>
               
-              <p className="text-lg text-white font-semibold mb-3 leading-relaxed">
+              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">
                 Stop struggling with the complex SAM.gov registration process. Our experts handle it all—from start to finish.
               </p>
 
-              <p className="text-base text-slate-100 mb-6">
+              <p className="text-base text-slate-600 mb-6">
                 SAM registration is required to bid on federal contracts, but it's confusing and time-consuming. We make it easy with complete support, annual renewals, and compliance monitoring.
               </p>
 
@@ -52,7 +52,7 @@ export default function SAMRegistrationPage() {
 
                 <Link
                   href="/services"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900/40 backdrop-blur-sm text-white border-2 border-white/40 rounded-xl font-bold text-base hover:bg-slate-900/55 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-emerald-700 border border-emerald-200 rounded-xl font-bold text-base shadow-sm hover:bg-emerald-50 transition-all"
                 >
                   <ArrowRight className="w-5 h-5" />
                   View All Services
@@ -60,24 +60,24 @@ export default function SAMRegistrationPage() {
                 
                 <a
                   href="tel:804-404-6005"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-xl font-bold text-base hover:bg-white/30 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 border border-blue-200 rounded-xl font-bold text-base shadow-sm hover:bg-blue-50 transition-all"
                 >
                   <Phone className="w-5 h-5" />
                   (804) 404-6005
                 </a>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-white">
+              <div className="flex flex-wrap items-center gap-4 text-slate-700">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-slate-200" />
+                  <Clock className="w-4 h-4 text-blue-600" />
                   <span className="font-semibold text-sm">2-3 week process</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FileCheck className="w-4 h-4 text-slate-200" />
+                  <FileCheck className="w-4 h-4 text-blue-600" />
                   <span className="font-semibold text-sm">100% accuracy guarantee</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-slate-200" />
+                  <RefreshCw className="w-4 h-4 text-blue-600" />
                   <span className="font-semibold text-sm">Annual renewals included</span>
                 </div>
               </div>
@@ -85,40 +85,40 @@ export default function SAMRegistrationPage() {
 
             {/* Right: Stats & Social Proof */}
             <div className="space-y-4">
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
+              <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex-shrink-0">
                     <ShieldCheck className="w-12 h-12 text-emerald-400" />
                   </div>
                   <div>
-                    <div className="text-4xl font-black text-white">1,200+</div>
-                    <div className="text-sm font-bold text-slate-100">Successful Registrations</div>
+                    <div className="text-4xl font-black text-slate-900">1,200+</div>
+                    <div className="text-sm font-bold text-slate-600">Successful Registrations</div>
                   </div>
                 </div>
-                <p className="text-sm text-slate-100">We've helped over a thousand businesses get SAM registered</p>
+                <p className="text-sm text-slate-700">We've helped over a thousand businesses get SAM registered</p>
               </div>
 
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
+              <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex-shrink-0">
                     <Target className="w-12 h-12 text-cyan-400" />
                   </div>
                   <div>
-                    <div className="text-4xl font-black text-white">100%</div>
-                    <div className="text-sm font-bold text-slate-100">Approval Rate</div>
+                    <div className="text-4xl font-black text-slate-900">100%</div>
+                    <div className="text-sm font-bold text-slate-600">Approval Rate</div>
                   </div>
                 </div>
-                <p className="text-sm text-slate-100">Every registration we submit gets approved—no rejections</p>
+                <p className="text-sm text-slate-700">Every registration we submit gets approved—no rejections</p>
               </div>
 
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
+              <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="flex-shrink-0">
                     <Users className="w-12 h-12 text-orange-400" />
                   </div>
                   <div>
-                    <div className="text-2xl font-black text-white">Your Partner in Success</div>
-                    <div className="text-sm font-semibold text-slate-100 mt-1">We're with you every step of the way</div>
+                    <div className="text-2xl font-black text-slate-900">Your Partner in Success</div>
+                    <div className="text-sm font-semibold text-slate-600 mt-1">We're with you every step of the way</div>
                   </div>
                 </div>
               </div>

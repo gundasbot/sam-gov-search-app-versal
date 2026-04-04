@@ -49,34 +49,9 @@ export default async function proxy(request: NextRequest) {
     )
     if (!isProtectedPath) return NextResponse.next()
 
-    if (pathname === '/account' || pathname.startsWith('/account/')) {
-      return NextResponse.next()
-    }
-
-    const hasSubscription = token.hasSubscription as boolean
-    const status          = token.status as string
-    const trialActive     = token.trial_active as boolean
-    const trialExpiresAt  = token.trial_expires_at as string | null
-    const trialEndsAt     = token.trial_ends_at as string | null
-
-    if (hasSubscription && (status === 'active' || status === 'trialing')) {
-      return NextResponse.next()
-    }
-
-    const trialEnd = trialExpiresAt || trialEndsAt
-    if (trialActive && trialEnd && new Date(trialEnd) > new Date()) {
-      return NextResponse.next()
-    }
-
-    if (status === 'trialing') {
-      return NextResponse.next()
-    }
-
-    // No active subscription or trial → redirect to pricing
-    const url = request.nextUrl.clone()
-    url.pathname = '/pricing'
-    url.searchParams.set('reason', 'trial_expired')
-    return NextResponse.redirect(url)
+    // Authenticated users should be able to navigate protected app pages.
+    // Subscription/upgrade UX is handled in-page to avoid forced route jumps.
+    return NextResponse.next()
   }
 
   // ── NOT AUTHENTICATED ────────────────────────────────────────────

@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
     const requestedPlan = normalizePlan(body?.plan ?? body?.tier)
     const requestedBilling = normalizeBilling(body?.billing ?? body?.interval) || 'monthly'
     const explicitPriceId = String(body?.priceId || '').trim() || null
+    const selectedPaymentMethodId = String(body?.selectedPaymentMethodId || '').trim() || null
 
     console.log('📋 Plan:', requestedPlan, 'Billing:', requestedBilling)
 
@@ -193,6 +194,29 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    let verifiedPaymentMethodId: string | null = null
+    if (selectedPaymentMethodId) {
+      try {
+        const pm = await stripe.paymentMethods.retrieve(selectedPaymentMethodId)
+        const pmCustomerId = typeof pm.customer === 'string' ? pm.customer : pm.customer?.id
+        if (pm.type !== 'card') {
+          return jsonError('Selected payment method must be a card.', 400)
+        }
+        if (pmCustomerId !== customerId) {
+          return jsonError('Selected payment method does not belong to this customer.', 403)
+        }
+        verifiedPaymentMethodId = pm.id
+        await stripe.customers.update(customerId, {
+          invoice_settings: {
+            default_payment_method: verifiedPaymentMethodId,
+          },
+        })
+      } catch (err) {
+        console.error('Failed to verify selected payment method:', err)
+        return jsonError('Could not verify selected payment method.', 400)
+      }
+    }
+
     const appUrl =
       process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || req.nextUrl.origin
 
@@ -230,6 +254,7 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       payment_method_types: ['card'],
       payment_method_collection: 'if_required', // ✅ No card required during trial
+      ...(verifiedPaymentMethodId ? { payment_method: verifiedPaymentMethodId } : {}),
       line_items: [{ price: finalPriceId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -246,6 +271,7 @@ export async function POST(req: NextRequest) {
       },
       subscription_data: {
         trial_period_days: TRIAL_DAYS,
+        ...(verifiedPaymentMethodId ? { default_payment_method: verifiedPaymentMethodId } : {}),
         trial_settings: {
           end_behavior: {
             missing_payment_method: 'cancel', // Cancel if no card added by end of trial

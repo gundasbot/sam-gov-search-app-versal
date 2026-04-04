@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { mapAlertRow } from '../route'
+import { randomBytes } from 'crypto'
+import { buildSavedSearchData, mapAlertRow } from '../route'
 
 const freqMap: Record<string, 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'AS_CHANGES' | 'MANUAL'> = {
   DAILY: 'DAILY', WEEKLY: 'WEEKLY', MONTHLY: 'MONTHLY',
@@ -28,6 +29,7 @@ export async function PATCH(
 
     const existing = await prisma.alert_subscriptions.findFirst({
       where: { id, user_id: session.user.id },
+      include: { saved_searches_v2: true },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -58,13 +60,37 @@ export async function PATCH(
         ...(frequency !== undefined && { frequency: freqMap[String(frequency).toUpperCase()] ?? 'DAILY' }),
         ...(deliveryTime !== undefined && { delivery_time: deliveryTime }),
         ...(recipientEmails !== undefined && { recipients: recipientEmails }),
-        ...(recipientsList !== undefined && { recipients_list: JSON.stringify(recipientsList) }),
-        ...(alertParams !== undefined && { params: JSON.stringify(alertParams) }),
+        ...(alertParams?.format !== undefined && { export_format: String(alertParams.format) }),
+        ...(alertParams !== undefined && {
+          saved_searches_v2: {
+            upsert: {
+              create: {
+                id: randomBytes(12).toString('hex'),
+                user_id: session.user.id,
+                updated_at: new Date(),
+                ...buildSavedSearchData(
+                  alertParams,
+                  typeof name === 'string' ? name.trim() : existing.name,
+                  description !== undefined ? description : existing.description
+                ),
+              },
+              update: {
+                updated_at: new Date(),
+                ...buildSavedSearchData(
+                  alertParams,
+                  typeof name === 'string' ? name.trim() : existing.saved_searches_v2?.name ?? existing.name,
+                  description !== undefined ? description : existing.saved_searches_v2?.description ?? existing.description
+                ),
+              },
+            },
+          },
+        }),
         ...(isActive !== undefined && { active: isActive }),
         ...(maxResults !== undefined && { max_results: maxResults }),
         ...(sendEmptyResults !== undefined && { send_empty_results: sendEmptyResults }),
         updated_at: new Date(),
       },
+      include: { saved_searches_v2: true },
     })
 
     return NextResponse.json(mapAlertRow(updated))

@@ -10,7 +10,7 @@ import {
   LogOut, LogIn, Menu, X, ChevronDown, CreditCard, Search, Award,
   TrendingUp, Briefcase, ExternalLink, LayoutDashboard,
   LineChart, Zap, Sparkles, Building, User, Loader2, Mail, Bell,
-  FileText, ShieldCheck,
+  FileText, ShieldCheck, Settings, UserRound,
 } from 'lucide-react'
 import AccessControlModal from './AccessControlModal'
 import ThemeToggle from './ThemeToggle'
@@ -63,13 +63,16 @@ export default function Header() {
   const [tickerData, setTickerData] = useState<{ count: number; opportunities: TickerItem[] } | null>(null)
   const [loadingTicker, setLoadingTicker] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
+  const servicesCloseTimer = useRef<NodeJS.Timeout | null>(null)
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [tickerPaused, setTickerPaused] = useState(false)
   const [tickerError, setTickerError] = useState<string | null>(null)
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   const servicesRef = useRef<HTMLDivElement>(null)
   const tickerRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   /* ── Scroll effect ── */
   useEffect(() => {
@@ -106,7 +109,6 @@ export default function Header() {
     { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> },
     { label: 'Insights', href: '/insights', icon: <LineChart className="w-5 h-5" /> },
     { label: 'Pricing', href: '/pricing', icon: <CreditCard className="w-5 h-5" /> },
-    { label: 'Support', href: '/support', icon: <Mail className="w-5 h-5" /> },
     ...(isAuthed ? [{ label: 'Account', href: '/account', icon: <User className="w-5 h-5" /> }] : []),
   ]
 
@@ -137,10 +139,20 @@ export default function Header() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (servicesRef.current && !servicesRef.current.contains(e.target as Node)) setServicesOpen(false)
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const openServices = () => {
+    if (servicesCloseTimer.current) clearTimeout(servicesCloseTimer.current)
+    setServicesOpen(true)
+  }
+  const scheduleCloseServices = () => {
+    if (servicesCloseTimer.current) clearTimeout(servicesCloseTimer.current)
+    servicesCloseTimer.current = setTimeout(() => setServicesOpen(false), 180)
+  }
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
   const activePillClasses = 'bg-[#ff7a18] text-white font-black'
@@ -261,7 +273,7 @@ export default function Header() {
             </div>
 
             {/* ── Desktop Nav ── */}
-            <div className="hidden min-w-0 justify-start lg:flex">
+            <div className="hidden min-w-0 justify-start lg:flex lg:flex-1 lg:justify-end">
               <nav className="header-nav-scroll flex flex-nowrap items-center justify-start gap-1 px-1.5 py-1.5 xl:gap-1.5 xl:px-2">
                 {[
                   { href: '/search', label: 'Search', icon: <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
@@ -281,13 +293,13 @@ export default function Header() {
                 <div
                   className="relative"
                   ref={servicesRef}
-                  onMouseEnter={() => setServicesOpen(true)}
-                  onMouseLeave={() => setServicesOpen(false)}
+                  onMouseEnter={openServices}
+                  onMouseLeave={scheduleCloseServices}
                 >
                   <Link
                     href="/services"
                     prefetch={false}
-                    onFocus={() => setServicesOpen(true)}
+                    onFocus={openServices}
                     onClick={() => {
                       setServicesOpen(false)
                     }}
@@ -319,27 +331,19 @@ export default function Header() {
                           : 0,
                       }}
                     >
-                      <div className="p-2 overflow-hidden rounded-2xl" onClick={e => e.stopPropagation()}>
-                        <Link href="/services" prefetch={false} onClick={() => setServicesOpen(false)}
-                          className="mb-1 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 transition-colors hover:bg-emerald-50"
-                        >
-                          <Building className="w-5 h-5 text-emerald-600" />
-                          <span className="flex-1 font-bold text-slate-900">View All Services</span>
-                          <ChevronDown className="w-4 h-4 text-emerald-600 -rotate-90" />
-                        </Link>
-                        <div className="my-2 h-px bg-slate-100" />
+                      <div className="p-2 overflow-auto max-h-[60vh] rounded-2xl" onClick={e => e.stopPropagation()}>
                         {serviceItems.map((service) => (
                           <Link key={service.href} href={service.href} prefetch={false} onClick={() => setServicesOpen(false)}
-                            className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-slate-50"
+                            className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-emerald-100 focus-visible:bg-emerald-100 focus-visible:outline-none"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-emerald-600 bg-emerald-50 transition-colors group-hover:bg-emerald-100">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-emerald-700 bg-emerald-50 transition-colors group-hover:bg-emerald-200">
                               {service.icon}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-slate-900 transition-colors group-hover:text-emerald-600">{service.label}</span>
+                                <span className="font-bold text-slate-900 transition-colors group-hover:text-emerald-700">{service.label}</span>
                                 {service.badge && (
-                                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full border border-emerald-100">{service.badge}</span>
+                                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">{service.badge}</span>
                                 )}
                               </div>
                               <p className="text-xs leading-snug text-slate-500">{service.description}</p>
@@ -354,7 +358,7 @@ export default function Header() {
                 {[
                   { href: '/insights', label: 'Insights', icon: <LineChart className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
-                  { href: '/support', label: 'Support', icon: <Mail className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
+                  // Support now in footer and account dropdown
                   // Account moved to auth button area to prevent nav overflow
                 ].map(({ href, label, icon }) => (
                   <Link key={href} href={href} prefetch={false}
@@ -374,15 +378,54 @@ export default function Header() {
               </div>
               {isAuthed ? (
                 <>
-                  <Link
-                    href="/account"
-                    className="inline-flex items-center justify-center w-9 h-9 rounded-xl transition-all hover:scale-[1.02] flex-shrink-0"
-                    style={{ background: 'var(--color-surface-muted)', border: '1.5px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-                    aria-label="Account"
-                    title="Account"
-                  >
-                    <User className="w-4 h-4" />
-                  </Link>
+                  <div className="relative" ref={userMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowUserMenu((v) => !v)}
+                      className="inline-flex items-center justify-between gap-2 w-44 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow flex-shrink-0"
+                      aria-label="My Account menu"
+                    >
+                      <span className="inline-flex items-center gap-2 min-w-0">
+                        <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                          <UserRound className="w-4 h-4" />
+                        </span>
+                        <span className="text-sm font-black text-slate-800 truncate">My Account</span>
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showUserMenu && (
+                      <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl z-[300] overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 bg-slate-50">
+                          <Link href="/account" prefetch={false} onClick={() => setShowUserMenu(false)} className="block text-base font-extrabold text-slate-900 line-clamp-1 hover:text-emerald-700 transition-colors">
+                            {session?.user?.name || 'My Account'}
+                          </Link>
+                        </div>
+                        <div className="py-2 px-2">
+                          <Link href="/account" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group">
+                            <UserRound className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Account Overview
+                          </Link>
+                          <Link href="/account/settings" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group">
+                            <Settings className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Settings &amp; Security
+                          </Link>
+                          <Link href="/account?tab=billing" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group">
+                            <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Plan &amp; Billing
+                          </Link>
+                          <Link href="/support" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group">
+                            <Mail className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Support
+                          </Link>
+                        </div>
+                        <div className="border-t border-slate-100 px-2 py-2">
+                          <button
+                            type="button"
+                            onClick={() => signOut({ callbackUrl: '/' })}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-base font-bold text-red-600 rounded-xl hover:bg-red-50 transition-colors"
+                          >
+                            <LogOut className="w-5 h-5 flex-shrink-0" /> Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: '/' })}

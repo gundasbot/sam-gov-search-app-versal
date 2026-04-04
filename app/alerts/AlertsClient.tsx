@@ -228,21 +228,21 @@ export default function AlertsClient() {
 
         {/* ── UNAUTHENTICATED: Sign-in callout banner ─────────────────── */}
         {!isAuthenticated && !isLoading && (
-          <div className="mb-4 p-4 bg-gradient-to-r from-teal-900/40 to-orange-900/30 border border-teal-600/50 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+          <div className="mb-4 p-4 bg-orange-50 border-2 border-orange-300 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-teal-600/30 rounded-lg shrink-0">
-                <Lock className="w-4 h-4 text-teal-400" />
+              <div className="p-2 bg-orange-500 rounded-lg shrink-0">
+                <Lock className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="text-white font-bold">You're viewing sample data</p>
-                <p className="text-slate-300 text-xs mt-0.5">
+                <p className="text-orange-900 font-black">You're viewing sample data</p>
+                <p className="text-orange-800 text-xs mt-0.5 font-semibold">
                   Sign in to see your own saved searches and alerts.
                 </p>
               </div>
             </div>
             <Link
               href="/login"
-              className="shrink-0 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg flex items-center gap-2 transition-all shadow-lg hover:shadow-teal-500/25 whitespace-nowrap text-sm"
+              className="shrink-0 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg flex items-center gap-2 transition-all shadow-lg whitespace-nowrap text-sm"
             >
               <LogIn className="w-3 h-3" />
               Sign In

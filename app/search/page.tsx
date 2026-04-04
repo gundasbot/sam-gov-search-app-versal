@@ -14,6 +14,9 @@ import {
  TrendingUp, Sparkles, BarChart2,
 } from"lucide-react";
 
+import OpportunityDetailDrawer from "@/components/OpportunityDetailDrawer";
+import StickySearchBar from "@/components/StickySearchBar";
+
 // ─── Shims for hooks/components imported from your project ────────────────
 // Replace these with your real imports once the file is in place.
 
@@ -136,6 +139,49 @@ function getToday(): string {
  return new Date().toISOString().split("T")[0];
 }
 
+function isMeaningful(value?: string | null): boolean {
+ const v = (value ||"").trim();
+ if (!v) return false;
+ const upper = v.toUpperCase();
+ return upper !=="N/A" && upper !=="NA" && upper !=="NONE" && upper !=="—";
+}
+
+function getPlaceLabel(opp: Opp): string | null {
+ const city = isMeaningful(opp.placeOfPerformance?.city?.name) ? opp.placeOfPerformance?.city?.name?.trim() :"";
+ const state = isMeaningful(opp.placeOfPerformance?.state?.code) ? opp.placeOfPerformance?.state?.code?.trim() :"";
+ const parts = [city, state].filter(Boolean);
+ return parts.length ? parts.join(", ") : null;
+}
+
+function formatDisplayDate(date: Date): string {
+ return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function getDeadlineMeta(deadline?: string) {
+ if (!deadline) return null;
+ const due = new Date(deadline);
+ if (isNaN(due.getTime())) return null;
+ const days = Math.round((due.getTime() - Date.now()) / 86400000);
+ let gradient ="bg-gradient-to-r from-slate-300 to-slate-200 text-slate-800";
+ let label = `Due ${formatDisplayDate(due)}`;
+ if (days < 0) {
+ gradient ="bg-gradient-to-r from-slate-500 to-slate-700 text-white";
+ label = `Closed • ${formatDisplayDate(due)}`;
+ } else if (days <= 3) {
+ gradient ="bg-gradient-to-r from-rose-500 via-orange-500 to-amber-400 text-white";
+ label = `Due ${formatDisplayDate(due)} • ${days === 0 ?"today": `${days} day${days === 1 ? "":"s"} left`}`;
+ } else if (days <= 10) {
+ gradient ="bg-gradient-to-r from-amber-300 via-lime-300 to-emerald-300 text-gray-900";
+ label = `Due ${formatDisplayDate(due)} • ${days} days left`;
+ } else {
+ gradient ="bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-500 text-white";
+ label = `Due ${formatDisplayDate(due)} • ${days} days left`;
+ }
+ return { gradient, label, days, date: due };
+}
+
+const BADGE_BASE ="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.08)] text-white";
+
 // ─── QuickDateLookupProps type ────────────────────────────────────────────
 interface QuickDateLookupProps {
  keywords: string;
@@ -191,35 +237,74 @@ function MultiSelectDropdown({ label, options, selected, onChange, placeholder }
  );
 }
 
-function OpportunityCard({ opportunity, index, isSaved, toggleSaved, copyText, copiedId }: {
+function OpportunityCard({ opportunity, index, isSaved, toggleSaved, copyText, copiedId, onOpen }: {
  opportunity: Opp; index: number; isSaved: boolean;
  toggleSaved: (id: string, data?: any) => void;
  copyText: (txt: string) => void; copiedId: string | null;
+ onOpen: (opp: Opp) => void;
 }) {
  const id = opportunity.noticeId || String(index);
  const dept = opportunity.department || opportunity.fullParentPathName || opportunity.office ||"N/A";
- const setAsideLabel = getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside ||"") ||"N/A";
- const place = [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(",") ||"N/A";
+ const rawSetAside = getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside ||"");
+ const setAsideLabel = isMeaningful(rawSetAside) ? rawSetAside : null;
+ const place = getPlaceLabel(opportunity);
+ const naics = isMeaningful(opportunity.naicsCode) ? opportunity.naicsCode : null;
+ const deadlineMeta = getDeadlineMeta(opportunity.responseDeadLine);
+ const handleOpen = () => onOpen(opportunity);
  return (
- <div className="rounded-xl border border-[var(--color-border)] bg-white p-4 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
- <div className="flex items-start justify-between gap-2">
- <h3 className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-2 flex-1">
- {opportunity.uiLink
- ? <a href={opportunity.uiLink} target="_blank"rel="noopener noreferrer"className="hover:underline">{opportunity.title ||"Untitled"}</a>
- : (opportunity.title ||"Untitled")}
- </h3>
- <button onClick={() => toggleSaved(id, opportunity)} className="shrink-0">
- <Bookmark className={`h-4 w-4 ${isSaved ?"fill-current text-orange-500":"text-gray-400"}`} />
+ <div
+ className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm hover:shadow-lg transition-all cursor-pointer"
+ onClick={handleOpen}
+ role="button"
+ tabIndex={0}
+ onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpen(); } }}
+ >
+ <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50 opacity-0 group-hover:opacity-90 transition-opacity" />
+ <div className="relative flex items-start justify-between gap-3">
+ <div className="space-y-1">
+ <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 line-clamp-1">{dept}</p>
+ <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2">{opportunity.title ||"Untitled Opportunity"}</h3>
+ </div>
+ <button
+ onClick={(e) => { e.stopPropagation(); toggleSaved(id, opportunity); }}
+ className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${isSaved ?"bg-orange-500 text-white border-orange-500":"bg-white text-gray-500 border-gray-200 hover:border-orange-400 hover:text-orange-500"}`}
+ >
+ <Bookmark className={`h-4 w-4 ${isSaved ?"fill-current":""}`}/>
  </button>
  </div>
- <p className="text-xs text-gray-500 line-clamp-1">{dept}</p>
- <div className="flex flex-wrap gap-1 mt-1">
- <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium">{setAsideLabel}</span>
- <span className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full font-medium">{place}</span>
- </div>
- {opportunity.responseDeadLine && (
- <p className="text-xs text-gray-500 mt-1">Due: {new Date(opportunity.responseDeadLine).toLocaleDateString()}</p>
+ <div className="relative mt-3 flex flex-wrap gap-2">
+ {deadlineMeta && (
+ <span className={`${BADGE_BASE} ${deadlineMeta.gradient}`} style={{ color: '#fff' }}>{deadlineMeta.label}</span>
  )}
+ {setAsideLabel && (
+ <span className={`${BADGE_BASE} bg-gradient-to-r from-indigo-500 to-purple-600 text-white`} style={{ color: '#fff' }}>{setAsideLabel}</span>
+ )}
+ {naics && (
+ <span className={`${BADGE_BASE} bg-gradient-to-r from-sky-500 to-blue-600 text-white`} style={{ color: '#fff' }}>NAICS {naics}</span>
+ )}
+ {place && (
+ <span className={`${BADGE_BASE} bg-gradient-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>
+ )}
+ </div>
+ <div className="relative mt-4 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
+ {opportunity.uiLink && (
+ <a
+ href={opportunity.uiLink}
+ target="_blank"
+ rel="noopener noreferrer"
+ onClick={(e) => e.stopPropagation()}
+ className="inline-flex items-center gap-1 text-slate-700 hover:text-emerald-700"
+ >
+ Open SAM.gov <ArrowUpRight className="h-3.5 w-3.5"/>
+ </a>
+ )}
+ <button
+ onClick={(e) => { e.stopPropagation(); copyText(opportunity.noticeId ||''); }}
+ className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700"
+ >
+ {copiedId === opportunity.noticeId ? 'Copied!' : <>Copy ID <Copy className="h-3 w-3"/></>}
+ </button>
+ </div>
  </div>
  );
 }
@@ -348,7 +433,7 @@ function AccessControlModal({ isOpen, onClose, featureName }: {
  <p style={{ color: '#4b5563', fontSize: '0.875rem', marginBottom: '20px', lineHeight: '1.6' }}>
  {isPremiumFeature
  ? <>To use <strong>{featureName}</strong>, please sign in. It only takes a moment.</>
- : <>Start a <strong>14-day free trial</strong> to save searches, set up email alerts, export results, and unlock your full history. Cancel any time before the trial ends — no charge.</>
+ : <>Start a <strong>7-day free trial</strong> to save searches, set up email alerts, export results, and unlock your full history. Cancel any time before the trial ends — no charge.</>
  }
  </p>
 
@@ -413,8 +498,8 @@ function BrowseReminderModal({ level, onClose, onSignUp }: {
  </div>
  <p className="text-xs text-gray-600 mb-4 leading-relaxed">
  {is10
- ? 'Enjoying the search? Create a free account — includes a 14-day free trial. Your card is stored securely and only charged after the trial ends.'
- : 'Your guest session ends in 5 minutes. Start your free 14-day trial to keep searching, save results, and never miss a contract.'}
+ ? 'Enjoying the search? Create a free account — includes a 7-day free trial. Your card is stored securely and only charged after the trial ends.'
+ : 'Your guest session ends in 5 minutes. Start your free 7-day trial to keep searching, save results, and never miss a contract.'}
  </p>
  <div className="pgc-green flex gap-2">
  <button onClick={onSignUp}
@@ -473,7 +558,9 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
  display: 'flex', alignItems: 'center', justifyContent: 'center',
  margin: '0 auto 20px'
  }}>
- <Shield style={{ width: '36px', height: '36px', color: '#166534' }} />
+ <div style={{ position: 'relative', width: '36px', height: '36px' }}>
+ <Image src={BRAND_CONFIG.logo.path} alt={BRAND_CONFIG.logo.alt} fill sizes="36px" style={{ objectFit: 'contain' }}/>
+ </div>
  </div>
 
  {/* Headline */}
@@ -488,7 +575,7 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
  {/* Body */}
  <p style={{ color: '#374151', fontSize: '1rem', marginBottom: '8px', lineHeight: 1.7 }}>
  You've had <strong>20 minutes</strong> to explore our platform.
- Start a <strong>14-day free trial</strong> to keep searching with no time limits.
+ Start a <strong>7-day free trial</strong> to keep searching with no time limits.
  Cancel any time before the trial ends and you won't be charged.
  </p>
 
@@ -505,7 +592,7 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
  </p>
  <p style={{ color: '#4b5563', fontSize: '0.8rem', lineHeight: 1.5 }}>
  We use <strong>Stripe</strong> to securely store your payment details during signup.
- You get a <strong>14-day free trial</strong> first — no charge until it ends,
+ You get a <strong>7-day free trial</strong> first — no charge until it ends,
  and you can cancel any time before then.
  </p>
  </div>
@@ -522,7 +609,7 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
  boxShadow: '0 6px 20px rgba(22,101,52,0.35)',
  letterSpacing: '0.01em'
  }}>
- Start My 14-Day Free Trial
+ Start My 7-Day Free Trial
  </button>
  </Link>
  <Link href="/sign-in">
@@ -634,15 +721,17 @@ function ResultCard({
  copyText = () => {},
  copiedId = null,
 }: ResultCardProps) {
- const id = idProp || opportunity.noticeId || String(index);
- const department = departmentProp || opportunity.department || opportunity.fullParentPathName || opportunity.office || 'N/A';
- const setAsideLabel = setAsideLabelProp || getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside || '') || 'N/A';
- const placeOfPerformance = placeOfPerformanceProp || [opportunity.placeOfPerformance?.city?.name, opportunity.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || 'N/A';
- return (
- <div>
- {/* Key Information Grid - UPDATED with important criteria */}
- <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
- {/* Solicitation Number */}
+const id = idProp || opportunity.noticeId || String(index);
+const department = departmentProp || opportunity.department || opportunity.fullParentPathName || opportunity.office || 'N/A';
+const rawSetAside = setAsideLabelProp || getSetAsideLabel(opportunity.typeOfSetAside || opportunity.setAside || '') || '';
+const setAsideLabel = isMeaningful(rawSetAside) ? rawSetAside : '';
+const placeOfPerformance = placeOfPerformanceProp || getPlaceLabel(opportunity) || '';
+const naics = isMeaningful(opportunity.naicsCode) ? opportunity.naicsCode : '';
+return (
+<div>
+{/* Key Information Grid - UPDATED with important criteria */}
+<div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+{/* Solicitation Number */}
  {opportunity.solicitationNumber && (
  <div className="flex items-start gap-2">
  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
@@ -652,34 +741,38 @@ function ResultCard({
  </div>
  </div>
  )}
- {/* Department/Agency */}
- <div className="flex items-start gap-2">
- <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
- <div>
- <div className="text-sm font-bold text-[--color-text-secondary]">Department/Agency</div>
- <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)"title={department}>
- {department}
- </div>
- </div>
- </div>
- {/* Set-Aside */}
- <div className="flex items-start gap-2">
- <Target className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
- <div>
- <div className="text-sm font-bold text-[--color-text-secondary]">Set-Aside</div>
- <div className="line-clamp-2 wrap-break-word text-sm font-medium text-(--color-primary)"title={setAsideLabel}>
- {setAsideLabel}
- </div>
- </div>
- </div>
- {/* Place of Performance (City/State) */}
- <div className="flex items-start gap-2">
- <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[--color-primary]"/>
- <div>
- <div className="text-sm font-extrabold text-[--color-text-secondary]">Place of Performance</div>
- <div className="wrap-break-word text-sm font-extrabold text-(--color-primary)">{placeOfPerformance || 'N/A'}</div>
- </div>
- </div>
+{/* Department/Agency */}
+<div className="flex items-start gap-2">
+<Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
+<div>
+<div className="text-sm font-bold text-[--color-text-secondary]">Department/Agency</div>
+ <div className="line-clamp-2 wrap-break-word text-sm font-medium text-slate-900" title={department}>
+{department}
+</div>
+</div>
+</div>
+{/* Set-Aside */}
+{setAsideLabel && (
+<div className="flex items-start gap-2">
+<Target className="mt-0.5 h-4 w-4 shrink-0 text-[--color-text-subtle]"/>
+<div>
+<div className="text-sm font-bold text-[--color-text-secondary]">Set-Aside</div>
+<div className="line-clamp-2 wrap-break-word text-sm font-medium text-slate-900" title={setAsideLabel}>
+{setAsideLabel}
+</div>
+</div>
+</div>
+)}
+{/* Place of Performance (City/State) */}
+{isMeaningful(placeOfPerformance) && (
+<div className="flex items-start gap-2">
+<MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[--color-primary]"/>
+<div>
+<div className="text-sm font-extrabold text-[--color-text-secondary]">Place of Performance</div>
+<div className="wrap-break-word text-sm font-extrabold text-slate-900">{placeOfPerformance}</div>
+</div>
+</div>
+)}
  {/* ...existing code... */}
  </div>
  {/* Gated details: expand/collapse */}
@@ -1651,32 +1744,32 @@ function StickyResultsPrompt({
  if (selectedStates && selectedStates.length > 0) parts.push(`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`)
 
  return (
- <div className="fixed bottom-0 left-0 right-0 z-50 bg-linear-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-2xl border-t-2 border-(--color-border)">
+ <div className="fixed bottom-0 left-0 right-0 z-50 bg-white text-slate-900 px-4 py-3 shadow-2xl border-t border-slate-200">
  <div className="max-w-440 mx-auto flex items-center justify-between gap-3 flex-wrap">
  <div className="flex items-center gap-3">
- <CheckCircle className="h-5 w-5 text-(--color-primary) shrink-0"/>
- <span className="font-bold text-sm">
- Found <span className="text-(--color-primary) text-base">{count.toLocaleString()}</span> results
- {parts.length > 0 && <> for <span className="text-(--color-primary)">{parts.join(' · ')}</span></>}
+ <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0"/>
+ <span className="font-bold text-sm text-slate-900">
+ Found <span className="text-emerald-700 text-base">{count.toLocaleString()}</span> results
+ {parts.length > 0 && <> for <span className="text-slate-700">{parts.join(' · ')}</span></>}
  {' '}— save this search or get alerts so you never miss an update
  </span>
  </div>
  <div className="flex items-center gap-2 shrink-0">
  <button
  onClick={onSave}
- className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-800 font-bold text-sm rounded-lg hover:bg-(--color-surface-muted) transition-colors shadow-sm"
+ className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white font-bold text-sm rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
  >
  <Save className="h-4 w-4"/>Save Search
  </button>
  <button
  onClick={onAlert}
- className="pg-btn pg-btn-secondary flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors border border-(--color-border)"
+ className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors bg-orange-500 text-white font-bold shadow-sm hover:bg-orange-600"
  >
  <Bell className="h-4 w-4"/>Get Alerts
  </button>
  <button
  onClick={onDismiss}
- className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+ className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-500"
  aria-label="Dismiss"
  >
  <X className="h-4 w-4"/>
@@ -2051,6 +2144,9 @@ function SearchPageContent() {
 
  const [isSignUp, setIsSignUp] = useState(true)
 
+ // Detail drawer
+ const [selectedOpp, setSelectedOpp] = useState<Opp | null>(null)
+
  // ✅ FIXED: Unified modal state
  const [showSaveModal, setShowSaveModal] = useState(false)
  
@@ -2081,6 +2177,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  const resultsRef = useRef<HTMLDivElement>(null)
  const filtersRef = useRef<HTMLDivElement>(null)
  const lastSearchParamsRef = useRef<string>('') // CRITICAL FIX: Track last search to prevent duplicates
+ const searchCardRef = useRef<HTMLDivElement>(null)
+ const [showStickyBar, setShowStickyBar] = useState(false)
 
  // Custom hooks
  const { recentSearches, saveSearchToHistory, setRecentSearches } = useSearchHistory();
@@ -2132,6 +2230,22 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
 
  const scrollToResults = useCallback(() => {
  resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+ }, [])
+
+ const scrollToSearch = useCallback(() => {
+ searchCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+ }, [])
+
+ // IntersectionObserver: show sticky search bar when search card scrolls out of view
+ useEffect(() => {
+ const el = searchCardRef.current
+ if (!el) return
+ const obs = new IntersectionObserver(
+ ([entry]) => setShowStickyBar(!entry.isIntersecting),
+ { threshold: 0 }
+ )
+ obs.observe(el)
+ return () => obs.disconnect()
  }, [])
 
  // Load saved data from localStorage
@@ -3460,6 +3574,14 @@ ${filteredResults.map(opp => ` <opportunity>
  }
  }, [filteredResults, saved])
 
+ // Active filter count for sticky search bar
+ const activeFilterCount = useMemo(() => [
+ agency, naics, classificationCode, solicitationNumber, procurementType,
+ opportunityStatus !== 'active' ? opportunityStatus : '',
+ ].filter(Boolean).length + selectedSetAsides.length + selectedStates.length,
+ [agency, naics, classificationCode, solicitationNumber, procurementType,
+ opportunityStatus, selectedSetAsides, selectedStates])
+
  // Status breakdown counts from the full loaded set (not filteredResults)
  // so pills always show accurate totals regardless of selection
  const statusCounts = useMemo(() => {
@@ -3512,6 +3634,14 @@ ${filteredResults.map(opp => ` <opportunity>
  >
  {ToastUI}
 
+ <StickySearchBar
+ visible={showStickyBar}
+ keyword={keywords}
+ activeFilterCount={activeFilterCount}
+ resultCount={filteredResults.length}
+ onRefineSearch={scrollToSearch}
+ />
+
  <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
 
  {/* ── HOW TO USE GUIDE ─────────────────────────────────────────── */}
@@ -3563,7 +3693,7 @@ ${filteredResults.map(opp => ` <opportunity>
  </div>
 
  {/* ── MAIN SEARCH CARD ─────────────────────────────────────────── */}
- <div className="search-card bg-white rounded-2xl border-2 border-[#166534] shadow-lg overflow-hidden">
+ <div ref={searchCardRef} className="search-card bg-white rounded-2xl border-2 border-[#166534] shadow-lg overflow-hidden">
 
  {/* Header bar */}
  <div className="px-6 pt-5 pb-4 border-b border-gray-100">
@@ -3645,10 +3775,14 @@ ${filteredResults.map(opp => ` <opportunity>
  </span>
  )}
  <div className="flex-1"/>
- <button onClick={resetAll}
- className="reset-btn flex items-center gap-1 px-3 py-1.5 font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors" style={{ fontSize: "14px" }}>
- <RefreshCw className="h-3 w-3"/>Reset all
- </button>
+            <button
+              onClick={resetAll}
+              className="reset-btn flex items-center gap-2 px-4 py-2 font-extrabold text-white bg-red-600 hover:bg-red-500 rounded-lg shadow-md transition-all"
+              style={{ fontSize: "15px", letterSpacing: '0.01em' }}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Reset all
+            </button>
  </div>
  </div>
 
@@ -3834,6 +3968,15 @@ ${filteredResults.map(opp => ` <opportunity>
  <Grid className="h-3.5 w-3.5"/>
  </button>
  </div>
+ {Object.values(saved).filter(Boolean).length > 0 && (
+ <Link
+ href="/dashboard/saved-opportunities"
+ className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-bold hover:bg-orange-100 transition-colors"
+ >
+ <Bookmark className="h-3.5 w-3.5 fill-current" />
+ View Saved ({Object.values(saved).filter(Boolean).length})
+ </Link>
+ )}
  </div>
  </div>
 
@@ -3846,8 +3989,9 @@ ${filteredResults.map(opp => ` <opportunity>
  </h3>
  <button
  onClick={() => { setAgency(''); setSelectedSetAsides([]); setNaics(''); setSelectedStates([]); setProcurementType(''); setClassificationCode(''); setSolicitationNumber(''); setOpportunityStatus('active'); setAdvancedApplied(false); }}
- className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
- <RefreshCw className="h-3 w-3"/>Reset filters
+ className="flex items-center gap-2 px-4 py-2 text-sm font-black bg-red-600 border border-red-700 rounded-xl hover:bg-red-700 active:scale-98 transition-all shadow-sm"
+ style={{ color: '#fff' }}>
+ <RefreshCw className="h-4 w-4 text-white"/>Reset filters
  </button>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -3982,23 +4126,44 @@ ${filteredResults.map(opp => ` <opportunity>
  <>
  {viewMode === 'list' ? (
  <div className="space-y-3">
- {filteredResults.map((opp, idx) => (
+ {filteredResults.map((opp, idx) => {
+ const rawSetAside = getSetAsideLabel(opp.typeOfSetAside || opp.setAside || '') || '';
+ const setAsideLabel = isMeaningful(rawSetAside) ? rawSetAside : null;
+ const place = getPlaceLabel(opp);
+ const naics = isMeaningful(opp.naicsCode) ? opp.naicsCode : null;
+ const deadlineMeta = getDeadlineMeta(opp.responseDeadLine);
+ return (
  <div key={opp.noticeId || idx}
- className="result-list-card bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all p-5"
- style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
+ className="result-list-card bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#166534]/30 transition-all p-5 cursor-pointer"
+ style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}
+ onClick={() => setSelectedOpp(opp)}
+ role="button"
+ tabIndex={0}
+ onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedOpp(opp) }}
+ >
  {/* Title row */}
  <div className="flex items-start justify-between gap-3 mb-3">
  <h3 className="font-bold text-gray-900 leading-snug flex-1" style={{ fontSize: "18px" }}>
- {opp.uiLink
- ? <a href={opp.uiLink} target="_blank"rel="noopener noreferrer"className="hover:text-[#166534] hover:underline transition-colors">{opp.title || 'Untitled Opportunity'}</a>
- : (opp.title || 'Untitled Opportunity')}
+ {opp.title || 'Untitled Opportunity'}
  </h3>
- <button onClick={() => {
+ <button
+ onClick={(e) => {
+ e.stopPropagation();
  if (!requireAccess('Save Opportunities')) return;
  toggleSaved(opp.noticeId || String(idx), opp);
- }} className="flex-shrink-0 mt-0.5">
- <Bookmark className={`h-5 w-5 transition-colors ${saved[opp.noticeId || String(idx)] ? 'fill-current text-orange-500' : 'text-gray-300 hover:text-orange-400'}`} />
+ }}
+ className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 ${saved[opp.noticeId || String(idx)] ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-400 hover:text-orange-500'}`}
+ >
+ <Bookmark className={`h-4 w-4 ${saved[opp.noticeId || String(idx)] ? 'fill-current' : ''}`} />
+ {saved[opp.noticeId || String(idx)] ? 'Saved ✓' : 'Save'}
  </button>
+ </div>
+ {/* Highlight badges */}
+ <div className="flex flex-wrap gap-2 mb-3">
+ {deadlineMeta && <span className={`${BADGE_BASE} ${deadlineMeta.gradient}`} style={{ color: '#fff' }}>{deadlineMeta.label}</span>}
+ {setAsideLabel && <span className={`${BADGE_BASE} bg-gradient-to-r from-indigo-500 to-purple-600 text-white`} style={{ color: '#fff' }}>{setAsideLabel}</span>}
+ {naics && <span className={`${BADGE_BASE} bg-gradient-to-r from-sky-500 to-blue-600 text-white`} style={{ color: '#fff' }}>NAICS {naics}</span>}
+ {place && <span className={`${BADGE_BASE} bg-gradient-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>}
  </div>
  {/* Key fields grid */}
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 mb-3">
@@ -4012,18 +4177,22 @@ ${filteredResults.map(opp => ` <opportunity>
  <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Agency</div>
  <div className="text-sm font-semibold text-[#166534] line-clamp-1">{opp.department || opp.fullParentPathName || opp.office || '—'}</div>
  </div>
+ {setAsideLabel && (
  <div>
  <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Set-Aside</div>
- <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{getSetAsideLabel(opp.typeOfSetAside || opp.setAside || '') || 'None'}</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{setAsideLabel}</div>
  </div>
+ )}
+ {place && (
  <div>
  <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Location</div>
- <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{[opp.placeOfPerformance?.city?.name, opp.placeOfPerformance?.state?.code].filter(Boolean).join(', ') || '—'}</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{place}</div>
  </div>
- {opp.naicsCode && (
+ )}
+ {naics && (
  <div>
  <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>NAICS</div>
- <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{opp.naicsCode}</div>
+ <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{naics}</div>
  </div>
  )}
  {opp.postedDate && (
@@ -4045,12 +4214,13 @@ ${filteredResults.map(opp => ` <opportunity>
  <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
  <button
  className="font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors" style={{ fontSize: "16px" }}
- onClick={() => toggleExpanded(opp.noticeId || String(idx))}
+ onClick={(e) => { e.stopPropagation(); setSelectedOpp(opp); }}
  >
- {expanded[opp.noticeId || String(idx)] ? 'Hide Details' : 'View Details'}
+ Preview
  </button>
  {opp.uiLink && (
- <a href={opp.uiLink} target="_blank"rel="noopener noreferrer"
+ <a href={opp.uiLink} target="_blank" rel="noopener noreferrer"
+ onClick={(e) => e.stopPropagation()}
  className="font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors" style={{ fontSize: "16px" }}>
  SAM.gov <ArrowUpRight className="h-3.5 w-3.5"/>
  </a>
@@ -4058,22 +4228,18 @@ ${filteredResults.map(opp => ` <opportunity>
  {copiedId === opp.noticeId ? (
  <span className="text-xs text-green-600 font-semibold">Copied!</span>
  ) : (
- <button onClick={() => copyText(opp.noticeId || '')}
+ <button onClick={(e) => { e.stopPropagation(); copyText(opp.noticeId || ''); }}
  className="font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors" style={{ fontSize: "16px" }}>
  <Copy className="h-3 w-3"/>Copy ID
  </button>
  )}
  </div>
- {expanded[opp.noticeId || String(idx)] && isAuthenticated && opp.description && (
- <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-gray-600 leading-relaxed line-clamp-6">
- {opp.description}
  </div>
- )}
- </div>
- ))}
+ );
+ })}
  </div>
  ) : (
- <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+ <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
  {filteredResults.map((opp, idx) => (
  <OpportunityCard
  key={opp.noticeId || idx}
@@ -4081,6 +4247,7 @@ ${filteredResults.map(opp => ` <opportunity>
  isSaved={!!saved[opp.noticeId || String(idx)]}
  toggleSaved={toggleSaved}
  copyText={copyText} copiedId={copiedId}
+ onOpen={setSelectedOpp}
  />
  ))}
  </div>
@@ -4162,6 +4329,17 @@ ${filteredResults.map(opp => ` <opportunity>
  featureName={blockedFeature}
  />
  )}
+
+ {/* Opportunity detail drawer */}
+ <OpportunityDetailDrawer
+ opp={selectedOpp}
+ isSaved={selectedOpp ? !!saved[selectedOpp.noticeId || ''] : false}
+ onToggleSaved={(id, data) => {
+ if (!requireAccess('Save Opportunities')) return;
+ toggleSaved(id, data);
+ }}
+ onClose={() => setSelectedOpp(null)}
+ />
  </main>
  </SearchErrorBoundary>
  )

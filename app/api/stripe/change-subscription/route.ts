@@ -70,24 +70,7 @@ export async function POST(req: NextRequest) {
     // Get current price details
     const currentPrice = await stripe.prices.retrieve(currentPriceId)
     
-    // Determine current tier from price ID
-    const priceToTierMap: Record<string, Tier> = {
-      [process.env.STRIPE_PRICE_BASIC_MONTHLY || '']: 'BASIC',
-      [process.env.STRIPE_PRICE_BASIC_ANNUAL || '']: 'BASIC',
-      [process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || '']: 'PROFESSIONAL',
-      [process.env.STRIPE_PRICE_PROFESSIONAL_ANNUAL || '']: 'PROFESSIONAL',
-      [process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || '']: 'ENTERPRISE',
-      [process.env.STRIPE_PRICE_ENTERPRISE_ANNUAL || '']: 'ENTERPRISE',
-    }
-    
-    const currentTier = priceToTierMap[currentPriceId]
-    
-    // SECURITY CHECK: Only allow interval changes for SAME TIER
-    if (currentTier !== requestedTier) {
-      return NextResponse.json({ 
-        error: 'Plan changes require checkout. Please use the checkout flow to change plans.' 
-      }, { status: 400 })
-    }
+    // Plan changes (tier and/or interval) are allowed here for existing subscriptions.
 
     // Get new price ID
     const newPriceId = getPriceId(requestedTier, requestedInterval)

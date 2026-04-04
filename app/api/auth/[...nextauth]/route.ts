@@ -10,6 +10,7 @@ import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { verifyBackupCode, verifyTwoFactorToken } from '@/lib/auth/two-factor'
 
 const TRIAL_DAYS = 7
 
@@ -128,6 +129,8 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email:         { label: 'Email',           type: 'email' },
         password:      { label: 'Password',         type: 'password' },
+        twoFactorToken:{ label: '2FA Code',         type: 'text' },
+        twoFactorBackupCode: { label: '2FA Backup Code', type: 'text' },
         autoLoginToken:{ label: 'Auto Login Token', type: 'text' },
       },
 
@@ -166,6 +169,8 @@ export const authOptions: NextAuthOptions = {
             email: true,
             password_hash: true,
             email_verified: true,
+            two_factor_secret: true,
+            two_factor_enabled: true,
             is_suspended: true,
             first_name: true,
             last_name: true,
@@ -229,6 +234,26 @@ export const authOptions: NextAuthOptions = {
         // Email verification check (AFTER password — so the error is correct)
         if (!user.email_verified)
           throw new Error('EMAIL_NOT_VERIFIED')   // special code the login page can act on
+
+        if (user.two_factor_enabled) {
+          const providedToken = String((credentials as any)?.twoFactorToken ?? '').trim()
+          const providedBackup = String((credentials as any)?.twoFactorBackupCode ?? '').trim()
+
+          let isTwoFactorValid = false
+
+          if (providedToken && user.two_factor_secret) {
+            isTwoFactorValid = await verifyTwoFactorToken(user.two_factor_secret, providedToken)
+          }
+
+          if (!isTwoFactorValid && providedBackup) {
+            isTwoFactorValid = await verifyBackupCode(user.id, providedBackup)
+          }
+
+          if (!isTwoFactorValid) {
+            if (providedToken || providedBackup) throw new Error('TWO_FACTOR_INVALID')
+            throw new Error('TWO_FACTOR_REQUIRED')
+          }
+        }
 
         return buildUserPayload(user)
       },

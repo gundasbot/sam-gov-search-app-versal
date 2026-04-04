@@ -8,7 +8,7 @@ export default function OpportunitiesPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 flex items-center justify-center">
           <h1 className="sr-only">Federal Contract Opportunities</h1>
           <div className="text-center">
             <h1 className="sr-only">Federal Contract Opportunities</h1>

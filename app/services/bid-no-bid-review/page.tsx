@@ -10,40 +10,40 @@ export const metadata = {
 
 export default function BidNoBidPage() {
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-indigo-50">
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00djJoLTJ2LTJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40" />
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-indigo-50 text-slate-900">
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 opacity-90" />
         <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/20 backdrop-blur-sm rounded-full text-slate-100 text-sm font-bold mb-4 border border-indigo-500/30">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-indigo-200 rounded-full text-indigo-700 text-sm font-bold mb-4 shadow-sm">
                 <Zap className="w-4 h-4" /><span>AI-Powered Strategic Analysis</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">Stop Wasting Time on Opportunities You Can't Win</h1>
-              <p className="text-lg text-white font-semibold mb-3 leading-relaxed">Our AI-powered bid/no-bid analysis helps you focus on winnable opportunities and avoid costly pursuits.</p>
-              <p className="text-base text-slate-100 mb-6">Not every opportunity is worth pursuing. Our data-driven analysis evaluates win probability, competitive positioning, and resource requirements—so you can make smarter bid decisions.</p>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Stop Wasting Time on Opportunities You Can't Win</h1>
+              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Our AI-powered bid/no-bid analysis helps you focus on winnable opportunities and avoid costly pursuits.</p>
+              <p className="text-base text-slate-600 mb-6">Not every opportunity is worth pursuing. Our data-driven analysis evaluates win probability, competitive positioning, and resource requirements—so you can make smarter bid decisions.</p>
               <div className="flex flex-wrap gap-3 mb-6">
-                <Link href="/contact?service=bid-no-bid" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
-                <Link href="/services" className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900/40 backdrop-blur-sm text-white border-2 border-white/40 rounded-xl font-bold text-base hover:bg-slate-900/55 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
-                <a href="tel:804-404-6005" className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-xl font-bold text-base hover:bg-white/30 transition-all"><Phone className="w-5 h-5" />(804) 404-6005</a>
+                <Link href="/contact?service=bid-no-bid" className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
+                <Link href="/services" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl font-bold text-base shadow-sm hover:bg-indigo-50 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
+                <a href="tel:804-404-6005" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl font-bold text-base shadow-sm hover:bg-indigo-50 transition-all"><Phone className="w-5 h-5" />(804) 404-6005</a>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-white">
-                <div className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-slate-200" /><span className="font-semibold text-sm">Data-driven insights</span></div>
-                <div className="flex items-center gap-2"><Target className="w-4 h-4 text-slate-200" /><span className="font-semibold text-sm">Win probability scoring</span></div>
-                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-200" /><span className="font-semibold text-sm">24-48 hour turnaround</span></div>
+              <div className="flex flex-wrap items-center gap-4 text-slate-700">
+                <div className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-600" /><span className="font-semibold text-sm">Data-driven insights</span></div>
+                <div className="flex items-center gap-2"><Target className="w-4 h-4 text-indigo-600" /><span className="font-semibold text-sm">Win probability scoring</span></div>
+                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-600" /><span className="font-semibold text-sm">24-48 hour turnaround</span></div>
               </div>
             </div>
             <div className="space-y-4">
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
-                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-400" /><div><div className="text-4xl font-black text-white">3.2x</div><div className="text-sm font-bold text-slate-100">Higher Win Rate</div></div></div>
-                <p className="text-sm text-slate-100">Our clients win 3x more often when they follow our recommendations</p>
+              <div className="bg-white border border-indigo-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-500" /><div><div className="text-4xl font-black text-slate-900">3.2x</div><div className="text-sm font-bold text-slate-600">Higher Win Rate</div></div></div>
+                <p className="text-sm text-slate-700">Our clients win 3x more often when they follow our recommendations</p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
-                <div className="flex items-center gap-4 mb-4"><BarChart3 className="w-12 h-12 text-cyan-400" /><div><div className="text-4xl font-black text-white">$8.4M</div><div className="text-sm font-bold text-slate-100">Avg. Resources Saved</div></div></div>
-                <p className="text-sm text-slate-100">By avoiding unwinnable bids, our clients save millions in pursuit costs</p>
+              <div className="bg-white border border-indigo-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4"><BarChart3 className="w-12 h-12 text-cyan-500" /><div><div className="text-4xl font-black text-slate-900">$8.4M</div><div className="text-sm font-bold text-slate-600">Avg. Resources Saved</div></div></div>
+                <p className="text-sm text-slate-700">By avoiding unwinnable bids, our clients save millions in pursuit costs</p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm border border-white/40 rounded-2xl p-6">
-                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-yellow-400" /><div><div className="text-2xl font-black text-white">Strategic Partnership</div><div className="text-sm font-semibold text-slate-100 mt-1">We help you win smarter, not just more</div></div></div>
+              <div className="bg-white border border-indigo-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-yellow-500" /><div><div className="text-2xl font-black text-slate-900">Strategic Partnership</div><div className="text-sm font-semibold text-slate-600 mt-1">We help you win smarter, not just more</div></div></div>
               </div>
             </div>
           </div>

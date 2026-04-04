@@ -9,6 +9,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover',
 })
 
+function isNoSuchCustomerError(err: unknown): boolean {
+  const e = err as any
+  return e?.code === 'resource_missing' && String(e?.message || '').toLowerCase().includes('no such customer')
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -28,10 +33,22 @@ export async function GET() {
     }
 
     // Fetch customer's invoices from Stripe
-    const invoices = await stripe.invoices.list({
-      customer: user.stripe_customer_id,
-      limit: 12, // Last 12 invoices
-    })
+    let invoices: Stripe.ApiList<Stripe.Invoice>
+    try {
+      invoices = await stripe.invoices.list({
+        customer: user.stripe_customer_id,
+        limit: 12, // Last 12 invoices
+      })
+    } catch (error) {
+      if (isNoSuchCustomerError(error)) {
+        await prisma.users.update({
+          where: { email },
+          data: { stripe_customer_id: null, stripe_subscription_id: null },
+        })
+        return NextResponse.json({ invoices: [] })
+      }
+      throw error
+    }
 
     const formattedInvoices = invoices.data.map((invoice) => ({
       id: invoice.id,

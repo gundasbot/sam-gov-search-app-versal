@@ -3,8 +3,21 @@
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+
+function normalizeJson(value: unknown) {
+  if (value == null) return Prisma.JsonNull
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return value
+    }
+  }
+  return value
+}
 
 export async function GET() {
   try {
@@ -83,7 +96,7 @@ export async function POST(request: Request) {
         naics_code: naicsCode,
         opportunity_type: type,
         set_aside: setAside,
-        place_of_performance: placeOfPerformance ? JSON.stringify(placeOfPerformance) : null,
+        place_of_performance: normalizeJson(placeOfPerformance),
         ui_link: uiLink,
         organization_name: organizationName,
         updated_at: new Date(),
@@ -100,7 +113,7 @@ export async function POST(request: Request) {
         naics_code: naicsCode,
         opportunity_type: type,
         set_aside: setAside,
-        place_of_performance: placeOfPerformance ? JSON.stringify(placeOfPerformance) : null,
+        place_of_performance: normalizeJson(placeOfPerformance),
         ui_link: uiLink,
         organization_name: organizationName,
         created_at: new Date(),

@@ -16,8 +16,11 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/send'
 import { getBrand } from '@/lib/email/brand'
+import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 function normalizeTier(raw: unknown): 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' {
   const v = String(raw ?? '').toUpperCase().trim()
@@ -41,14 +44,16 @@ export async function POST(req: Request) {
     const last_name  = String(body.last_name  || body.lastName  || '').trim()
     const phone      = String(body.phone      || '').trim() || undefined
     const company    = String(body.company    || '').trim() || undefined
+    const job_title  = String(body.jobTitle   || body.job_title || body.title || body.role || '').trim() || undefined
+    const trialCode  = String(body.trialCode  || body.trial_code || body.code || '').toUpperCase().trim() || undefined
 
     const pendingTier     = normalizeTier(body.selectedPlanTier || body.plan)
     const pendingInterval = normalizeInterval(body.selectedBillingInterval || body.billing)
 
     // ── Validate ──────────────────────────────────────────────────────────────
-    if (!email || !password || !first_name || !last_name) {
+    if (!email || !password || !first_name) {
       return NextResponse.json(
-        { error: 'First name, last name, email, and password are required' },
+        { error: 'Name, email, and password are required' },
         { status: 400 }
       )
     }
@@ -57,6 +62,35 @@ export async function POST(req: Request) {
         { error: 'Password must be at least 8 characters' },
         { status: 400 }
       )
+    }
+
+    // ── Validate trial/offer code if provided ─────────────────────────────────
+    let validatedCode: { id: string; code: string; type: string; discount: string } | null = null
+    if (trialCode) {
+      const offerCode = await prisma.offer_codes.findFirst({
+        where: {
+          code: trialCode,
+          active: true,
+        },
+        select: { id: true, code: true, type: true, discount: true, max_usage: true, usage_count: true, expires_at: true },
+      })
+
+      if (!offerCode) {
+        // Don't block signup, just log and continue without the code
+        console.warn(`⚠️ Invalid trial code attempted: ${trialCode}`)
+      } else {
+        // Check if expired
+        if (offerCode.expires_at && new Date(offerCode.expires_at) < new Date()) {
+          console.warn(`⚠️ Expired trial code attempted: ${trialCode}`)
+        } 
+        // Check if max usage exceeded
+        else if (offerCode.max_usage && offerCode.usage_count >= offerCode.max_usage) {
+          console.warn(`⚠️ Exhausted trial code attempted: ${trialCode}`)
+        } else {
+          validatedCode = offerCode
+          console.log(`✅ Valid trial code applied: ${trialCode}`)
+        }
+      }
     }
 
     // ── Duplicate check ───────────────────────────────────────────────────────
@@ -96,6 +130,8 @@ export async function POST(req: Request) {
         password_hash:    passwordHash,
         phone:            phone ?? null,
         company:          company ?? null,
+        job_title:        job_title ?? null,
+        offer_code:       validatedCode?.code ?? null,
         role:             'user',
         plan:             'trial',
         plan_tier:        pendingTier,
@@ -112,8 +148,87 @@ export async function POST(req: Request) {
       },
     })
 
+    // ── Increment offer code usage if one was applied ─────────────────────────
+    if (validatedCode) {
+      try {
+        // Increment usage count
+        await prisma.offer_codes.update({
+          where: { id: validatedCode.id },
+          data: { usage_count: { increment: 1 } },
+        })
+        
+        // Log the redemption for tracking
+        await prisma.$executeRaw`
+          INSERT INTO code_redemptions (id, user_id, offer_code_id, code, redeemed_at, source)
+          VALUES (
+            ${crypto.randomUUID()},
+            ${user.id},
+            ${validatedCode.id},
+            ${validatedCode.code},
+            NOW(),
+            'signup'
+          )
+          ON CONFLICT DO NOTHING
+        `
+        
+        console.log(`📊 Code redeemed: ${validatedCode.code} by user ${user.id}`)
+      } catch (err) {
+        console.warn(`⚠️ Failed to log offer code redemption:`, err)
+        // Don't fail signup if redemption logging fails
+      }
+    }
+
     // ── Send verification email ───────────────────────────────────────────────
     const emailSent = await resendVerification(user.id, email, first_name)
+
+    // Build response with code confirmation if applicable
+    const codeApplied = validatedCode ? {
+      codeApplied: true,
+      code: validatedCode.code,
+      codeType: validatedCode.type,
+      codeDiscount: validatedCode.discount,
+    } : { codeApplied: false }
+
+    // ── Create Stripe customer + setup session ─────────────────────────────
+    let setupUrl: string | null = null
+    try {
+      const brand = getBrand()
+      const customerName = `${first_name} ${last_name}`.trim() || undefined
+
+      // Find or create Stripe customer
+      let stripeCustomerId: string | undefined
+      const existingList = await stripe.customers.list({ email, limit: 1 })
+      if (existingList.data[0]?.id) {
+        stripeCustomerId = existingList.data[0].id
+      } else {
+        const customer = await stripe.customers.create({
+          email,
+          name: customerName,
+          metadata: { user_id: user.id },
+        })
+        stripeCustomerId = customer.id
+      }
+
+      // Save customer ID to user record
+      await prisma.users.update({
+        where: { id: user.id },
+        data: { stripe_customer_id: stripeCustomerId },
+      })
+
+      // Create a Checkout Session in setup mode to collect payment method
+      const setupSession = await stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        mode: 'setup',
+        payment_method_types: ['card'],
+        success_url: `${brand.appUrl}/signup?setup=done&email=${encodeURIComponent(email)}`,
+        cancel_url: `${brand.appUrl}/signup?setup=skip&email=${encodeURIComponent(email)}`,
+        metadata: { user_id: user.id, email },
+      })
+      setupUrl = setupSession.url
+    } catch (stripeErr) {
+      // Non-fatal — signup still succeeds, payment can be added later
+      console.warn('⚠️ Stripe setup session creation failed during signup:', stripeErr)
+    }
 
     if (!emailSent) {
       return NextResponse.json(
@@ -123,6 +238,8 @@ export async function POST(req: Request) {
           warning: 'EMAIL_SEND_FAILED',
           message: 'Account created but verification email failed to send. Contact support.',
           user_id: user.id,
+          setupUrl,
+          ...codeApplied,
         },
         { status: 201 }
       )
@@ -132,8 +249,12 @@ export async function POST(req: Request) {
       {
         success: true,
         emailSent: true,
-        message: 'Account created! Check your inbox to verify your email and start your free trial.',
+        message: validatedCode 
+          ? `Account created with code ${validatedCode.code} applied! Check your inbox to verify your email.`
+          : 'Account created! Check your inbox to verify your email and start your free trial.',
         user_id: user.id,
+        setupUrl,
+        ...codeApplied,
       },
       { status: 201 }
     )

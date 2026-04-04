@@ -10,6 +10,7 @@ import { sendAlertEmail } from '@/lib/email'
 import { generateEnhancedCSV } from '@/lib/csv-export-enhanced'
 import { generateExcel, generateExcelBinary, generateTXT, generateXLSB } from '@/lib/export'
 import { randomBytes } from 'crypto'
+import { exit } from 'process'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -137,21 +138,21 @@ export async function POST(
     if (runId && sendEmailNow) {
       const storedRun = await prisma.subscription_runs.findFirst({
         where: { id: runId, subscription_id: id },
-        select: { results_snapshot: true, result_count: true },
+        select: { results_snapshot: true, result_count: true, search_params: true },
       })
       const storedOpps: any[] = Array.isArray(storedRun?.results_snapshot) ? storedRun!.results_snapshot as any[] : []
       const storedCount = storedRun?.result_count ?? storedOpps.length
+      const storedParams = storedRun?.search_params as any || {}
 
       let emailSent = false
       if (storedOpps.length > 0 || alert.send_empty_results) {
-        const storedEmails = parseRecipients(alert.recipients_list || alert.recipients)
+        const storedEmails = parseRecipients(alert.recipients)
         const recipientEmails = Array.from(new Set([...storedEmails, ...overrideRecipients]))
         if (recipientEmails.length > 0) {
-          const p2 = parseJson(alert.params)
-          const kw2 = p2.keyword || p2.keywords || p2.title || ''
-          const nc2 = p2.ncode || p2.naics || ''
-          const ag2 = p2.deptname || p2.agency || p2.organizationName || ''
-          const sa2 = Array.isArray(p2.setAsides) ? p2.setAsides.join(',') : (p2.typeOfSetAside || p2.setAside || '')
+          const kw2 = storedParams.keyword || storedParams.keywords || storedParams.title || ''
+          const nc2 = storedParams.ncode || storedParams.naics || ''
+          const ag2 = storedParams.deptname || storedParams.agency || storedParams.organizationName || ''
+          const sa2 = Array.isArray(storedParams.setAsides) ? storedParams.setAsides.join(',') : (storedParams.typeOfSetAside || storedParams.setAside || '')
           const searchCriteria: Array<{ label: string; value: string }> = []
           if (kw2) searchCriteria.push({ label: 'Keywords', value: kw2 })
           if (nc2) searchCriteria.push({ label: 'NAICS', value: nc2 })
@@ -165,7 +166,7 @@ export async function POST(
             responseDeadline: opp.responseDeadLine || opp.archiveDate || '',
             url: opp.uiLink || `https://sam.gov/opp/${opp.noticeId || ''}`,
           }))
-          const formatsToUse: string[] = requestFormats ?? (p2.format ? [p2.format] : ['CSV'])
+          const formatsToUse: string[] = requestFormats ?? (storedParams.format ? [storedParams.format] : ['CSV'])
           const builtAttachments = (
             await Promise.all(
               formatsToUse.map(fmt => buildAttachment(alert.name, fmt, storedOpps, { keyword: kw2, naics: nc2, agency: ag2, setAside: sa2 }))
@@ -192,54 +193,77 @@ export async function POST(
 
     console.log('🔔 Running alert:', alert.name)
 
-    // Parse stored search params
-    const p = parseJson(alert.params)
+    // Parse stored search params - use saved_search_id to get params if needed
+    let searchParams: Record<string, any> = {}
+    
+    if (alert.saved_search_id) {
+      const savedSearch = await prisma.saved_searches_v2.findFirst({
+        where: { id: alert.saved_search_id, user_id: session.user.id },
+      })
+      if (savedSearch) {
+        searchParams = {
+          keyword: savedSearch.keywords,
+          naics: savedSearch.naics,
+          agency: savedSearch.agency,
+          setAside: savedSearch.set_aside,
+          state: savedSearch.state_of_performance,
+          ptype: savedSearch.procurement_type,
+          postedAfter: savedSearch.posted_after,
+          postedBefore: savedSearch.posted_before,
+        }
+      }
+    }
+    
+    // Also check for legacy params in the alert
+    const legacyParams = parseJson((alert as any).params)
+    searchParams = { ...searchParams, ...legacyParams }
+    searchParams.format = searchParams.format || alert.export_format || 'CSV'
 
     // ── Build SAM.gov request ────────────────────────────────────────────────
     const samUrl = new URL('https://api.sam.gov/opportunities/v2/search')
 
     // Keyword / title
-    const keyword = p.keyword || p.keywords || p.title || ''
+    const keyword = searchParams.keyword || searchParams.keywords || searchParams.title || ''
     if (keyword) samUrl.searchParams.set('keywords', keyword)
 
     // NAICS
-    const naics = p.ncode || p.naics || ''
+    const naics = searchParams.ncode || searchParams.naics || ''
     if (naics) samUrl.searchParams.set('naics', naics)
 
     // PSC / classification code
-    const ccode = p.ccode || p.classificationCode || ''
+    const ccode = searchParams.ccode || searchParams.classificationCode || ''
     if (ccode) samUrl.searchParams.set('classificationCode', ccode)
 
     // Agency / organization
-    const agency = p.deptname || p.agency || p.organizationName || ''
+    const agency = searchParams.deptname || searchParams.agency || searchParams.organizationName || ''
     if (agency) samUrl.searchParams.set('organizationName', agency)
 
     // Set-asides (can be array or comma string)
-    const setAside = Array.isArray(p.setAsides)
-      ? p.setAsides.join(',')
-      : (p.typeOfSetAside || p.setAside || '')
+    const setAside = Array.isArray(searchParams.setAsides)
+      ? searchParams.setAsides.join(',')
+      : (searchParams.typeOfSetAside || searchParams.setAside || '')
     if (setAside) samUrl.searchParams.set('typeOfSetAside', setAside)
 
     // States (can be array or comma string)
-    const state = Array.isArray(p.states)
-      ? p.states.join(',')
-      : (p.state || p.state_of_performance || '')
+    const state = Array.isArray(searchParams.states)
+      ? searchParams.states.join(',')
+      : (searchParams.state || searchParams.state_of_performance || '')
     if (state) samUrl.searchParams.set('state', state)
 
     // Procurement types
-    const ptype = Array.isArray(p.ptypes)
-      ? p.ptypes.join(',')
-      : (p.ptype || p.procurement_type || '')
+    const ptype = Array.isArray(searchParams.ptypes)
+      ? searchParams.ptypes.join(',')
+      : (searchParams.ptype || searchParams.procurement_type || '')
     if (ptype) samUrl.searchParams.set('ptype', ptype)
 
     // Solicitation number
-    if (p.solnum || p.solicitationNumber) {
-      samUrl.searchParams.set('solnum', p.solnum || p.solicitationNumber)
+    if (searchParams.solnum || searchParams.solicitationNumber) {
+      samUrl.searchParams.set('solnum', searchParams.solnum || searchParams.solicitationNumber)
     }
 
     // Date filters
-    const requestedPostedFrom = p.postedFrom || p.posted_after || ''
-    const requestedPostedTo = p.postedTo || p.rdlto || p.posted_before || ''
+    const requestedPostedFrom = searchParams.postedFrom || searchParams.posted_after || ''
+    const requestedPostedTo = searchParams.postedTo || searchParams.rdlto || searchParams.posted_before || ''
     const fallbackWindowDays = Number(process.env.SAM_ALERT_DEFAULT_WINDOW_DAYS || 182) || 182
     const fallbackToDate = new Date()
     const fallbackFromDate = new Date(fallbackToDate)
@@ -321,8 +345,8 @@ export async function POST(
     const shouldSendEmail = sendEmailNow && (resultCount > 0 || alert.send_empty_results)
 
     if (alert.email_notification && shouldSendEmail) {
-      // Resolve recipient emails from recipients_list (structured) or recipients (plain string)
-      const storedEmails = parseRecipients(alert.recipients_list || alert.recipients)
+      // Resolve recipient emails from recipients field
+      const storedEmails = parseRecipients(alert.recipients)
       // Merge stored + any one-time override emails (deduplicated)
       const recipientEmails = Array.from(new Set([...storedEmails, ...overrideRecipients]))
 
@@ -351,7 +375,7 @@ export async function POST(
 
           // Determine which formats to generate attachments for
           // Use requestFormats from body if provided, else fall back to stored format
-          const formatsToUse: string[] = requestFormats ?? (p.format ? [p.format] : ['CSV'])
+          const formatsToUse: string[] = requestFormats ?? (searchParams.format ? [searchParams.format] : ['CSV'])
           const attachmentParams = { keyword, naics, agency, setAside }
 
           // Build all requested attachments (skip NONE entries)

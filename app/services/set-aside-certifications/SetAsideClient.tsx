@@ -149,49 +149,49 @@ export default function SetAsideCertificationsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50">
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50 text-slate-900">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00djJoLTJ2LTJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40"></div>
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-cyan-50 to-teal-50 opacity-90"></div>
         
         <div className="relative w-full px-3 sm:px-5 lg:px-6 py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full text-slate-100 text-sm font-bold mb-6 border border-emerald-500/30">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 rounded-full text-emerald-700 text-sm font-bold mb-6 shadow-sm">
                 <Award className="w-4 h-4" />
                 <span>Unlock Set-Aside Opportunities</span>
               </div>
               
-              <h1 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
+              <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-6 leading-tight">
                 Expand Your Federal Pipeline with Set-Aside Certifications
               </h1>
               
-              <p className="text-2xl text-white font-semibold mb-4 leading-relaxed">
+              <p className="text-2xl text-slate-700 font-semibold mb-4 leading-relaxed">
                 Billions in contracts reserved for small businesses. Are you eligible? We will help you find out and get certified.
               </p>
               
-              <p className="text-lg text-slate-100 font-medium mb-8">
+              <p className="text-lg text-slate-600 font-medium mb-8">
                 Set-aside certifications (8(a), SDVOSB, HUBZone, WOSB/EDWOSB) give you access to less competitive opportunities. We provide eligibility screening, application support, and ongoing compliance guidance.
               </p>
               
               <div className="flex flex-wrap gap-4 mb-8">
                 <a 
                   href="#eligibility-checker" 
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-emerald-600 rounded-2xl font-bold text-lg shadow-2xl hover:shadow-3xl hover:scale-105 transition-all"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold text-lg shadow-2xl hover:shadow-3xl hover:scale-105 transition-all"
                 >
                   <Calendar className="w-6 h-6" />
                   Check Your Eligibility
                 </a>
                 <Link
                   href="/services"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900/40 backdrop-blur-sm text-white border-2 border-white/40 rounded-2xl font-bold text-lg hover:bg-slate-900/55 transition-all"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-emerald-700 border border-emerald-200 rounded-2xl font-bold text-lg shadow-sm hover:bg-emerald-50 transition-all"
                 >
                   <ArrowRight className="w-5 h-5" />
                   View All Services
                 </Link>
                 <a 
                   href="#certifications" 
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-2xl font-bold text-lg hover:bg-white/30 transition-all"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-emerald-700 border border-emerald-200 rounded-2xl font-bold text-lg shadow-sm hover:bg-emerald-50 transition-all"
                 >
                   Learn About Programs
                   <ArrowRight className="w-5 h-5" />

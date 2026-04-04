@@ -112,6 +112,7 @@ const OPPS = [
 function Pill({ label }: { label: string }) {
   return (
     <span
+      className="pill-label"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -210,6 +211,7 @@ function HeroSlider() {
           <div style={anim}>
             <div style={{ padding: '10px clamp(8px, 1.3vw, 18px) 18px' }}>
               <div
+                className="hero-grid"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'minmax(640px, 0.95fr) minmax(560px, 1.05fr)',
@@ -226,7 +228,7 @@ function HeroSlider() {
               >
 
               {/* Left: copy */}
-              <div style={{ padding: '26px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 820 }}>
+              <div className="hero-copy" style={{ padding: '26px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 820 }}>
               {/* Eyebrow */}
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, borderRadius: 12, padding: '8px 14px', background: s.aLight, border: `1px solid ${s.aMid}40`, marginBottom: 16, maxWidth: 'fit-content' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.aMid, display: 'inline-block', flexShrink: 0 }} />
@@ -263,7 +265,7 @@ function HeroSlider() {
               </div>
 
               {/* Stats */}
-              <div style={{ display: 'flex', gap: 28 }}>
+              <div className="hero-stats" style={{ display: 'flex', gap: 28 }}>
                 {s.stats.map(st => (
                   <div key={st.l}>
                     <p style={{ fontSize: 'clamp(36px, 2.9vw, 48px)', fontWeight: 800, color: s.accent, margin: 0, lineHeight: 1, fontFamily: F }}>{st.v}</p>
@@ -275,6 +277,7 @@ function HeroSlider() {
 
               {/* Right: integrated live preview panel */}
               <div
+                className="hero-right"
                 style={{
                   background: 'transparent',
                   borderLeft: `1px solid ${s.aMid}24`,
@@ -446,6 +449,18 @@ export default function LandingPage() {
           .feature-grid { grid-template-columns: 1fr; }
           .step-grid { grid-template-columns: 1fr; }
         }
+        /* ── Mobile responsive overrides ── */
+        @media (max-width: 860px) {
+          .hero-grid { grid-template-columns: 1fr !important; }
+          .hero-right { display: none !important; }
+          .hero-copy { max-width: 100% !important; }
+        }
+        @media (max-width: 600px) {
+          .hero-stats { gap: 16px !important; flex-wrap: wrap; }
+          .cta-final-grid { grid-template-columns: 1fr !important; padding: 28px 20px !important; }
+          .pill-label { font-size: 16px !important; padding: 10px 16px !important; margin-bottom: 10px !important; }
+          .section-pad { padding-top: 36px !important; padding-bottom: 36px !important; }
+        }
       `}</style>
 
       <div className="land" style={{ fontFamily: F, background: pageBg, color: pageFg }}>
@@ -454,7 +469,7 @@ export default function LandingPage() {
         <HeroSlider />
 
         {/* ── Features ── */}
-        <div style={{ ...W, paddingTop: 56, paddingBottom: 56 }}>
+        <div className="section-pad" style={{ ...W, paddingTop: 56, paddingBottom: 56 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <Pill label="Platform Features" />
             <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: pageFg, margin: '0 0 12px', letterSpacing: '-0.02em', fontFamily: F }}>
@@ -489,7 +504,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── How it works ── */}
-        <div style={{ background: mutedBg, width: '100%', padding: '56px 0' }}>
+        <div className="section-pad" style={{ background: mutedBg, width: '100%', padding: '56px 0' }}>
           <div style={{ ...W }}>
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
               <Pill label="How It Works" />
@@ -530,7 +545,7 @@ export default function LandingPage() {
         </div>
 
         {/* ── Pricing Link ── */}
-        <div style={{ ...W, paddingTop: 52, paddingBottom: 52 }}>
+        <div className="section-pad" style={{ ...W, paddingTop: 52, paddingBottom: 52 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <Pill label="Pricing" />
             <h2 style={{ fontSize: 'clamp(28px, 2.6vw, 40px)', fontWeight: 800, color: pageFg, margin: '0 0 10px', letterSpacing: '-0.02em', fontFamily: F }}>
@@ -553,7 +568,7 @@ export default function LandingPage() {
 
         {/* ── Final CTA ── */}
         <div style={{ ...W, paddingTop: 0, paddingBottom: 52 }}>
-          <div style={{ borderRadius: 18, background: '#0f172a', border: '1px solid #1e293b', boxShadow: '0 24px 60px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 32, alignItems: 'center', padding: '44px 52px', position: 'relative', overflow: 'hidden' }}>
+          <div className="cta-final-grid" style={{ borderRadius: 18, background: '#0f172a', border: '1px solid #1e293b', boxShadow: '0 24px 60px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 32, alignItems: 'center', padding: '44px 52px', position: 'relative', overflow: 'hidden' }}>
             <div>
               <p style={{ fontSize: 13, fontWeight: 700, color: '#14b8a6', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, fontFamily: F }}>
                 Ready to modernize your workflow?

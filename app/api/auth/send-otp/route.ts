@@ -8,6 +8,22 @@ export const runtime = 'nodejs'
 const sql = neon(process.env.DATABASE_URL!)
 const resend = new Resend(process.env.RESEND_API_KEY!)
 
+async function ensureOtpTable() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS otp_codes (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_otp_codes_email ON otp_codes(email)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON otp_codes(expires_at)`
+}
+
 function sha256(s: string) {
   return crypto.createHash('sha256').update(s).digest('hex')
 }
@@ -18,6 +34,8 @@ function jsonError(message: string, status = 400, details?: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureOtpTable()
+
     const body = await req.json().catch(() => ({} as any))
     const email = String(body.email ?? '').trim().toLowerCase()
     if (!email) return jsonError('Email is required', 400)
@@ -98,7 +116,7 @@ export async function POST(req: NextRequest) {
     <!-- Footer -->
     <div style="border-top:1px solid #e2e8f0;padding:20px 32px;background:#f8fafc;text-align:center">
       <p style="font-size:12px;color:#94a3b8;margin:0;line-height:1.8">
-        &copy; ${year} Precise Analytics LLC &middot; PreciseGovCon<br>
+        &copy; ${year} Precise GovCon &middot; PreciseGovCon<br>
         <a href="https://precisegovcon.com" style="color:#f97316;text-decoration:none;font-weight:600">precisegovcon.com</a>
         &nbsp;&middot;&nbsp;
         <a href="https://precisegovcon.com/privacy" style="color:#94a3b8;text-decoration:none">Privacy Policy</a>

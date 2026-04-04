@@ -85,8 +85,6 @@ model alert_subscriptions {
   name                    String
   description             String?
   recipients              String
-  recipients_list         String?
-  params                  String?
   email_notification      Boolean             @default(true)
   send_empty_results      Boolean             @default(false)
   frequency               AlertFrequency      @default(DAILY)
@@ -100,11 +98,13 @@ model alert_subscriptions {
   last_run_at             DateTime?
   last_result_count       Int?
   last_error              String?
+  saved_searches_v2       saved_searches_v2?  @relation(fields: [saved_search_id], references: [id], onDelete: Cascade)
   users                   users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
   subscription_runs       subscription_runs[]
 
   @@index([user_id, active])
   @@index([user_id])
+  @@index([saved_search_id])
 }
 
 model audit_logs {
@@ -164,18 +164,6 @@ model opportunity_daily_stats {
   created_at   DateTime @default(now())
 }
 
-model otp_codes {
-  id         String    @id @default(cuid())
-  email      String
-  code_hash  String    @unique
-  expires_at DateTime
-  used_at    DateTime?
-  created_at DateTime  @default(now())
-
-  @@index([email])
-  @@index([expires_at])
-}
-
 model password_reset_tokens {
   id         String    @id
   email      String
@@ -189,12 +177,12 @@ model recipient_contacts {
   id           String    @id
   user_id      String
   email        String
-  name         String?
   first_name   String?
   last_name    String?
-  phone        String?
+  name         String?   // Keep for backward compatibility
   organization String?
   notes        String?
+  phone        String?
   use_count    Int       @default(0)
   last_used_at DateTime?
   created_at   DateTime  @default(now())
@@ -204,6 +192,8 @@ model recipient_contacts {
   @@unique([user_id, email])
   @@index([user_id, email])
   @@index([user_id])
+  @@index([first_name])
+  @@index([last_name])
 }
 
 model sam_cached_searches {
@@ -233,26 +223,25 @@ model saved_search_runs {
 }
 
 model saved_opportunities {
-  id                   String    @id @default(cuid())
+  id                   String    @id @default(dbgenerated("gen_random_uuid()"))
   user_id              String
   notice_id            String
   title                String?
   solicitation_number  String?
   department           String?
   organization_name    String?
-  posted_date          DateTime? @db.Timestamptz(6)
-  response_deadline    DateTime? @db.Timestamptz(6)
+  posted_date          DateTime?
+  response_deadline    DateTime?
   naics_code           String?
-  opportunity_type     String?
+  type                 String?
   set_aside            String?
-  place_of_performance String?
+  place_of_performance Json?
   ui_link              String?
-  created_at           DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  user                 users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
+  created_at           DateTime  @default(now())
+  opportunity_type     String?
+  updated_at           DateTime  @default(now()) @updatedAt
 
-  @@unique([user_id, notice_id], map: "uq_user_notice")
-  @@index([user_id], map: "idx_saved_opportunities_user_id")
+  @@unique([user_id, notice_id])
 }
 
 model AutoLoginToken {
@@ -519,16 +508,23 @@ model users {
   lastName                   String?
   email_verification_token   String?                     @unique
   email_verification_expires DateTime?                   @db.Timestamp(6)
+  user_role                  UserRole                    @default(USER)
+  trialStart                 DateTime?
+  trialEnd                   DateTime?
+  offer_code_id              String?
+  job_title                  String?
+  offer_code                 String?
   accounts                   accounts[]
   alert_exports              alert_exports[]
   alert_subscriptions        alert_subscriptions[]
   auto_login_tokens          auto_login_tokens[]
+  code_redemptions           code_redemptions[]
+  email_logs                 email_logs[]
   email_verification_tokens  email_verification_tokens[]
   recipient_contacts         recipient_contacts[]
-  saved_opportunities        saved_opportunities[]
   saved_searches             saved_searches[]
   saved_searches_new         saved_searches_new[]
-
+  saved_searches_v2          saved_searches_v2[]
   search_alerts              search_alerts[]
   search_exports             search_exports[]
   searches                   searches[]
@@ -539,6 +535,7 @@ model users {
   @@index([plan_status])
   @@index([plan_tier])
   @@index([stripe_customer_id])
+  @@index([user_role])
 }
 
 model verification_tokens {
@@ -564,21 +561,23 @@ model prisma_migrations_backup_20260218 {
 
 model cached_opportunities {
   id                  String    @id
+  sam_notice_id       String    @unique
   title               String
   agency              String?
   naics_code          String?
+  solicitation_number String?
+  opportunity_type    String?
+  set_aside           String?
   posted_date         DateTime?
   response_deadline   DateTime?
-  set_aside           String?
   description         String?
-  solicitation_number String?
-  url                 String?
-  created_at          DateTime  @default(now())
-  sam_notice_id       String    @unique
-  opportunity_type    String?
   contract_value      String?
-  synced_at           DateTime?
+  url                 String?
   active              Boolean   @default(true)
+  synced_at           DateTime?
+  created_at          DateTime  @default(now())
+  business_state      String?
+  naics_definition    String?
 }
 
 model contractors {
@@ -607,6 +606,7 @@ model contractors {
   trial_end         DateTime?        @db.Timestamp(6)
   revenue           Decimal?         @default(0) @db.Decimal
   is_test           Boolean          @default(false)
+  phone             String?
   crm_activities    crm_activities[]
   crm_tasks         crm_tasks[]
   email_logs        email_logs[]
@@ -649,19 +649,29 @@ model crm_tasks {
 }
 
 model email_logs {
-  id            String      @id @default(dbgenerated("(gen_random_uuid())::text"))
-  contractor_id String
-  subject       String
-  body          String
-  offer_code    String?
-  campaign_type String?     @default("initial")
-  status        String?     @default("sent")
-  resend_id     String?
-  sent_at       DateTime?   @default(now()) @db.Timestamptz(6)
-  contractors   contractors @relation(fields: [contractor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String       @id
+  email           String
+  campaign        String
+  subject         String
+  status          String       @default("sent")
+  sentAt          DateTime     @default(now())
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  resendMessageId String?      @unique
+  contractorId    String?
+  userId          String?
+  offerCodeId     String?
+  metadata        Json?
+  contractors     contractors? @relation(fields: [contractorId], references: [id])
+  offer_codes     offer_codes? @relation(fields: [offerCodeId], references: [id])
+  users           users?       @relation(fields: [userId], references: [id])
 
-  @@index([contractor_id], map: "idx_email_logs_contractor")
-  @@index([sent_at], map: "idx_email_logs_sent")
+  @@index([campaign])
+  @@index([contractorId])
+  @@index([email])
+  @@index([sentAt])
+  @@index([status])
+  @@index([userId])
 }
 
 model email_templates {
@@ -685,18 +695,20 @@ model email_templates {
 }
 
 model offer_codes {
-  id             String           @id @default(dbgenerated("(gen_random_uuid())::text"))
-  code           String           @unique
-  description    String
-  discount       String
-  type           String           @default("trial")
-  usage_count    Int              @default(0)
-  max_usage      Int?
-  expires_at     DateTime?        @db.Date
-  active         Boolean          @default(true)
-  created_at     DateTime         @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime         @default(now()) @db.Timestamptz(6)
-  crm_activities crm_activities[]
+  id               String             @id @default(dbgenerated("(gen_random_uuid())::text"))
+  code             String             @unique
+  description      String
+  discount         String
+  type             String             @default("trial")
+  usage_count      Int                @default(0)
+  max_usage        Int?
+  expires_at       DateTime?          @db.Date
+  active           Boolean            @default(true)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
+  code_redemptions code_redemptions[]
+  crm_activities   crm_activities[]
+  email_logs       email_logs[]
 
   @@index([active], map: "idx_offer_codes_active")
   @@index([code], map: "idx_offer_codes_code")
@@ -704,9 +716,9 @@ model offer_codes {
 
 model opportunity_sync_log {
   id         Int       @id @default(autoincrement())
-  synced_at  DateTime?
   count      Int?
   naics_list String?
+  synced_at  DateTime?
 }
 
 model sync_logs {
@@ -720,6 +732,169 @@ model sync_logs {
   error              String?
   duration_ms        Int?
   created_at         DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model code_redemptions {
+  id                 String       @id @default(dbgenerated("(gen_random_uuid())::text"))
+  user_id            String?
+  offer_code_id      String?
+  code               String
+  redeemed_at        DateTime     @default(now()) @db.Timestamptz(6)
+  source             String       @default("signup")
+  converted_to_trial Boolean?     @default(false)
+  converted_to_paid  Boolean?     @default(false)
+  revenue            Decimal?     @db.Decimal(10, 2)
+  created_at         DateTime     @default(now()) @db.Timestamptz(6)
+  offer_codes        offer_codes? @relation(fields: [offer_code_id], references: [id], onUpdate: NoAction)
+  users              users?       @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([code], map: "idx_code_redemptions_code")
+  @@index([redeemed_at], map: "idx_code_redemptions_redeemed_at")
+  @@index([user_id], map: "idx_code_redemptions_user")
+}
+
+model cse_usage {
+  id         String   @id
+  date       DateTime @unique @db.Date
+  queryCount Int      @default(0)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([date], map: "idx_cse_usage_date")
+}
+
+model email_suppressions {
+  id        String   @id
+  email     String   @unique
+  reason    String
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  @@index([email])
+}
+
+model entity_enrichment {
+  id                   String       @id
+  samEntityId          String       @unique
+  websiteUrl           String?
+  websiteDomain        String?
+  publicPhone          String?
+  publicEmail          String?
+  contactPageUrl       String?
+  linkedinUrl          String?
+  facebookUrl          String?
+  sourceConfidence     Float?
+  enrichmentStatus     String       @default("pending")
+  enrichmentNotes      String?
+  rawEnrichmentPayload Json?
+  enrichedAt           DateTime?    @db.Timestamptz(6)
+  createdAt            DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime     @default(now()) @db.Timestamptz(6)
+  sam_entities         sam_entities @relation(fields: [samEntityId], references: [id], onDelete: Cascade)
+
+  @@index([enrichmentStatus], map: "idx_entity_enrichment_status")
+}
+
+model ingestion_runs {
+  id              String    @id
+  source          String
+  runType         String
+  startedAt       DateTime  @default(now()) @db.Timestamptz(6)
+  finishedAt      DateTime? @db.Timestamptz(6)
+  status          String    @default("running")
+  requestParams   Json?
+  recordsFetched  Int       @default(0)
+  recordsInserted Int       @default(0)
+  recordsUpdated  Int       @default(0)
+  errorText       String?
+
+  @@index([source, runType, startedAt], map: "idx_ingestion_runs_source_type_started")
+}
+
+model lead_scores {
+  id                  String       @id
+  samEntityId         String       @unique
+  score               Int
+  fitScore            Int          @default(0)
+  contactabilityScore Int          @default(0)
+  recencyScore        Int          @default(0)
+  reasons             Json?
+  scoredAt            DateTime     @default(now()) @db.Timestamptz(6)
+  sam_entities        sam_entities @relation(fields: [samEntityId], references: [id], onDelete: Cascade)
+
+  @@index([score], map: "idx_lead_scores_score")
+}
+
+model outreach_queue {
+  id           String       @id
+  samEntityId  String
+  status       String       @default("queued")
+  campaignType String       @default("new_registrant")
+  assignedTo   String?
+  queuedAt     DateTime     @default(now()) @db.Timestamptz(6)
+  approvedAt   DateTime?    @db.Timestamptz(6)
+  sentAt       DateTime?    @db.Timestamptz(6)
+  notes        String?
+  sam_entities sam_entities @relation(fields: [samEntityId], references: [id], onDelete: Cascade)
+
+  @@index([queuedAt], map: "idx_outreach_queue_queued_at")
+  @@index([status], map: "idx_outreach_queue_status")
+}
+
+model sam_entities {
+  id                    String             @id
+  uei                   String             @unique
+  cageCode              String?
+  legalBusinessName     String
+  dbaName               String?
+  registrationStatus    String?
+  registrationDate      DateTime?          @db.Date
+  activationDate        DateTime?          @db.Date
+  expirationDate        DateTime?          @db.Date
+  ueiStatus             String?
+  purposeOfRegistration String?
+  businessTypes         Json?
+  naicsCodes            Json?
+  pscCodes              Json?
+  physicalAddress       Json?
+  mailingAddress        Json?
+  samPayload            Json
+  firstSeenAt           DateTime           @default(now()) @db.Timestamptz(6)
+  lastSeenAt            DateTime           @default(now()) @db.Timestamptz(6)
+  createdAt             DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime           @default(now()) @db.Timestamptz(6)
+  entity_enrichment     entity_enrichment?
+  lead_scores           lead_scores?
+  outreach_queue        outreach_queue[]
+
+  @@index([activationDate], map: "idx_sam_entities_activation_date")
+  @@index([registrationDate], map: "idx_sam_entities_registration_date")
+  @@index([registrationStatus], map: "idx_sam_entities_registration_status")
+}
+
+model saved_searches_v2 {
+  id                   String                @id
+  created_at           DateTime              @default(now())
+  updated_at           DateTime
+  user_id              String
+  name                 String
+  description          String?
+  keywords             String?
+  naics                String?
+  agency               String?
+  set_aside            String?
+  state_of_performance String?
+  posted_after         String?
+  posted_before        String?
+  procurement_type     String?               @default("o")
+  last_used_at         DateTime?
+  use_count            Int                   @default(0)
+  alert_subscriptions  alert_subscriptions[]
+  users                users                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([user_id, updated_at])
 }
 
 enum AdminRole {
@@ -776,4 +951,10 @@ enum PlanTier {
 enum RunStatus {
   SUCCESS
   ERROR
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
 }

@@ -3,7 +3,7 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   Search,
   FileText,
@@ -22,12 +22,14 @@ import {
 
 export default function ServicesClient() {
   const router = useRouter()
+  const pathname = usePathname()
 
   const services = [
     {
       title: 'Bid Search',
       description: 'Live federal opportunities',
       href: '/search',
+      anchor: 'bid-search',
       icon: <Search className="h-6 w-6" />,
       gradient: 'from-emerald-500 to-blue-600',
       image: '/auth-cards/auth-bid-search.jpg',
@@ -38,6 +40,7 @@ export default function ServicesClient() {
       title: 'SAM Registration',
       description: 'Expert guidance & support',
       href: '/services/sam-registration',
+      anchor: 'sam-registration',
       icon: <ShieldCheck className="h-6 w-6" />,
       gradient: 'from-blue-500 to-cyan-600',
       image: '/auth-cards/auth-sam-registration.jpg',
@@ -49,6 +52,7 @@ export default function ServicesClient() {
       title: 'Proposal Writing',
       description: 'AI-powered assistance',
       href: '/services/proposal-writing',
+      anchor: 'proposal-writing',
       icon: <FileText className="h-6 w-6" />,
       gradient: 'from-orange-500 to-red-600',
       image: '/auth-cards/auth-proposals.jpg',
@@ -59,6 +63,7 @@ export default function ServicesClient() {
       title: 'Bid/No-Bid Analysis',
       description: 'Strategic pursuit decisions',
       href: '/services/bid-no-bid-review',
+      anchor: 'bid-no-bid-review',
       icon: <Zap className="h-6 w-6" />,
       gradient: 'from-indigo-500 to-blue-600',
       image: '/auth-cards/auth-compliance.jpg',
@@ -70,6 +75,7 @@ export default function ServicesClient() {
       title: 'Set-Aside Certifications',
       description: 'Set-aside compliance',
       href: '/services/set-aside-certifications',
+      anchor: 'set-aside-certifications',
       icon: <Award className="h-6 w-6" />,
       gradient: 'from-purple-500 to-pink-600',
       image: '/auth-cards/auth-certifications.jpg',
@@ -81,6 +87,7 @@ export default function ServicesClient() {
       title: 'Capability Statements',
       description: 'Professional one-pagers',
       href: '/services/capability-statements',
+      anchor: 'capability-statements',
       icon: <TrendingUp className="h-6 w-6" />,
       gradient: 'from-teal-500 to-green-600',
       image: '/auth-cards/auth-pipeline.jpg',
@@ -89,28 +96,30 @@ export default function ServicesClient() {
     },
   ]
 
+  const activeAnchor = services.find((s) => pathname?.startsWith(s.href))?.anchor
+
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
       {/* Compact Hero Section */}
-      <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="absolute inset-0 bg-grid-slate-700/25 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-cyan-50 to-orange-50 opacity-90" />
         
         <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Heading & Description */}
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 backdrop-blur-sm">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-white/80 px-4 py-2 shadow-sm">
                 <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                <span className="text-sm font-semibold uppercase tracking-wide text-emerald-400">
+                <span className="text-sm font-semibold uppercase tracking-wide text-emerald-600">
                   Your Partner in Federal Contracting
                 </span>
               </div>
 
-              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl mb-6">
-                Win More Federal Contracts with <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-orange-400 bg-clip-text text-transparent">Expert Guidance</span>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl lg:text-5xl mb-6">
+                Win More Federal Contracts with <span className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-orange-500 bg-clip-text text-transparent">Expert Guidance</span>
               </h1>
 
-              <p className="text-lg leading-relaxed text-slate-300 mb-8">
+              <p className="text-lg leading-relaxed text-slate-600 mb-8">
                 From SAM registration to winning proposals, we're with you every step of the way. 
                 Our team of federal contracting experts brings decades of experience to help you 
                 compete with confidence and win more contracts.
@@ -126,14 +135,14 @@ export default function ServicesClient() {
                 </Link>
                 <Link
                   href="/pricing"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/20 px-6 py-3 text-base font-bold text-white backdrop-blur-sm transition-all hover:bg-white/30"
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-6 py-3 text-base font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50"
                 >
                   View Pricing
                 </Link>
               </div>
 
-              <div className="mt-4 max-w-sm rounded-xl border border-white/30 bg-white/15 p-3 backdrop-blur-sm">
-                <label htmlFor="service-jump" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-200">
+              <div className="mt-4 max-w-sm rounded-xl border border-emerald-100 bg-white p-3 shadow-sm">
+                <label htmlFor="service-jump" className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">
                   Jump to a Service Page
                 </label>
                 <select
@@ -145,7 +154,7 @@ export default function ServicesClient() {
                     router.push(path)
                     e.currentTarget.value = ''
                   }}
-                  className="w-full rounded-lg border border-white/40 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-emerald-400"
+                  className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-500"
                 >
                   <option value="">Select a service...</option>
                   {services.map((service) => (
@@ -159,38 +168,38 @@ export default function ServicesClient() {
 
             {/* Right: Trust Indicators */}
             <div className="space-y-4">
-              <div className="rounded-2xl border border-emerald-500/20 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
                     <Users className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-1">Trusted by 500+ Contractors</h3>
-                    <p className="text-sm text-slate-300">Join businesses winning federal contracts nationwide</p>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Trusted by 500+ Contractors</h3>
+                    <p className="text-sm text-slate-600">Join businesses winning federal contracts nationwide</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-cyan-500/20 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="rounded-2xl border border-cyan-100 bg-white p-6 shadow-sm">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600">
                     <Target className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-1">$2.3B in Contracts Won</h3>
-                    <p className="text-sm text-slate-300">Our clients have secured billions in federal awards</p>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">$2.3B in Contracts Won</h3>
+                    <p className="text-sm text-slate-600">Our clients have secured billions in federal awards</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-orange-500/20 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="rounded-2xl border border-orange-100 bg-white p-6 shadow-sm">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
                     <Sparkles className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-1">AI-Powered Intelligence</h3>
-                    <p className="text-sm text-slate-300">Cutting-edge technology meets expert guidance</p>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">AI-Powered Intelligence</h3>
+                    <p className="text-sm text-slate-600">Cutting-edge technology meets expert guidance</p>
                   </div>
                 </div>
               </div>
@@ -232,6 +241,28 @@ export default function ServicesClient() {
 
       {/* Services Grid - More Compact */}
       <section className="w-full px-3 sm:px-5 lg:px-6 py-8">
+        <div className="sticky top-16 z-20 mb-6 rounded-xl border border-emerald-100 bg-white/90 backdrop-blur shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-semibold text-slate-700">Jump to a service</span>
+          <select
+            defaultValue=""
+            onChange={(e) => {
+              const anchor = e.target.value
+              if (!anchor) return
+              const el = document.getElementById(anchor)
+              if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+              e.currentTarget.value = ''
+            }}
+            className="w-56 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-500"
+          >
+            <option value="">Select a service...</option>
+            {services.map((service) => (
+              <option key={service.anchor} value={service.anchor}>
+                {service.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl mb-3">
             Our Professional Services
@@ -246,7 +277,15 @@ export default function ServicesClient() {
             <Link
               key={index}
               href={service.href}
-              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md transition-all hover:border-emerald-300 hover:shadow-xl hover:-translate-y-1"
+              className={[
+                "group relative overflow-hidden rounded-2xl border bg-white shadow-md transition-all",
+                "hover:border-emerald-300 hover:shadow-lg",
+                "focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:outline-none",
+                activeAnchor === service.anchor
+                  ? "border-emerald-400 ring-2 ring-emerald-300"
+                  : "border-slate-200"
+              ].join(" ")}
+              id={service.anchor}
             >
               {service.badge && (
                 <div className="absolute right-4 top-4 z-10 rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
@@ -264,10 +303,10 @@ export default function ServicesClient() {
                     (e.currentTarget as HTMLImageElement).style.opacity = '0'
                   }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/30 to-transparent" />
                 
                 <div className="absolute bottom-4 left-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm transition-all group-hover:scale-110 group-hover:bg-white/30">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/30 text-white backdrop-blur-sm transition-all group-hover:scale-105">
                     {service.icon}
                   </div>
                 </div>
@@ -290,7 +329,7 @@ export default function ServicesClient() {
                   ))}
                 </ul>
 
-                <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 transition-colors group-hover:text-emerald-700">
+                <div className="flex items-center gap-2 text-sm font-bold text-emerald-700 transition-colors group-hover:text-emerald-800">
                   Learn more
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </div>
@@ -302,12 +341,12 @@ export default function ServicesClient() {
 
       {/* Partnership CTA */}
       <section className="w-full px-3 sm:px-5 lg:px-6 py-16">
-        <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-12 text-center shadow-2xl">
+        <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-2xl">
           <div className="mx-auto max-w-2xl">
-            <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl mb-4">
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl mb-4">
               Ready to Win More Contracts?
             </h2>
-            <p className="text-lg text-slate-300 mb-8">
+            <p className="text-lg text-slate-600 mb-8">
               Let's talk about your goals. Our federal contracting experts are here to create 
               a winning strategy tailored to your business.
             </p>
@@ -322,14 +361,14 @@ export default function ServicesClient() {
               </Link>
               <a
                 href="tel:804-404-6005"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/20 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all hover:bg-white/30"
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-8 py-4 text-lg font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50"
               >
                 <Phone className="h-5 w-5" />
                 (804) 404-6005
               </a>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                 Free consultation

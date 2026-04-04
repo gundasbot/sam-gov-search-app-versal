@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { Bell, Bookmark, Clock, Loader2, Plus, Search, Trash2 } from 'lucide-react'
+import { ArrowRight, Bell, Bookmark, CheckCircle2, Clock, Loader2, Lock, Plus, Search, Trash2 } from 'lucide-react'
 
 type AlertFrequency = 'REAL_TIME' | 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
@@ -24,6 +24,32 @@ type SavedSearch = {
   subscription_enabled?: boolean
   frequency?: AlertFrequency
 }
+
+const GUEST_SEARCHES: SavedSearch[] = [
+  {
+    id: 'guest-1',
+    name: 'SDVOSB IT Services - Mid Atlantic',
+    keywords: 'SDVOSB, IT services, cybersecurity, Virginia, Maryland, D.C.',
+    updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    subscription_enabled: true,
+    frequency: 'DAILY',
+  },
+  {
+    id: 'guest-2',
+    name: 'Base Operations and Facilities Support',
+    keywords: 'facilities support, maintenance, grounds, federal',
+    updated_at: new Date(Date.now() - 27 * 60 * 60 * 1000).toISOString(),
+    subscription_enabled: false,
+  },
+  {
+    id: 'guest-3',
+    name: 'Professional Services - Set Aside',
+    keywords: 'professional services, WOSB, HUBZone, consulting',
+    updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    subscription_enabled: true,
+    frequency: 'WEEKLY',
+  },
+]
 
 function clsx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ')
@@ -48,6 +74,7 @@ function AlertsHub() {
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
   const [deleting, setDeleting]       = useState<string | null>(null)
+  const [guestMode, setGuestMode]     = useState(false)
 
   // Derive subscriptions from searches that have subscription_enabled
   const subscriptions: Subscription[] = useMemo(() =>
@@ -71,15 +98,26 @@ function AlertsHub() {
     [alertFilter, subscriptions]
   )
 
+  const marketingPoints = [
+    'Save targeted searches for agencies, NAICS codes, keywords, states, and set-asides.',
+    'Turn strong searches into automated alerts so matching bids reach you without re-running filters.',
+    'Use alert schedules to monitor high-priority contract pipelines daily or weekly.',
+  ]
+
   // Fetch saved searches from API
   useEffect(() => {
     async function load() {
       try {
         setLoading(true)
         setError(null)
+        setGuestMode(false)
         const res = await fetch('/api/saved-searches')
         if (!res.ok) {
-          if (res.status === 401) { setError('Please log in to view your saved searches.'); return }
+          if (res.status === 401) {
+            setGuestMode(true)
+            setSearches(GUEST_SEARCHES)
+            return
+          }
           throw new Error(`Failed to load: ${res.status}`)
         }
         const data = await res.json()
@@ -125,10 +163,18 @@ function AlertsHub() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Alert Manager</h1>
-            <p className="mt-1 text-slate-400">Manage alert subscriptions and saved searches.</p>
+            <p className="mt-1 text-slate-400">Build saved searches, automate alerts, and stay ahead of new government opportunities.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/search" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:bg-slate-800">
+            <Link
+              href="/search"
+              className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+              style={{
+                borderColor: '#334155',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+              }}
+            >
               <Search className="h-4 w-4" /> New Search
             </Link>
             <Link
@@ -153,6 +199,69 @@ function AlertsHub() {
             </Link>
           </div>
         </div>
+
+        {guestMode && !loading && !error && (
+          <div className="alerts-dark-surface mb-8 overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+            <div className="grid gap-0 lg:grid-cols-[1.25fr_0.95fr]">
+              <div className="p-6 sm:p-8 lg:p-10" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #10243a 42%, #0f172a 100%)' }}>
+                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-orange-300">
+                  <Lock className="h-3.5 w-3.5" />
+                  Alerts and Searches Workspace
+                </p>
+                <h2 className="max-w-4xl text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">
+                  Save the right searches. Automate the right alerts. Move faster on contract opportunities.
+                </h2>
+                <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-slate-300 sm:text-lg">
+                  This page is where contractors turn repetitive search work into a repeatable pipeline. Save your most valuable filters, monitor matched opportunities, and keep your team aligned on the bids worth pursuing.
+                </p>
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {marketingPoints.map((point) => (
+                    <div key={point} className="rounded-2xl border border-slate-700 bg-white/4 p-4">
+                      <CheckCircle2 className="mb-3 h-5 w-5 text-emerald-400" />
+                      <p className="text-sm font-semibold leading-6 text-slate-200">{point}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-6 sm:p-8 lg:p-10" style={{ background: 'linear-gradient(160deg, rgba(249,115,22,0.14) 0%, rgba(6,182,212,0.08) 48%, rgba(15,23,42,1) 100%)' }}>
+                <div className="rounded-3xl border border-slate-700 bg-slate-950/80 p-6">
+                  <p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-300">Why Sign In or Start a Trial</p>
+                  <h3 className="mt-3 text-2xl font-black text-white">Unlock your personal alert pipeline</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    Sign in to manage your existing searches and alert subscriptions. New users can start a free trial to save searches, enable alert delivery, and build a bid pipeline around the work they actually pursue.
+                  </p>
+                  <div className="mt-5 space-y-3 text-sm text-slate-200">
+                    <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4">
+                      <p className="font-black text-emerald-300">Start a free trial</p>
+                      <p className="mt-1 text-slate-300">Activate saved searches, automated alerts, and a faster daily contract review workflow.</p>
+                    </div>
+                    <div className="rounded-2xl border border-cyan-500/25 bg-cyan-500/10 p-4">
+                      <p className="font-black text-cyan-300">Sign in</p>
+                      <p className="mt-1 text-slate-300">Pick up where you left off, review matched opportunities, and refine your subscriptions.</p>
+                    </div>
+                  </div>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <Link
+                      href="/signup"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-black text-white shadow-[0_16px_40px_rgba(249,115,22,0.28)] transition-transform hover:scale-[1.02]"
+                      style={{ background: 'linear-gradient(135deg, #f97316, #fb923c)' }}
+                    >
+                      Start Free Trial
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-black transition-colors"
+                      style={{ borderColor: 'rgba(148,163,184,0.45)', background: 'rgba(241,245,249,0.96)', color: '#0f172a' }}
+                    >
+                      Sign In
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Loading / error */}
         {loading && (
@@ -188,6 +297,27 @@ function AlertsHub() {
               </button>
             </div>
 
+            {guestMode && (
+              <div className="alerts-dark-surface mb-6 rounded-2xl border border-slate-800 bg-slate-950 p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-white">What you can do on Alerts & Searches</h3>
+                    <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+                      Save recurring searches, activate delivery schedules, and keep your team focused on contract notices that match your capabilities, geography, and set-aside strategy.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href="/search" className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors" style={{ borderColor: 'rgba(148,163,184,0.4)', background: 'rgba(241,245,249,0.96)', color: '#0f172a' }}>
+                      <Search className="h-4 w-4" /> Explore Search
+                    </Link>
+                    <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-black text-white hover:bg-orange-400">
+                      Start Free Trial
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tab switcher */}
             <div className="mb-4 inline-flex rounded-xl border border-slate-800 bg-slate-900 p-1">
               <button onClick={() => { setActiveTab('alerts'); setAlertFilter('all') }}
@@ -209,9 +339,9 @@ function AlertsHub() {
                   <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center text-slate-400">
                     {alertFilter === 'active' ? 'No active alert subscriptions.' : (
                       <div>
-                        <p className="mb-3">No alert subscriptions yet.</p>
-                        <Link href="/search" className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
-                          <Search className="h-4 w-4" /> Save a search with alerts enabled
+                        <p className="mb-3">{guestMode ? 'Example alert workflow preview.' : 'No alert subscriptions yet.'}</p>
+                        <Link href={guestMode ? '/signup' : '/search'} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
+                          <Search className="h-4 w-4" /> {guestMode ? 'Start a free trial to create alerts' : 'Save a search with alerts enabled'}
                         </Link>
                       </div>
                     )}
@@ -238,9 +368,9 @@ function AlertsHub() {
               <div className="space-y-3">
                 {searches.length === 0 ? (
                   <div className="rounded-xl border border-slate-800 bg-slate-900 p-10 text-center text-slate-400">
-                    <p className="mb-3">No saved searches yet.</p>
-                    <Link href="/search" className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">
-                      <Search className="h-4 w-4" /> Run a search and save it
+                    <p className="mb-3">{guestMode ? 'Example saved searches preview.' : 'No saved searches yet.'}</p>
+                    <Link href={guestMode ? '/signup' : '/search'} className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">
+                      <Search className="h-4 w-4" /> {guestMode ? 'Start a free trial to save searches' : 'Run a search and save it'}
                     </Link>
                   </div>
                 ) : (
@@ -249,7 +379,7 @@ function AlertsHub() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="font-semibold inline-flex items-center gap-2">
-                            <Bookmark className="h-4 w-4 flex-shrink-0 text-cyan-400" />
+                            <Bookmark className="h-4 w-4 shrink-0 text-cyan-400" />
                             {search.name}
                           </p>
                           {search.keywords && (
@@ -261,7 +391,7 @@ function AlertsHub() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="flex items-center gap-3 shrink-0">
                           <div className="text-sm text-slate-400">Updated {formatRelative(search.updated_at)}</div>
                           <button
                             onClick={() => deleteSearch(search.id)}
@@ -289,12 +419,38 @@ function AlertsHub() {
 
 export default function AlertsPage() {
   return (
-    <Suspense fallback={
-      <div className="pg-alerts-modern min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="h-7 w-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-      </div>
-    }>
-      <AlertsHub />
-    </Suspense>
+    <>
+      <Suspense fallback={
+        <div className="pg-alerts-modern min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="h-7 w-7 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+        </div>
+      }>
+        <AlertsHub />
+      </Suspense>
+      <style jsx global>{`
+        .pg-alerts-modern .alerts-dark-surface h2,
+        .pg-alerts-modern .alerts-dark-surface h3,
+        .pg-alerts-modern .alerts-dark-surface .text-white,
+        .pg-alerts-modern .alerts-dark-surface [class*="text-white/"] {
+          color: #ffffff !important;
+        }
+
+        .pg-alerts-modern .alerts-dark-surface p,
+        .pg-alerts-modern .alerts-dark-surface .text-slate-200,
+        .pg-alerts-modern .alerts-dark-surface .text-slate-300 {
+          color: rgba(226, 232, 240, 0.88) !important;
+        }
+
+        .pg-alerts-modern .alerts-dark-surface .text-slate-400,
+        .pg-alerts-modern .alerts-dark-surface .text-slate-500 {
+          color: rgba(203, 213, 225, 0.78) !important;
+        }
+
+        .pg-alerts-modern .alerts-dark-surface .border-slate-700,
+        .pg-alerts-modern .alerts-dark-surface .border-slate-800 {
+          border-color: rgba(148, 163, 184, 0.28) !important;
+        }
+      `}</style>
+    </>
   )
 }

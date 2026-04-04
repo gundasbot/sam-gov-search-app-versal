@@ -4,6 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -17,7 +18,7 @@ import {
   LineChart, Download, Bookmark,
   List, Grid3x3, Layers, X, Settings,
   Share2, Link2, Mail, Printer, ChevronUp,
-  Sparkles
+  Sparkles, AlertTriangle
 } from 'lucide-react';
 // import { getPersonalizedGreeting, getTimeOfDayEmoji } from '@/lib/greeting';
 
@@ -422,44 +423,44 @@ const PERSONALIZED_TIPS = [
   "You qualify for 8(a) program opportunities"
 ];
 
-// Γ£à NEW: Neutral styling for opportunities with no response deadline
-const getNoDeadlineGradient = () => 'from-slate-800/60 to-slate-900/70 border-slate-700/70';
-const getNoDeadlineTextColor = () => 'text-slate-200';
-const getNoDeadlineBadgeColor = () => 'bg-slate-900/60 text-slate-200 border-slate-600/60';
+// Γ£à NEW: Neutral styling for opportunities with no response deadline (light + readable)
+const getNoDeadlineGradient = () => 'from-slate-100 to-slate-50 border-slate-200';
+const getNoDeadlineTextColor = () => 'text-slate-700';
+const getNoDeadlineBadgeColor = () => 'bg-slate-100 text-slate-800 border-slate-200';
 
 // 📌 NEW: Utility function to get urgency gradient colors
-// Γ£à FIXED: Proper red-to-green gradient based on business days
+// Γ£à FIXED: Proper red-to-green gradient based on business days (light mode friendly)
 const getUrgencyGradient = (businessDays: number) => {
-  if (businessDays <= 3) return 'from-red-600/40 to-red-500/30 border-red-500/70';        // 🔴 CRITICAL
-  if (businessDays <= 5) return 'from-orange-600/40 to-orange-500/30 border-orange-500/70'; // 🟠 URGENT
-  if (businessDays <= 7) return 'from-amber-600/40 to-amber-500/30 border-amber-500/70';   // 🟡 HIGH
-  if (businessDays <= 10) return 'from-yellow-500/40 to-yellow-400/30 border-yellow-400/70'; // 🟡 ACT SOON
-  if (businessDays <= 14) return 'from-lime-500/40 to-lime-400/30 border-lime-500/70';     // 🟢 NORMAL
-  if (businessDays <= 21) return 'from-green-500/40 to-green-400/30 border-green-500/70';  // 🟢 COMFORTABLE
-  if (businessDays <= 30) return 'from-emerald-500/40 to-emerald-400/30 border-emerald-500/70'; // 🟢 AMPLE
-  return 'from-emerald-600/40 to-emerald-700/30 border-emerald-600/70'; // 🟢 PLENTY
+  if (businessDays <= 3) return 'from-rose-100 to-orange-100 border-rose-200';          // 🔴 CRITICAL
+  if (businessDays <= 5) return 'from-amber-100 to-yellow-100 border-amber-200';        // 🟠 URGENT
+  if (businessDays <= 7) return 'from-amber-50 to-lime-50 border-amber-200';            // 🟡 HIGH
+  if (businessDays <= 10) return 'from-lime-50 to-emerald-50 border-lime-200';          // 🟡 ACT SOON
+  if (businessDays <= 14) return 'from-emerald-50 to-green-50 border-emerald-200';      // 🟢 NORMAL
+  if (businessDays <= 21) return 'from-green-50 to-teal-50 border-green-200';           // 🟢 COMFORTABLE
+  if (businessDays <= 30) return 'from-teal-50 to-cyan-50 border-teal-200';             // 🟢 AMPLE
+  return 'from-sky-50 to-blue-50 border-sky-200';                                       // 🟢 PLENTY
 };
 
 const getUrgencyTextColor = (businessDays: number) => {
-  if (businessDays <= 3) return 'text-red-400';
-  if (businessDays <= 5) return 'text-orange-400';
-  if (businessDays <= 7) return 'text-amber-400';
-  if (businessDays <= 10) return 'text-yellow-300';
-  if (businessDays <= 14) return 'text-lime-400';
-  if (businessDays <= 21) return 'text-green-400';
-  if (businessDays <= 30) return 'text-emerald-400';
-  return 'text-emerald-500';
+  if (businessDays <= 3) return 'text-rose-800';
+  if (businessDays <= 5) return 'text-amber-800';
+  if (businessDays <= 7) return 'text-amber-700';
+  if (businessDays <= 10) return 'text-lime-700';
+  if (businessDays <= 14) return 'text-emerald-700';
+  if (businessDays <= 21) return 'text-green-700';
+  if (businessDays <= 30) return 'text-teal-700';
+  return 'text-slate-700';
 };
 
 const getUrgencyBadgeColor = (businessDays: number) => {
-  if (businessDays <= 3) return 'bg-red-600 text-white border-red-700';
-  if (businessDays <= 5) return 'bg-orange-600 text-white border-orange-700';
-  if (businessDays <= 7) return 'bg-amber-600 text-white border-amber-700';
-  if (businessDays <= 10) return 'bg-yellow-600 text-white border-yellow-700';
-  if (businessDays <= 14) return 'bg-lime-600 text-white border-lime-700';
-  if (businessDays <= 21) return 'bg-green-600 text-white border-green-700';
-  if (businessDays <= 30) return 'bg-emerald-600 text-white border-emerald-700';
-  return 'bg-emerald-700 text-white border-emerald-800';
+  if (businessDays <= 3) return 'bg-rose-100 text-rose-800 border-rose-200';
+  if (businessDays <= 5) return 'bg-amber-100 text-amber-800 border-amber-200';
+  if (businessDays <= 7) return 'bg-amber-50 text-amber-800 border-amber-200';
+  if (businessDays <= 10) return 'bg-lime-50 text-lime-800 border-lime-200';
+  if (businessDays <= 14) return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+  if (businessDays <= 21) return 'bg-green-50 text-green-800 border-green-200';
+  if (businessDays <= 30) return 'bg-teal-50 text-teal-800 border-teal-200';
+  return 'bg-sky-50 text-sky-800 border-sky-200';
 };
 
 const getUrgencyLabel = (businessDays: number) => {
@@ -490,20 +491,20 @@ const getUrgencyRank = (businessDays: number | null) => {
 const getDepartmentGradient = (department: string) => {
   const dept = department?.toUpperCase() || '';
   if (dept.includes('DEFENSE') || dept.includes('ARMY') || dept.includes('NAVY') || dept.includes('AIR FORCE')) 
-    return 'from-indigo-500/20 to-blue-600/20 border-indigo-500/40';
+    return 'bg-indigo-600 text-white border-indigo-700';
   if (dept.includes('HOMELAND') || dept.includes('DHS')) 
-    return 'from-red-500/20 to-orange-600/20 border-red-500/40';
+    return 'bg-orange-600 text-white border-orange-700';
   if (dept.includes('HEALTH') || dept.includes('HHS')) 
-    return 'from-green-500/20 to-emerald-600/20 border-green-500/40';
+    return 'bg-emerald-600 text-white border-emerald-700';
   if (dept.includes('ENERGY') || dept.includes('DOE')) 
-    return 'from-yellow-500/20 to-amber-600/20 border-yellow-500/40';
+    return 'bg-amber-500 text-white border-amber-600';
   if (dept.includes('NASA') || dept.includes('SPACE')) 
-    return 'from-purple-500/20 to-pink-600/20 border-purple-500/40';
+    return 'bg-purple-600 text-white border-purple-700';
   if (dept.includes('VETERANS') || dept.includes('VA')) 
-    return 'from-teal-500/20 to-cyan-600/20 border-teal-500/40';
+    return 'bg-teal-600 text-white border-teal-700';
   if (dept.includes('GENERAL SERVICES') || dept.includes('GSA')) 
-    return 'from-slate-500/20 to-gray-600/20 border-slate-500/40';
-  return 'from-blue-500/20 to-indigo-600/20 border-blue-500/40';
+    return 'bg-slate-600 text-white border-slate-700';
+  return 'bg-blue-600 text-white border-blue-700';
 };
 
 // Γ£à SECTION 1: Agency abbreviation helper
@@ -1757,23 +1758,15 @@ Provide analysis in JSON format with:
     return Object.fromEntries(Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])));
   }, [visibleOpportunities, groupMode]);
 
-  // Reminder to set preferences — only shown to guests (logged-in users are never interrupted)
+  // Disable auto preferences reminder for guests to avoid intrusive overlays
   useEffect(() => {
-    if (sessionStatus === 'loading') return;
-    if (isLoggedIn) return; // ← never auto-pop for authenticated users
-    const alreadyShown = sessionStorage.getItem('prefsReminderShown');
-    if (alreadyShown) return;
-    const timer = setTimeout(() => {
-      setShowPrefsReminder(true);
-      sessionStorage.setItem('prefsReminderShown', '1');
-    }, 90 * 1000); // 90 sec for guests only
-    return () => clearTimeout(timer);
+    return;
   }, [isLoggedIn, sessionStatus]);
 
   // Show full-screen loading when first fetching and no real data yet
   if (loading && allOpportunities.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin mx-auto mb-6 text-cyan-400" />
           <h2 className="text-2xl font-bold text-white mb-2">Loading Federal Opportunities</h2>
@@ -1786,18 +1779,9 @@ Provide analysis in JSON format with:
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 pb-40 [&_.text-xs]:text-sm [&_.text-sm]:text-base [&_.text-base]:text-[1.25rem] [&_.text-lg]:text-[1.4rem]">
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 pb-48 [&_.text-xs]:text-sm [&_.text-sm]:text-base [&_.text-base]:text-[1.25rem] [&_.text-lg]:text-[1.4rem]">
       {/* Header with status */}
-      {/* API Status Banner */}
-      {apiStatus && (
-        <div className="w-full bg-orange-100 border-b border-orange-300 text-orange-900 text-center py-2 text-sm font-semibold">
-          SAM.gov API Response: {apiStatus.status ? `${apiStatus.status} ${apiStatus.statusText}` : apiStatus.statusText}
-          {apiStatus.message && apiStatus.message !== 'Success' && (
-            <span className="ml-2 text-xs text-orange-700">{apiStatus.message.slice(0, 120)}</span>
-          )}
-        </div>
-      )}
-      <div className="border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
+      <div className="border-b border-slate-200 bg-white">
         <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
@@ -1839,7 +1823,7 @@ Provide analysis in JSON format with:
             <div className="flex items-center gap-3">
               {userProfile && (
                 <div
-                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/40 bg-white/10 shadow-lg shadow-black/10 cursor-pointer hover:bg-white/20 transition-colors"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white shadow-sm cursor-pointer hover:bg-slate-50 transition-colors"
                   title="Monthly bid goal: tracks how many opportunities you bookmark/save this month. Click to update your target."
                   onClick={() => {
                     const current = userProfile.monthlyGoal || 10;
@@ -1858,14 +1842,14 @@ Provide analysis in JSON format with:
               )}
               <button
                 onClick={handleExportOpportunities}
-                className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 px-4 py-2.5 text-sm font-medium text-slate-200 transition backdrop-blur-sm"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-slate-800 transition shadow-sm hover:bg-slate-50"
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Export CSV</span>
               </button>
               <button
                 onClick={() => window.location.href = '/insights'}
-                className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 px-4 py-2.5 text-sm font-medium text-slate-200 transition backdrop-blur-sm"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-slate-800 transition shadow-sm hover:bg-slate-50"
               >
                 <LineChart className="h-4 w-4" />
                 <span className="hidden sm:inline">Insights</span>
@@ -1873,21 +1857,20 @@ Provide analysis in JSON format with:
               <button
                 onClick={() => {
                   if (!isLoggedIn) {
-                    setShowSignInNudge(true);
+                    window.location.href = '/login?next=/opportunities';
                     return;
                   }
                   window.location.href = '/dashboard/onboarding?next=/opportunities';
                 }}
-                disabled={!isLoggedIn}
-                style={{background:'#ea580c',color:'#fff',border:'none',borderRadius:10,padding:'9px 16px',fontSize:13,fontWeight:800,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,boxShadow:'0 2px 8px rgba(234,88,12,0.4)'}} className="hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold shadow-md hover:shadow-lg transition-all"
               >
                 <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Update Preferences</span>
+                <span className="hidden sm:inline">{isLoggedIn ? 'Update Preferences' : 'Sign In to Set Preferences'}</span>
               </button>
               <button
                 onClick={handleRefresh}
                 disabled={refreshIndicator}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-200 text-sm font-medium transition-colors disabled:opacity-50 border border-white/10"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl text-slate-800 text-sm font-medium transition-colors disabled:opacity-50 border border-slate-200 shadow-sm hover:bg-slate-50"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshIndicator ? 'animate-spin' : ''}`} />
                 {refreshIndicator ? 'Refreshing...' : 'Refresh'}
@@ -1946,50 +1929,35 @@ Provide analysis in JSON format with:
             </div>
           </div>
         ) : (
-          /* Guest: two-column CTA card */
-          <div className="mb-3 bg-white rounded-xl border border-amber-200 overflow-hidden" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
+          /* Guest: informational banner (CTA kept at bottom of page) */
+          <div className="mb-3 bg-gradient-to-r from-slate-50 via-white to-emerald-50 rounded-xl border border-slate-200 overflow-hidden shadow-md" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
             <div className="flex flex-col sm:flex-row">
               {/* Left: context */}
               <div className="flex-1 px-5 py-4 flex items-start gap-3">
                 <Image src="/logo.png" alt="PreciseGovCon" width={44} height={44} className="w-10 h-10 object-contain flex-shrink-0 mt-0.5" />
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-700 text-[11px] font-black uppercase tracking-wider">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-amber-600 text-white text-[11px] font-black uppercase tracking-wider shadow-sm">
                       ⚠ Sample Data
                     </span>
                     {guestDataLoading ? (
-                      <span className="inline-flex items-center gap-1.5 text-cyan-600 text-xs font-semibold">
+                      <span className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-semibold">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         Loading from SAM.gov…
                       </span>
                     ) : (
-                      <span className="text-slate-400 text-xs">
+                      <span className="text-slate-700 text-xs font-semibold">
                         {guestDataFreshAt ? `Live SAM.gov data · refreshed ${guestDataFreshAt}` : 'Preview mode — not tailored to your business'}
                       </span>
                     )}
                   </div>
-                  <h1 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
+                  <h1 className="text-base sm:text-xl font-extrabold text-slate-900 leading-snug">
                     You're viewing a sample pull of live data from SAM.gov opportunities.
                   </h1>
-                  <p className="text-sm text-slate-600 mt-0.5 leading-snug">
+                  <p className="text-sm text-slate-700 mt-1 leading-snug">
                     Sign in to unlock a feed filtered by your <strong>NAICS codes</strong>, <strong>PSC codes</strong>, certifications, and agency preferences — powered by <span className="text-[#ff7a18] font-extrabold">PreciseGovCon<sup className="text-[10px]"> ®</sup></span> Opportunity Intelligence.
                   </p>
                 </div>
-              </div>
-              {/* Right: CTA */}
-              <div className="flex-shrink-0 flex flex-col items-center justify-center gap-2 px-6 py-4 bg-gradient-to-br from-[#ff7a18]/10 to-amber-50 border-t sm:border-t-0 sm:border-l border-amber-200">
-                <a
-                  href="/login"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#ff7a18] hover:bg-orange-600 text-white font-extrabold rounded-xl transition-all shadow-md hover:shadow-lg text-sm whitespace-nowrap"
-                >
-                  Sign In to Get Your Feed
-                </a>
-                <a
-                  href="/register"
-                  className="text-xs text-slate-500 hover:text-[#ff7a18] transition-colors font-semibold underline underline-offset-2"
-                >
-                  New to PreciseGovCon? Create a free account
-                </a>
               </div>
             </div>
           </div>
@@ -1997,21 +1965,20 @@ Provide analysis in JSON format with:
 
         {/* Welcome Banner — shown to logged-in users who haven't completed survey */}
         {isLoggedIn && showWelcomeBanner && !userProfile.hasCompletedSurvey && (
-          <div className="mb-3 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-blue-950/60 to-slate-900 relative overflow-hidden" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
-            {/* Subtle top accent bar */}
-            <div className="h-0.5 w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-[#ff7a18]" />
-            <button onClick={handleDismissBanner} className="absolute top-3 right-3 p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white" aria-label="Dismiss">
+          <div className="mb-3 rounded-xl border border-slate-200 bg-white shadow-sm relative overflow-hidden">
+            <div className="h-1 w-full bg-gradient-to-r from-cyan-400 via-sky-400 to-amber-400" />
+            <button onClick={handleDismissBanner} className="absolute top-3 right-3 p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-800" aria-label="Dismiss">
               <X className="w-4 h-4" />
             </button>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-5 py-4 pr-12">
-              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-50 to-blue-100 border border-cyan-200 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-cyan-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-extrabold text-white leading-tight">
+                <h2 className="text-base font-extrabold text-slate-900 leading-tight">
                   Welcome to PreciseGovCon's Opportunities Pipeline
                 </h2>
-                <p className="text-sm text-slate-400 mt-0.5">
+                <p className="text-sm text-slate-600 mt-0.5">
                   Your streamlined federal contracting platform — powered by live SAM.gov data and AI-driven matching.
                   {userName ? ` Complete your profile, ${userName}, to activate your personalized feed.` : ' Complete your profile to activate your personalized feed.'}
                 </p>
@@ -2019,7 +1986,7 @@ Provide analysis in JSON format with:
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => { window.location.href = '/dashboard/onboarding?next=/opportunities'; }}
-                  style={{background:'#ea580c',color:'#fff',fontWeight:800,fontSize:14,padding:'8px 16px',borderRadius:8,display:'inline-flex',alignItems:'center',gap:8,border:'none',cursor:'pointer',boxShadow:'0 2px 8px rgba(234,88,12,0.4)'}} className="hover:opacity-90 transition-opacity whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white font-extrabold shadow-sm hover:bg-emerald-500 transition-all whitespace-nowrap"
                 >
                   <Settings className="w-4 h-4" />
                   Set My Preferences
@@ -2031,24 +1998,25 @@ Provide analysis in JSON format with:
 
         {/* Survey Success Banner */}
         {isLoggedIn && userProfile.hasCompletedSurvey && !bannerDismissed && (
-          <div className="mb-3 rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 relative overflow-hidden">
-            <div className="h-0.5 w-full bg-gradient-to-r from-emerald-500 to-cyan-500" />
-            <button onClick={handleDismissBanner} className="absolute top-3 right-3 p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white" aria-label="Dismiss">
+          <div className="mb-3 rounded-xl border border-emerald-200 bg-white shadow-sm relative overflow-hidden">
+            <div className="h-1 w-full bg-gradient-to-r from-emerald-400 to-cyan-400" />
+            <button onClick={handleDismissBanner} className="absolute top-3 right-3 p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-800" aria-label="Dismiss">
               <X className="w-4 h-4" />
             </button>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-5 py-4 pr-12">
-              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
+              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-base font-extrabold text-white leading-tight">
+                <h2 className="text-base font-extrabold text-slate-900 leading-tight">
                   Your Feed is Active{userName ? `, ${userName}` : ''}
                 </h2>
-                <p className="text-sm text-slate-400 mt-0.5">
+                <p className="text-sm text-slate-600 mt-0.5">
                   Showing {displayedOpportunities.length} opportunities matched to your profile. Update preferences anytime to refine your results.
                 </p>
               </div>
-              <button onClick={() => window.location.href = '/dashboard/onboarding?next=/opportunities'} style={{background:'#ea580c',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,fontWeight:800,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap',flexShrink:0}} className="hover:opacity-90 transition-opacity">
+              <button onClick={() => window.location.href = '/dashboard/onboarding?next=/opportunities'}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white font-extrabold shadow-md hover:shadow-lg transition-all whitespace-nowrap flex-shrink-0">
                 <Settings className="w-4 h-4" />
                 Update Preferences
               </button>
@@ -2059,42 +2027,45 @@ Provide analysis in JSON format with:
         {/* 📌 ACCURATE STATS PILLS - Interactive */}
         <div className="mb-2 flex gap-2">
           {[
-            { filter: 'active' as const,      icon: <CheckCircle2 className="w-3.5 h-3.5" />, value: stats.totalActive, label: 'Active',        accent: 'text-emerald-400', border: 'border-emerald-700', activeBg: 'bg-emerald-500/10' },
-            { filter: 'setasides' as const,    icon: <Award className="w-3.5 h-3.5" />,        value: stats.setAsides,   label: 'Set-Asides',   accent: 'text-violet-400',  border: 'border-violet-700',  activeBg: 'bg-violet-500/10'  },
-            { filter: 'expiring' as const,     icon: <Timer className="w-3.5 h-3.5" />,        value: stats.closingSoon, label: 'Closing ≤7d',  accent: 'text-rose-400',    border: 'border-rose-700',    activeBg: 'bg-rose-500/10'    },
-            { filter: 'departments' as const,  icon: <Building2 className="w-3.5 h-3.5" />,    value: stats.departments, label: 'Agencies',     accent: 'text-teal-400',    border: 'border-teal-700',    activeBg: 'bg-teal-500/10'    },
+            { filter: 'active' as const,      icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />, value: stats.totalActive, label: 'Active',        border: 'border-emerald-200', activeBg: 'bg-emerald-50' },
+            { filter: 'setasides' as const,    icon: <Award className="w-3.5 h-3.5 text-violet-600" />,        value: stats.setAsides,   label: 'Set-Asides',   border: 'border-violet-200',  activeBg: 'bg-violet-50'  },
+            { filter: 'expiring' as const,     icon: <Timer className="w-3.5 h-3.5 text-rose-600" />,        value: stats.closingSoon, label: 'Closing ≤7d',  border: 'border-rose-200',    activeBg: 'bg-rose-50'    },
+            { filter: 'departments' as const,  icon: <Building2 className="w-3.5 h-3.5 text-teal-600" />,    value: stats.departments, label: 'Agencies',     border: 'border-teal-200',    activeBg: 'bg-teal-50'    },
           ].map(s => (
-            <button key={s.filter} onClick={() => handlePillClick(s.filter)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-left transition-all flex-1 ${
-                activeFilter === s.filter ? `${s.activeBg} ${s.border}` : 'bg-slate-800/40 border-slate-700 hover:border-slate-500'
-              }`}>
-              <span className={s.accent}>{s.icon}</span>
-              <span className="text-white font-black text-sm">{s.value.toLocaleString()}</span>
-              <span className="text-slate-400 text-xs font-medium">{s.label}</span>
+            <button
+              key={s.filter}
+              onClick={() => handlePillClick(s.filter)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all flex-1 bg-white shadow-sm hover:shadow ${
+                activeFilter === s.filter ? `${s.activeBg} ${s.border}` : 'border-slate-200'
+              }`}
+            >
+              {s.icon}
+              <span className="text-slate-900 font-black text-sm">{s.value.toLocaleString()}</span>
+              <span className="text-slate-500 text-xs font-medium">{s.label}</span>
             </button>
           ))}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-amber-700 bg-amber-500/10 flex-1">
-            <Calendar className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-white font-black text-sm">{stats.postedToday.toLocaleString()}</span>
-            <span className="text-amber-400 text-xs font-medium">Posted Today</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-200 bg-white shadow-sm flex-1">
+            <Calendar className="w-3.5 h-3.5 text-amber-600" />
+            <span className="text-slate-900 font-black text-sm">{stats.postedToday.toLocaleString()}</span>
+            <span className="text-amber-700 text-xs font-medium">Posted Today</span>
           </div>
         </div>
 
         {/* 📌 PROMINENT SEARCH BAR - White background, enhanced visibility */}
         <div className="mb-8">
           <div className="relative">
-            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-600 w-6 h-6" />
+            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-800 w-6 h-6" />
             <input
               type="text"
-              placeholder="🔍 Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
+              placeholder="Search title, department, NAICS, set-aside, solicitation #, city, state, contact name, org path..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setKeywordSearch(e.target.value); }}
-              className="w-full pl-16 pr-16 py-5 bg-white text-slate-900 border-2 border-slate-300 rounded-2xl placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-medium shadow-xl"
+              className="w-full pl-16 pr-16 py-5 bg-white text-slate-900 border-2 border-slate-400 rounded-2xl placeholder-slate-600 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:border-transparent transition-all text-lg font-semibold shadow-xl"
             />
             {searchTerm && (
               <button
                 onClick={() => { setSearchTerm(''); setKeywordSearch(''); }}
-                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors bg-slate-200 hover:bg-slate-300 rounded-full p-2"
+                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-slate-700 hover:text-slate-900 transition-colors bg-slate-200 hover:bg-slate-300 rounded-full p-2"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -2108,24 +2079,38 @@ Provide analysis in JSON format with:
               }
             </p>
           )}
-          <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-400">
-            <span className="flex items-center gap-1"><Search className="w-3 h-3" /> Searchable fields:</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">Title</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">Department / Org</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">Solicitation #</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">NAICS</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">Set-Aside Code</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">City / State / Zip</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">Contact Name</span>
-            <span className="px-2 py-1 bg-slate-800 rounded-md">Full Org Path</span>
+        <div className="mt-3 w-full">
+          <div className="flex items-center gap-2 text-sm text-slate-700 mb-2">
+            <Search className="w-4 h-4 text-emerald-600" />
+            <span className="font-bold">Searchable fields</span>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 w-full">
+            {[
+              'Title',
+              'Department / Org',
+              'Solicitation #',
+              'NAICS',
+              'Set-Aside Code',
+              'City / State / Zip',
+              'Contact Name',
+              'Full Org Path',
+            ].map(label => (
+              <span
+                key={label}
+                className="w-full text-center px-5 py-4 rounded-xl bg-emerald-600 text-white font-extrabold shadow-md"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
         </div>
 
         {/* ── View / Sort / Group Controls ─────────────────────────────────── */}
-        <div className="mb-2 flex flex-wrap items-center gap-2 p-2.5 bg-slate-900/70 rounded-xl border border-slate-700/60">
+        <div className="mb-2 flex flex-wrap items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 shadow-sm">
 
           {/* View mode */}
-          <div className="flex items-center gap-1 p-0.5 bg-slate-800/80 rounded-lg border border-slate-700/50">
+          <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg border border-slate-200">
             {([
               { mode: 'list' as ViewMode, icon: <List className="w-3.5 h-3.5" />, label: 'List' },
               { mode: 'grid' as ViewMode, icon: <Grid3x3 className="w-3.5 h-3.5" />, label: 'Board' },
@@ -2134,26 +2119,16 @@ Provide analysis in JSON format with:
               <button
                 key={v.mode}
                 onClick={() => { setViewMode(v.mode); if (v.mode === 'grid') setGroupMode('none'); }}
-                style={{
-                  background: viewMode === v.mode ? '#0e7490' : 'transparent',
-                  color: viewMode === v.mode ? '#fff' : '#94a3b8',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '5px 11px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  transition: 'all 0.15s',
-                  boxShadow: viewMode === v.mode ? '0 1px 6px rgba(14,116,144,0.5)' : 'none',
-                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                  viewMode === v.mode ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-slate-600 hover:bg-slate-200'
+                }`}
               >
                 {v.icon}{v.label}
               </button>
             ))}
           </div>
 
-          <div className="w-px h-6 bg-slate-700/60 hidden sm:block" />
+          <div className="w-px h-6 bg-slate-200 hidden sm:block" />
 
           {/* Sort */}
           <div className="flex items-center gap-1.5">
@@ -2161,14 +2136,7 @@ Provide analysis in JSON format with:
             <select
               value={sortMode}
               onChange={e => setSortMode(e.target.value as SortMode)}
-              style={{
-                background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155',
-                borderRadius: '7px', padding: '5px 28px 5px 10px', fontSize: '12px',
-                fontWeight: 600, cursor: 'pointer', outline: 'none',
-                appearance: 'none',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
-              }}
+              className="text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm"
             >
               <option value="deadline_asc">⏰ Deadline: Soonest First</option>
               <option value="deadline_desc">⏰ Deadline: Latest First</option>
@@ -2182,20 +2150,13 @@ Provide analysis in JSON format with:
           {/* Group By — only for list/compact */}
           {viewMode !== 'grid' && (
             <>
-              <div className="w-px h-6 bg-slate-700/60 hidden sm:block" />
+              <div className="w-px h-6 bg-slate-200 hidden sm:block" />
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Group</span>
                 <select
                   value={groupMode}
                   onChange={e => setGroupMode(e.target.value as GroupMode)}
-                  style={{
-                    background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155',
-                    borderRadius: '7px', padding: '5px 28px 5px 10px', fontSize: '12px',
-                    fontWeight: 600, cursor: 'pointer', outline: 'none',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
-                  }}
+                  className="text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm"
                 >
                   <option value="none">No Grouping</option>
                   <option value="urgency">Deadline Urgency</option>
@@ -2214,18 +2175,7 @@ Provide analysis in JSON format with:
           {!isLoggedIn && (
             <a
               href="/login"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '5px 13px',
-                background: 'rgba(255,122,24,0.12)',
-                border: '1px solid rgba(255,122,24,0.4)',
-                borderRadius: '7px',
-                color: '#fb923c',
-                fontSize: '12px', fontWeight: 700,
-                textDecoration: 'none',
-                transition: 'all 0.15s',
-                whiteSpace: 'nowrap',
-              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold hover:bg-orange-100 transition-colors whitespace-nowrap"
             >
               <Settings className="w-3.5 h-3.5" />
               Sign in to update preferences
@@ -2234,12 +2184,12 @@ Provide analysis in JSON format with:
         </div>
 
         {/* EXPANDED URGENCY LEGEND - Positioned immediately above results */}
-        <div className="mb-2 p-2 bg-slate-800/60 rounded-xl border border-slate-700">
+        <div className="mb-2 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-3">
-              <Timer className="w-6 h-6 text-cyan-400" />
-              <h3 className="text-base font-black text-white tracking-wide">Submission Deadline</h3>
-              <span className="px-3 py-1 bg-slate-900 rounded-full text-sm font-bold" style={{color:"#ff6a00"}}>
+              <Timer className="w-6 h-6 text-emerald-600" />
+              <h3 className="text-base font-black text-slate-900 tracking-wide">Submission Deadline</h3>
+              <span className="px-3 py-1 bg-slate-100 rounded-full text-sm font-bold text-amber-700">
                 Business Days Remaining
               </span>
             </div>
@@ -2256,21 +2206,11 @@ Provide analysis in JSON format with:
                     setShowMoreBands({});
                   }
                 }}
-                style={{
-                  background: showAllOpportunities ? '#166534' : '#1e293b',
-                  color: showAllOpportunities ? '#86efac' : '#f97316',
-                  border: showAllOpportunities ? '1.5px solid #22c55e' : '1.5px solid rgba(249,115,22,0.6)',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  borderRadius: '8px',
-                  padding: '7px 14px',
-                  transition: 'all 0.2s',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  letterSpacing: '0.01em',
-                }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold border shadow-sm transition-colors ${
+                  showAllOpportunities
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'
+                }`}
               >
                 {showAllOpportunities ? (
                   <>
@@ -2293,21 +2233,11 @@ Provide analysis in JSON format with:
               <button
                 onClick={handleRefresh}
                 disabled={loadingMore}
-                style={{
-                  background: loadingMore ? '#0f172a' : '#1e293b',
-                  color: loadingMore ? '#38bdf8' : '#94a3b8',
-                  border: loadingMore ? '1.5px solid #0284c7' : '1.5px solid #334155',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  borderRadius: '8px',
-                  padding: '7px 14px',
-                  transition: 'all 0.2s',
-                  cursor: loadingMore ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  opacity: loadingMore ? 0.8 : 1,
-                }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold border shadow-sm transition-colors ${
+                  loadingMore
+                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                }`}
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loadingMore ? 'animate-spin' : ''}`} />
                 {loadingMore ? 'Refreshing…' : 'Refresh'}
@@ -2316,14 +2246,7 @@ Provide analysis in JSON format with:
               {selectedUrgencyFilters.size > 0 && (
                 <button
                   onClick={() => setSelectedUrgencyFilters(new Set())}
-                  style={{
-                    background: 'rgba(239,68,68,0.1)',
-                    color: '#f87171',
-                    border: '1.5px solid rgba(239,68,68,0.35)',
-                    fontWeight: 700, fontSize: '12px',
-                    borderRadius: '8px', padding: '7px 12px',
-                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px',
-                  }}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear Filter
@@ -2344,6 +2267,17 @@ Provide analysis in JSON format with:
               { label: 'PLENTY',      range: '31+ days',   hdr: '#0d9488', dark: '#134e4a', glow: 'rgba(13,148,136,0.7)'  },
             ] as Array<{label:string;range:string;hdr:string;dark:string;glow:string}>).map((item) => {
               const isActive = selectedUrgencyFilters.has(item.label);
+              const palette: Record<string, string> = {
+                CRITICAL: 'bg-rose-600 text-white border-rose-700',
+                URGENT: 'bg-amber-600 text-white border-amber-700',
+                HIGH: 'bg-orange-500 text-white border-orange-600',
+                'ACT SOON': 'bg-lime-600 text-white border-lime-700',
+                NORMAL: 'bg-emerald-600 text-white border-emerald-700',
+                COMFORTABLE: 'bg-green-600 text-white border-green-700',
+                AMPLE: 'bg-teal-600 text-white border-teal-700',
+                PLENTY: 'bg-sky-600 text-white border-sky-700',
+              };
+              const base = palette[item.label] || 'bg-slate-800 text-white border-slate-900';
               return (
                 <button
                   key={item.label}
@@ -2352,53 +2286,25 @@ Provide analysis in JSON format with:
                     if (next.has(item.label)) { next.delete(item.label); } else { next.add(item.label); }
                     return next;
                   })}
-                  style={{
-                    /* Always show the vivid column color — full saturation like the board headers */
-                    background: isActive
-                      ? item.hdr
-                      : `linear-gradient(160deg, ${item.hdr}cc 0%, ${item.dark} 100%)`,
-                    border: `2px solid ${isActive ? 'rgba(255,255,255,0.5)' : item.hdr}`,
-                    borderRadius: '8px',
-                    color: 'white',
-                    padding: '8px 6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    boxShadow: isActive
-                      ? `0 0 22px ${item.glow}, 0 4px 14px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.25)`
-                      : `0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)`,
-                    transform: isActive ? 'scale(1.07) translateY(-1px)' : 'scale(1)',
-                    outline: 'none',
-                    textAlign: 'center' as const,
-                    width: '100%',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isActive) {
-                      const el = e.currentTarget as HTMLButtonElement;
-                      el.style.background = item.hdr;
-                      el.style.boxShadow = `0 0 16px ${item.glow}, 0 4px 10px rgba(0,0,0,0.5)`;
-                      el.style.transform = 'scale(1.04) translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isActive) {
-                      const el = e.currentTarget as HTMLButtonElement;
-                      el.style.background = `linear-gradient(160deg, ${item.hdr}cc 0%, ${item.dark} 100%)`;
-                      el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)';
-                      el.style.transform = 'scale(1)';
-                    }
-                  }}
+                  className={`w-full rounded-lg px-3 py-3 text-sm font-black uppercase tracking-wide border shadow-sm transition-transform ${base} ${
+                    isActive ? 'ring-2 ring-offset-1 ring-white/70 scale-[1.03]' : 'hover:scale-[1.01]'
+                  }`}
+                  style={{ letterSpacing: '0.05em' }}
                 >
-                  <div style={{ fontSize: '10px', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>{item.label}</div>
-                  <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.9, lineHeight: 1, marginTop: '3px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{item.range}</div>
+                  <div className="text-xs font-extrabold leading-none">{item.label}</div>
+                  <div className="text-xs font-semibold leading-none mt-1 text-white">{item.range}</div>
                   {isActive && (
-                    <div style={{ fontSize: '8px', fontWeight: 900, marginTop: '4px', color: 'white', letterSpacing: '0.06em', background: 'rgba(0,0,0,0.25)', borderRadius: '3px', padding: '1px 4px', display: 'inline-block' }}>✓ ON</div>
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/25 text-white text-[11px] font-bold">
+                      <span className="w-2 h-2 rounded-full bg-white" />
+                      Filtering
+                    </div>
                   )}
                 </button>
               );
             })}
           </div>
 
-          <p className="mt-4 text-sm text-slate-400 text-center">
+          <p className="mt-4 text-sm text-slate-600 text-center">
             {selectedUrgencyFilters.size > 0
               ? `Γ£ô Active filters: ${Array.from(selectedUrgencyFilters).join(' ┬╖ ')} ΓÇö click to deselect`
               : 'Click one or more deadline categories to filter. Multi-select supported.'}
@@ -3093,19 +2999,20 @@ Provide analysis in JSON format with:
 
             {/* Count text */}
             {isLoggedIn ? (
-              <p className="text-sm text-slate-500">
-                <span className="text-slate-300 font-semibold">
+              <p className="text-lg font-black text-slate-900">
+                <span className="text-emerald-700 font-extrabold">
                   {keywordFiltered.length}
                 </span> total opportunities 
-                across <span className="text-slate-300 font-semibold">
+                across <span className="text-slate-900 font-extrabold">
                   {totalPages}
                 </span> page{totalPages !== 1 ? 's' : ''} 
                 ({visibleOpportunities.length} per page)
               </p>
             ) : (
-              <p className="text-sm text-slate-500">
-                Showing <span className="text-slate-300 font-semibold">{(viewMode === 'grid' ? boardFiltered.length : keywordFiltered.length).toLocaleString()}</span> sample opportunities
-                {guestDataFreshAt && <span className="text-slate-600"> · SAM.gov data from {guestDataFreshAt}</span>}
+              <p className="text-xl font-black text-slate-900">
+                Showing <span className="text-emerald-700 font-extrabold">{(viewMode === 'grid' ? boardFiltered.length : keywordFiltered.length).toLocaleString()}</span> sample opportunities
+                {guestDataFreshAt && <span className="text-slate-800 font-semibold"> · SAM.gov data from {guestDataFreshAt}</span>}
+                <span className="text-orange-600 font-extrabold"> · Create a free account to see your own curated feed.</span>
               </p>
             )}
 
@@ -3113,16 +3020,9 @@ Provide analysis in JSON format with:
             {isLoggedIn && !showAllOpportunities && allOpportunities.length > displayedOpportunities.length && (
               <button
                 onClick={() => { setShowAllOpportunities(true); setDisplayCount(allOpportunities.length); }}
-                style={{
-                  background: '#1e293b', color: '#f97316',
-                  border: '1.5px solid rgba(249,115,22,0.5)',
-                  fontWeight: 700, fontSize: '13px',
-                  borderRadius: '9px', padding: '9px 22px',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  minWidth: '220px',
-                }}
+                className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-white border border-slate-200 text-slate-800 font-bold shadow-sm hover:shadow transition-all min-w-[220px]"
               >
-                Show All {allOpportunities.length.toLocaleString()} Opportunities
+                Show all {allOpportunities.length.toLocaleString()} opportunities
               </button>
             )}
 
@@ -3510,7 +3410,7 @@ Provide analysis in JSON format with:
         })()}
 
         {/* Preferences Reminder Modal — logged-in: set prefs / logged-out: create account */}
-        {showPrefsReminder && (
+        {false && showPrefsReminder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
             <div className="relative w-full max-w-md bg-gradient-to-br from-slate-900 to-blue-950 border border-cyan-500/30 rounded-3xl p-8 shadow-2xl text-center">
               <button onClick={() => setShowPrefsReminder(false)}
@@ -3618,6 +3518,30 @@ Provide analysis in JSON format with:
           }}
         />
       </div>
+      {/* Sample notice footer */}
+      {!isLoggedIn && (
+        <div className="fixed bottom-0 left-0 right-0 z-30">
+          <div className="mx-auto max-w-[1920px] px-4 pb-4">
+            <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-2xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 border border-slate-700/60">
+              <div className="flex items-center gap-2 text-base font-extrabold text-white">
+                <AlertTriangle className="w-5 h-5 text-orange-400" />
+                Sample Opportunities
+              </div>
+              <p className="text-sm sm:text-base text-slate-100 flex-1 font-semibold leading-snug">
+                You’re viewing a sample feed. Create a free account to unlock a personalized, curated pipeline matched to your NAICS, set-asides, and agency targets.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <Link href="/register" className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:scale-[1.01] transition-transform">
+                  Create Free Account
+                </Link>
+                <Link href="/login" className="px-4 py-2.5 rounded-lg bg-white text-slate-900 text-sm font-extrabold shadow-md hover:bg-slate-50 transition-all border border-white/60">
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
 
     {/* ΓöÇΓöÇ Floating action strip ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
@@ -3806,28 +3730,7 @@ Provide analysis in JSON format with:
         <button
           onClick={handleExportOpportunities}
           title="Export to CSV"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '6px 10px',
-            background: 'linear-gradient(135deg, #1a3a2a, #0d2418)',
-            border: '1.5px solid rgba(16,185,129,0.45)',
-            borderRadius: '28px',
-            color: '#6ee7b7',
-            fontSize: '13px', fontWeight: 600,
-            cursor: 'pointer', whiteSpace: 'nowrap',
-            boxShadow: '0 0 14px rgba(16,185,129,0.2), 0 4px 14px rgba(0,0,0,0.5)',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #059669, #047857)';
-            e.currentTarget.style.borderColor = 'rgba(16,185,129,0.85)';
-            e.currentTarget.style.boxShadow = '0 0 22px rgba(16,185,129,0.45), 0 4px 16px rgba(0,0,0,0.6)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #1a3a2a, #0d2418)';
-            e.currentTarget.style.borderColor = 'rgba(16,185,129,0.45)';
-            e.currentTarget.style.boxShadow = '0 0 14px rgba(16,185,129,0.2), 0 4px 14px rgba(0,0,0,0.5)';
-          }}
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-800 text-sm font-semibold shadow-sm hover:shadow transition-colors"
         >
           <Download size={16} />
           Export
@@ -3837,28 +3740,7 @@ Provide analysis in JSON format with:
         <button
           onClick={handleRefresh}
           title="Refresh from SAM.gov"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '6px 10px',
-            background: 'linear-gradient(135deg, #1e1a3f, #130f2e)',
-            border: '1.5px solid rgba(139,92,246,0.45)',
-            borderRadius: '28px',
-            color: '#c4b5fd',
-            fontSize: '13px', fontWeight: 600,
-            cursor: 'pointer', whiteSpace: 'nowrap',
-            boxShadow: '0 0 14px rgba(139,92,246,0.2), 0 4px 14px rgba(0,0,0,0.5)',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed, #6d28d9)';
-            e.currentTarget.style.borderColor = 'rgba(139,92,246,0.85)';
-            e.currentTarget.style.boxShadow = '0 0 22px rgba(139,92,246,0.45), 0 4px 16px rgba(0,0,0,0.6)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #1e1a3f, #130f2e)';
-            e.currentTarget.style.borderColor = 'rgba(139,92,246,0.45)';
-            e.currentTarget.style.boxShadow = '0 0 14px rgba(139,92,246,0.2), 0 4px 14px rgba(0,0,0,0.5)';
-          }}
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-800 text-sm font-semibold shadow-sm hover:shadow transition-colors"
         >
           <RefreshCw size={16} />
           Refresh
@@ -3868,36 +3750,9 @@ Provide analysis in JSON format with:
         <button
           onClick={() => setShareOpen(s => !s)}
           title="Share"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '6px 10px',
-            background: shareOpen
-              ? 'linear-gradient(135deg, #1d6ef5, #1558d6)'
-              : 'linear-gradient(135deg, #132238, #0e1c2e)',
-            border: `1.5px solid ${shareOpen ? 'rgba(59,130,246,0.85)' : 'rgba(255,255,255,0.14)'}`,
-            borderRadius: '28px',
-            color: shareOpen ? '#fff' : '#94a3b8',
-            fontSize: '13px', fontWeight: 600,
-            cursor: 'pointer', whiteSpace: 'nowrap',
-            boxShadow: shareOpen
-              ? '0 4px 22px rgba(29,110,245,0.45), 0 0 0 1px rgba(59,130,246,0.15)'
-              : '0 4px 14px rgba(0,0,0,0.4)',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => {
-            if (!shareOpen) {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #1a2e48, #132238)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.26)';
-              e.currentTarget.style.color = '#e2e8f0';
-            }
-          }}
-          onMouseLeave={e => {
-            if (!shareOpen) {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #132238, #0e1c2e)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
-              e.currentTarget.style.color = '#94a3b8';
-            }
-          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-semibold shadow-sm hover:shadow transition-colors ${
+            shareOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-800 border-slate-200'
+          }`}
         >
           <Share2 size={16} />
           Share

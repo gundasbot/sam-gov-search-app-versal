@@ -17,6 +17,11 @@ if (process.env.NODE_ENV !== 'production') global.prisma = prisma
 // ✅ FIX: do NOT hardcode apiVersion
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
+function isNoSuchCustomerError(err: unknown): boolean {
+  const e = err as any
+  return e?.code === 'resource_missing' && String(e?.message || '').toLowerCase().includes('no such customer')
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -39,14 +44,30 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: user.stripe_customer_id,
-      type: 'card',
-    })
+    let paymentMethods: Stripe.ApiList<Stripe.PaymentMethod>
+    let customer: Stripe.Customer
+    try {
+      paymentMethods = await stripe.paymentMethods.list({
+        customer: user.stripe_customer_id,
+        type: 'card',
+      })
 
-    const customer = await stripe.customers.retrieve(
-      user.stripe_customer_id
-    ) as Stripe.Customer
+      customer = await stripe.customers.retrieve(
+        user.stripe_customer_id
+      ) as Stripe.Customer
+    } catch (error) {
+      if (isNoSuchCustomerError(error)) {
+        await prisma.users.update({
+          where: { email },
+          data: { stripe_customer_id: null, stripe_subscription_id: null },
+        })
+        return NextResponse.json({
+          paymentMethods: [],
+          defaultPaymentMethod: null,
+        })
+      }
+      throw error
+    }
 
     return NextResponse.json({
       paymentMethods: paymentMethods.data,

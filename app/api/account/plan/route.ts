@@ -20,9 +20,12 @@ type DbUser = {
   name: string | null
   plan: string | null
   plan_tier: string | null
+  subscription_tier: string | null
+  subscription_plan: string | null
   plan_status: string | null
   billing_interval: string | null
   subscription_status: string | null
+  subscriptions: any
   stripe_current_period_end: Date | null
   cancel_at_period_end: boolean | null
   stripe_subscription_id: string | null
@@ -32,6 +35,16 @@ type DbUser = {
   trial_expires_at: Date | null
   trial_ends_at: Date | null
   trial_active: boolean | null
+}
+
+function isNoSuchCustomerError(err: unknown): boolean {
+  const e = err as any
+  return e?.code === 'resource_missing' && String(e?.message || '').toLowerCase().includes('no such customer')
+}
+
+function isNoSuchSubscriptionError(err: unknown): boolean {
+  const e = err as any
+  return e?.code === 'resource_missing' && String(e?.message || '').toLowerCase().includes('no such subscription')
 }
 
 function normalizeInterval(input: any): 'month' | 'year' | null {
@@ -45,6 +58,29 @@ function normalizeBillingIntervalToDb(input: any): 'MONTHLY' | 'ANNUAL' | null {
   const v = String(input || '').toLowerCase()
   if (v === 'year' || v === 'annual') return 'ANNUAL'
   if (v === 'month' || v === 'monthly') return 'MONTHLY'
+  return null
+}
+
+function normalizeTier(input: any): 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' | 'NONE' {
+  const raw = String(input || '').trim().toUpperCase()
+  if (!raw || raw === 'NONE' || raw === 'FREE' || raw === 'TRIAL') return 'NONE'
+  if (raw.includes('ENTERPRISE')) return 'ENTERPRISE'
+  if (raw.includes('PROFESSIONAL') || raw.includes(' PRO ') || raw === 'PRO') return 'PROFESSIONAL'
+  if (raw.includes('BASIC')) return 'BASIC'
+  if (raw === 'BASIC') return 'BASIC'
+  if (raw === 'PROFESSIONAL' || raw === 'PRO') return 'PROFESSIONAL'
+  if (raw === 'ENTERPRISE' || raw === 'ENT') return 'ENTERPRISE'
+  return 'NONE'
+}
+
+function normalizeStatus(input: any): string {
+  return String(input || '').trim().toLowerCase()
+}
+
+function pickFirst(...values: any[]): any {
+  for (const v of values) {
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v
+  }
   return null
 }
 
@@ -153,9 +189,12 @@ export async function GET(request: NextRequest) {
         name: true,
         plan: true,
         plan_tier: true,
+        subscription_tier: true,
+        subscription_plan: true,
         plan_status: true,
         billing_interval: true,
         subscription_status: true,
+        subscriptions: true,
         stripe_current_period_end: true,
         cancel_at_period_end: true,
         stripe_subscription_id: true,
@@ -187,9 +226,12 @@ export async function GET(request: NextRequest) {
             name: true,
             plan: true,
             plan_tier: true,
+            subscription_tier: true,
+            subscription_plan: true,
             plan_status: true,
             billing_interval: true,
             subscription_status: true,
+            subscriptions: true,
             stripe_current_period_end: true,
             cancel_at_period_end: true,
             stripe_subscription_id: true,
@@ -224,6 +266,12 @@ export async function GET(request: NextRequest) {
 
     let shouldUpdateUser = false
     const updates: Record<string, any> = {}
+    let liveStripeSubscriptionId: string | null = null
+    let liveStripeStatus: string | null = null
+    let liveStripeTier: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' | 'NONE' = 'NONE'
+    let liveStripeInterval: 'month' | 'year' | null = null
+    let liveStripeCurrentPeriodEnd: string | null = null
+    let liveStripeCancelAtPeriodEnd: boolean | null = null
 
     let bestSub: Stripe.Subscription | null = null
     if (user.stripe_customer_id) {
@@ -239,6 +287,9 @@ export async function GET(request: NextRequest) {
         
         if (bestSub) {
           console.log('✅ Best subscription:', bestSub.id, bestSub.status)
+          liveStripeSubscriptionId = bestSub.id
+          liveStripeStatus = bestSub.status
+          liveStripeCancelAtPeriodEnd = Boolean(bestSub.cancel_at_period_end)
           
           if (bestSub.id !== user.stripe_subscription_id) {
             updates.stripe_subscription_id = bestSub.id
@@ -248,21 +299,25 @@ export async function GET(request: NextRequest) {
           updates.subscription_status = bestSub.status
           updates.cancel_at_period_end = bestSub.cancel_at_period_end
           
-          const current_period_end = (bestSub as any).currentPeriodEnd as number | undefined
+          const current_period_end = ((bestSub as any).current_period_end as number | undefined) ?? ((bestSub as any).currentPeriodEnd as number | undefined)
           if (typeof current_period_end === 'number') {
-            updates.stripe_current_period_end = new Date(current_period_end * 1000)
+            const d = new Date(current_period_end * 1000)
+            updates.stripe_current_period_end = d
+            liveStripeCurrentPeriodEnd = d.toISOString()
           }
 
           const priceId = bestSub.items?.data?.[0]?.price?.id || null
           if (priceId) {
             const tier = getTierFromPriceId(priceId)
+            liveStripeTier = tier
             updates.stripe_price_id = priceId
-            updates.planTier = tier
+            updates.plan_tier = tier
             updates.plan = tier.toLowerCase()
             
             const interval = bestSub.items?.data?.[0]?.price?.recurring?.interval || null
+            liveStripeInterval = normalizeInterval(interval)
             const newBillingInterval = normalizeBillingIntervalToDb(interval)
-            if (newBillingInterval) updates.billingInterval = newBillingInterval
+            if (newBillingInterval) updates.billing_interval = newBillingInterval
 
             if (priceId !== user.stripe_price_id) shouldUpdateUser = true
             if (tier !== (user.plan_tier || '').toUpperCase()) shouldUpdateUser = true
@@ -274,6 +329,11 @@ export async function GET(request: NextRequest) {
         }
       } catch (err: any) {
         console.error('❌ Failed to list subscriptions:', err?.message)
+        if (isNoSuchCustomerError(err)) {
+          updates.stripe_customer_id = null
+          updates.stripe_subscription_id = null
+          shouldUpdateUser = true
+        }
       }
     }
 
@@ -287,8 +347,9 @@ export async function GET(request: NextRequest) {
         const priceId = subscription.items.data[0]?.price?.id || null
         if (priceId) {
           const tier = getTierFromPriceId(priceId)
-          if (tier !== (updates.planTier || user.plan_tier || '').toUpperCase()) {
-            updates.planTier = tier
+          liveStripeTier = tier
+          if (tier !== (updates.plan_tier || user.plan_tier || '').toUpperCase()) {
+            updates.plan_tier = tier
             updates.plan = tier.toLowerCase()
             shouldUpdateUser = true
           }
@@ -300,8 +361,9 @@ export async function GET(request: NextRequest) {
 
           const stripeInterval = subscription.items.data[0]?.price?.recurring?.interval
           const newBillingInterval = normalizeBillingIntervalToDb(stripeInterval)
-          if (newBillingInterval && (updates.billingInterval || user.billing_interval) !== newBillingInterval) {
-            updates.billingInterval = newBillingInterval
+          liveStripeInterval = normalizeInterval(stripeInterval)
+          if (newBillingInterval && (updates.billing_interval || user.billing_interval) !== newBillingInterval) {
+            updates.billing_interval = newBillingInterval
             shouldUpdateUser = true
           }
         }
@@ -310,8 +372,11 @@ export async function GET(request: NextRequest) {
           updates.subscription_status = subscription.status
           shouldUpdateUser = true
         }
+        liveStripeStatus = subscription.status
+        liveStripeSubscriptionId = subscription.id
+        liveStripeCancelAtPeriodEnd = Boolean(subscription.cancel_at_period_end)
 
-        const current_period_end = (subscription as any).currentPeriodEnd as number | undefined
+        const current_period_end = ((subscription as any).current_period_end as number | undefined) ?? ((subscription as any).currentPeriodEnd as number | undefined)
         const stripePeriodEnd = typeof current_period_end === 'number' ? new Date(current_period_end * 1000) : null
         const dbPeriodEnd = updates.stripe_current_period_end || user.current_period_end
         const dbTime = dbPeriodEnd ? new Date(dbPeriodEnd).getTime() : null
@@ -321,6 +386,7 @@ export async function GET(request: NextRequest) {
           updates.stripe_current_period_end = stripePeriodEnd
           shouldUpdateUser = true
         }
+        if (stripePeriodEnd) liveStripeCurrentPeriodEnd = stripePeriodEnd.toISOString()
 
         if (subscription.cancel_at_period_end !== (updates.cancel_at_period_end ?? user.cancel_at_period_end)) {
           updates.cancel_at_period_end = subscription.cancel_at_period_end
@@ -328,6 +394,10 @@ export async function GET(request: NextRequest) {
         }
       } catch (error: any) {
         console.error('❌ Error fetching subscription:', error?.message)
+        if (isNoSuchSubscriptionError(error)) {
+          updates.stripe_subscription_id = null
+          shouldUpdateUser = true
+        }
       }
     }
 
@@ -344,8 +414,13 @@ export async function GET(request: NextRequest) {
       select: {
         plan_tier: true,
         plan: true,
+        subscription_tier: true,
+        subscription_plan: true,
         subscription_status: true,
+        plan_status: true,
         billing_interval: true,
+        subscriptions: true,
+        stripe_price_id: true,
         stripe_subscription_id: true,
         stripe_customer_id: true,
         stripe_current_period_end: true,
@@ -373,29 +448,107 @@ export async function GET(request: NextRequest) {
     })
 
     // HAS SUBSCRIPTION
-    const statusRaw = finalUser?.subscription_status || user.subscription_status || user.plan_status || null
-    const statusLower = String(statusRaw || '').toLowerCase()
+    const jsonSub = (finalUser?.subscriptions && typeof finalUser.subscriptions === 'object') ? finalUser.subscriptions :
+      (user.subscriptions && typeof user.subscriptions === 'object' ? user.subscriptions : null)
+
+    const manualTierFromJson = pickFirst(
+      jsonSub?.adminOverride?.plan_tier,
+      jsonSub?.adminOverride?.planTier,
+      jsonSub?.admin?.plan_tier,
+      jsonSub?.admin?.planTier,
+      jsonSub?.override?.plan_tier,
+      jsonSub?.override?.planTier,
+      jsonSub?.override?.tier,
+      jsonSub?.plan_tier,
+      jsonSub?.planTier,
+      jsonSub?.subscription_tier,
+      jsonSub?.subscriptionTier,
+      jsonSub?.plan?.tier,
+      jsonSub?.tier,
+    )
+
+    const manualStatusFromJson = pickFirst(
+      jsonSub?.adminOverride?.plan_status,
+      jsonSub?.adminOverride?.planStatus,
+      jsonSub?.admin?.plan_status,
+      jsonSub?.admin?.planStatus,
+      jsonSub?.override?.plan_status,
+      jsonSub?.override?.planStatus,
+      jsonSub?.override?.status,
+      jsonSub?.plan_status,
+      jsonSub?.planStatus,
+      jsonSub?.subscription_status,
+      jsonSub?.subscriptionStatus,
+      jsonSub?.plan?.status,
+      jsonSub?.status,
+    )
+
+    const statusRaw =
+      !finalUser?.stripe_subscription_id
+        ? pickFirst(
+            liveStripeStatus,
+            finalUser?.plan_status,
+            finalUser?.subscription_status,
+            user.plan_status,
+            user.subscription_status,
+            manualStatusFromJson,
+          )
+        : pickFirst(
+            liveStripeStatus,
+            finalUser?.subscription_status,
+            finalUser?.plan_status,
+            user.subscription_status,
+            user.plan_status,
+            manualStatusFromJson,
+          )
+    const statusLower = normalizeStatus(statusRaw)
     
     const hasStripeSubscription =
-      Boolean(finalUser?.stripe_subscription_id) &&
-      (statusLower === 'active' || statusLower === 'trialing' || statusLower === 'trial' || statusLower === 'past_due')
+      Boolean(liveStripeSubscriptionId || finalUser?.stripe_subscription_id) &&
+      (statusLower === 'active' || statusLower === 'trialing' || statusLower === 'trial' || statusLower === 'past_due' || statusLower === 'unpaid')
 
-    const hasSubscription = hasStripeSubscription || trialIsActive
+    const finalUserPriceId = finalUser?.stripe_price_id ?? null
+    const userPriceId = user?.stripe_price_id ?? null
+    const finalUserPriceTier = finalUserPriceId ? getTierFromPriceId(finalUserPriceId) : 'NONE'
+    const userPriceTier = userPriceId ? getTierFromPriceId(userPriceId) : 'NONE'
+
+    const dbAssignedTier =
+      liveStripeTier !== 'NONE' ? liveStripeTier :
+      normalizeTier(manualTierFromJson) !== 'NONE' ? normalizeTier(manualTierFromJson) :
+      normalizeTier(finalUser?.plan_tier) !== 'NONE' ? normalizeTier(finalUser?.plan_tier) :
+      normalizeTier(finalUser?.subscription_tier) !== 'NONE' ? normalizeTier(finalUser?.subscription_tier) :
+      normalizeTier(finalUser?.subscription_plan) !== 'NONE' ? normalizeTier(finalUser?.subscription_plan) :
+      normalizeTier(finalUser?.plan) !== 'NONE' ? normalizeTier(finalUser?.plan) :
+      finalUserPriceTier !== 'NONE' ? finalUserPriceTier :
+      normalizeTier(user.plan_tier) !== 'NONE' ? normalizeTier(user.plan_tier) :
+      normalizeTier(user.subscription_tier) !== 'NONE' ? normalizeTier(user.subscription_tier) :
+      normalizeTier(user.subscription_plan) !== 'NONE' ? normalizeTier(user.subscription_plan) :
+      normalizeTier(user.plan) !== 'NONE' ? normalizeTier(user.plan) :
+      userPriceTier !== 'NONE' ? userPriceTier :
+      normalizeTier(jsonSub?.plan_tier) !== 'NONE' ? normalizeTier(jsonSub?.plan_tier) :
+      normalizeTier(jsonSub?.subscription_tier) !== 'NONE' ? normalizeTier(jsonSub?.subscription_tier) :
+      normalizeTier(jsonSub?.plan?.tier)
+
+    const isManualInactive = ['inactive', 'none', 'canceled', 'cancelled', 'locked', 'pending_verification'].includes(statusLower)
+
+    const hasManualAssignedSubscription =
+      dbAssignedTier !== 'NONE' &&
+      !finalUser?.stripe_subscription_id &&
+      !isManualInactive
+
+    const hasSubscription = hasStripeSubscription || trialIsActive || hasManualAssignedSubscription
 
     console.log('🔍 Subscription check:', { hasStripeSubscription, trialIsActive, hasSubscription })
 
     // TIER
-    let tier = finalUser?.plan_tier || user.plan_tier || user.plan || 'NONE'
-    if (String(tier).toLowerCase() === 'free' || String(tier).toLowerCase() === 'trial') {
-      tier = 'NONE'
-    }
+    let tier = dbAssignedTier
 
     if (trialIsActive && (tier === 'NONE' || !tier)) {
       tier = 'BASIC'
       console.log('✅ Setting tier to BASIC for trial user')
     }
 
-    tier = String(tier).toUpperCase()
+    tier = normalizeTier(tier || 'NONE')
 
     // STATUS
     let status = statusRaw
@@ -404,7 +557,7 @@ export async function GET(request: NextRequest) {
       console.log('✅ Setting status to trialing for trial user')
     }
 
-    const interval = normalizeInterval(finalUser?.billing_interval || user.billing_interval)
+    const interval = liveStripeInterval || normalizeInterval(finalUser?.billing_interval || user.billing_interval)
 
     let current_period_end: string | null = null
     if (trialIsActive && !finalUser?.stripe_current_period_end) {
@@ -412,7 +565,8 @@ export async function GET(request: NextRequest) {
     } else {
       const periodEndDate: Date | null =
         finalUser?.stripe_current_period_end || finalUser?.current_period_end || user.current_period_end
-      if (periodEndDate) current_period_end = new Date(periodEndDate).toISOString()
+      if (liveStripeCurrentPeriodEnd) current_period_end = liveStripeCurrentPeriodEnd
+      else if (periodEndDate) current_period_end = new Date(periodEndDate).toISOString()
     }
 
     const responseData = {
@@ -420,10 +574,12 @@ export async function GET(request: NextRequest) {
       interval,
       status,
       current_period_end,
-      cancel_at_period_end: finalUser?.cancel_at_period_end || false,
+      cancel_at_period_end: (liveStripeCancelAtPeriodEnd ?? finalUser?.cancel_at_period_end) || false,
       hasSubscription,
-      subscription_id: finalUser?.stripe_subscription_id || null,
-      stripe_subscription_id: finalUser?.stripe_subscription_id || null,
+      is_manual_assigned: hasManualAssignedSubscription,
+      subscription_source: hasManualAssignedSubscription ? 'admin_assigned' : (hasStripeSubscription ? 'stripe' : (trialIsActive ? 'trial' : 'none')),
+      subscription_id: liveStripeSubscriptionId || finalUser?.stripe_subscription_id || null,
+      stripe_subscription_id: liveStripeSubscriptionId || finalUser?.stripe_subscription_id || null,
       stripe_customer_id: finalUser?.stripe_customer_id || null,
     }
 

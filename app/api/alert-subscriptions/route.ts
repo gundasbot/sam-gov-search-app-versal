@@ -12,17 +12,79 @@ import { randomBytes } from 'crypto'
 
 export function parseRecipientsList(raw: string | null): any[] {
   if (!raw) return []
-  try { return JSON.parse(raw) } catch { return [] }
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed
+  } catch {}
+
+  return raw
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .map(email => ({ email }))
 }
 
-export function parseParams(raw: string | null): Record<string, any> {
-  if (!raw) return {}
-  try { return JSON.parse(raw) } catch { return {} }
+function normalizeCsvArray(value: unknown): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) {
+    return value.map(v => String(v).trim()).filter(Boolean)
+  }
+
+  return String(value)
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean)
+}
+
+export function mapSavedSearchToParams(savedSearch?: any): Record<string, any> {
+  if (!savedSearch) return {}
+
+  const ptypes = normalizeCsvArray(savedSearch.procurement_type)
+  const states = normalizeCsvArray(savedSearch.state_of_performance)
+  const setAsides = normalizeCsvArray(savedSearch.set_aside)
+
+  return {
+    keyword: savedSearch.keywords ?? undefined,
+    title: savedSearch.keywords ?? undefined,
+    ptypes: ptypes.length ? ptypes : undefined,
+    ptype: ptypes.length ? ptypes.join(',') : undefined,
+    states: states.length ? states : undefined,
+    state: states.length ? states.join(',') : undefined,
+    setAsides: setAsides.length ? setAsides : undefined,
+    typeOfSetAside: setAsides.length ? setAsides.join(',') : undefined,
+    setAside: setAsides.length ? setAsides.join(',') : undefined,
+    ncode: savedSearch.naics ?? undefined,
+    ccode: undefined,
+    organizationName: savedSearch.agency ?? undefined,
+    deptname: savedSearch.agency ?? undefined,
+    postedFrom: savedSearch.posted_after ?? undefined,
+    postedTo: savedSearch.posted_before ?? undefined,
+    format: savedSearch.export_format ?? undefined,
+  }
+}
+
+export function buildSavedSearchData(params: Record<string, any>, fallbackName: string, description?: string | null) {
+  const ptypes = normalizeCsvArray(params.ptypes ?? params.ptype)
+  const states = normalizeCsvArray(params.states ?? params.state)
+  const setAsides = normalizeCsvArray(params.setAsides ?? params.typeOfSetAside ?? params.setAside)
+
+  return {
+    name: fallbackName,
+    description: description ?? null,
+    keywords: params.keyword ?? params.keywords ?? params.title ?? null,
+    naics: params.ncode ?? params.naics ?? null,
+    agency: params.organizationName ?? params.deptname ?? params.agency ?? null,
+    set_aside: setAsides.length ? setAsides.join(',') : null,
+    state_of_performance: states.length ? states.join(',') : null,
+    posted_after: params.postedFrom ?? params.posted_after ?? null,
+    posted_before: params.postedTo ?? params.rdlto ?? params.posted_before ?? null,
+    procurement_type: ptypes.length ? ptypes.join(',') : null,
+  }
 }
 
 export function mapAlertRow(row: any) {
-  const recipientsList = parseRecipientsList(row.recipients_list)
-  const params = parseParams(row.params)
+  const recipientsList = parseRecipientsList(row.recipients)
+  const params = mapSavedSearchToParams(row.saved_searches_v2)
   return {
     id: row.id,
     name: row.name,
@@ -35,7 +97,7 @@ export function mapAlertRow(row: any) {
     lastError: row.last_error ?? null,
     recipients: row.recipients ?? '',
     recipientsList,
-    params,
+    params: { ...params, format: row.export_format ?? params.format ?? 'CSV' },
     maxResults: row.max_results ?? 100,
     sendEmptyResults: row.send_empty_results,
     emailNotification: row.email_notification,
@@ -55,6 +117,7 @@ export async function GET() {
     const rows = await prisma.alert_subscriptions.findMany({
       where: { user_id: session.user.id },
       orderBy: { created_at: 'desc' },
+      include: { saved_searches_v2: true },
     })
 
     return NextResponse.json(rows.map(mapAlertRow))
@@ -110,9 +173,20 @@ export async function POST(req: NextRequest) {
           .join(',')
       : (typeof recipients === 'string' ? recipients : '')
 
+    const savedSearchData = buildSavedSearchData(params, name.trim(), description)
+
     // Build saved_searches_v2 relation object
     let savedSearchesRelation: any = undefined
-    if (savedSearchConnectOrCreate) {
+    if (Object.keys(savedSearchData).some(key => savedSearchData[key as keyof typeof savedSearchData] != null)) {
+      savedSearchesRelation = {
+        create: {
+          id: randomBytes(12).toString('hex'),
+          user_id: session.user.id,
+          updated_at: new Date(),
+          ...savedSearchData,
+        },
+      }
+    } else if (savedSearchConnectOrCreate) {
       savedSearchesRelation = { connectOrCreate: savedSearchConnectOrCreate }
     } else if (savedSearchId) {
       savedSearchesRelation = { connect: { id: savedSearchId } }
@@ -139,8 +213,7 @@ export async function POST(req: NextRequest) {
         frequency: freq,
         delivery_time: deliveryTime,
         recipients: recipientEmails,
-        recipients_list: JSON.stringify(recipientsList),
-        params: JSON.stringify(params),
+        export_format: String(params.format || 'CSV'),
         active: isActive,
         max_results: maxResults,
         send_empty_results: sendEmptyResults,

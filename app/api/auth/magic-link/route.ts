@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     <!-- Footer -->
     <div style="border-top:1px solid #e2e8f0;padding:20px 32px;background:#f8fafc;text-align:center">
       <p style="font-size:12px;color:#94a3b8;margin:0;line-height:1.8">
-        &copy; ${year} Precise Analytics LLC &middot; PreciseGovCon<br>
+        &copy; ${year} Precise GovCon &middot; PreciseGovCon<br>
         <a href="https://precisegovcon.com" style="color:#f97316;text-decoration:none;font-weight:600">precisegovcon.com</a>
         &nbsp;&middot;&nbsp;
         <a href="https://precisegovcon.com/support" style="color:#94a3b8;text-decoration:none">Support</a>

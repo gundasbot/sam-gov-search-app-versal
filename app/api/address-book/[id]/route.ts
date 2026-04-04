@@ -45,36 +45,59 @@ export async function PATCH(
       }
     }
 
-    const updatedFirstName = firstName !== undefined ? (firstName?.trim() || null) : contact.first_name
-    const updatedLastName  = lastName  !== undefined ? (lastName?.trim()  || null) : contact.last_name
+    // Prepare update data
+    const updateData: any = {
+      updated_at: new Date(),
+    }
+
+    if (email !== undefined) {
+      updateData.email = email.trim()
+    }
+
+    if (firstName !== undefined) {
+      updateData.first_name = firstName?.trim() || null
+    }
+
+    if (lastName !== undefined) {
+      updateData.last_name = lastName?.trim() || null
+    }
+
+    // Update the combined name field for backward compatibility
+    if (firstName !== undefined || lastName !== undefined) {
+      const newFirstName = firstName !== undefined ? (firstName?.trim() || null) : contact.first_name
+      const newLastName = lastName !== undefined ? (lastName?.trim() || null) : contact.last_name
+      updateData.name = [newFirstName, newLastName].filter(Boolean).join(' ') || null
+    }
+
+    if (phone !== undefined) {
+      updateData.phone = phone?.trim() || null
+    }
+
+    if (organization !== undefined) {
+      updateData.organization = organization?.trim() || null
+    }
+
+    if (notes !== undefined) {
+      updateData.notes = notes?.trim() || null
+    }
 
     const updated = await prisma.recipient_contacts.update({
       where: { id },
-      data: {
-        ...(email        !== undefined && { email:        email.trim() }),
-        first_name: updatedFirstName,
-        last_name:  updatedLastName,
-        // keep combined name in sync
-        name: [updatedFirstName, updatedLastName].filter(Boolean).join(' ') || contact.name || null,
-        ...(phone        !== undefined && { phone:        phone?.trim()        || null }),
-        ...(organization !== undefined && { organization: organization?.trim() || null }),
-        ...(notes        !== undefined && { notes:        notes?.trim()        || null }),
-        updated_at: new Date(),
-      },
+      data: updateData,
     })
 
     return NextResponse.json({
-      id:           updated.id,
-      email:        updated.email,
-      firstName:    updated.first_name ?? null,
-      lastName:     updated.last_name  ?? null,
-      name:         updated.name       ?? null,
-      phone:        updated.phone      ?? null,
+      id: updated.id,
+      email: updated.email,
+      firstName: updated.first_name ?? null,
+      lastName: updated.last_name ?? null,
+      name: updated.name ?? null,
+      phone: updated.phone ?? null,
       organization: updated.organization ?? null,
-      notes:        updated.notes      ?? null,
-      useCount:     updated.use_count,
-      lastUsedAt:   updated.last_used_at?.toISOString() ?? null,
-      createdAt:    updated.created_at.toISOString(),
+      notes: updated.notes ?? null,
+      useCount: updated.use_count,
+      lastUsedAt: updated.last_used_at?.toISOString() ?? null,
+      createdAt: updated.created_at.toISOString(),
     })
   } catch (error) {
     console.error('[address-book PATCH]', error)

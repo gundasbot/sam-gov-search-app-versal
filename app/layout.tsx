@@ -120,7 +120,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className="pg-uniform min-h-screen text-base sm:text-[1.06rem]
+        className="min-h-screen text-base sm:text-[1.06rem]
           selection:bg-primary-500 selection:text-white
           supports-[overflow-anchor:clip]:overflow-anchor-auto"
         style={{

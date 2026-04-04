@@ -117,10 +117,10 @@ export async function POST(req: NextRequest) {
                 <tr>
                   <td align="center">
                     <div style="background-color: white; border-radius: 12px; padding: 12px; display: inline-block; margin-bottom: 16px;">
-                      <img src="https://precisegovcon.com/logo.png" alt="Precise Analytics" style="width: 48px; height: 48px; display: block;" />
+                      <img src="https://precisegovcon.com/logo.png" alt="Precise GovCon" style="width: 48px; height: 48px; display: block;" />
                     </div>
                     <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: white; letter-spacing: -0.5px;">
-                      Precise <span style="color: #ff9800;">Analytics</span>
+                      Precise <span style="color: #ff9800;">GovCon</span>
                     </h1>
                     <p style="margin: 8px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.9); font-weight: 600;">
                       Government Contracting Intelligence
@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
           <tr>
             <td style="background-color: rgba(0,0,0,0.3); padding: 24px 40px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1);">
               <p style="margin: 0 0 8px 0; font-size: 13px; color: rgba(255,255,255,0.6);">
-                <strong style="color: white;">Precise Analytics</strong> • Virginia-based • Minority-owned VOSB
+                <strong style="color: white;">Precise GovCon</strong> • Virginia-based • Minority-owned VOSB
               </p>
               <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.5);">
                 support@precisegovcon.com • Mon–Fri 9am–5pm ET

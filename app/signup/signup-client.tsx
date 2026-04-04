@@ -2,13 +2,13 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Eye, EyeOff, ArrowRight, Loader2, Check, AlertCircle,
-  Shield, Zap, Crown, X, Mail, CheckCircle2,
+  Shield, Zap, Crown, X, Mail, CheckCircle2, Phone, XCircle,
 } from 'lucide-react'
 
 // ─── Plan definitions — mirrors PricingClient exactly ─────────────────────────
@@ -118,6 +118,7 @@ export default function SignUpClient() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const emailParam   = searchParams.get('email') ?? ''
+  const codeParam    = searchParams.get('code') ?? ''
   const planParam    = searchParams.get('plan')?.toUpperCase()
   const [plans, setPlans] = useState(HARDCODED_PLANS)
   const [plansLoading, setPlansLoading] = useState(true)
@@ -125,7 +126,9 @@ export default function SignUpClient() {
 
   const [name,            setName]            = useState('')
   const [company,         setCompany]         = useState('')
+  const [jobTitle,        setJobTitle]        = useState('')
   const [email,           setEmail]           = useState(emailParam)
+  const [phone,           setPhone]           = useState('')
   const [password,        setPassword]        = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword,    setShowPassword]    = useState(false)
@@ -136,6 +139,26 @@ export default function SignUpClient() {
   const [error,           setError]           = useState('')
   const [registered,      setRegistered]      = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
+  const [trialCode,       setTrialCode]       = useState(codeParam)
+  
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  // Handle return from Stripe setup (setup=done or setup=skip)
+  useEffect(() => {
+    const setup = searchParams.get('setup')
+    const returnedEmail = searchParams.get('email')
+    if ((setup === 'done' || setup === 'skip') && returnedEmail) {
+      setRegisteredEmail(returnedEmail)
+      setRegistered(true)
+    }
+  }, [searchParams])
+  
+  // Scroll to error when it appears
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [error])
 
   // Fetch live Stripe prices on mount
   useEffect(() => {
@@ -170,23 +193,58 @@ export default function SignUpClient() {
     await signIn(provider, { callbackUrl: '/dashboard' })
   }
 
+  // Format phone number as user types (US format)
+  function formatPhoneNumber(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 10)
+    if (digits.length === 0) return ''
+    if (digits.length <= 3) return `(${digits}`
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+
+  // Validate phone number (optional, but if provided must be valid)
+  function isValidPhone(value: string): boolean {
+    if (!value.trim()) return true // empty is valid (optional field)
+    const digits = value.replace(/\D/g, '')
+    return digits.length === 10
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (password.length < 8)        { setError('Password must be at least 8 characters.'); return }
     if (password !== confirmPassword){ setError('Passwords do not match.'); return }
+    if (phone && !isValidPhone(phone)) { setError('Please enter a valid 10-digit phone number.'); return }
     setLoading(true); setError('')
     try {
       const nameParts = name.trim().split(' ')
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
+      // Strip formatting from phone for storage
+      const cleanPhone = phone.replace(/\D/g, '') || undefined
       const res  = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, company, email, password, plan: selectedPlan, billing: annual ? 'annual' : 'monthly' }),
+        body: JSON.stringify({ 
+          firstName, 
+          lastName, 
+          company, 
+          jobTitle: jobTitle.trim() || undefined,
+          email, 
+          phone: cleanPhone,
+          password, 
+          plan: selectedPlan, 
+          billing: annual ? 'annual' : 'monthly',
+          trialCode: trialCode.trim() || undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data?.error || data?.message || 'Registration failed.'); setLoading(false); return }
-      // Show success state — don't auto-login, email must be verified first
+      // If Stripe returned a setup URL, redirect to collect payment method first
+      if (data.setupUrl) {
+        window.location.href = data.setupUrl
+        return
+      }
+      // No setup URL — fall back to showing verify-email screen directly
       setRegisteredEmail(email)
       setRegistered(true)
     } catch {
@@ -360,7 +418,7 @@ export default function SignUpClient() {
                 Create your{' '}
                 <span style={{ color: '#f97316', textShadow: '0 2px 8px #000a' }}>account</span>
               </h1>
-              <p className="text-base sm:text-lg mt-1 leading-snug font-semibold" style={{ color: '#f1f5f9', textShadow: '0 1px 4px #0006' }}>
+              <p className="text-sm sm:text-lg mt-1 leading-snug font-semibold" style={{ color: '#f1f5f9', textShadow: '0 1px 4px #0006' }}>
                 Get started in 60 seconds · <span className="font-bold">Cancel anytime</span>
               </p>
             </div>
@@ -381,7 +439,7 @@ export default function SignUpClient() {
               </div>
               <Link
                 href={`/login${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-base font-extrabold transition-all border border-orange-500 shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400"
+                className="flex items-center gap-1 sm:gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base font-extrabold transition-all border border-orange-500 shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400"
                 style={{ color: '#fff', background: 'linear-gradient(135deg, #f97316 60%, #f59e0b 100%)', textShadow: '0 1px 4px #0006' }}
                 onMouseEnter={e => {
                   e.currentTarget.style.background = '#f97316';
@@ -392,8 +450,9 @@ export default function SignUpClient() {
                   e.currentTarget.style.color = '#fff';
                 }}
               >
-                <ArrowRight className="w-7 h-7 rotate-180" style={{ color: '#fff' }} />
-                <span>Back to Sign In</span>
+                <ArrowRight className="w-5 h-5 sm:w-7 sm:h-7 rotate-180" style={{ color: '#fff' }} />
+                <span className="hidden xs:inline sm:inline">Back to </span>
+                <span>Sign In</span>
               </Link>
             </div>
           </div>
@@ -401,11 +460,31 @@ export default function SignUpClient() {
           <div className="flex-1 px-4 sm:px-8 py-5 sm:py-6">
             <div className="flex flex-col gap-5">
 
-              {/* Error */}
+              {/* Error - Prominent orange banner */}
               {error && (
-                <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4">
-                  <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-                  <p className="text-sm sm:text-base text-red-700">{error}</p>
+                <div 
+                  ref={errorRef}
+                  className="relative flex items-center gap-3 rounded-xl p-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300"
+                  style={{ 
+                    backgroundColor: '#ea580c',
+                    border: '2px solid #c2410c',
+                  }}
+                >
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+                    <XCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white uppercase tracking-wide">Error</p>
+                    <p className="text-base font-semibold text-white">{error}</p>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setError('')}
+                    className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white/20 transition"
+                    aria-label="Dismiss error"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
                 </div>
               )}
 
@@ -442,10 +521,26 @@ export default function SignUpClient() {
                       className="pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" />
                   </div>
                   <div>
-                    <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">Company</label>
-                    <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Optional"
+                    <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">
+                      Company <span className="font-normal text-(--color-text-subtle)">(optional)</span>
+                    </label>
+                    <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Corp"
                       className="pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" />
                   </div>
+                </div>
+
+                {/* Job Title */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">
+                    Job Title / Role <span className="font-normal text-(--color-text-subtle)">(optional)</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={jobTitle} 
+                    onChange={e => setJobTitle(e.target.value)} 
+                    placeholder="e.g. CEO, Contracts Manager, BD Director"
+                    className="pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" 
+                  />
                 </div>
 
                 {/* Email */}
@@ -453,6 +548,26 @@ export default function SignUpClient() {
                   <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">Work Email *</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required
                     className="pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)" />
+                </div>
+
+                {/* Phone (optional) */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">
+                    Phone <span className="font-normal text-(--color-text-subtle)">(optional)</span>
+                  </label>
+                  <input 
+                    type="tel" 
+                    value={phone} 
+                    onChange={e => setPhone(formatPhoneNumber(e.target.value))} 
+                    placeholder="(555) 123-4567"
+                    className={[
+                      'pg-input h-12 px-4 text-base bg-(--color-surface-muted) placeholder:text-(--color-text-subtle)',
+                      phone && !isValidPhone(phone) ? 'border-red-400 focus:ring-red-400/30' : '',
+                    ].join(' ')} 
+                  />
+                  {phone && !isValidPhone(phone) && (
+                    <p className="mt-1.5 text-xs text-red-500 font-medium">Please enter a valid 10-digit phone number</p>
+                  )}
                 </div>
 
                 {/* Password */}
@@ -495,6 +610,36 @@ export default function SignUpClient() {
                   </div>
                   {passwordsMismatch && <p className="mt-1.5 text-sm text-red-500 font-medium">Passwords do not match</p>}
                   {passwordsMatch    && <p className="mt-1.5 text-sm text-[var(--color-primary)] font-medium">Passwords match ✓</p>}
+                </div>
+
+                {/* Trial/Promo Code */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">
+                    Trial Code <span className="font-normal text-(--color-text-subtle)">(optional)</span>
+                  </label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={trialCode} 
+                      onChange={e => setTrialCode(e.target.value.toUpperCase())} 
+                      placeholder="Enter code if you have one"
+                      className={[
+                        'pg-input h-12 px-4 text-base font-mono uppercase bg-(--color-surface-muted) placeholder:text-(--color-text-subtle) placeholder:normal-case placeholder:font-sans',
+                        trialCode ? 'border-(--color-primary) ring-2 ring-(--color-primary)/20' : '',
+                      ].join(' ')} 
+                    />
+                    {trialCode && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <Check className="w-4 h-4 text-(--color-primary)" />
+                      </div>
+                    )}
+                  </div>
+                  {trialCode && (
+                    <p className="mt-1.5 text-xs text-(--color-primary) font-medium flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Code applied: {trialCode}
+                    </p>
+                  )}
                 </div>
 
                 {/* ── Selected plan summary bar ────────────────────────────── */}

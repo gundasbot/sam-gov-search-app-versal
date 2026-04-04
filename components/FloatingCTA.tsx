@@ -4,7 +4,17 @@
 import { useEffect, useState, useCallback } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Search, X, Sparkles } from "lucide-react"
+import { Search, X, Sparkles, ArrowRight, Zap, Trophy, Target } from "lucide-react"
+
+// Rotating CTA messages for variety
+const CTA_MESSAGES = [
+  { text: "Start Free 7-Day Trial", subtext: "No credit card required" },
+  { text: "Try Free for 7 Days", subtext: "Search government contracts" },
+  { text: "Start Winning Contracts", subtext: "1,500+ live opportunities" },
+  { text: "Get Started Free", subtext: "Join 500+ contractors" },
+]
+
+const CTA_ICONS = [Search, Zap, Trophy, Target]
 
 function FloatingCTA() {
   const { status } = useSession()
@@ -18,8 +28,17 @@ function FloatingCTA() {
     }
   })
   const [isInputFocused, setIsInputFocused] = useState(false)
+  const [messageIndex, setMessageIndex] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
+
+  // Rotate messages every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % CTA_MESSAGES.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Hide completely on auth/login/account pages and search page
   const isHiddenPage =
@@ -32,7 +51,8 @@ function FloatingCTA() {
     pathname?.includes("/account") ||
     pathname?.includes("/search") ||
     pathname?.includes("/pricing") ||
-    pathname?.includes("/verify-email")
+    pathname?.includes("/verify-email") ||
+    pathname?.includes("/register")
 
   const handleDismiss = useCallback(() => {
     setIsDismissed(true)
@@ -88,8 +108,11 @@ function FloatingCTA() {
     }
   }, [isDismissed])
 
-  // ✅ FIX: Don't render when authenticated, on hidden pages, dismissed, or when input is focused
+  // Don't render when authenticated, on hidden pages, dismissed, or when input is focused
   if (status === 'authenticated' || isDismissed || isHiddenPage || isInputFocused) return null
+
+  const currentMessage = CTA_MESSAGES[messageIndex]
+  const CurrentIcon = CTA_ICONS[messageIndex]
 
   return (
     <>
@@ -116,22 +139,29 @@ function FloatingCTA() {
             <X className="h-3 w-3" />
           </button>
 
+          {/* Pulsing ring animation */}
+          <div className="absolute inset-0 rounded-2xl animate-ping opacity-20" style={{ background: '#ea580c' }} />
+
           {/* Main CTA Card */}
           <button
             onClick={goToSignup}
-            className="flex max-w-88 items-center gap-3 rounded-2xl px-4 py-3.5 shadow-2xl hover:scale-[1.02] transition-all duration-300"
+            className="relative flex max-w-96 items-center gap-3 rounded-2xl px-5 py-4 shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
             style={{
-              background: 'linear-gradient(135deg, #4f8d67 0%, #3e7656 100%)',
+              background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
             }}
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-              <Search className="h-5 w-5 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 group-hover:bg-white/30 transition-colors">
+              <CurrentIcon className="h-6 w-6 text-white" />
             </div>
-            <div className="text-left">
-              <p className="text-sm font-bold leading-tight text-white">Start Free Trial</p>
-              <p className="text-xs leading-tight text-white/90">Search government contracts</p>
+            <div className="text-left flex-1">
+              <p className="text-base font-bold leading-tight text-white transition-all duration-300">
+                {currentMessage.text}
+              </p>
+              <p className="text-sm leading-tight text-white/90 mt-0.5">
+                {currentMessage.subtext}
+              </p>
             </div>
-            <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+            <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </div>
@@ -152,7 +182,8 @@ function FloatingCTA() {
         <div
           className="shadow-2xl"
           style={{
-            background: 'linear-gradient(135deg, #4f8d67 0%, #3e7656 100%)',
+            background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
           {/* Dismiss button */}
@@ -167,16 +198,16 @@ function FloatingCTA() {
           {/* CTA Content */}
           <button
             onClick={goToSignup}
-            className="w-full px-5 py-3.5 flex items-center gap-3"
+            className="w-full px-5 py-4 flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 shrink-0">
-              <Search className="h-5 w-5 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 shrink-0">
+              <CurrentIcon className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-bold text-white">Start Your Free Trial</p>
-              <p className="text-xs text-white/90">Search 1,000+ government contracts</p>
+              <p className="text-base font-bold text-white">{currentMessage.text}</p>
+              <p className="text-sm text-white/90">{currentMessage.subtext}</p>
             </div>
-            <Sparkles className="h-5 w-5 text-yellow-300 animate-pulse shrink-0" />
+            <ArrowRight className="h-5 w-5 text-white shrink-0" />
           </button>
         </div>
       </div>

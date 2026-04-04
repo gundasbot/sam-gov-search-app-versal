@@ -30,7 +30,7 @@ const C = {
   surfaceMuted:  'var(--color-surface-muted)',
 }
 
-type ErrorType = 'EMAIL_NOT_VERIFIED' | 'ACCOUNT_NOT_FOUND' | 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'GENERIC'
+type ErrorType = 'EMAIL_NOT_VERIFIED' | 'ACCOUNT_NOT_FOUND' | 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'TWO_FACTOR_REQUIRED' | 'GENERIC'
 
 interface ErrorState {
   type: ErrorType
@@ -65,6 +65,20 @@ function parseError(error: string): ErrorState {
       type: 'EMAIL_NOT_VERIFIED',
       message: "Your email address hasn't been verified yet.",
       suggestion: 'Check your inbox for a verification email, or request a new one below.',
+    }
+  }
+  if (e.includes('two_factor_required') || e.includes('2fa required') || e.includes('two factor required')) {
+    return {
+      type: 'TWO_FACTOR_REQUIRED',
+      message: 'Two-factor authentication is enabled for this account.',
+      suggestion: 'Enter your authenticator app code (or backup code) below to finish sign-in.',
+    }
+  }
+  if (e.includes('two_factor_invalid') || e.includes('invalid 2fa') || e.includes('invalid two factor')) {
+    return {
+      type: 'TWO_FACTOR_REQUIRED',
+      message: 'Your two-factor code is invalid or expired.',
+      suggestion: 'Enter a fresh authenticator code, or use a backup code.',
     }
   }
   if (e.includes('expired')) {
@@ -151,15 +165,15 @@ function ErrorBlock({
   return (
     <div
       className="mt-4 rounded-2xl p-4"
-      style={{ background: '#fef2f2', border: '1.5px solid #fecaca' }}
+      style={{ background: '#fff1f2', border: '2px solid #f87171' }}
     >
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+        <AlertCircle className="h-6 w-6 shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold" style={{ color: '#991b1b' }}>
+          <p className="text-lg font-black" style={{ color: '#7f1d1d' }}>
             {errorState.message}
           </p>
-          <p className="mt-0.5 text-xs leading-relaxed" style={{ color: '#b91c1c' }}>
+          <p className="mt-1 text-base leading-relaxed font-semibold" style={{ color: '#9f1239' }}>
             {errorState.suggestion}
           </p>
         </div>
@@ -173,7 +187,7 @@ function ErrorBlock({
               type="button"
               onClick={onResendOrOTC}
               disabled={resendLoading || resendSent}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: '#dc2626', color: '#ffffff' }}
             >
               {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
@@ -181,8 +195,8 @@ function ErrorBlock({
             </button>
             <Link
               href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
-              style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
+              style={{ background: '#7f1d1d', color: '#ffffff', border: '1px solid #7f1d1d' }}
             >
               <KeyRound className="h-3.5 w-3.5" />
               Reset password
@@ -194,7 +208,7 @@ function ErrorBlock({
           <>
             <Link
               href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
               style={{ background: '#dc2626', color: '#ffffff' }}
             >
               <KeyRound className="h-3.5 w-3.5" />
@@ -204,11 +218,11 @@ function ErrorBlock({
               type="button"
               onClick={onResendOrOTC}
               disabled={resendLoading || resendSent}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: '#1d4ed8', color: '#ffffff', border: '1px solid #1d4ed8' }}
             >
               {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-              {resendSent ? '✓ Code sent!' : 'Send one-time code'}
+              {resendSent ? '✓ Code sent!' : 'Request 6-digit code'}
             </button>
           </>
         )}
@@ -227,7 +241,7 @@ function ErrorBlock({
         {(errorState.type === 'SUSPENDED' || errorState.type === 'GENERIC') && (
           <Link
             href={supportHref}
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
             style={{ background: '#dc2626', color: '#ffffff' }}
           >
             <Mail className="h-3.5 w-3.5" />
@@ -238,8 +252,8 @@ function ErrorBlock({
         {(errorState.type === 'SUSPENDED' || errorState.type === 'GENERIC' || errorState.type === 'INVALID_CREDENTIALS') && (
           <Link
             href="/status"
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
-            style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}
+            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
+            style={{ background: '#7f1d1d', color: '#ffffff', border: '1px solid #7f1d1d' }}
           >
             Check system status
           </Link>
@@ -265,6 +279,8 @@ function SignInContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorState, setErrorState] = useState<ErrorState | null>(null)
+  const [twoFactorToken, setTwoFactorToken] = useState('')
+  const [twoFactorBackupCode, setTwoFactorBackupCode] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSent, setResendSent] = useState(false)
 
@@ -301,7 +317,13 @@ function SignInContent() {
 
     let result: Awaited<ReturnType<typeof signIn>>
     try {
-      result = await signIn('credentials', { email, password, redirect: false })
+      result = await signIn('credentials', {
+        email,
+        password,
+        twoFactorToken,
+        twoFactorBackupCode,
+        redirect: false,
+      })
     } catch {
       setErrorState(parseError('GENERIC'))
       setLoading(false)
@@ -319,6 +341,9 @@ function SignInContent() {
       setLoading(false)
       return
     }
+
+    setTwoFactorToken('')
+    setTwoFactorBackupCode('')
 
     router.push(safeCallbackUrl)
     router.refresh()
@@ -362,11 +387,26 @@ function SignInContent() {
         setErrorState(null) // Clear any previous errors
         setErrorState(null) // Clear any stale password errors
       } else {
-        const data = await res.json()
-        // Pass raw API error so parseError can match specific messages
-        setErrorState(parseError(data.error || 'Failed to send code'))
-        // Log for debugging
-        console.error('send-otp error:', data)
+        let apiError = ''
+        try {
+          const contentType = res.headers.get('content-type') || ''
+          if (contentType.includes('application/json')) {
+            const data = await res.json().catch(() => ({} as any))
+            apiError = typeof data?.error === 'string' ? data.error : ''
+          } else {
+            const text = await res.text().catch(() => '')
+            apiError = text?.trim() || ''
+          }
+        } catch {
+          // fall back to status-based message below
+        }
+
+        const fallback =
+          res.status === 404 ? 'Account not found' :
+          res.status === 400 ? 'Email not verified' :
+          'Failed to send code'
+
+        setErrorState(parseError(apiError || fallback))
       }
     } catch (err) {
       setErrorState(parseError('Failed to send code'))
@@ -463,7 +503,7 @@ function SignInContent() {
       <>
       <style dangerouslySetInnerHTML={{ __html: aptosFontStyle }} />
 
-      <div className="mx-auto max-w-[1920px] px-4 pt-4 pb-0 sm:px-6 lg:px-8" style={{ minHeight: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
+      <div className="mx-auto max-w-480 px-4 pt-4 pb-0 sm:px-6 lg:px-8" style={{ minHeight: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
 
         {/* ── SINGLE UNIFIED CARD containing both panels ── */}
         <div className="rounded-3xl shadow-xl overflow-hidden flex-1 flex flex-col" style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)' }}>
@@ -640,14 +680,52 @@ function SignInContent() {
                     </div>
                   </div>
 
+                  {errorState?.type === 'TWO_FACTOR_REQUIRED' && (
+                    <>
+                      <div>
+                        <label htmlFor="two-factor-code" className="mb-1 block text-base font-extrabold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
+                          Authenticator Code
+                        </label>
+                        <input
+                          id="two-factor-code"
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={twoFactorToken}
+                          onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          placeholder="123456"
+                          className="h-14 w-full rounded-xl px-5 text-lg outline-none transition-all focus:ring-2 focus:ring-orange-300"
+                          style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '2px solid var(--color-border)' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="two-factor-backup" className="mb-1 block text-base font-extrabold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
+                          Backup Code (Optional)
+                        </label>
+                        <input
+                          id="two-factor-backup"
+                          type="text"
+                          value={twoFactorBackupCode}
+                          onChange={(e) => setTwoFactorBackupCode(e.target.value.replace(/\s+/g, ''))}
+                          placeholder="8-digit backup code"
+                          className="h-14 w-full rounded-xl px-5 text-lg outline-none transition-all focus:ring-2 focus:ring-orange-300"
+                          style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '2px solid var(--color-border)' }}
+                        />
+                      </div>
+                    </>
+                  )}
+
                   {/* Submit */}
                   <button
                     type="submit"
                     disabled={loading}
-                    className="h-12 inline-flex items-center justify-center gap-2 rounded-xl text-base font-black transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60 px-10"
+                    className="h-14 w-full inline-flex items-center justify-center gap-2 rounded-xl text-lg font-black transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
                     style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 14px #f97316a0' }}
                   >
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Log In <ArrowRight className="h-4 w-4" /></>}
+                    {loading
+                      ? <Loader2 className="h-5 w-5 animate-spin" />
+                      : <>{errorState?.type === 'TWO_FACTOR_REQUIRED' ? 'Verify 2FA & Log In' : 'Log In'} <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </form>
                 )}
@@ -677,10 +755,10 @@ function SignInContent() {
                       {/* Header */}
                       <div className="p-5" style={{ background: '#0f172a', borderBottom: '1px solid rgba(249,115,22,0.3)' }}>
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#f97316' }}>
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f97316' }}>
                             <span style={{ color: '#fff', fontSize: 13, fontWeight: 900 }}>✓</span>
                           </div>
-                          <p className="font-black text-lg" style={{ color: '#ffffff' }}>Sign-in link sent!</p>
+                          <p className="font-black text-lg" style={{ color: '#ffffff' }}>Sign-in link requested and sent!</p>
                         </div>
                         <p className="font-bold text-sm mt-1 ml-8" style={{ color: '#f97316' }}>{otpEmail}</p>
                       </div>
@@ -698,7 +776,7 @@ function SignInContent() {
                             disabled={magicLinkSending}
                             className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 disabled:opacity-60"
                             style={{ background: '#f97316', color: '#ffffff', boxShadow: '0 2px 8px rgba(249,115,22,0.35)' }}>
-                            <Mail className="h-4 w-4" /> Resend link
+                            <Mail className="h-4 w-4" /> Request new sign-in link
                           </button>
                           <button type="button"
                             onClick={() => { setMagicLinkSent(false); setOtpSent(false); setOtpCode(''); setErrorState(null); }}
@@ -711,7 +789,7 @@ function SignInContent() {
                     </div>
                   ) : !otpSent ? (
                     <div className="space-y-3">
-                      {/* Toggle row — Sign-In Link | 6-Digit Code */}
+                      {/* Toggle row — request sign-in methods */}
                       <div className="flex gap-1 rounded-xl p-1" style={{ background: 'var(--color-surface-muted)', border: '1.5px solid var(--color-border)' }}>
                         <button
                           type="button"
@@ -725,7 +803,7 @@ function SignInContent() {
                             opacity: otpSending ? 0.35 : 1,
                           }}
                         >
-                          {magicLinkSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Sign-In Link</>}
+                          {magicLinkSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Request Sign-In Link</>}
                         </button>
                         <button
                           type="button"
@@ -733,16 +811,17 @@ function SignInContent() {
                           disabled={otpSending || magicLinkSending || !otpEmail}
                           className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-black transition-all disabled:cursor-not-allowed"
                           style={{
-                            background: 'transparent',
-                            color: 'var(--color-text-secondary)',
+                            background: '#1d4ed8',
+                            color: '#ffffff',
+                            boxShadow: '0 2px 8px rgba(29,78,216,0.35)',
                             opacity: magicLinkSending ? 0.35 : 1,
                           }}
                         >
-                          {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>6-Digit Code</>}
+                          {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Request 6-Digit Code</>}
                         </button>
                       </div>
                       <p className="text-xs font-semibold text-center" style={{ color: 'var(--color-text-subtle)' }}>
-                        Link = one click · Code = manual entry
+                        Request a sign-in link or request a 6-digit code sent to your registered email.
                       </p>
                     </div>
                   ) : !magicLinkSent && otpTimeRemaining === 0 ? (
@@ -759,9 +838,9 @@ function SignInContent() {
                         onClick={() => { setOtpSent(false); setOtpCode(''); setOtpTimeRemaining(0); handleSendOTP(); }}
                         disabled={otpSending}
                         className="h-12 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
-                        style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff', boxShadow: '0 4px 14px rgba(249,115,22,0.3)' }}
+                        style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', color: '#ffffff', boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
                       >
-                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Send a new code</>}
+                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Request new 6-digit code</>}
                       </button>
                       <button
                         type="button"
@@ -777,7 +856,7 @@ function SignInContent() {
                     <>
                       <div className="rounded-xl p-4 text-center" style={{ background: '#0f172a', border: '1.5px solid #f97316' }}>
                         <p className="font-black text-base" style={{ color: '#ffffff' }}>
-                          ✓ Code sent to {otpEmail}
+                          ✓ 6-digit code sent to your registered email: {otpEmail}
                         </p>
                         <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>Check your inbox and enter the 6-digit code below</p>
                       </div>
@@ -813,9 +892,9 @@ function SignInContent() {
                         onClick={async () => { setOtpCode(''); setOtpTimeRemaining(0); setOtpSent(false); await handleSendOTP(); }}
                         disabled={otpSending}
                         className="h-10 w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
-                        style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
+                        style={{ background: '#1d4ed8', color: '#ffffff', border: '1.5px solid #1d4ed8' }}
                       >
-                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Didn't receive it? Send a new code</>}
+                        {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Didn't receive it? Request new 6-digit code</>}
                       </button>
                     </>
                   )}
@@ -823,29 +902,41 @@ function SignInContent() {
                 )}
 
                 {/* Footer helpers */}
-                <div className="pt-3 flex items-center justify-center gap-3 flex-wrap" style={{ borderTop: '1.5px solid var(--color-border)' }}>
-                  <Link
-                    href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
-                    style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
-                  >
-                    <KeyRound className="h-3.5 w-3.5" />
-                    Reset Password
-                  </Link>
-                  <Link
-                    href="/support?openContact=1&category=Account%20%26%20Access"
-                    className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
-                    style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
-                  >
-                    <Mail className="h-3.5 w-3.5" />
-                    Support
-                  </Link>
+                <div className="mt-6 pt-5 space-y-3" style={{ borderTop: '1.5px solid var(--color-border)' }}>
+                  <div className="text-center">
+                    <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: 'var(--color-text-subtle)' }}>
+                      Need Account Help?
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Link
+                      href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-all hover:-translate-y-0.5"
+                      style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#ffffff', boxShadow: '0 6px 18px rgba(37,99,235,0.28)' }}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      Reset Password
+                    </Link>
+                    <Link
+                      href="/support?category=Account%20%26%20Access"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all hover:-translate-y-0.5"
+                      style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border)' }}
+                    >
+                      <Mail className="h-4 w-4" />
+                      Support
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Sign-up prompt — single bold CTA */}
-            <div className="mx-6 mb-6">
+            {/* Sign-up prompt — clearly separated from sign-in actions */}
+            <div className="mx-6 mt-6 mb-6">
+              <div className="mb-3 text-center">
+                <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: 'var(--color-text-subtle)' }}>
+                  New To Precise GovCon?
+                </p>
+              </div>
               <Link
                 href="/signup"
                 className="flex items-center justify-between gap-4 rounded-xl px-4 py-3 transition-all hover:-translate-y-0.5 hover:shadow-lg"
@@ -854,9 +945,9 @@ function SignInContent() {
                 <p className="text-sm font-black leading-tight" style={{ color: '#ffffff', whiteSpace: 'nowrap' }}>
                   No account? <span style={{ color: '#86efac' }}>7-day free trial</span>
                 </p>
-                <div className="flex items-center gap-1 rounded-lg px-3 py-1.5 flex-shrink-0" style={{ background: '#ffffff' }}>
+                <div className="flex items-center gap-1 rounded-lg px-3 py-1.5 shrink-0" style={{ background: '#ffffff' }}>
                   <span className="text-sm font-black" style={{ color: 'var(--color-primary)' }}>Start Free Trial</span>
-                  <ArrowRight className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--color-primary)' }} />
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
                 </div>
               </Link>
             </div>
@@ -922,6 +1013,9 @@ function SignInContent() {
                 <p className="text-sm font-black" style={{ color: 'var(--color-text-primary)' }}>Bank-grade security. SOC 2 compliant.</p>
                 <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-text-primary)', opacity: 0.8 }}>
                   Your data is encrypted end-to-end. Always.
+                </p>
+                <p className="text-sm font-black mt-2 leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
+                  Secure sign-in, protected account activity, and contractor data handled with the same seriousness you expect from enterprise platforms.
                 </p>
               </div>
             </div>

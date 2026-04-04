@@ -8,6 +8,22 @@ export const runtime = 'nodejs'
 
 const sql = neon(process.env.DATABASE_URL!)
 
+async function ensureOtpTable() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS otp_codes (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_otp_codes_email ON otp_codes(email)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON otp_codes(expires_at)`
+}
+
 function sha256(s: string) {
   return crypto.createHash('sha256').update(s).digest('hex')
 }
@@ -18,6 +34,8 @@ function jsonError(message: string, status = 400, details?: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureOtpTable()
+
     const body = await req.json().catch(() => ({} as any))
     const email = String(body.email ?? '').trim().toLowerCase()
     const code = String(body.code ?? '').trim()
