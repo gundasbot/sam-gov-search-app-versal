@@ -7,7 +7,6 @@ import Footer from '@/components/layout/Footer'
 import AuthProvider from './providers'
 import AuthModalProvider from '@/components/auth/AuthModalProvider'
 import SmoothScrollProvider from '@/components/SmoothScrollProvider'
-import FloatingCTA from '@/components/FloatingCTA'
 import CookieConsent from '@/components/CookieConsent'
 import { useEffect } from 'react'
 
@@ -52,14 +51,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               <Header />
             </div>
 
-            <main className="w-full">
+            <main className="w-full" style={{ overflowX: 'hidden' }}>
               {children}
             </main>
 
             <Footer />
           </div>
 
-          <FloatingCTA />
           <CookieConsent />
         </SmoothScrollProvider>
       </AuthModalProvider>

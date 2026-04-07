@@ -291,7 +291,7 @@ export default function AboutPage() {
         {/* CTA Section */}
         <section className="py-16 md:py-20">
           <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8">
-            <div className="text-center max-w-6xl mx-auto">
+            <div className="text-center max-w-480 mx-auto">
             <h2 className="text-5xl md:text-6xl font-black mb-6" style={{ color: 'var(--color-text-primary)' }}>
               <span className="bg-linear-to-r from-emerald-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">Ready to Get Started?</span>
             </h2>

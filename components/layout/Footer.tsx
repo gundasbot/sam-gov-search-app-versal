@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
-import ContactModal from './ContactModal'
 import { Mail, Phone } from 'lucide-react'
 import { BRAND_CONFIG } from '@/lib/brand-config'
 
@@ -48,11 +47,11 @@ const social = [
 ]
 
 export default function Footer() {
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   const { status } = useSession()
   const pathname = usePathname()
+  const isOpportunitiesRoute = pathname?.startsWith('/opportunities')
   const isAuthed = status === 'authenticated'
   const { contact, tagline, wordmark } = BRAND_CONFIG
   const formattedTagline = tagline
@@ -74,8 +73,8 @@ export default function Footer() {
 
   return (
     <>
-      <footer className="mt-16 bg-white">
-        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <footer className={isOpportunitiesRoute ? 'mt-0 bg-white' : 'mt-16 bg-white'}>
+        <div className="max-w-480 mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
           {/* Single row: Logo col + 5 nav columns — all equal, no divider */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8">
@@ -153,7 +152,7 @@ export default function Footer() {
               <h4 className="text-[0.95rem] font-black tracking-wide mb-3" style={{ color: '#f97316' }}>Get started</h4>
               <ul className="space-y-2">
                 <li><Link href="/support#book" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Book a meeting</Link></li>
-                <li><button onClick={() => setIsContactModalOpen(true)} className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors bg-transparent border-none cursor-pointer p-0 text-left">Contact us</button></li>
+                <li><Link href="/support" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Contact us</Link></li>
                 <li><Link href="/signup" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Start free trial</Link></li>
               </ul>
             </div>
@@ -184,8 +183,6 @@ export default function Footer() {
           </div>
         </div>
       </footer>
-
-      <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
 
       {showLoginPrompt && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">

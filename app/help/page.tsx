@@ -133,7 +133,7 @@ export default function HelpStatusPage() {
 
       {/* Hero */}
       <section className="relative z-10 pt-24 pb-16 px-6">
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-480 mx-auto text-center">
           <h1 className="text-5xl md:text-6xl font-black mb-6">
             <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
               Help Center & System Status
@@ -147,7 +147,7 @@ export default function HelpStatusPage() {
 
       {/* Tab Navigation */}
       <section className="relative z-10 px-6 mb-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-480 mx-auto">
           <div className="flex justify-center gap-4">
             <button
               onClick={() => setActiveTab('help')}
@@ -178,7 +178,7 @@ export default function HelpStatusPage() {
         <>
           {/* Help Topics */}
           <section className="relative z-10 py-16 px-6 bg-gradient-to-r from-emerald-500/5 via-cyan-500/5 to-purple-500/5">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-480 mx-auto">
               <h2 className="text-3xl font-black text-white mb-8 text-center">Browse Help Topics</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -264,7 +264,7 @@ export default function HelpStatusPage() {
       {activeTab === 'status' && (
         <>
           <section className="relative z-10 pb-16 px-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-480 mx-auto">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* Pentagon-Style Clock */}

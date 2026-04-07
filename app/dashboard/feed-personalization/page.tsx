@@ -189,7 +189,7 @@ export default function FeedPersonalizationPage() {
 
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white border-b border-slate-700 dark:border-slate-800">
-        <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
+        <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <p className="text-orange-400 text-sm font-bold uppercase tracking-wide">{greeting}, {firstName(session)}</p>
@@ -222,7 +222,7 @@ export default function FeedPersonalizationPage() {
       </div>
 
       {/* Content - Exact same width as header */}
-      <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
+      <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
         <div className="space-y-12">
 
           {/* Set-Asides Section */}

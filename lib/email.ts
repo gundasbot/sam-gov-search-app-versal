@@ -94,6 +94,17 @@ export async function sendAlertEmail({
   date,
 }: AlertEmailData) {
   try {
+    const recipients = Array.from(
+      new Set(
+        (Array.isArray(to) ? to : [])
+          .map(email => String(email || '').trim())
+          .filter(Boolean)
+      )
+    )
+    if (recipients.length === 0) {
+      throw new Error('No recipients provided for alert email.')
+    }
+
     const emailHtml = generateAlertEmailHtml({
       searchName,
       totalResults,
@@ -112,10 +123,14 @@ export async function sendAlertEmail({
     // Resend SDK expects `filename` (no underscore), not `file_name`
     const attachments = rawAttachments.map(a => ({ filename: a.file_name, content: a.content }))
 
+    const toField = recipients.length === 1 ? recipients[0] : `Alerts <${SUPPORT_EMAIL}>`
+    const bccField = recipients.length > 1 ? recipients : undefined
+
     // Use proper from address with display name to avoid default avatars
     const result = await resend.emails.send({
       from: `Precise GovCon <alerts@precisegovcon.com>`,
-      to,
+      to: toField,
+      bcc: bccField,
       subject: `${totalResults} New Opportunities: ${searchName}`,
       html: emailHtml,
       attachments,

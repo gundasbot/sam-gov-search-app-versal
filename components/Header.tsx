@@ -10,7 +10,7 @@ import {
   LogOut, LogIn, Menu, X, ChevronDown, CreditCard, Search, Award,
   TrendingUp, Briefcase, ExternalLink, LayoutDashboard,
   LineChart, Zap, Sparkles, Building, User, Loader2, Mail, Bell,
-  FileText, ShieldCheck, Settings, UserRound,
+  FileText, ShieldCheck, Settings, UserRound, Bookmark,
 } from 'lucide-react'
 import AccessControlModal from './AccessControlModal'
 import ThemeToggle from './ThemeToggle'
@@ -64,6 +64,8 @@ export default function Header() {
   const [loadingTicker, setLoadingTicker] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
   const servicesCloseTimer = useRef<NodeJS.Timeout | null>(null)
+  const [alertsMenuOpen, setAlertsMenuOpen] = useState(false)
+  const alertsCloseTimer = useRef<NodeJS.Timeout | null>(null)
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [tickerPaused, setTickerPaused] = useState(false)
@@ -71,6 +73,7 @@ export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const servicesRef = useRef<HTMLDivElement>(null)
+  const alertsMenuRef = useRef<HTMLDivElement>(null)
   const tickerRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
@@ -91,6 +94,7 @@ export default function Header() {
   useEffect(() => {
     setMobileMenuOpen(false)
     setServicesOpen(false)
+    setAlertsMenuOpen(false)
   }, [pathname])
 
   /* ── Nav items ── */
@@ -109,6 +113,7 @@ export default function Header() {
     { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> },
     { label: 'Insights', href: '/insights', icon: <LineChart className="w-5 h-5" /> },
     { label: 'Pricing', href: '/pricing', icon: <CreditCard className="w-5 h-5" /> },
+    { label: 'Support', href: '/support', icon: <Mail className="w-5 h-5" /> },
     ...(isAuthed ? [{ label: 'Account', href: '/account', icon: <User className="w-5 h-5" /> }] : []),
   ]
 
@@ -139,6 +144,7 @@ export default function Header() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (servicesRef.current && !servicesRef.current.contains(e.target as Node)) setServicesOpen(false)
+      if (alertsMenuRef.current && !alertsMenuRef.current.contains(e.target as Node)) setAlertsMenuOpen(false)
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -154,7 +160,18 @@ export default function Header() {
     servicesCloseTimer.current = setTimeout(() => setServicesOpen(false), 180)
   }
 
+  const openAlertsMenu = () => {
+    if (alertsCloseTimer.current) clearTimeout(alertsCloseTimer.current)
+    setAlertsMenuOpen(true)
+  }
+
+  const scheduleCloseAlertsMenu = () => {
+    if (alertsCloseTimer.current) clearTimeout(alertsCloseTimer.current)
+    alertsCloseTimer.current = setTimeout(() => setAlertsMenuOpen(false), 180)
+  }
+
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
+  const alertsMenuActive = pathname.startsWith('/alerts') || pathname === '/dashboard/saved-opportunities'
   const activePillClasses = 'bg-[#ff7a18] text-white font-black'
   const inactivePillClasses = 'border-b-2 border-transparent hover:border-[#ff7a18]'
 
@@ -165,8 +182,6 @@ export default function Header() {
   return (
     <>
       <style jsx global>{`
-        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .animate-scroll { animation: scroll 60s linear infinite; }
         .header-nav-scroll {
           scrollbar-width: none;
           overflow: visible;
@@ -240,8 +255,8 @@ export default function Header() {
         className="fixed inset-x-0 top-[44px] sm:top-[52px] z-40 transition-all duration-300 w-full"
         style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', boxShadow: scrolled ? '0 4px 12px rgba(0,0,0,0.08)' : 'none' }}
       >
-        <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8">
-          <div className="flex items-center justify-between gap-2 py-3 lg:py-2 xl:gap-3">
+        <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8">
+          <div className="flex items-center gap-2 py-3 lg:gap-4 lg:py-2 xl:gap-5">
 
             {/* ── Logo Section: Logo + Name + tagline ── */}
             <div className="flex flex-col justify-center gap-0.5 flex-shrink-0 w-max">
@@ -273,13 +288,12 @@ export default function Header() {
             </div>
 
             {/* ── Desktop Nav ── */}
-            <div className="hidden min-w-0 justify-start lg:flex lg:flex-1 lg:justify-end">
-              <nav className="header-nav-scroll flex flex-nowrap items-center justify-start gap-1 px-1.5 py-1.5 xl:gap-1.5 xl:px-2">
+            <div className="hidden min-w-0 px-2 lg:flex lg:flex-none xl:px-3">
+              <nav className="header-nav-scroll flex flex-nowrap items-center justify-start gap-1 px-1 py-1.5 xl:gap-2 xl:px-1.5">
                 {[
                   { href: '/search', label: 'Search', icon: <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/opportunities', label: 'Opportunities', icon: <Briefcase className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
-                  { href: '/alerts', label: 'Alerts & Searches', icon: <Bell className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                 ].map(({ href, label, icon }) => (
                   <Link key={href} href={href} prefetch={false}
                     className={`${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
@@ -288,6 +302,70 @@ export default function Header() {
                     {icon}{label}
                   </Link>
                 ))}
+
+                {/* Alerts & Searches dropdown */}
+                <div
+                  className="relative"
+                  ref={alertsMenuRef}
+                  onMouseEnter={openAlertsMenu}
+                  onMouseLeave={scheduleCloseAlertsMenu}
+                >
+                  <Link
+                    href="/alerts"
+                    prefetch={false}
+                    onFocus={openAlertsMenu}
+                    onClick={() => setAlertsMenuOpen(false)}
+                    className={`${navLinkBase} ${navLinkSize} ${alertsMenuOpen || alertsMenuActive ? activePillClasses : inactivePillClasses}`}
+                    style={(alertsMenuOpen || alertsMenuActive) ? {} : { color: 'var(--color-text-primary)' }}
+                    aria-haspopup="true"
+                    aria-expanded={alertsMenuOpen}
+                  >
+                    <Bell className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+                    <span>Alerts &amp; Searches</span>
+                    <ChevronDown className={`w-3.5 h-3.5 xl:w-4 xl:h-4 transition-transform ${alertsMenuOpen ? 'rotate-180' : ''}`} />
+                  </Link>
+
+                  {alertsMenuOpen && (
+                    <div className="fixed mt-2 w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl z-[220]"
+                      style={{
+                        top: alertsMenuRef.current
+                          ? alertsMenuRef.current.getBoundingClientRect().bottom + 8
+                          : 0,
+                        left: alertsMenuRef.current
+                          ? Math.min(
+                              alertsMenuRef.current.getBoundingClientRect().left,
+                              window.innerWidth - 288 - 16
+                            )
+                          : 0,
+                      }}
+                    >
+                      <div className="p-2 rounded-2xl" onClick={e => e.stopPropagation()}>
+                        {[
+                          { href: '/alerts/manage-searches', label: 'Manage Saved Searches', icon: <Search className="w-4.5 h-4.5" />, tone: 'orange' as const },
+                          { href: '/alerts/manage-alerts', label: 'Manage Saved Alerts', icon: <Bell className="w-4.5 h-4.5" />, tone: 'slate' as const },
+                          { href: '/dashboard/saved-opportunities', label: 'Manage Saved Opportunities', icon: <Bookmark className="w-4.5 h-4.5" />, tone: 'green' as const },
+                        ].map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            prefetch={false}
+                            onClick={() => setAlertsMenuOpen(false)}
+                            className={`flex items-center gap-2.5 rounded-xl px-3.5 py-3.5 text-base font-black transition-colors ${
+                              item.tone === 'orange'
+                                ? 'text-white bg-orange-600 hover:bg-orange-700'
+                                : item.tone === 'slate'
+                                  ? 'text-white bg-slate-700 hover:bg-slate-800'
+                                  : 'text-white bg-emerald-600 hover:bg-emerald-700'
+                            }`}
+                          >
+                            <span className="text-white">{item.icon}</span>
+                            <span>{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Services dropdown */}
                 <div
@@ -356,13 +434,12 @@ export default function Header() {
                 </div>
 
                 {[
-                  { href: '/insights', label: 'Insights', icon: <LineChart className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
-                  { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
-                  // Support now in footer and account dropdown
-                  // Account moved to auth button area to prevent nav overflow
-                ].map(({ href, label, icon }) => (
+                  { href: '/insights', label: 'Insights', icon: <LineChart className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, hideAtLg: false },
+                  { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, hideAtLg: true },
+                  { href: '/support', label: 'Support', icon: <Mail className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, hideAtLg: false },
+                ].map(({ href, label, icon, hideAtLg }) => (
                   <Link key={href} href={href} prefetch={false}
-                    className={`${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
+                    className={`${hideAtLg ? 'hidden xl:inline-flex' : ''} ${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
                     style={isActive(href) ? {} : { color: 'var(--color-text-primary)' }}
                   >
                     {icon}{label}
@@ -372,7 +449,7 @@ export default function Header() {
             </div>
 
             {/* ── Auth + Hamburger ── */}
-            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="ml-auto mr-1 sm:mr-2 flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
               <div className="block flex-shrink-0">
                 <ThemeToggle />
               </div>
@@ -382,14 +459,14 @@ export default function Header() {
                     <button
                       type="button"
                       onClick={() => setShowUserMenu((v) => !v)}
-                      className="inline-flex items-center justify-between gap-2 w-44 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow flex-shrink-0"
+                      className="inline-flex items-center justify-between gap-1.5 px-2.5 lg:px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm hover:shadow flex-shrink-0"
                       aria-label="My Account menu"
                     >
-                      <span className="inline-flex items-center gap-2 min-w-0">
+                      <span className="inline-flex items-center gap-2 min-w-fit">
                         <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
                           <UserRound className="w-4 h-4" />
                         </span>
-                        <span className="text-sm font-black text-slate-800 truncate">My Account</span>
+                        <span className="text-sm font-black text-slate-800 whitespace-nowrap">My Account</span>
                       </span>
                       <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                     </button>
@@ -410,7 +487,10 @@ export default function Header() {
                           <Link href="/account?tab=billing" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group">
                             <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Plan &amp; Billing
                           </Link>
-                          <Link href="/support" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group">
+                          <Link href="/pricing" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group xl:hidden">
+                            <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Pricing
+                          </Link>
+                          <Link href="/support" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group xl:hidden">
                             <Mail className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Support
                           </Link>
                         </div>
@@ -429,12 +509,12 @@ export default function Header() {
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: '/' })}
-                    className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
+                    className="inline-flex items-center gap-1.5 rounded-xl px-2.5 lg:px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
                     style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}
                     aria-label="Logout"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
+                    <span className="hidden xl:inline">Logout</span>
                   </button>
                 </>
               ) : (
@@ -508,6 +588,43 @@ export default function Header() {
                 </Link>
               )
             })}
+
+            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-1.5">Alerts &amp; Searches</p>
+              <div className="space-y-1">
+                {[
+                  { href: '/alerts/manage-searches', label: 'Manage Saved Searches', icon: <Search className="w-4.5 h-4.5" />, tone: 'orange' as const },
+                  { href: '/alerts/manage-alerts', label: 'Manage Saved Alerts', icon: <Bell className="w-4.5 h-4.5" />, tone: 'slate' as const },
+                  { href: '/dashboard/saved-opportunities', label: 'Manage Saved Opportunities', icon: <Bookmark className="w-4.5 h-4.5" />, tone: 'green' as const },
+                ].map(({ href, label, icon, tone }) => {
+                  const active = pathname === href
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      prefetch={false}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-base font-bold transition-colors ${
+                        active
+                          ? tone === 'orange'
+                            ? 'bg-orange-600 text-white shadow-sm'
+                            : tone === 'slate'
+                              ? 'bg-slate-700 text-white shadow-sm'
+                              : 'bg-emerald-600 text-white shadow-sm'
+                          : tone === 'orange'
+                            ? 'text-white bg-orange-600 hover:bg-orange-700'
+                            : tone === 'slate'
+                              ? 'text-white bg-slate-700 hover:bg-slate-800'
+                              : 'text-white bg-emerald-600 hover:bg-emerald-700'
+                      }`}
+                    >
+                      {icon}
+                      <span>{label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Services section */}

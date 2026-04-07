@@ -6,7 +6,21 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 
-function mapContact(c: any) {
+type RecipientContactRecord = {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  name: string | null
+  phone: string | null
+  organization: string | null
+  notes: string | null
+  use_count: number
+  last_used_at: Date | null
+  created_at: Date
+}
+
+function mapContact(c: RecipientContactRecord) {
   return {
     id: c.id,
     email: c.email,
@@ -41,6 +55,19 @@ export async function GET() {
     const contacts = await prisma.recipient_contacts.findMany({
       where: { user_id: user.id },
       orderBy: [{ use_count: 'desc' }, { created_at: 'desc' }],
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        name: true,
+        phone: true,
+        organization: true,
+        notes: true,
+        use_count: true,
+        last_used_at: true,
+        created_at: true,
+      },
     })
 
     return NextResponse.json(contacts.map(mapContact))

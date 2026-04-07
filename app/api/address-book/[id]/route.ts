@@ -3,6 +3,31 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+type RecipientContactRecord = {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  name: string | null
+  phone: string | null
+  organization: string | null
+  notes: string | null
+  use_count: number
+  last_used_at: Date | null
+  created_at: Date
+}
+
+type RecipientContactUpdate = {
+  updated_at: Date
+  email?: string
+  first_name?: string | null
+  last_name?: string | null
+  name?: string | null
+  phone?: string | null
+  organization?: string | null
+  notes?: string | null
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -24,6 +49,13 @@ export async function PATCH(
 
     const contact = await prisma.recipient_contacts.findFirst({
       where: { id, user_id: user.id },
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        name: true,
+      },
     })
     if (!contact) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
@@ -46,7 +78,7 @@ export async function PATCH(
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: RecipientContactUpdate = {
       updated_at: new Date(),
     }
 
@@ -84,6 +116,19 @@ export async function PATCH(
     const updated = await prisma.recipient_contacts.update({
       where: { id },
       data: updateData,
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        name: true,
+        phone: true,
+        organization: true,
+        notes: true,
+        use_count: true,
+        last_used_at: true,
+        created_at: true,
+      },
     })
 
     return NextResponse.json({
@@ -126,6 +171,7 @@ export async function DELETE(
 
     const contact = await prisma.recipient_contacts.findFirst({
       where: { id, user_id: user.id },
+      select: { id: true },
     })
     if (!contact) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })

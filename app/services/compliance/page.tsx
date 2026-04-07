@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function CompliancePage() {
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gray-50">
+    <div className="mx-auto w-full max-w-480 min-h-screen bg-gray-50">
       <div className="w-full px-3 sm:px-5 lg:px-6 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">

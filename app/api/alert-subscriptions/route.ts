@@ -8,6 +8,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 
+const ALERT_PARAMS_MARKER = '__ALERT_PARAMS__:'
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 export function parseRecipientsList(raw: string | null): any[] {
@@ -24,6 +26,100 @@ export function parseRecipientsList(raw: string | null): any[] {
     .map(email => ({ email }))
 }
 
+type RecipientCandidate = {
+  email: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  organization?: string
+}
+
+function normalizeRecipientCandidates(
+  recipientsList: unknown,
+  recipientsCsv?: string | null
+): RecipientCandidate[] {
+  const byEmail = new Map<string, RecipientCandidate>()
+
+  const addCandidate = (candidate: Partial<RecipientCandidate>) => {
+    const rawEmail = String(candidate.email || '').trim().toLowerCase()
+    if (!rawEmail || !rawEmail.includes('@')) return
+    if (byEmail.has(rawEmail)) return
+    byEmail.set(rawEmail, {
+      email: rawEmail,
+      firstName: candidate.firstName ? String(candidate.firstName).trim() : undefined,
+      lastName: candidate.lastName ? String(candidate.lastName).trim() : undefined,
+      phone: candidate.phone ? String(candidate.phone).trim() : undefined,
+      organization: candidate.organization ? String(candidate.organization).trim() : undefined,
+    })
+  }
+
+  if (Array.isArray(recipientsList)) {
+    for (const item of recipientsList) {
+      if (!item) continue
+      if (typeof item === 'string') {
+        addCandidate({ email: item })
+        continue
+      }
+      if (typeof item === 'object') {
+        const row = item as Record<string, unknown>
+        addCandidate({
+          email: String(row.email || ''),
+          firstName: typeof row.firstName === 'string' ? row.firstName : undefined,
+          lastName: typeof row.lastName === 'string' ? row.lastName : undefined,
+          phone: typeof row.phone === 'string' ? row.phone : undefined,
+          organization: typeof row.organization === 'string' ? row.organization : undefined,
+        })
+      }
+    }
+  }
+
+  if (typeof recipientsCsv === 'string' && recipientsCsv.trim()) {
+    for (const part of recipientsCsv.split(',')) {
+      addCandidate({ email: part })
+    }
+  }
+
+  return Array.from(byEmail.values())
+}
+
+export async function syncRecipientsToAddressBook(
+  userId: string,
+  recipientsList: unknown,
+  recipientsCsv?: string | null
+) {
+  const recipients = normalizeRecipientCandidates(recipientsList, recipientsCsv)
+  if (!recipients.length) return
+
+  await Promise.all(
+    recipients.map((recipient) => {
+      const fullName = [recipient.firstName, recipient.lastName].filter(Boolean).join(' ').trim() || null
+      return prisma.recipient_contacts.upsert({
+        where: {
+          user_id_email: {
+            user_id: userId,
+            email: recipient.email,
+          },
+        },
+        update: {
+          updated_at: new Date(),
+        },
+        create: {
+          id: randomBytes(12).toString('hex'),
+          user_id: userId,
+          email: recipient.email,
+          first_name: recipient.firstName || null,
+          last_name: recipient.lastName || null,
+          name: fullName,
+          phone: recipient.phone || null,
+          organization: recipient.organization || null,
+          notes: null,
+          updated_at: new Date(),
+        },
+      })
+    })
+  )
+}
+
 function normalizeCsvArray(value: unknown): string[] {
   if (!value) return []
   if (Array.isArray(value)) {
@@ -34,6 +130,63 @@ function normalizeCsvArray(value: unknown): string[] {
     .split(',')
     .map(v => v.trim())
     .filter(Boolean)
+}
+
+function normalizeDateString(value: unknown): string | undefined {
+  if (!value) return undefined
+  const raw = String(value).trim()
+  if (!raw) return undefined
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+  const dt = new Date(raw)
+  if (Number.isNaN(dt.getTime())) return undefined
+  return dt.toISOString().slice(0, 10)
+}
+
+export function parseAlertDescription(raw: unknown): {
+  description: string | null
+  params: Record<string, any>
+} {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return { description: null, params: {} }
+  }
+
+  const source = raw.trim()
+  const markerIndex = source.lastIndexOf(ALERT_PARAMS_MARKER)
+  if (markerIndex < 0) {
+    return { description: source, params: {} }
+  }
+
+  const visibleDescription = source.slice(0, markerIndex).trim() || null
+  const jsonPart = source.slice(markerIndex + ALERT_PARAMS_MARKER.length).trim()
+
+  try {
+    const parsed = JSON.parse(jsonPart)
+    const params = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, any>)
+      : {}
+    return { description: visibleDescription, params }
+  } catch {
+    return { description: source, params: {} }
+  }
+}
+
+export function buildAlertDescription(
+  description: string | null | undefined,
+  params: Record<string, any>
+): string | null {
+  const visibleDescription = typeof description === 'string' ? description.trim() : ''
+
+  const hasParams = Object.values(params).some(v => {
+    if (v === null || v === undefined) return false
+    if (Array.isArray(v)) return v.length > 0
+    return String(v).trim().length > 0
+  })
+
+  if (!hasParams) return visibleDescription || null
+
+  const payload = `${ALERT_PARAMS_MARKER}${JSON.stringify(params)}`
+  return visibleDescription ? `${visibleDescription}\n${payload}` : payload
 }
 
 export function mapSavedSearchToParams(savedSearch?: any): Record<string, any> {
@@ -57,8 +210,9 @@ export function mapSavedSearchToParams(savedSearch?: any): Record<string, any> {
     ccode: undefined,
     organizationName: savedSearch.agency ?? undefined,
     deptname: savedSearch.agency ?? undefined,
-    postedFrom: savedSearch.posted_after ?? undefined,
-    postedTo: savedSearch.posted_before ?? undefined,
+    postedFrom: normalizeDateString(savedSearch.posted_after),
+    postedTo: normalizeDateString(savedSearch.posted_before),
+    rdlto: normalizeDateString(savedSearch.posted_before),
     format: savedSearch.export_format ?? undefined,
   }
 }
@@ -84,11 +238,19 @@ export function buildSavedSearchData(params: Record<string, any>, fallbackName: 
 
 export function mapAlertRow(row: any) {
   const recipientsList = parseRecipientsList(row.recipients)
-  const params = mapSavedSearchToParams(row.saved_searches_v2)
+  const baseParams = mapSavedSearchToParams(row.saved_searches_v2)
+  const parsedDescription = parseAlertDescription(row.description)
+  const params = {
+    ...baseParams,
+    ...parsedDescription.params,
+    format: row.export_format ?? parsedDescription.params?.format ?? baseParams.format ?? 'CSV',
+  }
   return {
     id: row.id,
     name: row.name,
-    description: row.description ?? null,
+    description: parsedDescription.description,
+    savedSearchId: row.saved_search_id ?? null,
+    savedSearchName: row.saved_searches_v2?.name ?? null,
     frequency: row.frequency,
     deliveryTime: row.delivery_time ?? '09:00',
     isActive: row.active,
@@ -97,7 +259,7 @@ export function mapAlertRow(row: any) {
     lastError: row.last_error ?? null,
     recipients: row.recipients ?? '',
     recipientsList,
-    params: { ...params, format: row.export_format ?? params.format ?? 'CSV' },
+    params,
     maxResults: row.max_results ?? 100,
     sendEmptyResults: row.send_empty_results,
     emailNotification: row.email_notification,
@@ -151,9 +313,6 @@ export async function POST(req: NextRequest) {
       savedSearchId, // optional: connect to existing
       savedSearch,   // optional: create new
       savedSearchConnectOrCreate, // optional: connectOrCreate
-      usersId, // optional: connect to existing user
-      users,   // optional: create new user
-      usersConnectOrCreate, // optional: connectOrCreate user
     } = body
 
     if (!name?.trim()) {
@@ -173,11 +332,52 @@ export async function POST(req: NextRequest) {
           .join(',')
       : (typeof recipients === 'string' ? recipients : '')
 
-    const savedSearchData = buildSavedSearchData(params, name.trim(), description)
+    const parsedInputDescription = parseAlertDescription(description)
+    const alertDescription = buildAlertDescription(parsedInputDescription.description, params)
+    const savedSearchData = buildSavedSearchData(params, name.trim(), parsedInputDescription.description)
 
     // Build saved_searches_v2 relation object
     let savedSearchesRelation: any = undefined
-    if (Object.keys(savedSearchData).some(key => savedSearchData[key as keyof typeof savedSearchData] != null)) {
+    const hasSearchCriteria = [
+      savedSearchData.keywords,
+      savedSearchData.naics,
+      savedSearchData.agency,
+      savedSearchData.set_aside,
+      savedSearchData.state_of_performance,
+      savedSearchData.posted_after,
+      savedSearchData.posted_before,
+      savedSearchData.procurement_type,
+      savedSearchData.description,
+    ].some(value => value != null && String(value).trim() !== '')
+
+    const normalizedSavedSearchId = typeof savedSearchId === 'string' ? savedSearchId.trim() : ''
+
+    if (savedSearchConnectOrCreate) {
+      savedSearchesRelation = { connectOrCreate: savedSearchConnectOrCreate }
+    } else if (normalizedSavedSearchId) {
+      // Some callers pass IDs from older saved-search tables. connectOrCreate prevents
+      // relation failures and safely seeds a v2 row if the ID is missing.
+      savedSearchesRelation = {
+        connectOrCreate: {
+          where: { id: normalizedSavedSearchId },
+          create: {
+            id: normalizedSavedSearchId,
+            user_id: session.user.id,
+            updated_at: new Date(),
+            ...savedSearchData,
+          },
+        },
+      }
+    } else if (savedSearch) {
+      savedSearchesRelation = {
+        create: {
+          id: randomBytes(12).toString('hex'),
+          user_id: session.user.id,
+          updated_at: new Date(),
+          ...savedSearch,
+        },
+      }
+    } else if (hasSearchCriteria) {
       savedSearchesRelation = {
         create: {
           id: randomBytes(12).toString('hex'),
@@ -186,30 +386,14 @@ export async function POST(req: NextRequest) {
           ...savedSearchData,
         },
       }
-    } else if (savedSearchConnectOrCreate) {
-      savedSearchesRelation = { connectOrCreate: savedSearchConnectOrCreate }
-    } else if (savedSearchId) {
-      savedSearchesRelation = { connect: { id: savedSearchId } }
-    } else if (savedSearch) {
-      savedSearchesRelation = { create: savedSearch }
-    }
-
-    // Build users relation object
-    let usersRelation: any = undefined
-    if (usersConnectOrCreate) {
-      usersRelation = { connectOrCreate: usersConnectOrCreate }
-    } else if (usersId) {
-      usersRelation = { connect: { id: usersId } }
-    } else if (users) {
-      usersRelation = { create: users }
     }
 
     const row = await prisma.alert_subscriptions.create({
       data: {
         id: randomBytes(12).toString('hex'),
-        user_id: session.user.id,
+        users: { connect: { id: session.user.id } },
         name: name.trim(),
-        description: description ?? null,
+        description: alertDescription,
         frequency: freq,
         delivery_time: deliveryTime,
         recipients: recipientEmails,
@@ -220,9 +404,17 @@ export async function POST(req: NextRequest) {
         email_notification: true,
         updated_at: new Date(),
         ...(savedSearchesRelation ? { saved_searches_v2: savedSearchesRelation } : {}),
-        ...(usersRelation ? { users: usersRelation } : {}),
       },
+      include: { saved_searches_v2: true },
     })
+
+    // Keep alert recipients in the shared Contacts address book.
+    try {
+      await syncRecipientsToAddressBook(session.user.id, recipientsList, recipientEmails)
+    } catch (syncError) {
+      // Non-fatal: alert creation should still succeed even if contact sync fails.
+      console.error('[alert-subscriptions POST] recipient sync failed', syncError)
+    }
 
     return NextResponse.json(mapAlertRow(row), { status: 201 })
   } catch (error) {

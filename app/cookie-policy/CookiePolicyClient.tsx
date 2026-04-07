@@ -89,7 +89,7 @@ export default function CookiePolicyClient() {
 
       {/* ── Hero banner — full width, matches header ── */}
       <div style={{ background: '#0f172a', borderBottom: '1px solid #1e3a5f' }}>
-        <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mx-auto max-w-480 px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Left: back + title */}
             <div className="flex items-center gap-4">
@@ -145,7 +145,7 @@ export default function CookiePolicyClient() {
       </div>
 
       {/* ── Body — full width matching header ── */}
-      <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mx-auto max-w-480 px-4 sm:px-6 lg:px-8 py-6">
 
         {/* ── Two-column layout: main content + sidebar ── */}
         <div className="flex flex-col lg:flex-row gap-6">

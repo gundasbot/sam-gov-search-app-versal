@@ -72,7 +72,6 @@ export function generateEnhancedCSV({
 
   // Column headers (Row 6)
   const headers = [
-    'Notice ID',
     'Title',
     'Solicitation Number',
     'Department/Agency',
@@ -85,8 +84,7 @@ export function generateEnhancedCSV({
     'Place of Performance (City)',
     'Place of Performance (State)',
     'Place of Performance (Zip)',
-    'Description',
-    'Link to SAM.gov',
+    'Solicitation link',
     'Active Status',
     'Base Type',
     'Point of Contact Name',
@@ -96,8 +94,9 @@ export function generateEnhancedCSV({
 
   // Build data rows
   const dataRows = opportunities.map((opp) => {
+    const solicitationLink = opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`
+    const hyperlinkFormula = `=HYPERLINK("${String(solicitationLink).replace(/"/g, '""')}","Open Solicitation")`
     return [
-      escapeCSV(opp.noticeId),
       escapeCSV(opp.title),
       escapeCSV(opp.solicitation_number),
       escapeCSV(opp.fullParentPathName || opp.departmentName),
@@ -110,8 +109,7 @@ export function generateEnhancedCSV({
       escapeCSV(opp.placeOfPerformance?.city?.name),
       escapeCSV(opp.placeOfPerformance?.state?.name || opp.placeOfPerformance?.state?.code),
       escapeCSV(opp.placeOfPerformance?.zip),
-      escapeCSV(opp.descriptionLink || opp.description),
-      escapeCSV(opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`),
+      escapeCSV(hyperlinkFormula),
       escapeCSV(opp.active ? 'Yes' : 'No'),
       escapeCSV(opp.baseType),
       escapeCSV(opp.pointOfContact?.[0]?.fullName),

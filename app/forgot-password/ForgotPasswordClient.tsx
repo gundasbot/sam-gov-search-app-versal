@@ -33,7 +33,7 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
 
   return (
     <div
-      className="mx-auto max-w-[1920px] px-4 pt-4 sm:px-6 lg:px-8"
+      className="mx-auto max-w-480 px-4 pt-4 sm:px-6 lg:px-8"
       style={{ minHeight: "calc(100vh - 200px)", display: "flex", flexDirection: "column" }}
     >
       {/* ── Unified two-column card ── */}

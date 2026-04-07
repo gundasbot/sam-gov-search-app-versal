@@ -134,6 +134,7 @@ body {
 
 html {
   font-size: clamp(15px, 0.3vw + 13.5px, 17px);
+  overflow-x: hidden;
 }
 
 body {
@@ -755,6 +756,18 @@ select:focus-visible {
 .pg-support-modern [class*="text-white/80"],
 .pg-support-modern [class*="text-white"] {
   color: var(--color-text-primary) !important;
+}
+
+/* Preserve intentional white text on solid support CTA surfaces. */
+.pg-support-modern .bg-orange-600,
+.pg-support-modern .bg-orange-600 *,
+.pg-support-modern .bg-orange-700,
+.pg-support-modern .bg-orange-700 *,
+.pg-support-modern .bg-emerald-700,
+.pg-support-modern .bg-emerald-700 *,
+.pg-support-modern .bg-emerald-800,
+.pg-support-modern .bg-emerald-800 * {
+  color: #ffffff !important;
 }
 
 .pg-support-modern [class*="bg-white/7"],

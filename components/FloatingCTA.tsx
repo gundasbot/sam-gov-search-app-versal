@@ -116,16 +116,16 @@ function FloatingCTA() {
 
   return (
     <>
-      {/* Floating Bottom Right CTA - Desktop */}
+      {/* Floating Middle Right CTA - Desktop */}
       <div
         className={`
-          fixed bottom-6 right-6 z-40
+          fixed top-1/2 -translate-y-1/2 right-0 z-40
           hidden md:block
           transition-all duration-500
           ${
             isVisible
-              ? "translate-y-0 opacity-100"
-              : "translate-y-12 opacity-0 pointer-events-none"
+              ? "translate-x-0 opacity-100"
+              : "translate-x-24 opacity-0 pointer-events-none"
           }
         `}
       >
@@ -145,7 +145,7 @@ function FloatingCTA() {
           {/* Main CTA Card */}
           <button
             onClick={goToSignup}
-            className="relative flex max-w-96 items-center gap-3 rounded-2xl px-5 py-4 shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
+            className="relative mr-0 flex w-[320px] lg:w-[340px] items-center gap-3 rounded-l-2xl rounded-r-none px-5 py-4 shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
             style={{
               background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
             }}

@@ -137,7 +137,7 @@ export default function CookieConsent() {
           className="pgc-cookie-bar border-t w-full bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] shadow-[0_-8px_40px_rgba(0,0,0,0.5),0_-2px_0_rgba(255,122,24,0.3)] border-[rgba(255,122,24,0.25)]"
         >
           {/* Content container - centered with max width */}
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-480 px-4 sm:px-6 lg:px-8">
             <div className="flex w-full min-w-0 flex-col py-5 justify-between sm:flex-row sm:items-center sm:py-6 lg:py-6">
 
               {/* ── Left: icon + text ── */}

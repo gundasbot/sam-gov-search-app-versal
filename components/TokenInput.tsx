@@ -7,9 +7,10 @@ interface TokenInputProps {
   onChange: (v: string) => void
   placeholder?: string
   className?: string
+  theme?: 'dark' | 'light'
 }
 
-export default function TokenInput({ value, onChange, placeholder, className }: TokenInputProps) {
+export default function TokenInput({ value, onChange, placeholder, className, theme = 'dark' }: TokenInputProps) {
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -46,21 +47,34 @@ export default function TokenInput({ value, onChange, placeholder, className }: 
     }
   }
 
+  const containerClass = theme === 'light'
+    ? 'bg-white border border-blue-300 rounded-lg focus-within:border-blue-500'
+    : 'bg-blue-800 border border-blue-500 rounded-lg focus-within:border-blue-300'
+  const chipClass = theme === 'light'
+    ? 'bg-orange-100 border border-orange-300 text-orange-900'
+    : 'bg-orange-600 border border-orange-700 text-white'
+  const removeClass = theme === 'light'
+    ? 'hover:text-red-600'
+    : 'hover:text-red-200'
+  const inputClass = theme === 'light'
+    ? 'bg-transparent text-blue-900 placeholder-blue-500 text-sm'
+    : 'bg-transparent text-white placeholder-blue-200 text-sm font-semibold'
+
   return (
     <div
-      className={`flex flex-wrap gap-1.5 items-center px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus-within:border-orange-400 transition-colors min-h-[42px] cursor-text ${className ?? ''}`}
+      className={`flex flex-wrap gap-1.5 items-center px-3 py-2 transition-colors min-h-[42px] cursor-text ${containerClass} ${className ?? ''}`}
       onClick={() => inputRef.current?.focus()}
     >
       {tokens.map((t, i) => (
         <span
           key={i}
-          className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-900/40 border border-orange-700/50 rounded-md text-xs font-medium text-orange-200"
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${chipClass}`}
         >
           {t}
           <button
             type="button"
             onClick={e => { e.stopPropagation(); removeToken(i) }}
-            className="hover:text-red-400 transition-colors ml-0.5 flex-shrink-0"
+            className={`transition-colors ml-0.5 flex-shrink-0 ${removeClass}`}
             tabIndex={-1}
           >
             <X className="w-3 h-3" />
@@ -75,7 +89,7 @@ export default function TokenInput({ value, onChange, placeholder, className }: 
         onKeyDown={handleKeyDown}
         onBlur={() => { if (draft.trim()) addToken(draft) }}
         placeholder={tokens.length === 0 ? placeholder : ''}
-        className="flex-1 min-w-[120px] bg-transparent text-white placeholder-slate-400 text-sm focus:outline-none"
+        className={`flex-1 min-w-[120px] focus:outline-none ${inputClass}`}
       />
     </div>
   )

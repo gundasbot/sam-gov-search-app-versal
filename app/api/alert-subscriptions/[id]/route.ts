@@ -7,7 +7,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
-import { buildSavedSearchData, mapAlertRow } from '../route'
+import {
+  buildAlertDescription,
+  buildSavedSearchData,
+  mapAlertRow,
+  parseAlertDescription,
+  syncRecipientsToAddressBook,
+} from '../route'
 
 const freqMap: Record<string, 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'AS_CHANGES' | 'MANUAL'> = {
   DAILY: 'DAILY', WEEKLY: 'WEEKLY', MONTHLY: 'MONTHLY',
@@ -42,6 +48,18 @@ export async function PATCH(
       isActive, maxResults, sendEmptyResults,
     } = body
 
+    const existingDescription = parseAlertDescription(existing.description)
+    const incomingDescription = description !== undefined
+      ? parseAlertDescription(description).description
+      : existingDescription.description
+    const mergedParams = alertParams !== undefined
+      ? alertParams
+      : existingDescription.params
+    const nextDescription =
+      (description !== undefined || alertParams !== undefined)
+        ? buildAlertDescription(incomingDescription, mergedParams)
+        : undefined
+
     // Rebuild recipients string from list if provided
     let recipientEmails: string | undefined
     if (recipientsList !== undefined) {
@@ -56,7 +74,7 @@ export async function PATCH(
       where: { id },
       data: {
         ...(name !== undefined && { name: name.trim() }),
-        ...(description !== undefined && { description }),
+        ...(nextDescription !== undefined && { description: nextDescription }),
         ...(frequency !== undefined && { frequency: freqMap[String(frequency).toUpperCase()] ?? 'DAILY' }),
         ...(deliveryTime !== undefined && { delivery_time: deliveryTime }),
         ...(recipientEmails !== undefined && { recipients: recipientEmails }),
@@ -71,7 +89,7 @@ export async function PATCH(
                 ...buildSavedSearchData(
                   alertParams,
                   typeof name === 'string' ? name.trim() : existing.name,
-                  description !== undefined ? description : existing.description
+                  incomingDescription
                 ),
               },
               update: {
@@ -79,7 +97,7 @@ export async function PATCH(
                 ...buildSavedSearchData(
                   alertParams,
                   typeof name === 'string' ? name.trim() : existing.saved_searches_v2?.name ?? existing.name,
-                  description !== undefined ? description : existing.saved_searches_v2?.description ?? existing.description
+                  incomingDescription ?? existing.saved_searches_v2?.description
                 ),
               },
             },
@@ -92,6 +110,17 @@ export async function PATCH(
       },
       include: { saved_searches_v2: true },
     })
+
+    try {
+      await syncRecipientsToAddressBook(
+        session.user.id,
+        recipientsList,
+        recipientEmails ?? updated.recipients
+      )
+    } catch (syncError) {
+      // Non-fatal: updating alert should still succeed if contact sync fails.
+      console.error('[alert-subscriptions PATCH] recipient sync failed', syncError)
+    }
 
     return NextResponse.json(mapAlertRow(updated))
   } catch (error) {

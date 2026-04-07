@@ -1,7 +1,7 @@
 export default function DocsPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
-      <div className="max-w-5xl mx-auto px-6 py-16">
+      <div className="max-w-480 mx-auto px-6 py-16">
         <h1 className="text-4xl font-black text-white">Documentation</h1>
         <p className="mt-3 text-slate-300">
           This is the starting point for Precise GovCon docs. Add guides here as you ship features.

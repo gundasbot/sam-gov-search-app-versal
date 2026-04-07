@@ -117,11 +117,12 @@ async function fetchSAM(upstreamUrl: string) {
   const apiKey =
     process.env.SAM_GOV_API_KEY ||
     process.env.SAM_API_KEY ||
+    process.env.SAMGOVAPIKEY ||
     process.env.SAM_APIKEY ||
     ''
 
   if (!apiKey) {
-    throw new Error('Missing SAM API key (SAM_GOV_API_KEY or SAM_API_KEY)')
+    throw new Error('Missing SAM API key (SAM_GOV_API_KEY, SAM_API_KEY, or SAMGOVAPIKEY)')
   }
 
   const url = new URL(upstreamUrl)

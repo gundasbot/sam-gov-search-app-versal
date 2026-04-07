@@ -15,7 +15,7 @@ export const metadata = {
 
 export default function SAMRegistrationPage() {
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900">
+    <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900">
       {/* Compact Hero - 2 Column */}
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 opacity-90" />

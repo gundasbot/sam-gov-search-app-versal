@@ -173,7 +173,7 @@ export function RateLimitBanner() {
 
   return (
     <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2">
-      <div className="max-w-7xl mx-auto flex items-center gap-3 text-sm">
+      <div className="max-w-480 mx-auto flex items-center gap-3 text-sm">
         <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
         <p className="text-amber-200">
           <span className="font-medium">SAM.gov API quota exceeded.</span>

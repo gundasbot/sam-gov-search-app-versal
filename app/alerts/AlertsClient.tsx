@@ -20,33 +20,7 @@ interface AlertSubscription {
   lastSentAt?: string
 }
 
-// Mock data shown ONLY to unauthenticated visitors as a preview
-const MOCK_SEARCHES: SavedSearch[] = [
-  {
-    id: 'mock-1',
-    name: 'SDVOSB IT Services - Virginia',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    params: { typeOfSetAside: 'SDVOSBC', state: 'VA', keyword: 'IT services' }
-  },
-  {
-    id: 'mock-2',
-    name: 'Cybersecurity Contracts - All Federal',
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    params: { keyword: 'cybersecurity', ncode: '541512' }
-  },
-  {
-    id: 'mock-3',
-    name: 'Data Analytics - DoD Only',
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    params: { keyword: 'data analytics', deptname: 'Defense' }
-  }
-]
-
-const MOCK_ALERTS: AlertSubscription[] = [
-  { id: 'mock-1', name: 'Daily SDVOSB Opportunities',    frequency: 'DAILY',      isActive: true,  lastSentAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'mock-2', name: 'Weekly Cybersecurity Digest',   frequency: 'WEEKLY',     isActive: true,  lastSentAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'mock-3', name: 'Real-time High-Value Contracts', frequency: 'AS_CHANGES', isActive: false, lastSentAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
-]
+// No synthesized preview data: unauthenticated users must see explicit empty state.
 
 const SET_ASIDE_LABELS: Record<string, string> = {
   SDVOSBC: 'SDVOSB', WOSB: 'WOSB', EDWOSB: 'EDWOSB', 'SBA': 'SBA Set-Aside',
@@ -157,19 +131,19 @@ export default function AlertsClient() {
     })
   }, [isAuthenticated])
 
-  // Stats to display — mock for guests, real for auth'd users
+  // Stats to display — real data only
   const displayStats = isAuthenticated
     ? stats
-    : { searches: MOCK_SEARCHES.length, active: MOCK_ALERTS.filter(a => a.isActive).length, paused: MOCK_ALERTS.filter(a => !a.isActive).length }
+    : { searches: 0, active: 0, paused: 0 }
 
-  const displaySearches = isAuthenticated ? recentSearches : MOCK_SEARCHES
-  const displaySubs     = isAuthenticated ? recentSubs     : MOCK_ALERTS
+  const displaySearches = isAuthenticated ? recentSearches : []
+  const displaySubs     = isAuthenticated ? recentSubs     : []
 
   const bg = 'linear-gradient(135deg, #0f172a 0%, #1a2332 25%, #1f2937 50%, #1a1f2e 75%, #0f172a 100%)'
 
   return (
     <div style={{ background: bg }} className="min-h-screen">
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 py-6 sm:py-8">
+      <div className="max-w-480 mx-auto px-4 sm:px-6 lg:px-10 xl:px-12 py-6 sm:py-8">
 
         {/* Hero with Action Buttons */}
         <div className="mb-4 flex items-center justify-between gap-8 flex-wrap">
@@ -234,9 +208,9 @@ export default function AlertsClient() {
                 <Lock className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="text-orange-900 font-black">You're viewing sample data</p>
+                <p className="text-orange-900 font-black">Live data requires sign-in</p>
                 <p className="text-orange-800 text-xs mt-0.5 font-semibold">
-                  Sign in to see your own saved searches and alerts.
+                  Sign in to view your real saved searches and alert subscriptions.
                 </p>
               </div>
             </div>

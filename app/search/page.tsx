@@ -9,9 +9,9 @@ import {
  FileText, Building2, Target, MapPin, Loader2, HelpCircle, X, Save, Bell,
  Settings, Tag, Layers, Users, MessageSquare, ExternalLink, Shield, Check,
  Bookmark, Clock, Calendar, Hash, Copy, ArrowUpRight, Phone, AlertTriangle,
- ChevronUp, ChevronDown, Share2, Search, StopCircle, RefreshCw, CheckCircle,
+ ChevronUp, ChevronDown, Search, StopCircle, RefreshCw, CheckCircle,
  Filter, SlidersHorizontal, List, Grid, AlertCircle, Plus, BarChart3,
- TrendingUp, Sparkles, BarChart2,
+ TrendingUp, Sparkles, BarChart2, Download,
 } from"lucide-react";
 
 import OpportunityDetailDrawer from "@/components/OpportunityDetailDrawer";
@@ -70,6 +70,18 @@ const SET_ASIDE_OPTIONS = [
  { code:"", label:"Any Set-Aside"},
  ...Object.entries(SET_ASIDE_MAP).map(([code, label]) => ({ code, label })),
 ];
+
+const PROCUREMENT_TYPE_LABELS: Record<string, string> = {
+ a: 'Award Notice',
+ p: 'Pre-solicitation',
+ o: 'Solicitation',
+ r: 'Sources Sought',
+ s: 'Special Notice',
+ u: 'Justification (J&A)',
+ k: 'Combined Synopsis/Solicitation',
+ g: 'Sale of Surplus Property',
+ i: 'Intent to Bundle (DoD)',
+};
 
 function getSetAsideLabel(code: string): string {
  return SET_ASIDE_MAP[(code ||"").toUpperCase()] || code ||"";
@@ -157,6 +169,40 @@ function formatDisplayDate(date: Date): string {
  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function formatHumanDate(value?: string): string {
+ if (!value) return '';
+ const date = new Date(`${value}T00:00:00`);
+ if (Number.isNaN(date.getTime())) return value;
+ return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatSummaryList(items: string[], maxVisible = 2): string {
+ const unique = Array.from(new Set(items.map(v => v.trim()).filter(Boolean)));
+ if (unique.length === 0) return '';
+ if (unique.length <= maxVisible) return unique.join(', ');
+ return `${unique.slice(0, maxVisible).join(', ')} +${unique.length - maxVisible} more`;
+}
+
+function getProcurementTypeLabel(value: string): string {
+ return PROCUREMENT_TYPE_LABELS[value?.toLowerCase()] || value;
+}
+
+function getSummaryChipTone(part: string): string {
+ const lower = part.toLowerCase();
+ if (lower.startsWith('keyword:')) return 'border-amber-300 bg-amber-50 text-amber-900';
+ if (lower.startsWith('set-aside:')) return 'border-indigo-300 bg-indigo-50 text-indigo-900';
+ if (lower.startsWith('state:')) return 'border-cyan-300 bg-cyan-50 text-cyan-900';
+ if (lower.startsWith('status:')) return 'border-emerald-300 bg-emerald-50 text-emerald-900';
+ if (lower.startsWith('posted ')) return 'border-blue-300 bg-blue-50 text-blue-900';
+ if (lower.startsWith('due ')) return 'border-orange-300 bg-orange-50 text-orange-900';
+ if (lower.startsWith('naics:')) return 'border-violet-300 bg-violet-50 text-violet-900';
+ if (lower.startsWith('psc:')) return 'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-900';
+ if (lower.startsWith('agency:')) return 'border-teal-300 bg-teal-50 text-teal-900';
+ if (lower.startsWith('type:')) return 'border-sky-300 bg-sky-50 text-sky-900';
+ if (lower.startsWith('solicitation')) return 'border-rose-300 bg-rose-50 text-rose-900';
+ return 'border-slate-300 bg-slate-100 text-slate-800';
+}
+
 function getDeadlineMeta(deadline?: string) {
  if (!deadline) return null;
  const due = new Date(deadline);
@@ -217,7 +263,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, placeholder }
  <button type="button"onClick={() => setOpen((p) => !p)}
  className="multi-select-trigger w-full rounded-lg border-2 border-gray-200 px-3 font-semibold text-left text-gray-900 bg-white flex items-center justify-between focus:border-[#166534] outline-none transition-colors" style={{ height: "42px", fontSize: "15px" }}>
  <span className="truncate">{selected.length > 0 ? `${selected.length} selected` : (placeholder ||"Any")}</span>
- <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400"/>
+ <ChevronDown className="h-4 w-4 shrink-0 text-gray-400"/>
  </button>
  {open && (
  <div className="multi-select-dropdown absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
@@ -253,13 +299,13 @@ function OpportunityCard({ opportunity, index, isSaved, toggleSaved, copyText, c
  const handleOpen = () => onOpen(opportunity);
  return (
  <div
- className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm hover:shadow-lg transition-all cursor-pointer"
+ className="group relative overflow-hidden rounded-2xl border border-(--color-border) bg-white p-5 shadow-sm hover:shadow-lg transition-all cursor-pointer"
  onClick={handleOpen}
  role="button"
  tabIndex={0}
  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpen(); } }}
  >
- <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50 opacity-0 group-hover:opacity-90 transition-opacity" />
+ <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-slate-50 via-white to-emerald-50 opacity-0 group-hover:opacity-90 transition-opacity" />
  <div className="relative flex items-start justify-between gap-3">
  <div className="space-y-1">
  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500 line-clamp-1">{dept}</p>
@@ -277,13 +323,13 @@ function OpportunityCard({ opportunity, index, isSaved, toggleSaved, copyText, c
  <span className={`${BADGE_BASE} ${deadlineMeta.gradient}`} style={{ color: '#fff' }}>{deadlineMeta.label}</span>
  )}
  {setAsideLabel && (
- <span className={`${BADGE_BASE} bg-gradient-to-r from-indigo-500 to-purple-600 text-white`} style={{ color: '#fff' }}>{setAsideLabel}</span>
+ <span className={`${BADGE_BASE} bg-linear-to-r from-indigo-500 to-purple-600 text-white`} style={{ color: '#fff' }}>{setAsideLabel}</span>
  )}
  {naics && (
- <span className={`${BADGE_BASE} bg-gradient-to-r from-sky-500 to-blue-600 text-white`} style={{ color: '#fff' }}>NAICS {naics}</span>
+ <span className={`${BADGE_BASE} bg-linear-to-r from-sky-500 to-blue-600 text-white`} style={{ color: '#fff' }}>NAICS {naics}</span>
  )}
  {place && (
- <span className={`${BADGE_BASE} bg-gradient-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>
+ <span className={`${BADGE_BASE} bg-linear-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>
  )}
  </div>
  <div className="relative mt-4 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
@@ -315,37 +361,119 @@ function ExportSharePanel({ results, searchLabel, requireAccess }: {
  requireAccess?: (feature: string) => boolean;
 }) {
  const [open, setOpen] = useState(false);
+ const panelRef = useRef<HTMLDivElement>(null)
  const gate = () => {
  if (requireAccess && !requireAccess('Export Results')) return false
  return true
  }
- const exportCsv = () => {
- if (!results.length) return;
- if (!gate()) return;
- const headers = ["Title","Solicitation Number","Agency","Posted Date","Deadline","Set-Aside","NAICS","Location"];
- const rows = results.map((o) => [
- o.title||"", o.solicitationNumber||"", o.department||"", o.postedDate||"",
- o.responseDeadLine||"", o.typeOfSetAside||o.setAside||"", o.naicsCode||"",
- [o.placeOfPerformance?.city?.name, o.placeOfPerformance?.state?.code].filter(Boolean).join(","),
- ]);
- const csv = [headers,...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
- const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv],{type:"text/csv"})), download: `opportunities-${getToday()}.csv` });
- a.click();
- };
+
+ const baseName = (searchLabel || 'opportunities')
+ .toLowerCase()
+ .replace(/[^a-z0-9]+/g, '-')
+ .replace(/^-+|-+$/g, '')
+ .slice(0, 60) || 'opportunities'
+
+ const makeRows = () =>
+ results.map((o) => ({
+ title: o.title || '',
+ solicitationNumber: o.solicitationNumber || '',
+ agency: o.department || '',
+ postedDate: o.postedDate || '',
+ deadline: o.responseDeadLine || '',
+ setAside: o.typeOfSetAside || o.setAside || '',
+ naics: o.naicsCode || '',
+ location: [o.placeOfPerformance?.city?.name, o.placeOfPerformance?.state?.code].filter(Boolean).join(','),
+ samLink: o.uiLink || '',
+ noticeId: o.noticeId || '',
+ }))
+
+ const downloadBlob = (content: BlobPart, type: string, ext: string) => {
+ const blob = new Blob([content], { type })
+ const url = URL.createObjectURL(blob)
+ const a = document.createElement('a')
+ a.href = url
+ a.download = `${baseName}-${getToday()}.${ext}`
+ document.body.appendChild(a)
+ a.click()
+ a.remove()
+ URL.revokeObjectURL(url)
+ }
+
+ const exportAs = (format: 'csv' | 'json' | 'txt' | 'xml') => {
+ if (!results.length) return
+ if (!gate()) return
+
+ const rows = makeRows()
+
+ if (format === 'csv') {
+ const headers = ['Title', 'Solicitation Number', 'Agency', 'Posted Date', 'Deadline', 'Set-Aside', 'NAICS', 'Location', 'Solicitation Link']
+ const csvRows = rows.map((r) => [r.title, r.solicitationNumber, r.agency, r.postedDate, r.deadline, r.setAside, r.naics, r.location, r.samLink])
+ const csv = [headers, ...csvRows]
+ .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+ .join('\n')
+ downloadBlob(csv, 'text/csv', 'csv')
+ return
+ }
+
+ if (format === 'json') {
+ downloadBlob(JSON.stringify(rows, null, 2), 'application/json', 'json')
+ return
+ }
+
+ if (format === 'txt') {
+ const txt = rows.map((r, idx) => (
+ `${idx + 1}. ${r.title}\nAgency: ${r.agency}\nSolicitation: ${r.solicitationNumber}\nDeadline: ${r.deadline}\nSet-Aside: ${r.setAside}\nNAICS: ${r.naics}\nLocation: ${r.location}\nLink: ${r.samLink}`
+ )).join('\n\n')
+ downloadBlob(txt, 'text/plain', 'txt')
+ return
+ }
+
+ const esc = (v: string) => v
+ .replace(/&/g, '&amp;')
+ .replace(/</g, '&lt;')
+ .replace(/>/g, '&gt;')
+ .replace(/"/g, '&quot;')
+ .replace(/'/g, '&apos;')
+
+ const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<opportunities>\n${rows.map((r) => `  <opportunity>\n    <title>${esc(r.title)}</title>\n    <solicitationNumber>${esc(r.solicitationNumber)}</solicitationNumber>\n    <agency>${esc(r.agency)}</agency>\n    <postedDate>${esc(r.postedDate)}</postedDate>\n    <deadline>${esc(r.deadline)}</deadline>\n    <setAside>${esc(r.setAside)}</setAside>\n    <naics>${esc(r.naics)}</naics>\n    <location>${esc(r.location)}</location>\n    <solicitationLink>${esc(r.samLink)}</solicitationLink>\n    <noticeId>${esc(r.noticeId)}</noticeId>\n  </opportunity>`).join('\n')}\n</opportunities>`
+ downloadBlob(xml, 'application/xml', 'xml')
+ }
+
+ useEffect(() => {
+ if (!open) return
+ const onDown = (e: MouseEvent) => {
+ if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+ setOpen(false)
+ }
+ }
+ document.addEventListener('mousedown', onDown)
+ return () => document.removeEventListener('mousedown', onDown)
+ }, [open])
+
  return (
- <div className="relative">
+ <div className="relative" ref={panelRef}>
  <button
+ type="button"
+ aria-expanded={open}
+ aria-haspopup="menu"
  onClick={() => {
  if (requireAccess && !requireAccess('Export Results')) return;
  setOpen((p) => !p);
  }}
- className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
- <Share2 className="h-3.5 w-3.5"/>Export
+ className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-linear-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-black shadow-lg transition-all">
+ <Download className="h-4 w-4"/>Export Results
  </button>
  {open && (
- <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-2 min-w-36">
- <button onClick={() => { exportCsv(); setOpen(false); }}
- className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-lg">Export CSV</button>
+ <div className="absolute right-0 top-full mt-2 z-50 bg-white border-2 border-blue-200 rounded-2xl shadow-2xl p-2.5 min-w-64">
+ <p className="px-2 py-1 text-xs font-black uppercase tracking-wide text-blue-700">Choose format</p>
+ <button type="button" onClick={() => { exportAs('csv'); setOpen(false); }}
+ className="w-full text-left px-3 py-2.5 text-sm font-bold text-gray-800 hover:bg-blue-50 rounded-lg transition-colors">CSV - Spreadsheet</button>
+ <button type="button" onClick={() => { exportAs('json'); setOpen(false); }}
+ className="w-full text-left px-3 py-2.5 text-sm font-bold text-gray-800 hover:bg-blue-50 rounded-lg transition-colors">JSON - Full data</button>
+ <button type="button" onClick={() => { exportAs('txt'); setOpen(false); }}
+ className="w-full text-left px-3 py-2.5 text-sm font-bold text-gray-800 hover:bg-blue-50 rounded-lg transition-colors">TXT - Readable text</button>
+ <button type="button" onClick={() => { exportAs('xml'); setOpen(false); }}
+ className="w-full text-left px-3 py-2.5 text-sm font-bold text-gray-800 hover:bg-blue-50 rounded-lg transition-colors">XML - Structured feed</button>
  </div>
  )}
  </div>
@@ -371,7 +499,7 @@ function UnifiedSaveSearchModal({ mode, isOpen, onClose, searchParams, onSave }:
  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
  <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
  <div className="flex items-center justify-between mb-4">
- <h2 className="text-xl font-bold">{mode ==="save"?"Save Search":"Create Alert"}</h2>
+ <h2 className="text-xl font-bold">{mode ==="save"?"Save Search":"Create Alert from this Search"}</h2>
  <button onClick={onClose}><X className="h-5 w-5"/></button>
  </div>
  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Search name…"
@@ -381,7 +509,7 @@ function UnifiedSaveSearchModal({ mode, isOpen, onClose, searchParams, onSave }:
  <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 font-semibold text-sm">Cancel</button>
  <button onClick={handleSubmit} disabled={saving}
  className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold text-sm disabled:opacity-50">
- {saving ?"Saving…": mode ==="save"?"Save":"Create Alert"}
+ {saving ?"Saving…": mode ==="save"?"Save":"Create Alert from this Search"}
  </button>
  </div>
  </div>
@@ -392,17 +520,24 @@ function UnifiedSaveSearchModal({ mode, isOpen, onClose, searchParams, onSave }:
 function SaveSearchSuccessModal({ isOpen, onClose, searchName, isSubscription }: {
  isOpen: boolean; onClose: () => void; searchName: string; isSubscription: boolean;
 }) {
- if (!isOpen) return null;
- return (
- <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
- <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
- <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3"/>
- <h2 className="text-xl font-bold mb-2">{isSubscription ?"Alert Created!":"Search Saved!"}</h2>
- <p className="text-gray-600 mb-4">"{searchName}"has been saved.</p>
- <button onClick={onClose} className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold">Done</button>
- </div>
- </div>
- );
+  if (!isOpen) return null;
+  // Unified button for both actions
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md text-center">
+        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3"/>
+        <h2 className="text-xl font-bold mb-2">{isSubscription ? "Alert Created!" : "Search Saved!"}</h2>
+        <p className="text-gray-600 mb-4">"{searchName}" has been saved.</p>
+        <div className="flex flex-col gap-2 justify-center">
+          <Link href="/alerts/manage-searches" onClick={onClose}
+            className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors">
+            View Your Saved Searches and Alerts
+          </Link>
+          <button onClick={onClose} className="px-5 py-2 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors">Done</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function AccessControlModal({ isOpen, onClose, featureName }: {
@@ -485,7 +620,7 @@ function BrowseReminderModal({ level, onClose, onSignUp }: {
  style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
  <div className="flex items-start justify-between gap-2 mb-3">
  <div className="flex items-center gap-2">
- <div className="pgc-green w-8 h-8 rounded-full bg-[#166534] flex items-center justify-center flex-shrink-0">
+ <div className="pgc-green w-8 h-8 rounded-full bg-[#166534] flex items-center justify-center shrink-0">
  <Clock className="h-4 w-4 text-white"/>
  </div>
  <span className="font-black text-gray-900 text-sm">
@@ -1401,17 +1536,20 @@ const useOpportunityManagement = (showToast?: (msg: string) => void) => {
 
 // Search State Persistence Hook
 const useSearchStatePersistence = () => {
+ const SEARCH_STATE_KEY = 'searchState'
+ const SEARCH_RESULTS_KEY = 'searchResultsCache'
+
  const saveSearchState = useCallback((state: any) => {
  try {
- sessionStorage.setItem('searchState', JSON.stringify(state));
+ sessionStorage.setItem(SEARCH_STATE_KEY, JSON.stringify(state));
  } catch (error) {
  console.error('Failed to save search state:', error);
  }
- }, []);
+ }, [SEARCH_STATE_KEY]);
 
  const restoreSearchState = useCallback(() => {
  try {
- const saved = sessionStorage.getItem('searchState');
+ const saved = sessionStorage.getItem(SEARCH_STATE_KEY);
  if (saved) {
  return JSON.parse(saved);
  }
@@ -1419,9 +1557,46 @@ const useSearchStatePersistence = () => {
  console.error('Failed to restore search state:', error);
  }
  return null;
- }, []);
+ }, [SEARCH_STATE_KEY]);
 
- return { saveSearchState, restoreSearchState };
+ const saveSearchResults = useCallback((payload: {
+ data: ApiResponse
+ searchParams: string
+ currentPage: number
+ hasMoreResults: boolean
+ }) => {
+  try {
+   sessionStorage.setItem(SEARCH_RESULTS_KEY, JSON.stringify(payload))
+  } catch (error) {
+   console.error('Failed to save search results cache:', error)
+  }
+ }, [SEARCH_RESULTS_KEY])
+
+ const restoreSearchResults = useCallback(() => {
+  try {
+   const saved = sessionStorage.getItem(SEARCH_RESULTS_KEY)
+   if (!saved) return null
+   return JSON.parse(saved) as {
+    data: ApiResponse
+    searchParams: string
+    currentPage: number
+    hasMoreResults: boolean
+   }
+  } catch (error) {
+   console.error('Failed to restore search results cache:', error)
+  }
+  return null
+ }, [SEARCH_RESULTS_KEY])
+
+ const clearSearchResults = useCallback(() => {
+  try {
+   sessionStorage.removeItem(SEARCH_RESULTS_KEY)
+  } catch (error) {
+   console.error('Failed to clear search results cache:', error)
+  }
+ }, [SEARCH_RESULTS_KEY])
+
+ return { saveSearchState, restoreSearchState, saveSearchResults, restoreSearchResults, clearSearchResults };
 };
 
 // Error Boundary Component
@@ -1522,32 +1697,23 @@ function QuickDateLookup({
  <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters</p>
  </div>
  {/* Save Search + Create Alert */}
- <div className="flex items-center gap-2 flex-wrap">
- <button
- onClick={onSaveSearch}
- className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
- aria-label="Save current search"
- >
- <Save className="h-4 w-4 shrink-0"/>
- Save Search
- </button>
- <button
- onClick={onCreateAlert}
- className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-(--color-primary) to-(--color-primary-hover) text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/25 transition-all"
- aria-label="Create email alert"
- >
- <Bell className="h-4 w-4 shrink-0"/>
- Create Alert
- </button>
- <Link href="/alerts">
- <button
- className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-(--color-surface-muted) text-white font-bold text-sm hover:bg-(--color-surface-muted) hover:shadow-lg transition-all"
- aria-label="Manage alerts"
- >
- <Settings className="h-4 w-4 shrink-0"/>
- Manage Alerts
- </button>
- </Link>
+ <div className="flex items-center gap-3 flex-wrap mt-2 mb-4">
+   <button
+     onClick={onSaveSearch}
+     className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 shadow-md transition-all"
+     aria-label="Save this search"
+   >
+     <Save className="h-5 w-5 shrink-0"/>
+     Save This Search
+   </button>
+   <button
+     onClick={onCreateAlert}
+     className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-blue-600 text-white font-bold text-base hover:bg-blue-700 shadow-md transition-all"
+     aria-label="Create alert from this search"
+   >
+     <Bell className="h-5 w-5 shrink-0"/>
+     Create an Alert from This Search
+   </button>
  </div>
  </div>
 
@@ -1564,7 +1730,7 @@ function QuickDateLookup({
  onChange={(e) => setKeywords(e.target.value)}
  onKeyDown={(e) => { if (e.key === 'Enter') onRunSearch() }}
  placeholder="e.g., Data Analytics"
- className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-500 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] transition-colors"
+ className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 placeholder-gray-500 hover:border-(--color-border) focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-(--color-border) transition-colors"
  />
  </div>
 
@@ -1577,7 +1743,7 @@ function QuickDateLookup({
  type="date"
  value={postedAfter}
  onChange={(e) => setPostedAfter(e.target.value)}
- className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[var(--color-border)] mb-2"
+ className="w-full px-4 py-2.5 text-base font-semibold rounded-lg bg-white border-2 border-gray-400 text-gray-900 hover:border-(--color-border) focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-(--color-border) mb-2"
  />
  <div className="font-bold text-gray-700 mb-1" style={{ fontSize: "13px" }}>POSTED WITHIN:</div>
  <div className="flex flex-wrap gap-1">
@@ -2124,6 +2290,7 @@ function SearchPageContent() {
  const [loadingMore, setLoadingMore] = useState(false)
  const [error, setError] = useState<string | null>(null)
  const [data, setData] = useState<ApiResponse | null>(null)
+ const [hasSearched, setHasSearched] = useState(false)
  const [showFilters, setShowFilters] = useState(true)
  const [showExportMenu, setShowExportMenu] = useState(false)
  const [showSavedOnly, setShowSavedOnly] = useState(false)
@@ -2186,7 +2353,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  const [showStickyPrompt, setShowStickyPrompt] = useState(false)
  const [stickyPromptDismissed, setStickyPromptDismissed] = useState(false)
  const { saved, toggleSaved, setSaved } = useOpportunityManagement(showToast);
- const { saveSearchState, restoreSearchState } = useSearchStatePersistence();
+ const { saveSearchState, restoreSearchState, saveSearchResults, restoreSearchResults, clearSearchResults } = useSearchStatePersistence();
 
  // Timer effect - updates search duration every second
  useEffect(() => {
@@ -2262,12 +2429,156 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  if (restoredState) {
  // Optionally restore state here
  }
+
+ // Restore prior result set only when user navigates back/forward.
+ // On full refresh, start with a clean search page.
+ const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+ const isBackForward = navEntry?.type === 'back_forward'
+ if (isBackForward) {
+ const restoredResults = restoreSearchResults()
+ if (restoredResults?.data?.opportunitiesData?.length) {
+  setData(restoredResults.data)
+  setCurrentPage(restoredResults.currentPage || 1)
+  setHasMoreResults(Boolean(restoredResults.hasMoreResults))
+  setHasSearched(true)
+  if (restoredResults.searchParams) {
+   lastSearchParamsRef.current = restoredResults.searchParams
+  }
+ }
+ } else {
+ clearSearchResults()
+ }
  } catch (error) {
  console.error('Failed to load data:', error)
  }
- }, [setRecentSearches, setSaved, restoreSearchState])
+ }, [setRecentSearches, setSaved, restoreSearchState, restoreSearchResults, clearSearchResults])
+
+ // Persist returned results so users can navigate away and return without re-querying.
+ useEffect(() => {
+ if (!data?.opportunitiesData?.length) return
+
+ saveSearchResults({
+  data,
+  searchParams: lastSearchParamsRef.current,
+  currentPage,
+  hasMoreResults,
+ })
+ }, [data, currentPage, hasMoreResults, saveSearchResults])
 
  const searchParams = useSearchParams()
+ const hydratedUrlParamsRef = useRef<string | null>(null)
+
+ // Hydrate search UI + run search when arriving with URL filters (e.g., Quick Search -> Full Search).
+ useEffect(() => {
+ if (!searchParams || planLoading) return
+ if (searchParams.get('loadSavedSearch')) return
+
+ const rawSnapshot = searchParams.toString()
+ if (!rawSnapshot || hydratedUrlParamsRef.current === rawSnapshot) return
+
+ const pick = (...keys: string[]) => {
+ for (const key of keys) {
+ const value = searchParams.get(key)
+ if (value && value.trim()) return value.trim()
+ }
+ return ''
+ }
+
+ const splitCsv = (value: string) =>
+ value
+ .split(',')
+ .map(v => v.trim())
+ .filter(Boolean)
+
+ const toDateInput = (value: string) => {
+ const raw = value.trim()
+ if (!raw) return ''
+ if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+ const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+ if (slashMatch) {
+ const mm = slashMatch[1].padStart(2, '0')
+ const dd = slashMatch[2].padStart(2, '0')
+ const yyyy = slashMatch[3]
+ return `${yyyy}-${mm}-${dd}`
+ }
+ const parsed = new Date(raw)
+ if (Number.isNaN(parsed.getTime())) return ''
+ return parsed.toISOString().slice(0, 10)
+ }
+
+ const keywordsFromUrl = pick('title', 'keyword', 'q', 'query', 'search')
+ const naicsFromUrl = pick('ncode', 'naics')
+ const classCodeFromUrl = pick('ccode')
+ const agencyFromUrl = pick('organizationName', 'deptname', 'agency')
+ const ptypeFromUrl = pick('ptype')
+ const setAsideFromUrl = pick('typeOfSetAside', 'setAside')
+ const stateFromUrl = pick('state')
+ const solicitationFromUrl = pick('solnum')
+ const zipFromUrl = pick('zip')
+ const statusFromUrl = pick('status')
+ const postedFrom = toDateInput(pick('postedFrom', 'posted_after'))
+ const postedTo = toDateInput(pick('postedTo', 'posted_before'))
+ const deadlineTo = toDateInput(pick('rdlto', 'responseDeadlineTo', 'responseDeadline'))
+
+ const stateCodes = splitCsv(stateFromUrl)
+ .map(s => s.toUpperCase())
+ .filter(s => s !== 'ALL' && s !== 'ANY')
+ const setAsideCodes = stringToSetAsideCodes(setAsideFromUrl)
+
+ const hasFilters = Boolean(
+ keywordsFromUrl ||
+ naicsFromUrl ||
+ classCodeFromUrl ||
+ agencyFromUrl ||
+ ptypeFromUrl ||
+ setAsideCodes.length > 0 ||
+ stateCodes.length > 0 ||
+ solicitationFromUrl ||
+ zipFromUrl ||
+ statusFromUrl ||
+ postedFrom ||
+ postedTo ||
+ deadlineTo
+ )
+ if (!hasFilters) return
+
+ hydratedUrlParamsRef.current = rawSnapshot
+
+ setKeywords(keywordsFromUrl)
+ setNaics(naicsFromUrl)
+ setClassificationCode(classCodeFromUrl)
+ setAgency(agencyFromUrl)
+ setProcurementType(ptypeFromUrl)
+ setSelectedSetAsides(setAsideCodes)
+ setSelectedStates(stateCodes)
+ setSolicitationNumber(solicitationFromUrl)
+ setPlaceOfPerformanceZip(zipFromUrl)
+ if (statusFromUrl) setOpportunityStatus(statusFromUrl)
+ if (postedFrom) setPostedAfter(postedFrom)
+ if (postedTo) setPostedBefore(postedTo)
+ if (deadlineTo) {
+ setResponseDeadline(deadlineTo)
+ setResponseDeadlineBefore(deadlineTo)
+ }
+
+ void executeSearchWithParams({
+ keywords: keywordsFromUrl,
+ naics: naicsFromUrl,
+ classificationCode: classCodeFromUrl,
+ agency: agencyFromUrl,
+ procurementType: ptypeFromUrl,
+ setAside: setAsideCodes.join(','),
+ stateOfPerformance: stateCodes.join(','),
+ solicitationNumber: solicitationFromUrl,
+ placeOfPerformanceZip: zipFromUrl,
+ opportunityStatus: statusFromUrl || opportunityStatus,
+ postedAfter: postedFrom,
+ postedBefore: postedTo,
+ responseDeadlineTo: deadlineTo,
+ responseDeadline: deadlineTo,
+ })
+ }, [searchParams, planLoading])
+
  // Auto-load saved search if loadSavedSearch param is present
  useEffect(() => {
  const savedSearchId = searchParams?.get('loadSavedSearch');
@@ -2432,10 +2743,12 @@ useEffect(() => {
  */
 
  const requireAccess = useCallback((featureName: string): boolean => {
+ const normalizedFeature = featureName.toLowerCase()
+
  // ── SEARCH: always allowed during loading OR while canBrowse ──────────
  // Never block search itself — the API will reject if truly unauthorised.
  // Showing the modal BEFORE the search would break the free-browse window.
- if (featureName.toLowerCase().includes('search')) {
+ if (normalizedFeature.includes('search')) {
  return true
  }
 
@@ -2450,6 +2763,17 @@ useEffect(() => {
  setBlockedFeature(featureName)
  setShowAccessModal(true)
  return false
+ }
+
+ // Auth-only features (no paid-plan gate): users who are already logged in
+ // should be able to create alerts and save searches/opportunities.
+ if (
+  normalizedFeature.includes('email alerts') ||
+  normalizedFeature.includes('save searches') ||
+  normalizedFeature.includes('save opportunities') ||
+  normalizedFeature.includes('export')
+ ) {
+  return true
  }
 
  // Authenticated but no active subscription
@@ -2476,9 +2800,7 @@ useEffect(() => {
  try {
  console.log('💾 Saving search with payload:', payload)
  
- const endpoint = payload.subscription_enabled 
- ? '/api/saved-searches/with-subscription' 
- : '/api/saved-searches'
+ const endpoint = '/api/saved-searches'
  
  const response = await fetch(endpoint, {
  method: 'POST',
@@ -2605,6 +2927,7 @@ useEffect(() => {
  setSearchStartTime(new Date());
  setResultsLimit(DEFAULT_LIMIT);
  setCurrentPage(1);
+ setHasSearched(true);
  setError(null);
 
  try {
@@ -2731,6 +3054,9 @@ useEffect(() => {
  setHasMoreResults(currentTotalLoaded < total);
  setData(payload);
  setActiveFilter(null);
+ if ((opps?.length ?? 0) === 0) {
+ showToast('No results found. Try broadening your search filters.')
+ }
  
  saveSearchToHistory(qs.toString());
 
@@ -2815,6 +3141,7 @@ useEffect(() => {
  setSearchStartTime(new Date()) // Start timer
  setResultsLimit(DEFAULT_LIMIT)
  setCurrentPage(1)
+ setHasSearched(true)
  }
  
  setError(null)
@@ -2987,7 +3314,6 @@ useEffect(() => {
  
  // Set error state instead of throwing
  setError(userMessage)
- setData(null)
  if (isLoadMore) {
  setLoadingMore(false)
  } else {
@@ -3020,6 +3346,9 @@ useEffect(() => {
  } else {
  setData(payload)
  setActiveFilter(null) // reset subset view on fresh search
+ if ((opps?.length ?? 0) === 0) {
+ showToast('No results found. Try broadening your search filters.')
+ }
  // Save search to history
  saveSearchToHistory(qs.toString())
  writeSearchContext(opps || [], qsToObj(qs))
@@ -3046,9 +3375,6 @@ useEffect(() => {
  
  console.error('Search error:', e)
  setError(e?.message || 'Search failed. Please try again.')
- if (!isLoadMore) {
- setData(null)
- }
  } finally {
  // PERFORMANCE FIX: Only update loading state if request wasn't aborted
  if (!abortController.signal.aborted) {
@@ -3106,6 +3432,7 @@ useEffect(() => {
  // ── UI state ──
  setError(null)
  setData(null)
+ setHasSearched(false)
  setResultsLimit(DEFAULT_LIMIT)
  setCurrentPage(1)
  setSortBy('deadline-asc')
@@ -3115,6 +3442,7 @@ useEffect(() => {
  setShowStateDrilldown(false)
  setShowNaicsDrilldown(false)
  setShowAgencyDrilldown(false)
+ clearSearchResults()
  }
 
  // Filter functions
@@ -3494,7 +3822,7 @@ ${filteredResults.map(opp => ` <opportunity>
  procurementType, opportunityStatus, solicitationNumber, organizationCode])
 
  // Summary statistics - ENHANCED with detailed breakdowns
- const summaryStats = useMemo(() => {
+const summaryStats = useMemo(() => {
  const arr = filteredResults
  const total = arr.length
  
@@ -3574,6 +3902,62 @@ ${filteredResults.map(opp => ` <opportunity>
  }
  }, [filteredResults, saved])
 
+ const activeSearchSummaryParts = useMemo(() => {
+ const parts: string[] = []
+ const trimmedKeywords = keywords.trim()
+ const trimmedNaics = naics.trim()
+ const trimmedClassificationCode = classificationCode.trim()
+ const trimmedAgency = agency.trim()
+ const trimmedProcurementType = procurementType.trim()
+ const trimmedSolicitationNumber = solicitationNumber.trim()
+ const trimmedOpportunityStatus = opportunityStatus.trim()
+ const trimmedZip = placeOfPerformanceZip.trim()
+ const trimmedOrganizationCode = organizationCode.trim()
+
+ if (trimmedKeywords) parts.push(`Keyword: "${trimmedKeywords}"`)
+
+ if (selectedSetAsides.length > 0) {
+ const labels = selectedSetAsides.map(code => getSetAsideLabel(code) || code)
+ parts.push(`Set-aside: ${formatSummaryList(labels, 3)}`)
+ }
+
+ if (selectedStates.length > 0) {
+ const labels = selectedStates.map(code => getLocationLabel(code))
+ parts.push(`State: ${formatSummaryList(labels, 3)}`)
+ }
+
+ if (trimmedNaics) parts.push(`NAICS: ${trimmedNaics}`)
+ if (trimmedClassificationCode) parts.push(`PSC: ${trimmedClassificationCode}`)
+ if (trimmedAgency) parts.push(`Agency: ${trimmedAgency}`)
+ if (trimmedProcurementType) parts.push(`Type: ${getProcurementTypeLabel(trimmedProcurementType)}`)
+ if (trimmedSolicitationNumber) parts.push(`Solicitation #: ${trimmedSolicitationNumber}`)
+ if (trimmedZip) parts.push(`ZIP: ${trimmedZip}`)
+ if (trimmedOrganizationCode) parts.push(`Org code: ${trimmedOrganizationCode}`)
+ if (trimmedOpportunityStatus) parts.push(`Status: ${trimmedOpportunityStatus}`)
+ if (postedAfter) parts.push(`Posted on/after ${formatHumanDate(postedAfter)}`)
+ if (postedBefore) parts.push(`Posted on/before ${formatHumanDate(postedBefore)}`)
+ if (responseDeadlineAfter) parts.push(`Due on/after ${formatHumanDate(responseDeadlineAfter)}`)
+ if (responseDeadlineBefore) parts.push(`Due on/before ${formatHumanDate(responseDeadlineBefore)}`)
+
+ return parts
+ }, [
+ keywords,
+ selectedSetAsides,
+ selectedStates,
+ naics,
+ classificationCode,
+ agency,
+ procurementType,
+ solicitationNumber,
+ placeOfPerformanceZip,
+ organizationCode,
+ opportunityStatus,
+ postedAfter,
+ postedBefore,
+ responseDeadlineAfter,
+ responseDeadlineBefore,
+ ])
+
  // Active filter count for sticky search bar
  const activeFilterCount = useMemo(() => [
  agency, naics, classificationCode, solicitationNumber, procurementType,
@@ -3642,7 +4026,7 @@ ${filteredResults.map(opp => ` <opportunity>
  onRefineSearch={scrollToSearch}
  />
 
- <div className="mx-auto w-full max-w-[1920px] px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
+ <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
 
  {/* ── HOW TO USE GUIDE ─────────────────────────────────────────── */}
  <div className="rounded-2xl overflow-hidden shadow-sm"style={{ border: '1px solid #bbf0d0' }}>
@@ -3711,15 +4095,23 @@ ${filteredResults.map(opp => ` <opportunity>
    </span>
  </p>
  </div>
- <div className="flex items-center gap-2">
- <button onClick={() => handleOpenSaveModal('save')}
- className="save-btn flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold transition-colors" style={{ fontSize: "16px" }}>
- <Save className="h-3.5 w-3.5"/>Save Search
- </button>
- <button onClick={() => handleOpenSaveModal('alert')}
- className="save-btn flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold transition-colors" style={{ fontSize: "16px" }}>
- <Bell className="h-3.5 w-3.5"/>Get Alerts
- </button>
+ <div className="flex items-center gap-2 flex-wrap">
+ <Link
+ href="/alerts/manage-searches"
+ className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-black shadow-md transition-colors"
+ style={{ fontSize: "15px" }}
+ >
+ <Bookmark className="h-4 w-4" />
+ See your saved searches
+ </Link>
+ <Link
+ href="/alerts/manage-alerts"
+ className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black shadow-md transition-colors"
+ style={{ fontSize: "15px" }}
+ >
+ <Bell className="h-4 w-4" />
+ See your saved alerts
+ </Link>
  </div>
  </div>
 
@@ -3777,7 +4169,7 @@ ${filteredResults.map(opp => ` <opportunity>
  <div className="flex-1"/>
             <button
               onClick={resetAll}
-              className="reset-btn flex items-center gap-2 px-4 py-2 font-extrabold text-white bg-red-600 hover:bg-red-500 rounded-lg shadow-md transition-all"
+              className="flex items-center gap-2 px-4 py-2 font-extrabold text-white bg-red-600 hover:bg-red-500 rounded-lg border border-red-700 shadow-md transition-all"
               style={{ fontSize: "15px", letterSpacing: '0.01em' }}
             >
               <RefreshCw className="h-4 w-4" />
@@ -3900,47 +4292,119 @@ ${filteredResults.map(opp => ` <opportunity>
  )}
  </div>
 
+ {/* ── NO RESULTS FEEDBACK ─────────────────────────────────────── */}
+ {hasSearched && !loading && !error && results.length === 0 && (
+ <div className="mt-4 rounded-2xl border-2 border-amber-300 bg-amber-50 shadow-sm p-5">
+ <div className="flex items-start gap-3">
+ <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
+ <div className="flex-1">
+ <p className="text-lg font-black text-amber-900">No opportunities matched this search yet.</p>
+ <p className="mt-1 text-base text-amber-800">
+ Try broadening your keyword, widening your date range, or clearing one or two filters and searching again.
+ </p>
+ <div className="mt-3 flex flex-wrap items-center gap-2">
+ <button
+ type="button"
+ onClick={() => {
+ const d = new Date()
+ d.setMonth(d.getMonth() - 12)
+ setPostedAfter(d.toISOString().split('T')[0])
+ showToast('Expanded posted date range to 12 months.')
+ }}
+ className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-black text-white hover:bg-amber-600 transition-colors"
+ >
+ Expand to 12 months
+ </button>
+ <button
+ type="button"
+ onClick={() => {
+ setSelectedSetAsides([])
+ setSelectedStates([])
+ setNaics('')
+ setAgency('')
+ setClassificationCode('')
+ showToast('Cleared key filters. Run search again.')
+ }}
+ className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-black text-white hover:bg-blue-700 transition-colors"
+ >
+ Clear key filters
+ </button>
+ <button
+ type="button"
+ onClick={() => runSearch()}
+ className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700 transition-colors"
+ >
+ <Search className="h-4 w-4" />
+ Search again
+ </button>
+ </div>
+ </div>
+ </div>
+ </div>
+ )}
+
  {/* ── RESULTS SECTION ──────────────────────────────────────────── */}
- {results.length > 0 && (
+{hasSearched && results.length > 0 && (
  <div ref={resultsRef} className="flex flex-col gap-4">
 
  {/* Results header */}
  <div className="results-card bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4">
- <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
- <div>
+ <div className="mb-3 grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+ <div className="min-w-0">
  <h2 className="text-2xl font-black text-gray-900"style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
  {filteredResults.length.toLocaleString()} <span className="text-[#166534]">opportunities found</span>
  </h2>
- <p className="text-sm text-gray-500 mt-1 flex flex-wrap gap-x-2 gap-y-1 items-center">
- {keywords && <span className="font-bold text-gray-700">&quot;{keywords}&quot;</span>}
- {postedAfter && <><span className="text-gray-400">·</span><span>posted ≥ {new Date(postedAfter + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
- {responseDeadlineBefore && <><span className="text-gray-400">·</span><span>due ≤ {new Date(responseDeadlineBefore + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>}
- {selectedSetAsides.length > 0 && <><span className="text-gray-400">·</span><span>{selectedSetAsides.length === 1 ? getSetAsideLabel(selectedSetAsides[0]) : `${selectedSetAsides.length} set-asides`}</span></>}
- {selectedStates.length > 0 && <><span className="text-gray-400">·</span><span>{selectedStates.length === 1 ? getLocationLabel(selectedStates[0]) : `${selectedStates.length} states`}</span></>}
+ <div className="mt-2">
+ <div className="mb-2 flex items-center gap-2">
+ <span className="inline-flex items-center rounded-md bg-[#1d4ed8] px-3 py-1 text-sm font-black text-white">
+ Search includes
+ </span>
+ </div>
+ <div className="flex flex-wrap items-center gap-2">
+ {activeSearchSummaryParts.length > 0 ? (
+ <>
+ {activeSearchSummaryParts.map((part, index) => (
+ <span
+ key={`${part}-${index}`}
+ className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-bold shadow-sm ${getSummaryChipTone(part)}`}
+ >
+ {part}
+ </span>
+ ))}
+ </>
+ ) : (
+ <span className="inline-flex items-center rounded-md border border-slate-300 bg-slate-100 px-3 py-1 text-sm font-bold text-slate-800 shadow-sm">
+ All opportunities
+ </span>
+ )}
  {data?.totalRecords && data.totalRecords > filteredResults.length && (
- <span className="text-gray-400">(filtered from {data.totalRecords.toLocaleString()} total)</span>
- )}
- </p>
- </div>
- <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
- <ExportSharePanel results={filteredResults} searchLabel={keywords || 'All opportunities'} requireAccess={requireAccess} />
- <button onClick={() => handleOpenSaveModal('save')}
- className="save-btn flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold transition-colors" style={{ fontSize: "16px" }}>
- <Save className="h-3.5 w-3.5"/>Save
- </button>
- <button onClick={() => handleOpenSaveModal('alert')}
- className="pgc-green flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#166534] hover:bg-[#14532d] text-white text-xs font-bold transition-colors">
- <Bell className="h-3.5 w-3.5"/>Get Alerts
- </button>
- {Object.values(saved).filter(Boolean).length > 0 && (
- <button onClick={() => setShowSavedOnly((p) => !p)}
- className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors border ${showSavedOnly ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 '}`}>
- <Bookmark className="h-3.5 w-3.5"/>
- {showSavedOnly ? '← All' : `Saved (${Object.values(saved).filter(Boolean).length})`}
- </button>
+ <span className="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-900 shadow-sm">
+ Filtered from {data.totalRecords.toLocaleString()} total
+ </span>
  )}
  </div>
  </div>
+ </div>
+ <div className="flex items-center gap-2 flex-wrap justify-start xl:justify-end">
+<ExportSharePanel results={filteredResults} searchLabel={keywords || 'All opportunities'} requireAccess={requireAccess} />
+<button
+  onClick={() => handleOpenSaveModal('save')}
+  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 shadow-md transition-all"
+  aria-label="Save this search"
+>
+  <Save className="h-5 w-5 shrink-0"/>
+  Save This Search
+</button>
+<button
+  onClick={() => handleOpenSaveModal('alert')}
+  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-blue-600 text-white font-bold text-base hover:bg-blue-700 shadow-md transition-all"
+  aria-label="Create alert from this search"
+>
+  <Bell className="h-5 w-5 shrink-0"/>
+  Create an Alert from This Search
+</button>
+</div>
+</div>
 
  {/* Toolbar: sort + view + filter toggle */}
  <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-gray-100">
@@ -3968,15 +4432,6 @@ ${filteredResults.map(opp => ` <opportunity>
  <Grid className="h-3.5 w-3.5"/>
  </button>
  </div>
- {Object.values(saved).filter(Boolean).length > 0 && (
- <Link
- href="/dashboard/saved-opportunities"
- className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 text-xs font-bold hover:bg-orange-100 transition-colors"
- >
- <Bookmark className="h-3.5 w-3.5 fill-current" />
- View Saved ({Object.values(saved).filter(Boolean).length})
- </Link>
- )}
  </div>
  </div>
 
@@ -3989,7 +4444,7 @@ ${filteredResults.map(opp => ` <opportunity>
  </h3>
  <button
  onClick={() => { setAgency(''); setSelectedSetAsides([]); setNaics(''); setSelectedStates([]); setProcurementType(''); setClassificationCode(''); setSolicitationNumber(''); setOpportunityStatus('active'); setAdvancedApplied(false); }}
- className="flex items-center gap-2 px-4 py-2 text-sm font-black bg-red-600 border border-red-700 rounded-xl hover:bg-red-700 active:scale-98 transition-all shadow-sm"
+ className="flex items-center gap-2 rounded-lg border border-red-700 bg-red-600 px-4 py-2 text-sm font-black text-white shadow-sm transition-all hover:bg-red-700 active:scale-98"
  style={{ color: '#fff' }}>
  <RefreshCw className="h-4 w-4 text-white"/>Reset filters
  </button>
@@ -4104,21 +4559,61 @@ ${filteredResults.map(opp => ` <opportunity>
  )}
 
  {/* Results toolbar count */}
- <div className="results-count-bar bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
- <span className="font-semibold text-gray-700" style={{ fontSize: "17px" }}>
- {showSavedOnly
- ? <>Showing <strong>{filteredResults.length}</strong> saved of {results.length} results</>
- : <>
+ <div className="results-count-bar rounded-2xl border border-gray-200 bg-white px-5 py-3 shadow-sm">
+ {showSavedOnly ? (
+ <span className="text-[17px] font-semibold text-gray-700">
+ Showing <strong>{filteredResults.length}</strong> saved of {results.length} results
+ </span>
+ ) : (
+ <div className="flex w-full items-center justify-between gap-3 flex-wrap">
+ <div className="flex-1 min-w-[300px]">
+ <p className="text-[17px] font-semibold text-gray-700">
  {filteredResults.length >= 100 ? '🎯 ' : filteredResults.length >= 10 ? '✅ ' : ''}
  <strong className="text-[#166534]">{filteredResults.length.toLocaleString()}</strong>{' '}
  {filteredResults.length === 1 ? 'opportunity' : 'opportunities'}
- {keywords && <> for <em>&quot;{keywords}&quot;</em></>} —{' '}
- <button onClick={() => handleOpenSaveModal('save')} className="underline text-gray-600 hover:text-[#166534] transition-colors">save this search</button>
- {' '}or{' '}
- <button onClick={() => handleOpenSaveModal('alert')} className="underline text-gray-600 hover:text-[#166534] transition-colors">get email alerts</button>
- </>
- }
+ {keywords && <> for <em>&quot;{keywords}&quot;</em></>}
+ </p>
+ {activeSearchSummaryParts.length > 0 && (
+ <div className="mt-2 flex flex-wrap items-center gap-2">
+ <span className="inline-flex items-center rounded-md bg-slate-700 px-2.5 py-1 text-xs font-black text-white">
+ Filters
  </span>
+ {activeSearchSummaryParts.slice(0, 4).map((part, index) => (
+ <span
+ key={`${part}-mini-${index}`}
+ className={`inline-flex items-center rounded-md border px-3 py-1 text-xs font-bold shadow-sm ${getSummaryChipTone(part)}`}
+ >
+ {part}
+ </span>
+ ))}
+ {activeSearchSummaryParts.length > 4 && (
+ <span className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 shadow-sm">
+ +{activeSearchSummaryParts.length - 4} more
+ </span>
+ )}
+ </div>
+ )}
+ </div>
+ <div className="flex items-center gap-2 shrink-0">
+ <button
+ type="button"
+ onClick={() => handleOpenSaveModal('save')}
+ className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
+ >
+ <Save className="h-4 w-4" />
+ Save this search
+ </button>
+ <button
+ type="button"
+ onClick={() => handleOpenSaveModal('alert')}
+ className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-orange-600"
+ >
+ <Bell className="h-4 w-4" />
+ Get email alerts
+ </button>
+ </div>
+ </div>
+ )}
  </div>
 
  {/* Results cards */}
@@ -4152,7 +4647,7 @@ ${filteredResults.map(opp => ` <opportunity>
  if (!requireAccess('Save Opportunities')) return;
  toggleSaved(opp.noticeId || String(idx), opp);
  }}
- className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 ${saved[opp.noticeId || String(idx)] ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-400 hover:text-orange-500'}`}
+ className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 ${saved[opp.noticeId || String(idx)] ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-400 hover:text-orange-500'}`}
  >
  <Bookmark className={`h-4 w-4 ${saved[opp.noticeId || String(idx)] ? 'fill-current' : ''}`} />
  {saved[opp.noticeId || String(idx)] ? 'Saved ✓' : 'Save'}
@@ -4161,9 +4656,9 @@ ${filteredResults.map(opp => ` <opportunity>
  {/* Highlight badges */}
  <div className="flex flex-wrap gap-2 mb-3">
  {deadlineMeta && <span className={`${BADGE_BASE} ${deadlineMeta.gradient}`} style={{ color: '#fff' }}>{deadlineMeta.label}</span>}
- {setAsideLabel && <span className={`${BADGE_BASE} bg-gradient-to-r from-indigo-500 to-purple-600 text-white`} style={{ color: '#fff' }}>{setAsideLabel}</span>}
- {naics && <span className={`${BADGE_BASE} bg-gradient-to-r from-sky-500 to-blue-600 text-white`} style={{ color: '#fff' }}>NAICS {naics}</span>}
- {place && <span className={`${BADGE_BASE} bg-gradient-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>}
+ {setAsideLabel && <span className={`${BADGE_BASE} bg-linear-to-r from-indigo-500 to-purple-600 text-white`} style={{ color: '#fff' }}>{setAsideLabel}</span>}
+ {naics && <span className={`${BADGE_BASE} bg-linear-to-r from-sky-500 to-blue-600 text-white`} style={{ color: '#fff' }}>NAICS {naics}</span>}
+ {place && <span className={`${BADGE_BASE} bg-linear-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>}
  </div>
  {/* Key fields grid */}
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 mb-3">
@@ -4210,29 +4705,56 @@ ${filteredResults.map(opp => ` <opportunity>
  </div>
  )}
  </div>
- {/* Actions */}
- <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
- <button
- className="font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors" style={{ fontSize: "16px" }}
- onClick={(e) => { e.stopPropagation(); setSelectedOpp(opp); }}
- >
- Preview
- </button>
- {opp.uiLink && (
- <a href={opp.uiLink} target="_blank" rel="noopener noreferrer"
- onClick={(e) => e.stopPropagation()}
- className="font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors" style={{ fontSize: "16px" }}>
- SAM.gov <ArrowUpRight className="h-3.5 w-3.5"/>
- </a>
- )}
- {copiedId === opp.noticeId ? (
- <span className="text-xs text-green-600 font-semibold">Copied!</span>
- ) : (
- <button onClick={(e) => { e.stopPropagation(); copyText(opp.noticeId || ''); }}
- className="font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors" style={{ fontSize: "16px" }}>
- <Copy className="h-3 w-3"/>Copy ID
- </button>
- )}
+ {/* Actions: Save Search (left) and Create Alert (right) */}
+ <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 flex-wrap">
+   <button
+     onClick={(e) => {
+       e.stopPropagation();
+       handleOpenSaveModal && handleOpenSaveModal('save');
+     }}
+     className="px-5 py-2.5 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow transition-colors"
+     style={{ minWidth: 140 }}
+     aria-label="Save this search"
+   >
+     <Bookmark className="h-4 w-4 inline-block mr-1 -mt-0.5" /> Save Search
+   </button>
+
+   <div className="flex items-center gap-2 flex-1 justify-center">
+     <button
+       className="font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors"
+       style={{ fontSize: "16px" }}
+       onClick={(e) => { e.stopPropagation(); setSelectedOpp(opp); }}
+     >
+       Preview
+     </button>
+     {opp.uiLink && (
+       <a href={opp.uiLink} target="_blank" rel="noopener noreferrer"
+         onClick={(e) => e.stopPropagation()}
+         className="font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors" style={{ fontSize: "16px" }}>
+         SAM.gov <ArrowUpRight className="h-3.5 w-3.5"/>
+       </a>
+     )}
+     {copiedId === opp.noticeId ? (
+       <span className="text-xs text-green-600 font-semibold">Copied!</span>
+     ) : (
+       <button onClick={(e) => { e.stopPropagation(); copyText(opp.noticeId || ''); }}
+         className="font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors" style={{ fontSize: "16px" }}>
+         <Copy className="h-3 w-3"/>Copy ID
+       </button>
+     )}
+   </div>
+
+   <button
+     onClick={(e) => {
+       e.stopPropagation();
+       handleOpenSaveModal && handleOpenSaveModal('alert');
+     }}
+     className="px-5 py-2.5 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 shadow transition-colors"
+     style={{ minWidth: 140 }}
+     aria-label="Create alert from this search"
+   >
+     <Bell className="h-4 w-4 inline-block mr-1 -mt-0.5" /> Create Alert
+   </button>
  </div>
  </div>
  );

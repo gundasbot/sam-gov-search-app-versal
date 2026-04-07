@@ -10,9 +10,23 @@ import { sendAlertEmail } from '@/lib/email'
 import { generateEnhancedCSV } from '@/lib/csv-export-enhanced'
 import { generateExcel, generateExcelBinary, generateTXT, generateXLSB } from '@/lib/export'
 import { randomBytes } from 'crypto'
-import { exit } from 'process'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+const ALERT_PARAMS_MARKER = '__ALERT_PARAMS__:'
+const SAM_SEARCH_BASE =
+  process.env.SAM_UPSTREAM_BASE ||
+  'https://api.sam.gov/prod/opportunities/v2/search'
+
+function getSamApiKey(): string {
+  return (
+    process.env.SAM_GOV_API_KEY ||
+    process.env.SAM_API_KEY ||
+    process.env.SAMGOV_API_KEY ||
+    process.env.SAMGOVAPIKEY ||
+    process.env.SAM_APIKEY ||
+    ''
+  )
+}
 
 function toSamGovDate(v: Date | string | null | undefined): string {
   if (!v) return ''
@@ -29,6 +43,24 @@ function toSamGovDate(v: Date | string | null | undefined): string {
 function parseJson(raw: string | null): Record<string, any> {
   if (!raw) return {}
   try { return JSON.parse(raw) } catch { return {} }
+}
+
+function parseAlertDescription(raw: unknown): { params: Record<string, any> } {
+  if (typeof raw !== 'string' || !raw.trim()) return { params: {} }
+  const source = raw.trim()
+  const markerIndex = source.lastIndexOf(ALERT_PARAMS_MARKER)
+  if (markerIndex < 0) return { params: {} }
+
+  const jsonPart = source.slice(markerIndex + ALERT_PARAMS_MARKER.length).trim()
+  try {
+    const parsed = JSON.parse(jsonPart)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return { params: parsed as Record<string, any> }
+    }
+  } catch {
+    // no-op: just return empty params
+  }
+  return { params: {} }
 }
 
 function parseRecipients(raw: string | null): string[] {
@@ -110,6 +142,7 @@ export async function POST(
         users: {
           select: { id: true, email: true, name: true, first_name: true },
         },
+        saved_searches_v2: true,
       },
     })
 
@@ -193,46 +226,43 @@ export async function POST(
 
     console.log('🔔 Running alert:', alert.name)
 
-    // Parse stored search params - use saved_search_id to get params if needed
+    // Parse stored search params from linked saved search + embedded alert params.
     let searchParams: Record<string, any> = {}
-    
-    if (alert.saved_search_id) {
-      const savedSearch = await prisma.saved_searches_v2.findFirst({
-        where: { id: alert.saved_search_id, user_id: session.user.id },
-      })
-      if (savedSearch) {
-        searchParams = {
-          keyword: savedSearch.keywords,
-          naics: savedSearch.naics,
-          agency: savedSearch.agency,
-          setAside: savedSearch.set_aside,
-          state: savedSearch.state_of_performance,
-          ptype: savedSearch.procurement_type,
-          postedAfter: savedSearch.posted_after,
-          postedBefore: savedSearch.posted_before,
-        }
+
+    const savedSearch = alert.saved_searches_v2
+    if (savedSearch) {
+      searchParams = {
+        keyword: savedSearch.keywords,
+        naics: savedSearch.naics,
+        agency: savedSearch.agency,
+        setAside: savedSearch.set_aside,
+        state: savedSearch.state_of_performance,
+        ptype: savedSearch.procurement_type,
+        postedAfter: savedSearch.posted_after,
+        postedBefore: savedSearch.posted_before,
       }
     }
-    
-    // Also check for legacy params in the alert
+
+    // Legacy params payload support.
     const legacyParams = parseJson((alert as any).params)
-    searchParams = { ...searchParams, ...legacyParams }
+    const embeddedParams = parseAlertDescription(alert.description).params
+    searchParams = { ...searchParams, ...embeddedParams, ...legacyParams }
     searchParams.format = searchParams.format || alert.export_format || 'CSV'
 
     // ── Build SAM.gov request ────────────────────────────────────────────────
-    const samUrl = new URL('https://api.sam.gov/opportunities/v2/search')
+    const samUrl = new URL(SAM_SEARCH_BASE)
 
     // Keyword / title
     const keyword = searchParams.keyword || searchParams.keywords || searchParams.title || ''
-    if (keyword) samUrl.searchParams.set('keywords', keyword)
+    if (keyword) samUrl.searchParams.set('title', keyword)
 
     // NAICS
     const naics = searchParams.ncode || searchParams.naics || ''
-    if (naics) samUrl.searchParams.set('naics', naics)
+    if (naics) samUrl.searchParams.set('ncode', naics)
 
     // PSC / classification code
     const ccode = searchParams.ccode || searchParams.classificationCode || ''
-    if (ccode) samUrl.searchParams.set('classificationCode', ccode)
+    if (ccode) samUrl.searchParams.set('ccode', ccode)
 
     // Agency / organization
     const agency = searchParams.deptname || searchParams.agency || searchParams.organizationName || ''
@@ -280,9 +310,12 @@ export async function POST(
 
     // Limit & API key
     samUrl.searchParams.set('limit', String(alert.max_results || 100))
-    samUrl.searchParams.set('api_key', process.env.SAM_GOV_API_KEY || process.env.SAMGOV_API_KEY || '')
+    const samApiKey = getSamApiKey()
+    if (samApiKey) samUrl.searchParams.set('api_key', samApiKey)
 
-    console.log('📡 SAM.gov query:', samUrl.searchParams.toString())
+    const logQuery = new URLSearchParams(samUrl.searchParams)
+    if (logQuery.has('api_key')) logQuery.set('api_key', '***')
+    console.log('📡 SAM.gov query:', logQuery.toString())
 
     // ── Execute SAM.gov search ───────────────────────────────────────────────
     let opportunities: any[] = []
@@ -290,9 +323,14 @@ export async function POST(
     let errorMessage: string | null = null
 
     try {
+      if (!samApiKey) {
+        throw new Error('Missing SAM.gov API key (set SAM_GOV_API_KEY, SAM_API_KEY, or SAMGOVAPIKEY in .env.local)')
+      }
+
       const samResponse = await fetch(samUrl.toString(), {
         method: 'GET',
         headers: { Accept: 'application/json' },
+        cache: 'no-store',
         signal: AbortSignal.timeout(30000),
       })
 

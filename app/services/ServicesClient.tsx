@@ -99,7 +99,7 @@ export default function ServicesClient() {
   const activeAnchor = services.find((s) => pathname?.startsWith(s.href))?.anchor
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
+    <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
       {/* Compact Hero Section */}
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-cyan-50 to-orange-50 opacity-90" />

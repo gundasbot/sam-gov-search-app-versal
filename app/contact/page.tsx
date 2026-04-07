@@ -212,7 +212,7 @@ function ContactPageContent() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-480 mx-auto">
         {/* Dynamic Header based on service */}
         <div className="mb-10">
           <div className="flex items-center justify-center mb-4">

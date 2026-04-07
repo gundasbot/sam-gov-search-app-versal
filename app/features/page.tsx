@@ -223,7 +223,7 @@ export default function FeaturesPage() {
         className="relative z-10 pt-24 pb-16 px-6"
         style={{ background: 'var(--color-surface)' }}
       >
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-480 mx-auto text-center">
           <div
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
             style={{
@@ -273,7 +273,7 @@ export default function FeaturesPage() {
         className="relative z-10 py-16 px-6"
         style={{ background: 'var(--color-surface)' }}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-480 mx-auto">
           <div className="text-center mb-12">
             <h2
               className="text-3xl md:text-4xl font-bold mb-4"
@@ -332,7 +332,7 @@ export default function FeaturesPage() {
         className="relative z-10 py-16 px-6"
         style={{ background: 'var(--color-surface-muted)' }}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-480 mx-auto">
           <div className="text-center mb-12">
             <h2
               className="text-3xl md:text-4xl font-bold mb-4"
@@ -380,7 +380,7 @@ export default function FeaturesPage() {
         className="relative z-10 py-16 px-6"
         style={{ background: 'var(--color-surface)' }}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-480 mx-auto">
           <div className="text-center mb-12">
             <h2
               className="text-3xl md:text-4xl font-bold mb-4"
@@ -420,7 +420,7 @@ export default function FeaturesPage() {
         className="relative z-10 py-16 px-6"
         style={{ background: 'var(--color-surface-muted)' }}
       >
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-480 mx-auto">
           <div className="text-center mb-12">
             <h2
               className="text-3xl md:text-4xl font-bold mb-4"

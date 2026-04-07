@@ -46,18 +46,21 @@ type DashNotification = {
  type: 'deadline'|'match'|'alert'|'ai'
  title: string; time?: string
  iconType: 'deadline'|'match'|'alert'|'ai'
+ noticeId?: string
 }
 
-type DeadlineItem = { title: string; agency: string; deadline: string; value?: number|string }
+type DeadlineItem = { title: string; agency: string; deadline: string; value?: number|string; noticeId?: string }
 
-type DataSource = 'live' | 'public' | 'loading'
+type DataSource = 'live' | 'loading'
 
 type DashboardData = {
  activeSearchesCount: number; savedOppCount: number
  avgMatchScore: number | null; thisWeekCount: number
+ highFitCount: number
+ deadlineCount: number
  totalActiveOpportunities: number
  activeSearches: ActiveSearch[]; savedOpportunities: SavedOpportunity[]
- recentOpportunities: SavedOpportunity[]; notifications: DashNotification[]
+ recentOpportunities: SavedOpportunity[]; weeklyOpportunities: SavedOpportunity[]; notifications: DashNotification[]
  upcomingDeadlines: DeadlineItem[]; userGoals: string[]
  userPreferences?: UserPreferences
  loading: boolean; error: string | null; dataSource: DataSource; lastRefreshed?: Date
@@ -122,68 +125,23 @@ const CONTRACT_SIZE_OPTIONS = [
 
 const STATE_OPTIONS = ['VA','MD','DC','TX','FL','CA','NY','GA','PA','NC','IL','OH','AZ','CO','WA','MA','Remote/Nationwide']
 
-// ─── Seed data ────────────────────────────────────────────────────────────────
+// ─── Strict baseline (no synthesized data) ─────────────────────────────────
 
-const MOCK_REFRESH_MS = 25000
-
-function clone<T>(v: T): T { return JSON.parse(JSON.stringify(v)) }
-
-const BASE: Omit<DashboardData,'dataSource'> = {
- activeSearchesCount: 0, savedOppCount: 0, avgMatchScore: null, thisWeekCount: 0,
+const EMPTY_DASH: Omit<DashboardData, 'loading' | 'error' | 'dataSource'> = {
+ activeSearchesCount: 0,
+ savedOppCount: 0,
+ avgMatchScore: null,
+ thisWeekCount: 0,
+ highFitCount: 0,
+ deadlineCount: 0,
  totalActiveOpportunities: 0,
- activeSearches: [
- { id: 's1', name: 'Cybersecurity – VA', query: 'zero trust modernization', filters: { naics:'541512', state:'VA', setaside:'SDVOSB', agency:'Dept of Veterans Affairs' }, resultsCount: 186, newCount: 5 },
- { id: 's2', name: 'Cloud Migration – DHS', query: 'cloud migration devsecops', filters: { naics:'541519', setaside:'SBA', agency:'Dept of Homeland Security' }, resultsCount: 142, newCount: 3 },
- { id: 's3', name: 'AI & Data Science', query: 'machine learning analytics', filters: { naics:'541715', state:'MD' }, resultsCount: 97, newCount: 2 },
- ],
- savedOpportunities: [
- { noticeId:'W91-DEF-2412', title:'Zero Trust Engineering Support', agency:'Dept of the Army', value:3200000, posted:'2 days ago', deadline:'5 days', naics:'541512', match:90, setAside:'SDVOSB' },
- { noticeId:'70RD-CLD-2403', title:'DHS Cloud Migration Surge Team', agency:'Dept of Homeland Security', value:2100000, posted:'4 days ago', deadline:'8 days', naics:'541519', match:84 },
- { noticeId:'36C10B-ALR-007', title:'VA Analytics Modernization', agency:'Dept of Veterans Affairs', value:1500000, posted:'1 week ago', deadline:'12 days', naics:'541611', match:78, setAside:'VOSB' },
- { noticeId:'FA-8604-AI-2024', title:'AI-enabled ISR Tooling', agency:'Dept of the Air Force', value:5800000, posted:'3 days ago', deadline:'15 days', naics:'541715', match:86 },
- { noticeId:'GS-35F-NextGen', title:'GSA NextGen Support Desk', agency:'General Services Administration', value:950000, posted:'5 days ago', deadline:'21 days', naics:'541513', match:74 },
- ],
- recentOpportunities: [
- { noticeId:'FA-4801-CYBER', title:'Defensive Cyber Readiness', agency:'Dept of the Air Force', value:2600000, posted:'Today', deadline:'7 days', naics:'541519', match:88 },
- { noticeId:'HQ0034-CloudOps', title:'Pentagon Cloud Operations Cell', agency:'Dept of Defense', value:4100000, posted:'1 day ago', deadline:'10 days', naics:'541512', match:83 },
- { noticeId:'N00189-AI-Naval', title:'Naval AI Decision Support', agency:'Dept of the Navy', value:2800000, posted:'3 days ago', deadline:'6 days', naics:'541715', match:79 },
- ],
- notifications: [
- { type:'deadline', title:'Deadline in 3 days: Defensive Cyber Readiness', time:'Dept of the Air Force', iconType:'deadline' },
- { type:'match', title:'Saved: DHS Cloud Migration Surge Team', time:'Posted 4 days ago', iconType:'match' },
- { type:'ai', title:'AI flagged 2 expiring SDVOSB set-asides', time:'Review this week', iconType:'ai' },
- ],
- upcomingDeadlines: [
- { title:'Defensive Cyber Readiness', agency:'Dept of the Air Force', deadline:'3 days', value:'$2.6M' },
- { title:'Zero Trust Engineering Support', agency:'Dept of the Army', deadline:'5 days', value:'$3.2M' },
- { title:'VA Analytics Modernization', agency:'Dept of Veterans Affairs', deadline:'12 days', value:'$1.5M' },
- ],
- userGoals: [], loading: false, error: null,
-}
-
-function rand(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min }
-
-function makePublicData(): DashboardData {
- const b = clone(BASE)
- b.activeSearches = b.activeSearches.map((s: ActiveSearch) => ({ ...s, resultsCount: Math.max(40,(s.resultsCount??0)+rand(-18,24)), newCount: rand(0,7) }))
- b.savedOpportunities = b.savedOpportunities.map((o: SavedOpportunity) => ({
- ...o, match: Math.min(97,Math.max(65,(o.match??80)+rand(-5,5))),
- value: o.value ? Math.max(250000,o.value+rand(-200000,200000)) : undefined,
- deadline: `${rand(3,21)} days`, posted: fmtRel(new Date(Date.now()-rand(0,6)*86400000).toISOString()),
- }))
- b.recentOpportunities = b.recentOpportunities.map((o: SavedOpportunity) => ({
- ...o, match: Math.min(95,Math.max(60,(o.match??75)+rand(-7,7))),
- deadline: `${rand(4,14)} days`, posted: fmtRel(new Date(Date.now()-rand(0,3)*86400000).toISOString()),
- }))
- const all = [...b.savedOpportunities,...b.recentOpportunities].filter((o: SavedOpportunity) => o.match)
- b.avgMatchScore = all.length ? Math.round(all.reduce((s: number,o: SavedOpportunity) => s+(o.match??0),0)/all.length) : b.avgMatchScore
- b.thisWeekCount = b.activeSearches.reduce((s: number,sr: ActiveSearch) => s+(sr.newCount??0),0)
- // totalActiveOpportunities set from real API data only
- b.upcomingDeadlines = b.savedOpportunities.slice(0,3).map((o: SavedOpportunity) => ({
- title:o.title, agency:o.agency, deadline:o.deadline??'',
- value: o.value ? `$${(o.value/1_000_000).toFixed(1)}M` : 'TBD',
- }))
- return { ...b, dataSource:'public', loading:false, error:null, lastRefreshed: new Date() }
+ activeSearches: [],
+ savedOpportunities: [],
+ recentOpportunities: [],
+ weeklyOpportunities: [],
+ notifications: [],
+ upcomingDeadlines: [],
+ userGoals: [],
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -642,8 +600,10 @@ export default function DashboardPage() {
 
  const [dash, setDash] = useState<DashboardData>({
  activeSearchesCount:0, savedOppCount:0, avgMatchScore:null, thisWeekCount:0,
+ highFitCount:0,
+ deadlineCount:0,
  totalActiveOpportunities:0, activeSearches:[], savedOpportunities:[],
- recentOpportunities:[], notifications:[], upcomingDeadlines:[], userGoals:[],
+ recentOpportunities:[], weeklyOpportunities:[], notifications:[], upcomingDeadlines:[], userGoals:[],
  loading:true, error:null, dataSource:'loading',
  })
 
@@ -653,6 +613,8 @@ export default function DashboardPage() {
  const [goalSaving, setGoalSaving] = useState(false)
  const [toast, setToast] = useState<{type:'success'|'error';msg:string}|null>(null)
  const [hoveredTrend, setHoveredTrend] = useState<TrendData | null>(null)
+ const [quickSavingIds, setQuickSavingIds] = useState<Set<string>>(new Set())
+ const [quickSavedIds, setQuickSavedIds] = useState<Set<string>>(new Set())
 
  const surveyDismissKey = useMemo(
  () => `pgc-survey-dismissed:${session?.user?.email?.toLowerCase() ?? 'anon'}`,
@@ -663,6 +625,66 @@ export default function DashboardPage() {
  if (typeof window === 'undefined') return false
  return window.localStorage.getItem(surveyDismissKey) === '1'
  }, [surveyDismissKey])
+
+ const samOppUrl = useCallback((noticeId: string) => `https://sam.gov/opp/${encodeURIComponent(noticeId)}/view`, [])
+
+ const quickAlertHref = useCallback((o: SavedOpportunity) => {
+ return `/alerts/manage-alerts${qs({
+ new: 1,
+ title: o.title,
+ ncode: o.naics,
+ typeOfSetAside: o.setAside,
+ organizationName: o.agency,
+ })}`
+ }, [])
+
+ const handleQuickAddSavedOpportunity = useCallback(async (o: SavedOpportunity) => {
+ if (!o.noticeId) return
+ setQuickSavingIds(prev => new Set(prev).add(o.noticeId))
+ try {
+ const res = await fetch('/api/saved-opportunities', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ noticeId: o.noticeId,
+ title: o.title,
+ department: o.agency,
+ naicsCode: o.naics,
+ setAside: o.setAside,
+ uiLink: samOppUrl(o.noticeId),
+ organizationName: o.agency,
+ }),
+ })
+ if (!res.ok) throw new Error('save failed')
+
+ setDash(prev => {
+ if (prev.savedOpportunities.some(s => s.noticeId === o.noticeId)) return prev
+ return {
+ ...prev,
+ savedOppCount: prev.savedOppCount + 1,
+ savedOpportunities: [o, ...prev.savedOpportunities],
+ }
+ })
+
+ setQuickSavedIds(prev => new Set(prev).add(o.noticeId))
+ setToast({ type: 'success', msg: 'Added to saved opportunities.' })
+ setTimeout(() => {
+ setQuickSavedIds(prev => {
+ const next = new Set(prev)
+ next.delete(o.noticeId)
+ return next
+ })
+ }, 2200)
+ } catch {
+ setToast({ type: 'error', msg: 'Could not save this opportunity.' })
+ } finally {
+ setQuickSavingIds(prev => {
+ const next = new Set(prev)
+ next.delete(o.noticeId)
+ return next
+ })
+ }
+ }, [samOppUrl])
 
  // Handler for survey dismiss/skip
  const handleSurveyDismiss = useCallback((dontShowAgain?: boolean) => {
@@ -687,18 +709,40 @@ export default function DashboardPage() {
      });
  }, [mounted, sessionStatus, session?.user?.email, shouldSuppressSurvey])
 
- const [activityLog] = useState<ActivityLog[]>([
- {id:'1',type:'search',title:'Searched: "Zero Trust Modernization"',timestamp:new Date(Date.now()-3600000).toISOString()},
- {id:'2',type:'alert',title:'Alert: 5 new SDVOSB matches',timestamp:new Date(Date.now()-7200000).toISOString()},
- {id:'3',type:'ai',title:'AI summary generated for 3 opportunities',timestamp:new Date(Date.now()-14400000).toISOString()},
- {id:'4',type:'save',title:'Saved: VA Analytics Modernization',timestamp:new Date(Date.now()-86400000).toISOString()},
- ])
+ // Real activity log built from live dashboard data
+ const activityLog = useMemo<ActivityLog[]>(() => {
+ const items: ActivityLog[] = []
+ // Active searches → search events
+ dash.activeSearches.slice(0, 2).forEach((s, i) => {
+ items.push({ id: `s${s.id}`, type: 'search', title: `Saved search: "${s.name}"`, timestamp: new Date(Date.now() - (i + 1) * 3600000 * 2).toISOString() })
+ })
+ // Saved opportunities → save events
+ dash.savedOpportunities.slice(0, 2).forEach((o, i) => {
+ items.push({ id: `o${o.noticeId}`, type: 'save', title: `Saved: ${o.title}`, timestamp: new Date(Date.now() - (i + 1) * 3600000 * 5).toISOString() })
+ })
+ // Notifications → alert/deadline events
+ dash.notifications.slice(0, 2).forEach((n, i) => {
+ items.push({ id: `n${i}`, type: n.iconType === 'deadline' ? 'alert' : n.iconType === 'ai' ? 'ai' : 'alert', title: n.title, timestamp: new Date(Date.now() - (i + 1) * 3600000 * 8).toISOString() })
+ })
+ // Sort newest first, cap at 4
+ return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 4)
+ }, [dash.activeSearches, dash.savedOpportunities, dash.notifications])
 
- const [trend] = useState<TrendData[]>([
- {month:'Oct',opportunities:240,matches:45},{month:'Nov',opportunities:310,matches:68},
- {month:'Dec',opportunities:280,matches:52},{month:'Jan',opportunities:390,matches:87},
- {month:'Feb',opportunities:450,matches:123},{month:'Mar',opportunities:520,matches:156},
- ])
+ // Real 7-day posting trend from live weekly data
+ const trend = useMemo<TrendData[]>(() => {
+ const allOpps = dash.weeklyOpportunities
+ const result: TrendData[] = []
+ for (let i = 6; i >= 0; i--) {
+ const d = new Date()
+ d.setDate(d.getDate() - i)
+ const key = d.toISOString().split('T')[0]
+ const label = d.toLocaleDateString('en-US', { weekday: 'short' })
+ const dayOpps = allOpps.filter(o => o.posted && (o.posted.startsWith(key) || (i === 0 && (o.posted === 'Today' || o.posted === 'just now'))))
+ const dayMatches = dayOpps.filter(o => (o.match ?? 0) >= 70)
+ result.push({ month: label, opportunities: dayOpps.length, matches: dayMatches.length })
+ }
+ return result
+ }, [dash.weeklyOpportunities, dash.savedOpportunities, dash.recentOpportunities])
 
  useEffect(() => {
  // Don't run until next-auth has resolved — avoids CLIENT_FETCH_ERROR
@@ -737,10 +781,13 @@ export default function DashboardPage() {
  // Wait for next-auth to resolve before deciding which data path to take
  if (sessionStatus === 'loading') return
  if (!session?.user?.email) {
- const tick = () => setDash(makePublicData())
- tick()
- const id = setInterval(tick, MOCK_REFRESH_MS)
- return () => clearInterval(id)
+ setDash({
+ ...EMPTY_DASH,
+ loading: false,
+ error: 'Sign in and complete preferences to view live, preference-based SAM.gov metrics.',
+ dataSource: 'live',
+ })
+ return
  }
  async function load() {
  try {
@@ -754,6 +801,17 @@ export default function DashboardPage() {
  ])
  const prefs: UserPreferences|null = prR.status==='fulfilled' ? prR.value : null
  if (prefs) setUserPrefs(prefs)
+ if (!prefs?.completedOnboarding || !prefs?.naicsCodes?.length) {
+ setDash({
+ ...EMPTY_DASH,
+ userPreferences: prefs || undefined,
+ loading: false,
+ error: 'Complete your opportunity preferences to power live, preference-based SAM.gov analytics.',
+ dataSource: 'live',
+ lastRefreshed: new Date(),
+ })
+ return
+ }
  const searches: ActiveSearch[] = sR.status==='fulfilled' ? (sR.value?.searches??[]).map((s:any) => ({id:s.id,name:s.name,query:s.keywords||s.query||'',filters:{naics:s.naics||'',state:s.state||'',setaside:s.setAside||'',agency:s.agency||''},resultsCount:s._count?.search_runs,newCount:s.newResults??0})) : []
  const goals: string[] = pR.status==='fulfilled' ? (pR.value?.goals??[]) : []
  // Fan-out: one SAM.gov call per NAICS code (API only accepts one ncode at a time)
@@ -777,14 +835,43 @@ export default function DashboardPage() {
  }
  const weekly = { totalRecords: wResults[0]?.totalRecords ?? mergedOpps.length, opportunities: mergedOpps }
  const savedOpps: SavedOpportunity[] = oR.status==='fulfilled' ? (oR.value?.savedOpportunities??[]).map((o:any) => ({noticeId:o.notice_id||o.noticeId||o.id,title:o.title||'Untitled',agency:o.organization_name||o.agency||'',value:o.awardValue||o.value,posted:(o.posted_date||o.postedDate)?fmtRel(o.posted_date||o.postedDate):undefined,deadline:o.response_deadline?`${Math.ceil((new Date(o.response_deadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics_code||o.naics,setAside:o.setAside||o.set_aside,match:matchScore(o,searches,[],prefs||undefined)})) : []
- const recentOpps: SavedOpportunity[] = (weekly.opportunities??[]).slice(0,5).map((o:any) => ({noticeId:o.noticeId||o.id,title:o.title||'Untitled',agency:o.department||o.agency||'',value:o.awardValue||o.value,posted:o.postedDate?fmtRel(o.postedDate):undefined,deadline:o.responseDeadline?`${Math.ceil((new Date(o.responseDeadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics||o.naicsCode,setAside:o.setAside,match:matchScore(o,searches,goals,prefs||undefined)}))
- const notifs: DashNotification[] = [...savedOpps.filter(o=>o.deadline&&parseInt(o.deadline)<=7&&!o.deadline.includes('Expired')).slice(0,2).map(o=>({type:'deadline' as const,title:`Deadline in ${o.deadline}: ${o.title}`,time:o.agency,iconType:'deadline' as const})),...recentOpps.filter(o=>(o.match??0)>=80).slice(0,2).map(o=>({type:'match' as const,title:`${o.match}% match: ${o.title}`,time:`Posted ${o.posted}`,iconType:'match' as const}))].slice(0,5)
+ const recentOpps: SavedOpportunity[] = [...(weekly.opportunities ?? [])]
+ .sort((a: any, b: any) => {
+ const aTime = new Date(a.updatedPostedDate || a.postedDate || a.posted_date || 0).getTime()
+ const bTime = new Date(b.updatedPostedDate || b.postedDate || b.posted_date || 0).getTime()
+ return bTime - aTime
+ })
+ .map((o:any) => ({noticeId:o.noticeId||o.id,title:o.title||'Untitled',agency:o.department||o.agency||'',value:o.awardValue||o.value,posted:o.postedDate?fmtRel(o.postedDate):undefined,deadline:o.responseDeadline?`${Math.ceil((new Date(o.responseDeadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics||o.naicsCode,setAside:o.setAside,match:matchScore(o,searches,goals,prefs||undefined)}))
+ const nowTs = Date.now()
+ const sevenDaysAgoTs = nowTs - 7 * 24 * 60 * 60 * 1000
+ const postedThisWeekCount = (weekly.opportunities ?? []).filter((o: any) => {
+ const rawPosted = o.updatedPostedDate || o.postedDate || o.posted_date || o.publishedDate || o.publishDate
+ if (!rawPosted) return false
+ const ts = new Date(rawPosted).getTime()
+ return Number.isFinite(ts) && ts >= sevenDaysAgoTs && ts <= nowTs
+ }).length
+ const highFitCount = recentOpps.filter(o => (o.match ?? 0) >= 80).length
+ const notifs: DashNotification[] = [...savedOpps.filter(o=>o.deadline&&parseInt(o.deadline)<=7&&!o.deadline.includes('Expired')).slice(0,2).map(o=>({type:'deadline' as const,title:`Deadline in ${o.deadline}: ${o.title}`,time:o.agency,iconType:'deadline' as const,noticeId:o.noticeId})),...recentOpps.filter(o=>(o.match??0)>=80).slice(0,2).map(o=>({type:'match' as const,title:`${o.match}% match: ${o.title}`,time:`Posted ${o.posted}`,iconType:'match' as const,noticeId:o.noticeId}))].slice(0,5)
  const allScored = [...savedOpps,...recentOpps].filter(o=>o.match)
  const avgMatch = allScored.length ? Math.round(allScored.reduce((s,o)=>s+(o.match??0),0)/allScored.length) : null
- const deadlines = savedOpps.filter(o=>o.deadline&&!o.deadline.includes('Expired')).sort((a,b)=>parseInt(a.deadline??'999')-parseInt(b.deadline??'999')).slice(0,3).map(o=>({title:o.title,agency:o.agency,deadline:o.deadline??'',value:o.value??''}))
+ const allDeadlines = savedOpps
+ .filter(o => {
+ const d = parseInt(o.deadline ?? '999', 10)
+ return Number.isFinite(d) && d >= 0
+ })
+ .sort((a,b)=>parseInt(a.deadline??'999',10)-parseInt(b.deadline??'999',10))
+ const deadlines = allDeadlines.slice(0, 25).map(o=>({title:o.title,agency:o.agency,deadline:o.deadline??'',value:o.value??'',noticeId:o.noticeId}))
  if(goals.length) setGoalInput(goals.join('\n'))
- setDash({activeSearchesCount:searches.length,savedOppCount:savedOpps.length,avgMatchScore:avgMatch,thisWeekCount:weekly.totalRecords??weekly.opportunities?.length??0,totalActiveOpportunities:weekly.totalRecords??0,activeSearches:searches,savedOpportunities:savedOpps,recentOpportunities:recentOpps,notifications:notifs,upcomingDeadlines:deadlines,userGoals:goals,userPreferences:prefs||undefined,loading:false,error:null,dataSource:'live',lastRefreshed:new Date()})
- } catch { setDash({...makePublicData(),error:'Using general feed — personalized data temporarily unavailable'}) }
+ setDash({activeSearchesCount:searches.length,savedOppCount:savedOpps.length,avgMatchScore:avgMatch,thisWeekCount:postedThisWeekCount,highFitCount,deadlineCount:allDeadlines.length,totalActiveOpportunities:weekly.totalRecords??recentOpps.length,activeSearches:searches,savedOpportunities:savedOpps,recentOpportunities:recentOpps,weeklyOpportunities:mergedOpps.map((o:any)=>({noticeId:o.noticeId||o.id,title:o.title||'Untitled',agency:o.department||o.agency||'',posted:o.updatedPostedDate||o.postedDate||o.posted_date,match:matchScore(o,searches,goals,prefs||undefined)})),notifications:notifs,upcomingDeadlines:deadlines,userGoals:goals,userPreferences:prefs||undefined,loading:false,error:null,dataSource:'live',lastRefreshed:new Date()})
+ } catch {
+ setDash({
+ ...EMPTY_DASH,
+ userPreferences: userPrefs || undefined,
+ loading: false,
+ error: 'Live SAM.gov data is temporarily unavailable. No synthesized values are shown.',
+ dataSource: 'live',
+ })
+ }
  }
  load()
  const id = setInterval(load,5*60*1000)
@@ -881,35 +968,40 @@ export default function DashboardPage() {
  const stats = useMemo(() => [
  {
  label: 'Deadlines',
- value: dash.upcomingDeadlines.length,
+ value: dash.deadlineCount,
  sub: dash.upcomingDeadlines[0] ? `Earliest: ${dash.upcomingDeadlines[0].deadline}` : 'Next 14 days',
  detail: dash.upcomingDeadlines[0]?.title ? `${dash.upcomingDeadlines[0].title} · ${dash.upcomingDeadlines[0].value || ''}` : 'No upcoming deadlines',
+ src: 'From your saved opportunities with upcoming due dates',
  bg: '#b91c1c',
- onClick: () => router.push('/opportunities?filter=deadlines'),
+ onClick: () => setDrawer('deadlines'),
  },
  {
- label: 'Active Searches',
+ /* Alert Subscriptions = saved searches that trigger email alerts */
+ label: 'Alert Subscriptions',
  value: dash.activeSearchesCount,
- sub: `${dash.activeSearches.reduce((s, a) => s + (a.newCount ?? 0), 0)} new results`,
- detail: dash.activeSearches[0] ? `Latest: "${dash.activeSearches[0].name}"` : 'No saved searches',
+ sub: `${dash.activeSearches.reduce((s, a) => s + (a.newCount ?? 0), 0)} new matches`,
+ detail: dash.activeSearches[0] ? `Latest alert: "${dash.activeSearches[0].name}"` : 'No email alerts configured',
+ src: 'From your saved searches and alert subscriptions',
  bg: '#1d4ed8',
- onClick: () => router.push('/alerts'),
+ onClick: () => setDrawer('activeSearches'),
  },
  {
  label: 'Saved Opps',
  value: dash.savedOppCount,
  sub: 'Watchlist',
  detail: dash.savedOpportunities[0] ? `Top: ${dash.savedOpportunities[0].title}` : 'No saved opportunities',
+ src: 'Direct count from your saved-opportunities list',
  bg: '#b45309',
- onClick: () => router.push('/opportunities?saved=1'),
+ onClick: () => setDrawer('savedOpps'),
  },
  {
  label: 'New This Week',
  value: dash.thisWeekCount,
- sub: 'SAM.gov matches',
- detail: `${dash.totalActiveOpportunities.toLocaleString()} total active opportunities`,
+ sub: 'SAM.gov postings',
+ detail: dash.recentOpportunities[0] ? `Newest: ${dash.recentOpportunities[0].title}` : 'No postings in the last 7 days',
+ src: 'From live SAM.gov opportunities loaded this week for your profile',
  bg: '#047857',
- onClick: () => router.push('/search'),
+ onClick: () => setDrawer('recentMatches'),
  },
  {
  label: 'Avg Match Score',
@@ -918,16 +1010,19 @@ export default function DashboardPage() {
  detail: dash.avgMatchScore !== null
  ? dash.avgMatchScore >= 80 ? 'Strong pipeline alignment' : dash.avgMatchScore >= 65 ? 'Good alignment — refine preferences' : 'Update preferences to improve match'
  : 'Complete your profile to see scores',
+ src: 'Computed from saved + recent opportunities versus profile fit',
  bg: '#6d28d9',
- onClick: () => router.push('/opportunities?sort=match'),
+ onClick: () => setDrawer('matchInfo'),
  },
  {
- label: 'Notifications',
+ /* In-app signals: deadline warnings & high-match notices derived from live data */
+ label: 'In-App Signals',
  value: dash.notifications.length,
- sub: 'Signals',
- detail: dash.notifications[0]?.title ?? 'No new signals',
+ sub: dash.notifications.length === 1 ? '1 new signal' : `${dash.notifications.length} signals`,
+ detail: dash.notifications[0]?.title ?? 'No new in-app signals',
+ src: 'From deadline warnings and high-match activity',
  bg: '#334155',
- onClick: () => router.push('/alerts?tab=notifications'),
+ onClick: () => setDrawer('notifications'),
  },
  ], [dash, router])
 
@@ -944,7 +1039,7 @@ export default function DashboardPage() {
  }
 
  const drawerTitles: Record<NonNullable<DrawerKey>, string> = {
- activeSearches:'Active Searches', savedOpps:'Saved Opportunities', recentMatches:'Latest Matches',
+ activeSearches:'Active Searches', savedOpps:'Saved Opportunities', recentMatches:'Posted In Last 7 Days',
  deadlines:'Upcoming Deadlines', notifications:'Notifications', matchInfo:'Match Score',
  goalSetup:'Business Goals', settings:'Settings',
  }
@@ -1202,9 +1297,12 @@ export default function DashboardPage() {
  {drawer==='savedOpps' && (
  <>
  {dash.savedOpportunities.map(o => (
- <button key={o.noticeId}
- onClick={()=>{router.push(`/opportunities${qs({noticeId:o.noticeId})}`);setDrawer(null)}}
- className="w-full text-left rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-3 transition-colors cursor-pointer">
+ <a key={o.noticeId}
+ href={`https://sam.gov/opp/${encodeURIComponent(o.noticeId)}/view`}
+ target="_blank"
+ rel="noopener noreferrer"
+ onClick={()=>setDrawer(null)}
+ className="block w-full text-left rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-3 transition-colors cursor-pointer">
  <div className="flex items-start justify-between gap-2">
  <div className="min-w-0">
  <p style={{fontWeight:700,fontSize:13,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:4}}>{o.title}</p>
@@ -1219,9 +1317,9 @@ export default function DashboardPage() {
  {o.value && <span className="text-xs font-bold text-slate-600 ">{fmtCur(o.value)}</span>}
  </div>
  </div>
- </button>
+ </a>
  ))}
- <button onClick={()=>{router.push('/opportunities?saved=1');setDrawer(null)}} className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer mt-1 transition-colors shadow-md shadow-emerald-600/20">
+ <button onClick={()=>{router.push('/dashboard/saved-opportunities');setDrawer(null)}} className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer mt-1 transition-colors shadow-md shadow-emerald-600/20">
  View All Saved →
  </button>
  </>
@@ -1232,12 +1330,27 @@ export default function DashboardPage() {
  {dash.recentOpportunities.length===0
  ? <p className="text-sm text-slate-400 text-center py-8">No matches yet. Run a search to populate.</p>
  : dash.recentOpportunities.map(o => (
- <button key={o.noticeId}
- onClick={()=>{router.push(`/opportunities${qs({noticeId:o.noticeId})}`);setDrawer(null)}}
- className="w-full text-left rounded-xl border border-slate-200 bg-white hover:bg-slate-50 p-3 transition-colors cursor-pointer">
+ <div key={o.noticeId} className="rounded-xl border border-slate-200 bg-white p-3">
+ <a
+ href={samOppUrl(o.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ onClick={()=>setDrawer(null)}
+ className="block w-full text-left rounded-lg p-1 hover:bg-slate-50 transition-colors cursor-pointer"
+ >
  <div className="flex items-start justify-between gap-2">
  <div className="min-w-0">
- <p className="font-semibold text-sm text-slate-900 truncate mb-1">{o.title}</p>
+ <div className="flex items-center gap-2 mb-1">
+ <p className="font-semibold text-sm text-slate-900 truncate">{o.title}</p>
+ <button
+ type="button"
+ onClick={(e)=>{e.preventDefault(); e.stopPropagation(); handleQuickAddSavedOpportunity(o)}}
+ className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700 text-[10px] font-black uppercase tracking-wide hover:bg-fuchsia-200"
+ title="Quick Add to Saved Opportunities"
+ >
+ Quick Add
+ </button>
+ </div>
  <p className="text-xs text-slate-500 ">{o.agency}</p>
  </div>
  <div className="flex flex-col items-end gap-1 shrink-0">
@@ -1246,7 +1359,34 @@ export default function DashboardPage() {
  {o.value && <span className="text-xs text-slate-400">{fmtCur(o.value)}</span>}
  </div>
  </div>
+ </a>
+ <div className="mt-2 flex items-center gap-2 flex-wrap">
+ <a
+ href={samOppUrl(o.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ onClick={()=>setDrawer(null)}
+ className="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
+ >
+ Open SAM.gov
+ </a>
+ <button
+ type="button"
+ onClick={()=>handleQuickAddSavedOpportunity(o)}
+ disabled={quickSavingIds.has(o.noticeId)}
+ className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold transition-colors"
+ >
+ {quickSavingIds.has(o.noticeId) ? 'Saving...' : quickSavedIds.has(o.noticeId) ? 'Saved ✓' : 'Save Opportunity'}
  </button>
+ <Link
+ href={quickAlertHref(o)}
+ onClick={()=>setDrawer(null)}
+ className="px-2.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition-colors"
+ >
+ Create Alert
+ </Link>
+ </div>
+ </div>
  ))
  }
  </>
@@ -1258,7 +1398,18 @@ export default function DashboardPage() {
  <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
  <div className="flex items-start justify-between gap-2">
  <div>
- <p className="font-semibold text-sm text-slate-900 mb-1">{dl.title}</p>
+ <p className="font-semibold text-sm text-slate-900 mb-1">
+ {dl.noticeId ? (
+ <a
+ href={samOppUrl(dl.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="hover:text-amber-700"
+ >
+ {dl.title}
+ </a>
+ ) : dl.title}
+ </p>
  <p className="text-xs text-slate-500 flex items-center gap-1"><Building2 className="w-3 h-3" />{dl.agency}</p>
  </div>
  <div className="text-right shrink-0">
@@ -1266,10 +1417,22 @@ export default function DashboardPage() {
  {dl.value && <p className="text-xs text-slate-400 mt-0.5">{dl.value}</p>}
  </div>
  </div>
+ {dl.noticeId && (
+ <div className="mt-2">
+ <a
+ href={samOppUrl(dl.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="inline-flex items-center rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-2.5 py-1.5 transition-colors"
+ >
+ Open on SAM.gov
+ </a>
+ </div>
+ )}
  </div>
  ))}
- <button onClick={()=>{router.push('/opportunities');setDrawer(null)}} className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-black cursor-pointer mt-1 border-none transition-colors">
- Review Pipeline →
+ <button onClick={()=>{router.push('/dashboard/saved-opportunities');setDrawer(null)}} className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-black cursor-pointer mt-1 border-none transition-colors">
+ View Saved Deadlines →
  </button>
  </>
  )}
@@ -1281,9 +1444,32 @@ export default function DashboardPage() {
  return (
  <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
  <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${notifColorMap[n.iconType]}`} />
- <div>
- <p className="text-sm font-semibold text-slate-900 mb-0.5">{n.title}</p>
+ <div className="flex-1 min-w-0">
+ <p className="text-sm font-semibold text-slate-900 mb-0.5 truncate">
+ {n.noticeId ? (
+ <a
+ href={samOppUrl(n.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="hover:text-emerald-700"
+ >
+ {n.title}
+ </a>
+ ) : n.title}
+ </p>
  <p className="text-xs text-slate-500 ">{n.time}</p>
+ {n.noticeId && (
+ <div className="mt-2">
+ <a
+ href={samOppUrl(n.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="inline-flex items-center rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-2.5 py-1.5 transition-colors"
+ >
+ Open on SAM.gov
+ </a>
+ </div>
+ )}
  </div>
  </div>
  )
@@ -1370,31 +1556,39 @@ export default function DashboardPage() {
  </div>
  )}
  </div>
- <h1 className="text-4xl lg:text-5xl font-black leading-tight">
+ <div className="flex flex-wrap items-baseline gap-x-4 gap-y-0">
+ <h1 className="text-4xl lg:text-5xl font-black leading-tight" style={{ color: 'var(--color-text-primary)' }}>
  {dash.loading
- ? <span className="text-slate-400">Loading…</span>
+ ? <span style={{ color: 'var(--color-text-primary)' }}>Loading…</span>
  : <>{greeting}, <span style={{color: hour < 12 ? '#fbbf24' : hour < 17 ? '#f97316' : '#7c3aed'}}>{name}</span>.</>}
  </h1>
- <p className="text-lg font-semibold text-slate-700 mt-2">
+ <p style={{ color: 'var(--color-text-primary)', fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
  {hour < 12
- ? 'Start your day by reviewing new matches and approaching deadlines.'
+ ? 'Start your day by reviewing fresh postings and approaching deadlines.'
  : hour < 17
  ? 'Afternoon check-in — your pipeline has been updated with the latest SAM.gov postings.'
  : 'Evening summary — review what changed today before you sign off.'}
  </p>
  </div>
+ </div>
  {/* Live stat pills */}
  <div className="flex items-center gap-2 shrink-0 flex-wrap">
  {[
- { label: 'Live Opps', value: (dash.totalActiveOpportunities || 0).toLocaleString(), bg: '#047857' },
- { label: 'New Matches', value: dash.thisWeekCount, bg: '#b45309' },
- { label: 'Deadlines', value: dash.upcomingDeadlines.length, bg: '#b91c1c' },
- { label: 'Avg Match', value: dash.avgMatchScore ? `${dash.avgMatchScore}%` : '—', bg: '#4f46e5' },
+ { label: 'Live Opps', value: (dash.totalActiveOpportunities || 0).toLocaleString(), bg: '#047857', onClick: () => router.push('/opportunities') },
+ { label: 'Posted 7d', value: dash.thisWeekCount, bg: '#b45309', onClick: () => setDrawer('recentMatches') },
+ { label: 'High-Fit 80+', value: dash.highFitCount, bg: '#0f766e', onClick: () => setDrawer('matchInfo') },
+ { label: 'Deadlines', value: dash.deadlineCount, bg: '#b91c1c', onClick: () => setDrawer('deadlines') },
  ].map(s => (
- <div key={s.label} style={{ background: s.bg, minWidth: 90 }} className="text-center px-5 py-3 rounded-xl shadow-lg">
+ <button
+ key={s.label}
+ type="button"
+ onClick={s.onClick}
+ style={{ background: s.bg, minWidth: 90 }}
+ className="text-center px-5 py-3 rounded-xl shadow-lg cursor-pointer hover:brightness-110 transition"
+ >
                  <p style={{ color: '#fff', fontSize: 26, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>{dash.loading ? '—' : s.value}</p>
                  <p style={{ color: '#fff', fontSize: 13, fontWeight: 700, margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</p>
-                 </div>
+                 </button>
  ))}
  <button type="button" onClick={() => router.push('/dashboard/onboarding?next=/dashboard')} className="inline-flex items-center gap-2.5 px-7 py-3 rounded-xl text-white font-black text-base cursor-pointer transition-all hover:brightness-110 ml-2 group" style={{ background: '#ea580c', color: 'white' }}>
  {userPrefs ? 'Update Preferences' : 'Set Up Preferences'}
@@ -1539,7 +1733,7 @@ export default function DashboardPage() {
 
  {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
- {stats.map(({ label, value, sub, detail, bg, onClick }) => (
+ {stats.map(({ label, value, sub, detail, src, bg, onClick }) => (
  <button
  key={label}
  onClick={onClick}
@@ -1555,9 +1749,39 @@ export default function DashboardPage() {
  </p>
  <p style={{ color: 'white', fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>{sub}</p>
  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 500, lineHeight: 1.4 }} className="line-clamp-2">{detail}</p>
+ <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: '12px', fontWeight: 700, lineHeight: 1.35, marginTop: '6px' }} className="line-clamp-2">{src}</p>
  </button>
  ))}
  </div>
+
+ {/* Preferences confirmation strip — shows the filters driving these figures */}
+ {isAuth && userPrefs && (
+ <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+ <span className="text-xs font-black uppercase tracking-widest text-slate-400 mr-1 shrink-0">Figures filtered by:</span>
+ {(userPrefs.setAsides ?? []).map(sa => (
+ <span key={sa} style={{ background: '#ea580c', color: '#fff', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 6 }}>{sa}</span>
+ ))}
+ {(userPrefs.naicsCodes ?? []).slice(0, 4).map(c => (
+ <span key={c} style={{ background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 6, fontFamily: 'monospace' }}>NAICS {c}</span>
+ ))}
+ {(userPrefs.agencies ?? []).slice(0, 2).map(a => (
+ <span key={a} style={{ background: '#047857', color: '#fff', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 6 }}>{a.replace(/\s*\(.*\)/, '')}</span>
+ ))}
+ {(userPrefs.states ?? []).slice(0, 3).map(s => (
+ <span key={s} style={{ background: '#0369a1', color: '#fff', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 6 }}>{s}</span>
+ ))}
+ {(userPrefs.setAsides?.length ?? 0) === 0 && (userPrefs.naicsCodes?.length ?? 0) === 0 && (
+ <span className="text-xs text-slate-500 italic">No filters set — showing all opportunities</span>
+ )}
+ <button
+ type="button"
+ onClick={() => router.push('/dashboard/onboarding?next=/dashboard')}
+ className="ml-auto text-xs font-bold text-orange-600 hover:text-orange-800 transition-colors cursor-pointer bg-transparent border-none"
+ >
+ Edit preferences →
+ </button>
+ </div>
+ )}
 
  {/* Intelligence Banner removed as per patch guide */}
 
@@ -1691,11 +1915,11 @@ export default function DashboardPage() {
  {/* Match rows */}
  <div className="divide-y divide-slate-100 ">
  {dash.recentOpportunities.slice(0, 6).map((o, i) => (
- <Link
+ <div
  key={o.noticeId}
- href={`/opportunities${qs({ noticeId: o.noticeId })}`}
- className="flex items-start gap-4 px-5 py-4 hover:bg-emerald-50 transition-colors"
+ className="px-5 py-4 hover:bg-emerald-50 transition-colors"
  >
+ <div className="flex items-start gap-4">
  {/* Match score pill */}
  <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black text-white text-sm ${
  (o.match ?? 0) >= 85 ? 'bg-emerald-600' :
@@ -1707,7 +1931,24 @@ export default function DashboardPage() {
 
  {/* Details */}
  <div className="flex-1 min-w-0">
- <p className="text-sm font-bold text-slate-900 leading-snug mb-0.5 truncate">{o.title}</p>
+ <div className="flex items-center gap-2 mb-0.5">
+ <a
+ href={samOppUrl(o.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="text-sm font-bold text-slate-900 leading-snug truncate hover:text-emerald-700"
+ >
+ {o.title}
+ </a>
+ <button
+ type="button"
+ onClick={() => handleQuickAddSavedOpportunity(o)}
+ className="px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700 text-[10px] font-black uppercase tracking-wide hover:bg-fuchsia-200"
+ title="Quick Add to Saved Opportunities"
+ >
+ Quick Add
+ </button>
+ </div>
  <p className="text-xs text-slate-500 truncate">{o.agency}</p>
  <div className="flex flex-wrap gap-1.5 mt-1.5">
  {o.setAside && (
@@ -1716,6 +1957,30 @@ export default function DashboardPage() {
  {o.naics && (
  <span style={{background:'#1e40af',color:'#bfdbfe',borderRadius:4,padding:'1px 6px',fontSize:11,fontWeight:700,fontFamily:'monospace'}}>{o.naics}</span>
  )}
+ </div>
+ <div className="flex flex-wrap gap-2 mt-2">
+ <a
+ href={samOppUrl(o.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
+ >
+ Open SAM.gov
+ </a>
+ <button
+ type="button"
+ onClick={() => handleQuickAddSavedOpportunity(o)}
+ disabled={quickSavingIds.has(o.noticeId)}
+ className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold transition-colors"
+ >
+ {quickSavingIds.has(o.noticeId) ? 'Saving...' : quickSavedIds.has(o.noticeId) ? 'Saved ✓' : 'Save Opportunity'}
+ </button>
+ <Link
+ href={quickAlertHref(o)}
+ className="px-2.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition-colors"
+ >
+ Create Alert
+ </Link>
  </div>
  </div>
 
@@ -1736,14 +2001,15 @@ export default function DashboardPage() {
  <span className="text-xs text-slate-400">{o.posted}</span>
  )}
  </div>
- </Link>
+ </div>
+ </div>
  ))}
  </div>
 
  {/* Footer CTA */}
  <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
  <span className="text-sm text-slate-500 ">
- Showing {Math.min(6, dash.recentOpportunities.length)} of {dash.thisWeekCount || dash.recentOpportunities.length} new matches this week
+ Showing {Math.min(6, dash.recentOpportunities.length)} of {dash.thisWeekCount || dash.recentOpportunities.length} postings from the last 7 days
  </span>
  <Link
  href="/opportunities?sort=match&view=list"
@@ -1760,9 +2026,9 @@ export default function DashboardPage() {
  <div className="flex items-center justify-between mb-5">
  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
  <TrendingUp className="w-4 h-4 text-emerald-500" />
- <span className="text-emerald-600 ">Pipeline</span>
- <span className="text-orange-500">Trend</span>
- <span className="text-xs font-normal text-slate-400 ml-1">Last 6 months</span>
+ <span className="text-emerald-600 ">Posting</span>
+ <span className="text-orange-500">Activity</span>
+ <span className="text-xs font-normal text-slate-400 ml-1">Last 7 days · live data</span>
  </h3>
  <div className="flex gap-4">
  {[['bg-orange-400','Total Opps'],['bg-emerald-500','Your Matches']].map(([c,l]) => (
@@ -1799,9 +2065,9 @@ export default function DashboardPage() {
  )}
  <div className="w-full flex items-end gap-1 h-full">
  <div className="flex-1 rounded-t-lg transition-all duration-200 shadow-sm group-hover:opacity-90"
- style={{height:`${(p.opportunities/520)*100}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #ea580c, #fb923c)' : 'linear-gradient(to top, #c2410c, #f97316)'}} />
+ style={{height:`${Math.max(8, (p.opportunities / Math.max(1, ...trend.map(t=>t.opportunities)))*100)}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #ea580c, #fb923c)' : 'linear-gradient(to top, #c2410c, #f97316)'}} />
  <div className="flex-1 rounded-t-lg transition-all duration-200 shadow-sm group-hover:opacity-90"
- style={{height:`${(p.matches/156)*100}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #16a34a, #4ade80)' : 'linear-gradient(to top, #15803d, #22c55e)'}} />
+ style={{height:`${Math.max(8, (p.matches / Math.max(1, ...trend.map(t=>t.opportunities)))*100)}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #16a34a, #4ade80)' : 'linear-gradient(to top, #15803d, #22c55e)'}} />
  </div>
  <p className="text-xs font-bold text-slate-500 group-hover:text-slate-800 transition-colors">{p.month}</p>
  </div>
@@ -1830,7 +2096,7 @@ export default function DashboardPage() {
 {/* Deadlines */}
 {dash.upcomingDeadlines.length > 0 && (
  <div className="rounded-2xl border border-amber-200 bg-white shadow-lg overflow-hidden">
- <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500">
+ <div className="flex items-center justify-between px-4 py-3 bg-linear-to-r from-amber-500 to-orange-500">
  <h3 className="text-sm font-black text-white flex items-center gap-2">
  <AlertTriangle className="w-4 h-4" />Upcoming Deadlines
  </h3>
@@ -1848,13 +2114,36 @@ export default function DashboardPage() {
  'bg-emerald-100 text-emerald-700'
  return (
  <div key={i} className="px-4 py-3 bg-white hover:bg-amber-50 transition-colors">
- <p className="text-sm font-bold text-slate-900 mb-1 truncate">{dl.title}</p>
+ <p className="text-sm font-bold text-slate-900 mb-1 truncate">
+ {dl.noticeId ? (
+ <a
+ href={samOppUrl(dl.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="hover:text-amber-700"
+ >
+ {dl.title}
+ </a>
+ ) : dl.title}
+ </p>
  <div className="flex items-center justify-between gap-3">
  <p className="text-sm text-slate-600 font-semibold">{dl.value || ''}</p>
+ <div className="flex items-center gap-2 shrink-0">
  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${pill}`}>
  <Clock className="w-3.5 h-3.5" />
  {dl.deadline}
  </span>
+ {dl.noticeId && (
+ <a
+ href={samOppUrl(dl.noticeId)}
+ target="_blank"
+ rel="noopener noreferrer"
+ className="inline-flex items-center rounded-full bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-black px-2.5 py-1 transition-colors"
+ >
+ SAM
+ </a>
+ )}
+ </div>
  </div>
  </div>
  )})}
@@ -1864,7 +2153,7 @@ export default function DashboardPage() {
 
 {/* Alerts */}
  <div className="rounded-2xl overflow-hidden border border-emerald-200 bg-white shadow-lg">
- <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-500">
+ <div className="flex items-center justify-between px-4 py-3 bg-linear-to-r from-emerald-600 to-teal-500">
  <h3 className="text-sm font-black text-white flex items-center gap-2">
  <Bell className="w-4 h-4" />
  Your Alerts
@@ -1912,7 +2201,7 @@ export default function DashboardPage() {
 
  {/* AI Insights */}
  <div className="rounded-2xl overflow-hidden border border-violet-200 bg-white shadow-lg">
- <div className="px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-500">
+ <div className="px-4 py-3 bg-linear-to-r from-violet-600 to-indigo-500">
  <h3 className="text-sm font-black text-white flex items-center gap-2">
  <Brain className="w-4 h-4" />AI Insights
  </h3>

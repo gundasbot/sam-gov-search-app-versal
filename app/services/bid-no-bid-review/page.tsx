@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function BidNoBidPage() {
   return (
-    <div className="mx-auto w-full max-w-[1920px] min-h-screen bg-gradient-to-br from-white via-gray-50 to-indigo-50 text-slate-900">
+    <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-white via-gray-50 to-indigo-50 text-slate-900">
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 opacity-90" />
         <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">

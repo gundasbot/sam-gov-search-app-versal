@@ -100,44 +100,44 @@ export function RunAlertModal({
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-slate-900 shadow-2xl border border-slate-700 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-blue-300 flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-700 to-teal-700 px-5 py-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl">
+        <div className="bg-emerald-700 px-5 py-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-white/20">
-              <TrendingUp className="h-5 w-5 text-white" />
+            <div className="p-2 rounded-xl bg-white">
+              <TrendingUp className="h-5 w-5 text-emerald-700" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">Send Results</h3>
-              <p className="text-xs text-emerald-100 mt-0.5 truncate max-w-[260px]">{alertName}</p>
+              <p className="text-xs text-white mt-0.5 truncate max-w-[260px]">{alertName}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="text-white hover:text-white p-1 rounded-lg hover:bg-blue-800 transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Result count banner */}
         <div className="flex-shrink-0 px-5 pt-4">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${resultCount > 0 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-700/50 border-slate-600'}`}>
-            <div className={`text-3xl font-black ${resultCount > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>{resultCount}</div>
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${resultCount > 0 ? 'bg-emerald-100 border-emerald-400' : 'bg-blue-100 border-blue-300'}`}>
+            <div className={`text-3xl font-black ${resultCount > 0 ? 'text-emerald-700' : 'text-blue-700'}`}>{resultCount}</div>
             <div>
-              <p className={`text-sm font-bold ${resultCount > 0 ? 'text-emerald-200' : 'text-slate-300'}`}>
+              <p className={`text-sm font-bold ${resultCount > 0 ? 'text-emerald-800' : 'text-blue-900'}`}>
                 {resultCount === 1 ? 'opportunity found' : 'opportunities found'}
               </p>
-              <p className="text-xs text-slate-500 mt-0.5">Choose formats and recipients below, then send</p>
+              <p className="text-xs text-blue-700 mt-0.5">Choose formats and recipients below, then send</p>
             </div>
           </div>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+        <div className="overflow-y-auto flex-1 p-5 space-y-5 bg-blue-50">
 
           {/* ── Format chips ───────────────────────────────────────────── */}
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-400" />
+            <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-700" />
               Attachment Format(s) — select any combination
             </p>
             <div className="flex flex-wrap gap-2">
@@ -150,8 +150,8 @@ export function RunAlertModal({
                     onClick={() => toggleFormat(fmt.value)}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border transition-all select-none ${
                       active
-                        ? 'bg-cyan-600/25 border-cyan-500 text-cyan-200'
-                        : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                        ? 'bg-cyan-100 border-cyan-400 text-cyan-900'
+                        : 'bg-white border-blue-300 text-blue-800 hover:border-blue-400 hover:text-blue-900'
                     }`}
                   >
                     {active && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
@@ -165,8 +165,8 @@ export function RunAlertModal({
                 onClick={() => setSelectedFormats([])}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border transition-all select-none ${
                   selectedFormats.length === 0
-                    ? 'bg-slate-600/40 border-slate-500 text-slate-200'
-                    : 'bg-slate-800 border-slate-600 text-slate-500 hover:border-slate-500 hover:text-slate-300'
+                    ? 'bg-blue-100 border-blue-400 text-blue-900'
+                    : 'bg-white border-blue-300 text-blue-700 hover:border-blue-400 hover:text-blue-900'
                 }`}
               >
                 {selectedFormats.length === 0 && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
@@ -174,7 +174,7 @@ export function RunAlertModal({
               </button>
             </div>
             {selectedFormats.length > 1 && (
-              <p className="text-xs text-cyan-400 mt-2">
+              <p className="text-xs text-cyan-800 mt-2">
                 {selectedFormats.length} attachments will be included in the email.
               </p>
             )}
@@ -182,10 +182,10 @@ export function RunAlertModal({
 
           {/* ── Recipients ─────────────────────────────────────────────── */}
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-emerald-400" />
+            <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-emerald-700" />
               Recipients
-              <span className="text-slate-500 font-normal normal-case tracking-normal">
+              <span className="text-blue-700 font-normal normal-case tracking-normal">
                 ({totalRecipients} email{totalRecipients !== 1 ? 's' : ''})
               </span>
             </p>
@@ -193,73 +193,73 @@ export function RunAlertModal({
             {/* Alert's configured recipients */}
             <div className="space-y-1.5 mb-3 max-h-36 overflow-y-auto">
               {emailRecipients.map((r, i) => (
-                <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg">
-                  <Mail className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                  <span className="text-sm text-white flex-1 truncate">
+                <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-white border border-blue-300 rounded-lg">
+                  <Mail className="w-3.5 h-3.5 text-blue-700 flex-shrink-0" />
+                  <span className="text-sm text-blue-900 font-semibold flex-1 truncate">
                     {[r.firstName, r.lastName].filter(Boolean).join(' ') || r.email}
                   </span>
                   {(r.firstName || r.lastName) && (
-                    <span className="text-xs text-slate-500 truncate max-w-[160px]">{r.email}</span>
+                    <span className="text-xs text-blue-700 truncate max-w-[160px]">{r.email}</span>
                   )}
-                  {r.role && <span className="text-xs text-slate-500 flex-shrink-0">· {r.role}</span>}
+                  {r.role && <span className="text-xs text-blue-700 flex-shrink-0">· {r.role}</span>}
                 </div>
               ))}
               {extraEmails.map((e, i) => (
-                <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-emerald-900/20 border border-emerald-700/40 rounded-lg">
-                  <UserPlus className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                  <span className="text-sm text-emerald-200 flex-1 truncate">{e}</span>
+                <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-emerald-100 border border-emerald-400 rounded-lg">
+                  <UserPlus className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                  <span className="text-sm text-emerald-900 font-semibold flex-1 truncate">{e}</span>
                   <button type="button" onClick={() => setExtraEmails(prev => prev.filter(x => x !== e))}
-                    className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
+                    className="text-blue-700 hover:text-red-600 transition-colors flex-shrink-0">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
               {emailRecipients.length === 0 && extraEmails.length === 0 && (
-                <p className="text-sm text-slate-500 italic px-1">No recipients configured — add contacts below.</p>
+                <p className="text-sm text-blue-700 italic px-1">No recipients configured — add contacts below.</p>
               )}
             </div>
 
             {/* Address book picker */}
             {hasAddressBook && (
-              <div className="border border-slate-700 rounded-xl overflow-hidden mb-3">
+              <div className="border border-blue-300 rounded-xl overflow-hidden mb-3">
                 <button
                   type="button"
                   onClick={() => setContactPickerOpen(p => !p)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-800 hover:bg-slate-700/80 text-sm font-semibold text-slate-300 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-white hover:bg-blue-100 text-sm font-semibold text-blue-900 transition-colors"
                 >
                   <span className="flex items-center gap-2">
                     <BookUser className="w-4 h-4 text-orange-400" />
                     From Address Book
                     {extraEmails.length > 0 && (
-                      <span className="text-xs bg-orange-600/30 text-orange-300 border border-orange-600/40 px-1.5 py-0.5 rounded-full font-normal">
+                      <span className="text-xs bg-orange-100 text-orange-900 border border-orange-300 px-1.5 py-0.5 rounded-full font-semibold">
                         {extraEmails.length} added
                       </span>
                     )}
                   </span>
                   {contactPickerOpen
-                    ? <ChevronUp className="w-4 h-4 text-slate-500" />
-                    : <ChevronDown className="w-4 h-4 text-slate-500" />
+                    ? <ChevronUp className="w-4 h-4 text-blue-700" />
+                    : <ChevronDown className="w-4 h-4 text-blue-700" />
                   }
                 </button>
 
                 {contactPickerOpen && (
-                  <div className="border-t border-slate-700 bg-slate-900/60 p-3 space-y-2">
+                  <div className="border-t border-blue-300 bg-blue-50 p-3 space-y-2">
                     {/* Search input */}
                     <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-700" />
                       <input
                         type="text"
                         value={contactSearch}
                         onChange={e => setContactSearch(e.target.value)}
                         placeholder="Search by name, email, or org…"
-                        className="w-full pl-8 pr-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-400 transition-colors"
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-blue-300 rounded-lg text-sm text-blue-900 placeholder-blue-500 focus:outline-none focus:border-blue-500 transition-colors"
                       />
                     </div>
 
                     {/* Contact list */}
                     <div className="max-h-48 overflow-y-auto space-y-0.5">
                       {filteredContacts.length === 0 ? (
-                        <p className="text-xs text-slate-500 italic px-2 py-3 text-center">
+                        <p className="text-xs text-blue-700 italic px-2 py-3 text-center">
                           {contactSearch ? 'No contacts match your search' : 'No contacts in address book'}
                         </p>
                       ) : (
@@ -276,22 +276,22 @@ export function RunAlertModal({
                               }}
                               className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors ${
                                 alreadyAdded
-                                  ? 'bg-emerald-900/20 border border-emerald-700/30'
-                                  : 'hover:bg-slate-700/60'
+                                  ? 'bg-emerald-100 border border-emerald-400'
+                                  : 'hover:bg-blue-100 border border-transparent'
                               }`}
                             >
                               <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                                alreadyAdded ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'
+                                alreadyAdded ? 'bg-emerald-500 border-emerald-500' : 'border-blue-300'
                               }`}>
                                 {alreadyAdded && <Check className="w-2.5 h-2.5 text-white" />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-white font-medium truncate">{displayName}</p>
+                                <p className="text-sm text-blue-900 font-semibold truncate">{displayName}</p>
                                 {displayName !== c.email && (
-                                  <p className="text-xs text-slate-500 truncate">{c.email}</p>
+                                  <p className="text-xs text-blue-700 truncate">{c.email}</p>
                                 )}
                                 {c.organization && (
-                                  <p className="text-xs text-slate-600 truncate">{c.organization}</p>
+                                  <p className="text-xs text-blue-700 truncate">{c.organization}</p>
                                 )}
                               </div>
                             </button>
@@ -301,7 +301,7 @@ export function RunAlertModal({
                     </div>
 
                     {filteredContacts.length > 0 && (
-                      <div className="flex justify-between pt-1 border-t border-slate-700/50">
+                      <div className="flex justify-between pt-1 border-t border-blue-200">
                         <button type="button"
                           onClick={() => {
                             const toAdd = filteredContacts
@@ -309,13 +309,13 @@ export function RunAlertModal({
                               .filter(e => !extraEmails.includes(e))
                             setExtraEmails(prev => [...prev, ...toAdd])
                           }}
-                          className="text-xs text-orange-400 hover:text-orange-300 font-semibold transition-colors">
+                          className="text-xs text-orange-700 hover:text-orange-800 font-semibold transition-colors">
                           Select All ({filteredContacts.length})
                         </button>
                         {extraEmails.length > 0 && (
                           <button type="button"
                             onClick={() => setExtraEmails([])}
-                            className="text-xs text-slate-500 hover:text-white transition-colors">
+                            className="text-xs text-blue-700 hover:text-blue-900 transition-colors">
                             Clear Added
                           </button>
                         )}
@@ -334,10 +334,10 @@ export function RunAlertModal({
                 onChange={e => setExtraEmail(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addExtra() } }}
                 placeholder={hasAddressBook ? 'Or type an email address…' : 'Add extra email for this run…'}
-                className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                className="flex-1 px-3 py-2 bg-white border border-blue-300 rounded-lg text-blue-900 placeholder-blue-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors"
               />
               <button type="button" onClick={addExtra}
-                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-semibold transition-colors">
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
                 Add
               </button>
             </div>
@@ -345,20 +345,20 @@ export function RunAlertModal({
 
           {/* ── Search criteria summary ─────────────────────────────────── */}
           {(alertDetails.keywords || alertDetails.naics || alertDetails.agency || alertDetails.setAside) && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-3">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Search Criteria</p>
+            <div className="bg-white border border-blue-300 rounded-xl p-3">
+              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-2">Search Criteria</p>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {alertDetails.keywords && (
-                  <span className="text-xs text-slate-300"><span className="text-slate-500">Keywords:</span> {alertDetails.keywords}</span>
+                  <span className="text-xs text-blue-900"><span className="text-blue-700">Keywords:</span> {alertDetails.keywords}</span>
                 )}
                 {alertDetails.naics && (
-                  <span className="text-xs text-slate-300"><span className="text-slate-500">NAICS:</span> {alertDetails.naics}</span>
+                  <span className="text-xs text-blue-900"><span className="text-blue-700">NAICS:</span> {alertDetails.naics}</span>
                 )}
                 {alertDetails.agency && (
-                  <span className="text-xs text-slate-300"><span className="text-slate-500">Agency:</span> {alertDetails.agency}</span>
+                  <span className="text-xs text-blue-900"><span className="text-blue-700">Agency:</span> {alertDetails.agency}</span>
                 )}
                 {alertDetails.setAside && (
-                  <span className="text-xs text-slate-300"><span className="text-slate-500">Set-Aside:</span> {alertDetails.setAside}</span>
+                  <span className="text-xs text-blue-900"><span className="text-blue-700">Set-Aside:</span> {alertDetails.setAside}</span>
                 )}
               </div>
             </div>
@@ -366,19 +366,19 @@ export function RunAlertModal({
 
           {/* Running status */}
           {isRunning && (
-            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-cyan-400 flex-shrink-0" />
+            <div className="bg-cyan-100 border border-cyan-400 rounded-xl p-4 flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-cyan-700 flex-shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-cyan-300">Searching SAM.gov…</p>
-                <p className="text-xs text-cyan-400 mt-0.5">Generating attachments and sending email</p>
+                <p className="text-sm font-semibold text-cyan-900">Searching SAM.gov…</p>
+                <p className="text-xs text-cyan-800 mt-0.5">Generating attachments and sending email</p>
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 bg-slate-900/80 border-t border-slate-700 flex items-center justify-between flex-shrink-0 rounded-b-2xl">
-          <span className="text-xs text-slate-500">
+        <div className="px-5 py-4 bg-blue-50 border-t border-blue-300 flex items-center justify-between flex-shrink-0 rounded-b-2xl">
+          <span className="text-xs text-blue-700">
             {selectedFormats.length > 0
               ? `${selectedFormats.length} file${selectedFormats.length > 1 ? 's' : ''} • ${totalRecipients} recipient${totalRecipients !== 1 ? 's' : ''}`
               : `No attachment • ${totalRecipients} recipient${totalRecipients !== 1 ? 's' : ''}`}
@@ -392,13 +392,13 @@ export function RunAlertModal({
             ) : (
               <>
                 <button onClick={onSkip}
-                  className="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors text-sm">
+                  className="px-4 py-2.5 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 font-medium transition-colors text-sm">
                   Skip, don&apos;t send
                 </button>
                 <button
                   onClick={() => onRun(selectedFormats, extraEmails)}
                   disabled={totalRecipients === 0 || resultCount === 0}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm">
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm">
                   <Mail className="w-4 h-4" />
                   Send Email
                 </button>

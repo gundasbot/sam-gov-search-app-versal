@@ -152,32 +152,32 @@ const PLACEHOLDER_TRENDS: MarketTrend[] = [
 
 const PLACEHOLDER_INSIGHTS: AIInsight[] = [
   {
-    title: 'Federal Market Insights & Analytics | PreciseGovCon',
+    title: 'Triage deadlines within 72 hours — now',
     description:
-      'Claude is analyzing your market signals and opportunities.',
-    priority: 'medium',
-    category: 'recommendation',
-  },
-  {
-    title: 'Federal Market Insights & Analytics | PreciseGovCon',
-    description:
-      'Prioritizing opportunities by urgency, set-aside, and agency behavior.',
-    priority: 'low',
-    category: 'trend',
-  },
-  {
-    title: 'Federal Market Insights & Analytics | PreciseGovCon',
-    description:
-      'Detecting expiring solicitations that need immediate action.',
+      'Opportunities expiring soonest demand immediate go/no-go decisions. Assign an owner before the window closes.',
     priority: 'high',
     category: 'alert',
   },
   {
-    title: 'Federal Market Insights & Analytics | PreciseGovCon',
+    title: 'Target agencies buying in your NAICS codes',
     description:
-      'Surfacing the most actionable opportunities from the feed.',
-    priority: 'medium',
+      'Concentrate outreach on the agencies with the highest repeat-buy volume in your category. Relationship investment here returns fastest.',
+    priority: 'high',
     category: 'opportunity',
+  },
+  {
+    title: 'Set-aside alignment is your competitive edge',
+    description:
+      'Opportunities with matching set-aside designations give you a structural win-rate advantage. Narrow your filters to these first.',
+    priority: 'medium',
+    category: 'recommendation',
+  },
+  {
+    title: 'Replace broad searches with focused alerts',
+    description:
+      'Wide searches dilute signal. Set tight filters on NAICS, agency, and contract size — then save as named alerts with dedicated owners.',
+    priority: 'medium',
+    category: 'recommendation',
   },
 ];
 
@@ -1096,9 +1096,9 @@ export default function InsightsPage() {
   };
 
   return (
-    <div className="pg-theme-cleanup pg-insights-modern min-h-screen bg-linear-to-br from-slate-50 to-gray-100 text-[14px] sm:text-[15px]">
+    <div className="pg-theme-cleanup pg-insights-modern min-h-screen bg-linear-to-br from-indigo-50 via-white to-orange-50/40 text-[14px] sm:text-[15px]">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm">
+      <div className="border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm overflow-hidden">
         <div className="max-w-480 mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-5">
           <div className="flex flex-col lg:flex-row lg:items-center items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -1172,7 +1172,7 @@ export default function InsightsPage() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
               <button
                 onClick={handleRefresh}
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-gray-800 transition disabled:opacity-70"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-orange-700 transition disabled:opacity-70"
                 disabled={refreshing}
               >
                 {refreshing ? (
@@ -1186,7 +1186,7 @@ export default function InsightsPage() {
                 onClick={() =>
                   router.push('/opportunities')
                 }
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-gray-900 border border-gray-200 shadow-sm hover:bg-gray-50 transition"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white border border-emerald-700 shadow-sm hover:bg-emerald-700 transition"
               >
                 <ArrowUpRight className="h-4 w-4" />
                 <span>Open Opportunities</span>
@@ -1194,29 +1194,8 @@ export default function InsightsPage() {
             </div>
           </div>
 
-          {/* Action strip */}
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-            {dashboard.actions.map((a, index) => (
-              <button
-                key={`${a.label}-${index}`}
-                onClick={() => router.push(a.href)}
-                className="group text-left rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm hover:shadow-md transition flex items-center justify-between gap-4"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-extrabold text-gray-900 truncate">
-                    {a.label}
-                  </div>
-                  <div className="text-xs text-gray-600 truncate">
-                    {a.sub}
-                  </div>
-                </div>
-                <div className="h-9 w-9 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-900 transition shrink-0">
-                  <ArrowUpRight className="h-4 w-4 text-gray-700 group-hover:text-white transition" />
-                </div>
-              </button>
-            ))}
           </div>
-          </div>
+      <div className="h-0.75 bg-linear-to-r from-orange-500 via-amber-400 to-emerald-500" />
       </div>
 
       {/* Main */}
@@ -1239,92 +1218,102 @@ export default function InsightsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <button
             onClick={() => handlePillClick('active')}
-            className="text-left rounded-3xl border shadow-sm hover:shadow-md transition p-4"
+            className="text-left rounded-3xl border shadow-sm hover:shadow-md transition overflow-hidden"
             style={{ background: 'var(--color-surface-card)', color: 'var(--color-text-primary)', border: '1.5px solid var(--color-border-card)' }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Active opportunities
+            <div className="h-1.5 bg-linear-to-r from-indigo-500 to-violet-500" />
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Active opportunities
+                  </div>
+                  <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                    {formatCompact(stats.totalActive)}
+                  </div>
                 </div>
-                <div className="mt-1 text-2xl font-extrabold text-gray-900">
-                  {formatCompact(stats.totalActive)}
+                <div className="h-12 w-12 rounded-2xl bg-indigo-100 flex items-center justify-center">
+                  <Briefcase className="h-6 w-6 text-indigo-700" />
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-gray-100 flex items-center justify-center">
-                <Briefcase className="h-6 w-6 text-gray-900" />
+              <div className="mt-3 text-sm font-semibold text-gray-700">
+                Open the full opportunity explorer with advanced filters.
               </div>
-            </div>
-            <div className="mt-3 text-sm text-gray-600">
-              Tap to open the full opportunity explorer with
-              filters.
             </div>
           </button>
 
           <button
             onClick={() => handlePillClick('today')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
+            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  New today
+            <div className="h-1.5 bg-linear-to-r from-emerald-500 to-green-400" />
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    New today
+                  </div>
+                  <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                    {formatCompact(stats.newToday)}
+                  </div>
                 </div>
-                <div className="mt-1 text-2xl font-extrabold text-gray-900">
-                  {formatCompact(stats.newToday)}
+                <div className="h-12 w-12 rounded-2xl bg-emerald-100 flex items-center justify-center">
+                  <Zap className="h-6 w-6 text-emerald-700" />
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                <Zap className="h-6 w-6 text-emerald-700" />
+              <div className="mt-3 text-sm font-semibold text-gray-700">
+                Review today's new postings — assign pursue, watch, or pass.
               </div>
-            </div>
-            <div className="mt-3 text-sm text-gray-600">
-              Quickly review fresh postings and decide pursue /
-              watch / pass.
             </div>
           </button>
 
           <button
             onClick={() => handlePillClick('expiring')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
+            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Expiring &le;7d
+            <div className="h-1.5 bg-linear-to-r from-orange-500 to-red-500" />
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Expiring &le;7d
+                  </div>
+                  <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                    {formatCompact(stats.expiringSoon)}
+                  </div>
                 </div>
-                <div className="mt-1 text-2xl font-extrabold text-gray-900">
-                  {formatCompact(stats.expiringSoon)}
+                <div className="h-12 w-12 rounded-2xl bg-orange-100 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-orange-700" />
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-orange-50 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-orange-700" />
+              <div className="mt-3 text-sm font-semibold text-gray-700">
+                Act on these first — deadline risk is highest.
               </div>
-            </div>
-            <div className="mt-3 text-sm text-gray-600">
-              Focus first on deadlines to reduce missed bids.
             </div>
           </button>
 
           <button
             onClick={() => handlePillClick('agencies')}
-            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition p-4"
+            className="text-left rounded-3xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Active agencies
+            <div className="h-1.5 bg-linear-to-r from-blue-500 to-cyan-500" />
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    Active agencies
+                  </div>
+                  <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                    {formatCompact(stats.activeAgencies)}
+                  </div>
                 </div>
-                <div className="mt-1 text-2xl font-extrabold text-gray-900">
-                  {formatCompact(stats.activeAgencies)}
+                <div className="h-12 w-12 rounded-2xl bg-blue-100 flex items-center justify-center">
+                  <Building className="h-6 w-6 text-blue-700" />
                 </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center">
-                <Building className="h-6 w-6 text-blue-700" />
+              <div className="mt-3 text-sm font-semibold text-gray-700">
+                Build your capture list from the highest-volume buyers.
               </div>
-            </div>
-            <div className="mt-3 text-sm text-gray-600">
-              Track repeat-buyers and build a capture short-list.
             </div>
           </button>
         </div>
@@ -1338,8 +1327,10 @@ export default function InsightsPage() {
               <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
                 <div className="flex items-start justify-between gap-4 mb-5">
                   <div>
-                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-gray-900" />
+                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                        <BarChart3 className="h-4 w-4 text-blue-600" />
+                      </div>
                       <span>Top agencies</span>
                     </div>
                     <div className="text-sm text-gray-600">
@@ -1359,8 +1350,10 @@ export default function InsightsPage() {
               <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
                 <div className="flex items-start justify-between gap-4 mb-5">
                   <div>
-                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                      <PieChart className="h-5 w-5 text-gray-900" />
+                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                        <PieChart className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>Set-aside mix</span>
                     </div>
                     <div className="text-sm text-gray-600">
@@ -1376,75 +1369,15 @@ export default function InsightsPage() {
               </div>
             </div>
 
-            {/* Momentum / deadlines */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Deadline urgency */}
+            <div className="grid grid-cols-1 gap-6">
               <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
                 <div className="flex items-start justify-between gap-4 mb-5">
                   <div>
-                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                      <LineChart className="h-5 w-5 text-gray-900" />
-                      <span>Posting momentum (7d)</span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Daily posting count last 7 days.
-                    </div>
-                  </div>
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Sparkline
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    {dashboard.postedByDay.map((d) => (
-                      <div
-                        key={d.label}
-                        className="flex items-center justify-between gap-4"
-                      >
-                        <div className="text-sm font-semibold text-gray-800 w-10">
-                          {d.label}
-                        </div>
-                        <div className="h-2 w-40 rounded-full bg-gray-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-linear-to-r from-blue-500 to-cyan-500"
-                            style={{
-                              width: `${Math.max(
-                                4,
-                                Math.round(
-                                  (d.count /
-                                    Math.max(
-                                      1,
-                                      ...dashboard.postedByDay.map(
-                                        (x) => x.count
-                                      )
-                                    )) *
-                                    100
-                                )
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                        <div className="text-sm font-bold text-gray-700 w-10 text-right">
-                          {d.count}
-                        </div>
+                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                        <Calendar className="h-4 w-4 text-orange-600" />
                       </div>
-                    ))}
-                  </div>
-                  <div className="text-blue-600">
-                    <MiniSparkline
-                      values={dashboard.postedByDay.map(
-                        (d) => d.count
-                      )}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <div>
-                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-gray-900" />
                       <span>Deadline urgency</span>
                     </div>
                     <div className="text-sm text-gray-600">
@@ -1504,12 +1437,12 @@ export default function InsightsPage() {
                   })()}
                 </div>
 
-                <div className="mt-4 rounded-2xl bg-gray-50 border border-gray-200 p-4">
-                  <div className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
-                    <Target className="h-4 w-4" />
+                <div className="mt-4 rounded-2xl bg-amber-50 border border-amber-200 p-4">
+                  <div className="text-sm font-extrabold text-amber-900 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-amber-600" />
                     <span>Quick rule</span>
                   </div>
-                  <div className="text-sm text-gray-600 mt-1">
+                  <div className="text-sm text-amber-800 mt-1">
                     If it’s a good fit and &lt;72 hours to
                     deadline, assign an owner and decide today.
                   </div>
@@ -1521,8 +1454,10 @@ export default function InsightsPage() {
             <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
               <div className="flex items-start justify-between gap-4 mb-5">
                 <div>
-                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-gray-900" />
+                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                      <Shield className="h-4 w-4 text-red-600" />
+                    </div>
                     <span>Focus now</span>
                   </div>
                   <div className="text-sm text-gray-600">
@@ -1536,7 +1471,7 @@ export default function InsightsPage() {
                       '/opportunities?filter=expiring'
                     )
                   }
-                  className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-bold text-white hover:bg-gray-800 transition"
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition"
                 >
                   <span>View expiring list</span>
                   <ArrowUpRight className="h-4 w-4" />
@@ -1650,94 +1585,26 @@ export default function InsightsPage() {
                 ) : (
                   <div className="col-span-2 rounded-2xl bg-gray-50 border border-gray-200 p-6 text-center">
                     <div className="text-sm font-extrabold text-gray-900">
-                      No deadline data available
+                      Pipeline clear of near-term deadlines
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      If the feed lacks deadlines, this panel will
-                      populate once deadlines are present.
+                    <div className="text-sm font-semibold text-gray-700 mt-1">
+                      No solicitations in the current feed expire within 7 days. Refresh to pull the latest postings.
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Coverage + execution */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <div>
-                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                      <LineChart className="h-5 w-5 text-gray-900" />
-                      <span>Coverage scoreboard</span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Ensure the portfolio stays balanced while the feed shifts.
-                    </div>
-                  </div>
-                  <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    Live pulse
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {dashboard.coverageKpis.map((kpi, index) => (
-                    <div
-                      key={`${kpi.label}-${index}`}
-                      className="rounded-2xl border border-gray-200 bg-white p-4"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                            {kpi.label}
-                          </div>
-                          <div className="mt-1 text-2xl font-extrabold text-gray-900">
-                            {kpi.value}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            {kpi.sub}
-                          </div>
-                        </div>
-                        <div
-                          className={`h-12 w-12 rounded-2xl bg-linear-to-br ${kpi.color} text-white flex items-center justify-center`}
-                        >
-                          {kpi.icon}
-                        </div>
-                      </div>
-                      <div className="mt-3 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full bg-linear-to-r ${kpi.color}`}
-                          style={{
-                            width: `${Math.min(100, Math.max(8, kpi.progress))}%`,
-                          }}
-                        />
-                      </div>
-                      {Array.isArray(kpi.insights) && kpi.insights.length > 0 && (
-                        <div className="mt-4 space-y-1.5">
-                          {kpi.insights.map((item, detailIndex) => (
-                            <div
-                              key={`${kpi.label}-insight-${detailIndex}`}
-                              className="flex items-center justify-between text-xs text-gray-600 gap-3"
-                            >
-                              <span className="font-semibold text-gray-800 truncate">
-                                {item.label}
-                              </span>
-                              <span className="text-gray-500 font-medium">
-                                {item.value}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* Execution playbook */}
+            <div className="grid grid-cols-1 gap-6">
 
               <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
                 <div className="flex items-start justify-between gap-4 mb-5">
                   <div>
-                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                      <Target className="h-5 w-5 text-gray-900" />
+                    <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                        <Target className="h-4 w-4 text-amber-600" />
+                      </div>
                       <span>Execution playbook</span>
                     </div>
                     <div className="text-sm text-gray-600">
@@ -1790,33 +1657,7 @@ export default function InsightsPage() {
               </div>
             </div>
 
-            {/* Set-aside breakdown */}
-            <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div>
-                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                    <PieChart className="h-5 w-5 text-gray-900" />
-                    <span>Set-aside breakdown</span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Distribution of set-aside designations across the current feed.
-                  </div>
-                </div>
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Live
-                </div>
-              </div>
-              {dashboard.setAsideSeries.length ? (
-                <SimpleBarList
-                  items={dashboard.setAsideSeries}
-                  maxItems={8}
-                />
-              ) : (
-                <div className="text-sm text-gray-600">
-                  No set-aside data in the current feed.
-                </div>
-              )}
-            </div>
+
           </div>
 
           {/* Right column: AI & trends */}
@@ -1825,8 +1666,10 @@ export default function InsightsPage() {
             <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-gray-900" />
+                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                      <Sparkles className="h-4 w-4 text-indigo-600" />
+                    </div>
                     <span>Your Analytics Tidbits</span>
                   </div>
                   <div className="text-sm text-gray-600">
@@ -1841,47 +1684,47 @@ export default function InsightsPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 font-bold uppercase tracking-wide">
+                <div className="rounded-2xl bg-red-50 border border-red-200 p-4">
+                  <div className="text-xs text-red-600 font-bold uppercase tracking-wide">
                     High priority
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                  <div className="mt-1 text-2xl font-extrabold text-red-700">
                     {dashboard.highPriority}
                   </div>
-                  <div className="mt-1 text-xs text-gray-600">
+                  <div className="mt-1 text-xs text-red-600">
                     Immediate attention
                   </div>
                 </div>
-                <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 font-bold uppercase tracking-wide">
+                <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4">
+                  <div className="text-xs text-amber-600 font-bold uppercase tracking-wide">
                     Medium
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                  <div className="mt-1 text-2xl font-extrabold text-amber-700">
                     {dashboard.mediumPriority}
                   </div>
-                  <div className="mt-1 text-xs text-gray-600">
+                  <div className="mt-1 text-xs text-amber-600">
                     Schedule this
                   </div>
                 </div>
-                <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 font-bold uppercase tracking-wide">
+                <div className="rounded-2xl bg-blue-50 border border-blue-200 p-4">
+                  <div className="text-xs text-blue-600 font-bold uppercase tracking-wide">
                     Low
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-gray-900">
+                  <div className="mt-1 text-2xl font-extrabold text-blue-700">
                     {dashboard.lowPriority}
                   </div>
-                  <div className="mt-1 text-xs text-gray-600">
+                  <div className="mt-1 text-xs text-blue-600">
                     Optional
                   </div>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-gray-200 bg-linear-to-r from-gray-50 to-white p-4 flex items-center justify-between gap-3">
+              <div className="mt-4 rounded-2xl border border-indigo-200 bg-linear-to-r from-indigo-50 to-blue-50 p-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-extrabold text-gray-900">
+                  <div className="text-sm font-extrabold text-indigo-900">
                     Suggested operating rhythm
                   </div>
-                  <div className="text-sm text-gray-600 mt-1">
+                  <div className="text-sm text-indigo-700 mt-1">
                     Review{' '}
                     <span className="font-bold text-gray-900">
                       expiring &lt;72h
@@ -1893,7 +1736,7 @@ export default function InsightsPage() {
                     , then build alerts.
                   </div>
                 </div>
-                <div className="h-12 w-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white">
+                <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white">
                   <CheckCircle className="h-6 w-6" />
                 </div>
               </div>
@@ -1903,8 +1746,10 @@ export default function InsightsPage() {
             <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
               <div className="flex items-start justify-between gap-4 mb-5">
                 <div>
-                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-gray-900" />
+                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                      <TrendingUp className="h-4 w-4 text-emerald-600" />
+                    </div>
                     <span>Market trends</span>
                   </div>
                   <div className="text-sm text-gray-600">
@@ -1980,8 +1825,10 @@ export default function InsightsPage() {
             <div className="rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
               <div className="flex items-start justify-between gap-4 mb-5">
                 <div>
-                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-gray-900" />
+                  <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                      <Sparkles className="h-4 w-4 text-violet-600" />
+                    </div>
                     <span>Actionable insights</span>
                   </div>
                   <div className="text-sm text-gray-600">
@@ -2084,135 +1931,9 @@ export default function InsightsPage() {
                 })}
               </div>
 
-              {/* NAICS snapshot */}
-              <div className="mt-6 rounded-2xl bg-gray-50 border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
-                    <Database className="h-4 w-4" />
-                    <span>Top NAICS codes</span>
-                  </div>
-                  <div className="text-xs text-gray-500 font-bold uppercase tracking-wide">
-                    Live
-                  </div>
-                </div>
-                {dashboard.naicsSeries.length ? (
-                  <SimpleBarList
-                    items={dashboard.naicsSeries.map(
-                      (x) => ({
-                        name: x.name,
-                        count: x.count,
-                      })
-                    )}
-                    maxItems={6}
-                  />
-                ) : (
-                  <div className="text-sm text-gray-600">
-                    No NAICS codes present in the current feed.
-                  </div>
-                )}
-              </div>
+
             </div>
           </div>
-        </div>
-
-        {/* Latest opportunities */}
-        <div className="mt-7 rounded-3xl bg-white border border-gray-200 shadow-sm p-6">
-          <div className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <div className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                <Globe className="h-5 w-5 text-gray-900" />
-                <span>Latest federal opportunities</span>
-              </div>
-              <div className="text-sm text-gray-600">
-                Quick preview of recent opportunities; tap
-                “Open” to view in the explorer.
-              </div>
-            </div>
-            <button
-              onClick={() =>
-                router.push('/opportunities')
-              }
-              className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-bold text-white hover:bg-gray-800 transition"
-            >
-              <span>View all</span>
-              <ArrowUpRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-            {opportunities.map((opp) => (
-              <div
-                key={opp.noticeId}
-                className="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-md transition"
-              >
-                <div className="text-sm font-extrabold text-gray-900 line-clamp-2">
-                  {opp.title || 'Untitled opportunity'}
-                </div>
-                <div className="mt-2 text-xs text-gray-600 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Building className="h-3.5 w-3.5" />
-                    <span className="truncate">
-                      {opp.department || 'Unknown agency'}
-                    </span>
-                  </div>
-                  {opp.naicsCode && (
-                    <div className="flex items-center gap-2">
-                      <Database className="h-3.5 w-3.5" />
-                      <span>
-                        NAICS {opp.naicsCode}
-                      </span>
-                    </div>
-                  )}
-                  {opp.typeOfSetAsideDescription && (
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3.5 w-3.5" />
-                      <span className="truncate">
-                        {opp.typeOfSetAsideDescription}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="text-xs text-gray-500">
-                    Posted{' '}
-                    <span className="font-semibold text-gray-700">
-                      {opp.postedDate
-                        ? new Date(
-                            opp.postedDate
-                          ).toLocaleDateString()
-                        : 'N/A'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() =>
-                      router.push(
-                        `/opportunities?noticeId=${encodeURIComponent(
-                          opp.noticeId
-                        )}`
-                      )
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-3 py-2 text-xs font-bold text-gray-900 hover:bg-gray-200 transition"
-                  >
-                    <span>Open</span>
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {loading && !dataLoaded && (
-            <div className="mt-6 rounded-2xl bg-gray-50 border border-gray-200 p-5 flex items-center gap-3">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
-              <div className="text-sm text-gray-700">
-                Loading live data; you’ll see real analytics
-                once the SAM feed arrives.
-              </div>
-            </div>
-          )}
-
-          <div className="h-10" />
         </div>
       </div>
     </div>

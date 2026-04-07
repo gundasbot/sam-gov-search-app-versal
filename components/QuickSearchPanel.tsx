@@ -23,6 +23,7 @@ export interface QuickSearchParams {
 interface QuickSearchPanelProps {
   onSaveSearch: (params: QuickSearchParams) => void
   onCreateAlert: (params: QuickSearchParams) => void
+  theme?: 'dark' | 'light'
 }
 
 interface Opportunity {
@@ -37,6 +38,10 @@ interface Opportunity {
   type?: string
   naicsCode?: string
   placeOfPerformanceState?: string
+}
+
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ')
 }
 
 // ---------------------------------------------------------------------------
@@ -198,7 +203,7 @@ function buildSAMUrl(noticeId: string): string {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickSearchPanelProps) {
+export default function QuickSearchPanel({ onSaveSearch, onCreateAlert, theme = 'dark' }: QuickSearchPanelProps) {
   const [expanded, setExpanded] = useState(false)
   const [form, setForm] = useState<QuickSearchParams>({
     keyword: '', ncode: '', ccode: '', states: [], ptypes: [], setAside: '', organizationName: '',
@@ -259,42 +264,54 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
     setError(null)
   }
 
-  const inp = 'w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 text-sm focus:outline-none focus:border-orange-400 transition-colors'
+  const isLight = theme === 'light'
+  const inp = isLight
+    ? 'w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-blue-900 placeholder-blue-700 text-base font-semibold focus:outline-none focus:border-blue-600 transition-colors'
+    : 'w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 text-sm focus:outline-none focus:border-orange-400 transition-colors'
 
   return (
-    <div className="mb-7 bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
+    <div className={`mb-7 rounded-2xl overflow-hidden shadow-lg quick-search-panel ${theme === 'light' ? 'quick-search-light' : ''} ${theme === 'light' ? 'bg-white border-2 border-blue-300' : 'bg-slate-800/50 border border-slate-700'}`}>
 
       {/* ── Header / toggle ── */}
       <button
         type="button"
         onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-700/40 transition-colors"
+        className={cx(
+          'w-full flex items-center justify-between px-5 py-3.5 transition-colors',
+          isLight ? 'hover:bg-blue-50' : 'hover:bg-slate-700/40'
+        )}
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
-            <Zap className="w-4 h-4 text-orange-400" />
+          <div className={cx(
+            'w-8 h-8 rounded-lg border flex items-center justify-center flex-shrink-0',
+            isLight ? 'bg-orange-100 border-orange-300' : 'bg-orange-500/20 border-orange-500/30'
+          )}>
+            <Zap className={cx('w-4 h-4', isLight ? 'text-orange-600' : 'text-orange-400')} />
           </div>
           <div className="text-left">
-            <p className="text-sm font-black text-white">Quick Search</p>
-            <p className="text-xs text-slate-500">Enter criteria, run instantly, then save or create an alert</p>
+            <p className={cx('font-black', isLight ? 'text-base text-blue-900' : 'text-sm text-white')}>Quick Search</p>
+            <p className={cx(isLight ? 'text-sm text-blue-800 font-semibold' : 'text-xs text-slate-500')}>Enter criteria, run instantly, then save or create an alert</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {hasRun && results !== null && (
-            <span className="text-xs px-2 py-0.5 bg-teal-500/20 border border-teal-500/30 text-teal-300 rounded-full font-bold">
+            <span className={cx(
+              'px-2 py-0.5 rounded-full font-bold',
+              isLight ? 'text-sm bg-emerald-100 border border-emerald-300 text-emerald-700' : 'text-xs bg-teal-500/20 border border-teal-500/30 text-teal-300'
+            )}>
               {totalRecords.toLocaleString()} results
             </span>
           )}
           {expanded
-            ? <ChevronUp className="w-4 h-4 text-slate-400" />
-            : <ChevronDown className="w-4 h-4 text-slate-400" />
+            ? <ChevronUp className={cx('w-4 h-4', isLight ? 'text-blue-700' : 'text-slate-400')} />
+            : <ChevronDown className={cx('w-4 h-4', isLight ? 'text-blue-700' : 'text-slate-400')} />
           }
         </div>
       </button>
 
       {/* ── Expanded body ── */}
       {expanded && (
-        <div className="border-t border-slate-700/60 px-5 py-5">
+        <div className={cx('border-t px-5 py-5', isLight ? 'border-blue-200 bg-white' : 'border-slate-700/60')}>
 
           {/* Keyword row */}
           <div className="mb-3">
@@ -307,11 +324,16 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
                 onKeyDown={handleKeyDown}
                 placeholder="Keywords — e.g., data analytics, cybersecurity, facilities…"
                 autoFocus
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 text-sm focus:outline-none focus:border-orange-400 transition-colors"
+                className={cx(
+                  'w-full pl-10 pr-4 py-2.5 rounded-xl transition-colors focus:outline-none',
+                  isLight
+                    ? 'bg-white border border-blue-300 text-blue-900 placeholder-blue-700 text-base font-semibold focus:border-blue-600'
+                    : 'bg-slate-700 border border-slate-600 text-white placeholder-slate-400 text-sm focus:border-orange-400'
+                )}
               />
               {form.keyword && (
                 <button onClick={() => setForm(f => ({ ...f, keyword: '' }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                  className={cx('absolute right-3 top-1/2 -translate-y-1/2', isLight ? 'text-blue-600 hover:text-blue-900' : 'text-slate-500 hover:text-white')}>
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -321,22 +343,22 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
           {/* Filter grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">NAICS</label>
+              <label className={cx('block mb-1 font-semibold', isLight ? 'text-sm text-blue-900' : 'text-xs text-slate-500')}>NAICS</label>
               <input type="text" value={form.ncode || ''} onChange={e => setForm(f => ({ ...f, ncode: e.target.value }))}
                 onKeyDown={handleKeyDown} placeholder="e.g. 541512" className={inp} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">PSC Code</label>
+              <label className={cx('block mb-1 font-semibold', isLight ? 'text-sm text-blue-900' : 'text-xs text-slate-500')}>PSC Code</label>
               <input type="text" value={form.ccode || ''} onChange={e => setForm(f => ({ ...f, ccode: e.target.value }))}
                 onKeyDown={handleKeyDown} placeholder="e.g. D399" className={inp} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">State</label>
+              <label className={cx('block mb-1 font-semibold', isLight ? 'text-sm text-blue-900' : 'text-xs text-slate-500')}>State</label>
               <MiniMultiSelect options={US_STATES} selected={form.states ?? []}
                 onChange={v => setForm(f => ({ ...f, states: v }))} placeholder="Any state" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Set-Aside</label>
+              <label className={cx('block mb-1 font-semibold', isLight ? 'text-sm text-blue-900' : 'text-xs text-slate-500')}>Set-Aside</label>
               <select value={form.setAside || ''}
                 onChange={e => setForm(f => ({ ...f, setAside: e.target.value }))}
                 className={inp}>
@@ -345,12 +367,12 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Type</label>
+              <label className={cx('block mb-1 font-semibold', isLight ? 'text-sm text-blue-900' : 'text-xs text-slate-500')}>Type</label>
               <MiniMultiSelect options={PTYPE_OPTIONS} selected={form.ptypes ?? []}
                 onChange={v => setForm(f => ({ ...f, ptypes: v }))} placeholder="Any type" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Agency</label>
+              <label className={cx('block mb-1 font-semibold', isLight ? 'text-sm text-blue-900' : 'text-xs text-slate-500')}>Agency</label>
               <input type="text" value={form.organizationName || ''} onChange={e => setForm(f => ({ ...f, organizationName: e.target.value }))}
                 onKeyDown={handleKeyDown} placeholder="e.g. DoD" className={inp} />
             </div>
@@ -362,7 +384,10 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
               type="button"
               onClick={runSearch}
               disabled={loading || !hasFilters}
-              className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl text-sm transition-colors shadow-lg shadow-orange-900/30"
+              className={cx(
+                'flex items-center gap-2 px-5 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl transition-colors',
+                isLight ? 'text-base bg-orange-600 hover:bg-orange-700 shadow-md' : 'text-sm bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-900/30'
+              )}
             >
               {loading
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Searching…</>
@@ -371,18 +396,24 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
             </button>
             {(hasFilters || hasRun) && (
               <button type="button" onClick={reset}
-                className="text-sm text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1.5">
+                className={cx(
+                  'transition-colors flex items-center gap-1.5 font-semibold',
+                  isLight ? 'text-base text-blue-700 hover:text-blue-900' : 'text-sm text-slate-500 hover:text-slate-300'
+                )}>
                 <X className="w-3.5 h-3.5" /> Clear
               </button>
             )}
             {!hasFilters && !loading && (
-              <p className="text-xs text-slate-600">Enter at least one filter to run a search</p>
+              <p className={cx(isLight ? 'text-sm text-blue-700 font-semibold' : 'text-xs text-slate-600')}>Enter at least one filter to run a search</p>
             )}
           </div>
 
           {/* ── Error ── */}
           {error && (
-            <div className="flex items-center gap-2.5 px-4 py-3 bg-red-950/40 border border-red-500/40 rounded-xl mb-4 text-sm text-red-300">
+            <div className={cx(
+              'flex items-center gap-2.5 px-4 py-3 rounded-xl mb-4 text-sm font-semibold',
+              isLight ? 'bg-red-100 border border-red-300 text-red-700' : 'bg-red-950/40 border border-red-500/40 text-red-300'
+            )}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
             </div>
           )}
@@ -393,24 +424,34 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
               {/* Result count + actions header */}
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-white">
+                  <span className={cx('font-black', isLight ? 'text-base text-blue-900' : 'text-sm text-white')}>
                     {results.length === 0 ? 'No results' : `${results.length} of ${totalRecords.toLocaleString()} results`}
                   </span>
                   {totalRecords > 25 && (
-                    <span className="text-xs text-slate-500">(showing first 25)</span>
+                    <span className={cx(isLight ? 'text-sm text-blue-700' : 'text-xs text-slate-500')}>(showing first 25)</span>
                   )}
                 </div>
                 {results.length > 0 && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onSaveSearch(form)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 border border-teal-600/40 text-teal-300 hover:text-teal-200 rounded-lg text-xs font-bold transition-colors"
+                      className={cx(
+                        'qs-action-save flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-colors',
+                        isLight
+                          ? 'bg-teal-600 hover:bg-teal-700 border border-teal-700 text-white text-sm font-black shadow-sm'
+                          : 'bg-teal-600/20 hover:bg-teal-600/30 border border-teal-600/40 text-teal-300 hover:text-teal-200 text-xs font-bold'
+                      )}
                     >
                       <Save className="w-3.5 h-3.5" /> Save as Search
                     </button>
                     <button
                       onClick={() => onCreateAlert(form)}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-600/40 text-orange-300 hover:text-orange-200 rounded-lg text-xs font-bold transition-colors"
+                      className={cx(
+                        'qs-action-alert flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-colors',
+                        isLight
+                          ? 'bg-orange-600 hover:bg-orange-700 border border-orange-700 text-white text-sm font-black shadow-sm'
+                          : 'bg-orange-600/20 hover:bg-orange-600/30 border border-orange-600/40 text-orange-300 hover:text-orange-200 text-xs font-bold'
+                      )}
                     >
                       <BellRing className="w-3.5 h-3.5" /> Create Alert
                     </button>
@@ -424,7 +465,12 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
                         ...(form.setAside ? { typeOfSetAside: form.setAside } : {}),
                         ...(form.organizationName ? { organizationName: form.organizationName } : {}),
                       }).toString()}`}
-                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-colors"
+                      className={cx(
+                        'qs-action-full-search flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-colors',
+                        isLight
+                          ? 'bg-blue-700 hover:bg-blue-800 border border-blue-800 text-white text-sm font-black shadow-sm'
+                          : 'bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white text-xs font-bold'
+                      )}
                     >
                       <ExternalLink className="w-3.5 h-3.5" /> Full Search
                     </Link>
@@ -433,34 +479,52 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
               </div>
 
               {results.length === 0 ? (
-                <div className="text-center py-10 bg-slate-900/40 border border-slate-700 rounded-xl">
-                  <Search className="w-8 h-8 text-slate-700 mx-auto mb-2" />
-                  <p className="text-slate-400 text-sm font-medium">No opportunities found for these criteria</p>
-                  <p className="text-slate-600 text-xs mt-1">Try broadening your search</p>
+                <div className={cx(
+                  'text-center py-10 rounded-xl',
+                  isLight ? 'bg-blue-50 border border-blue-200' : 'bg-slate-900/40 border border-slate-700'
+                )}>
+                  <Search className={cx('w-8 h-8 mx-auto mb-2', isLight ? 'text-blue-400' : 'text-slate-700')} />
+                  <p className={cx('font-medium', isLight ? 'text-blue-900 text-base' : 'text-slate-400 text-sm')}>No opportunities found for these criteria</p>
+                  <p className={cx('mt-1', isLight ? 'text-blue-700 text-sm font-semibold' : 'text-slate-600 text-xs')}>Try broadening your search</p>
                 </div>
               ) : (
-                <div className="max-h-[420px] overflow-y-auto rounded-xl border border-slate-700 divide-y divide-slate-700/60">
+                <div className={cx(
+                  'max-h-[420px] overflow-y-auto rounded-xl divide-y',
+                  isLight ? 'border border-blue-300 divide-blue-200' : 'border border-slate-700 divide-slate-700/60'
+                )}>
                   {results.map((opp, i) => (
-                    <div key={opp.noticeId || i} className="px-4 py-3.5 hover:bg-slate-700/30 transition-colors group">
+                    <div key={opp.noticeId || i} className={cx(
+                      'px-4 py-3.5 transition-colors group',
+                      isLight ? 'hover:bg-blue-50' : 'hover:bg-slate-700/30'
+                    )}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <a
                             href={buildSAMUrl(opp.noticeId)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm font-bold text-white group-hover:text-orange-300 transition-colors line-clamp-2 leading-snug"
+                            className={cx(
+                              'font-bold transition-colors line-clamp-2 leading-snug',
+                              isLight ? 'text-base text-blue-900 group-hover:text-blue-700' : 'text-sm text-white group-hover:text-orange-300'
+                            )}
                           >
                             {opp.title || 'Untitled'}
                           </a>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                             {(opp.deptname || opp.organizationName) && (
-                              <span className="text-xs text-slate-400 flex items-center gap-1">
-                                <Building2 className="w-3 h-3 text-slate-600" />
+                              <span className={cx(
+                                'flex items-center gap-1',
+                                isLight ? 'text-sm text-blue-800 font-semibold' : 'text-xs text-slate-400'
+                              )}>
+                                <Building2 className={cx('w-3 h-3', isLight ? 'text-blue-600' : 'text-slate-600')} />
                                 {opp.deptname || opp.organizationName}
                               </span>
                             )}
                             {opp.postedDate && (
-                              <span className="text-xs text-slate-500 flex items-center gap-1">
+                              <span className={cx(
+                                'flex items-center gap-1',
+                                isLight ? 'text-sm text-blue-700 font-semibold' : 'text-xs text-slate-500'
+                              )}>
                                 <Calendar className="w-3 h-3" /> {formatDate(opp.postedDate)}
                               </span>
                             )}
@@ -473,7 +537,12 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {opp.typeOfSetAsideDescription && (
-                            <span className="hidden sm:inline text-xs px-2 py-0.5 bg-slate-700/80 border border-slate-600 rounded-full text-slate-300 font-medium whitespace-nowrap">
+                            <span className={cx(
+                              'hidden sm:inline px-2 py-0.5 rounded-full whitespace-nowrap',
+                              isLight
+                                ? 'text-sm bg-orange-100 border border-orange-300 text-orange-800 font-bold'
+                                : 'text-xs bg-slate-700/80 border border-slate-600 text-slate-300 font-medium'
+                            )}>
                               {opp.typeOfSetAsideDescription}
                             </span>
                           )}
@@ -481,7 +550,10 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
                             href={buildSAMUrl(opp.noticeId)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1 text-slate-600 hover:text-slate-300 transition-colors"
+                            className={cx(
+                              'p-1 transition-colors',
+                              isLight ? 'text-blue-600 hover:text-blue-900' : 'text-slate-600 hover:text-slate-300'
+                            )}
                             title="View on SAM.gov"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -497,11 +569,21 @@ export default function QuickSearchPanel({ onSaveSearch, onCreateAlert }: QuickS
               {results.length > 5 && (
                 <div className="flex items-center gap-2 mt-3 justify-end">
                   <button onClick={() => onSaveSearch(form)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 border border-teal-600/40 text-teal-300 hover:text-teal-200 rounded-lg text-xs font-bold transition-colors">
+                    className={cx(
+                      'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-colors',
+                      isLight
+                        ? 'bg-teal-600 hover:bg-teal-700 border border-teal-700 text-white text-sm font-black shadow-sm'
+                        : 'bg-teal-600/20 hover:bg-teal-600/30 border border-teal-600/40 text-teal-300 hover:text-teal-200 text-xs font-bold'
+                    )}>
                     <Save className="w-3.5 h-3.5" /> Save as Search
                   </button>
                   <button onClick={() => onCreateAlert(form)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-600/40 text-orange-300 hover:text-orange-200 rounded-lg text-xs font-bold transition-colors">
+                    className={cx(
+                      'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-colors',
+                      isLight
+                        ? 'bg-orange-600 hover:bg-orange-700 border border-orange-700 text-white text-sm font-black shadow-sm'
+                        : 'bg-orange-600/20 hover:bg-orange-600/30 border border-orange-600/40 text-orange-300 hover:text-orange-200 text-xs font-bold'
+                    )}>
                     <BellRing className="w-3.5 h-3.5" /> Create Alert
                   </button>
                 </div>

@@ -2,7 +2,6 @@
 
 'use client'
 
-import Script from 'next/script'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -795,7 +794,7 @@ export default function SupportPage() {
       </div>
 
       {/* HERO SECTION */}
-      <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8 pt-4 pb-4">
+      <div className="mx-auto max-w-480 px-4 sm:px-6 lg:px-8 pt-4 pb-4">
         {/* HERO */}
         <div className="mb-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           <div className="lg:col-span-8">
@@ -811,29 +810,29 @@ export default function SupportPage() {
             <div className="mt-4 flex flex-wrap gap-3">
               <a
                 href="#book"
-                className="pg-btn pg-btn-primary inline-flex items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-base font-extrabold text-white shadow-lg transition-all"
+                className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-emerald-700 px-5 py-3.5 text-base font-extrabold text-white shadow-lg transition-all hover:bg-emerald-800"
               >
-                <CalendarClock className="h-5 w-5" />
+                <CalendarClock className="h-5 w-5 text-white" />
                 Book a 30-min meeting
               </a>
 
               <button
                 type="button"
                 onClick={() => setSupportModalOpen(true)}
-                className="pg-btn pg-btn-secondary inline-flex items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-base font-extrabold shadow-lg transition-all"
+                className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-orange-600 px-5 py-3.5 text-base font-extrabold text-white shadow-lg transition-all hover:bg-orange-700"
               >
-                <Send className="h-5 w-5" />
+                <Send className="h-5 w-5 text-white" />
                 Send Us a message
               </button>
             </div>
 
             <div className="mt-4 space-y-2">
               <div className="flex flex-wrap gap-3 text-sm sm:text-base">
-                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-sm">
-                  Typical response: <span className="font-bold text-[var(--color-text-primary)]">1 business day</span>
+                <span className="rounded-full border border-emerald-700 bg-emerald-700 px-4 py-2 text-white shadow-sm">
+                  Typical response: <span className="font-bold text-white">1 business day</span>
                 </span>
-                <span className="rounded-full border border-orange-400/20 bg-orange-500/10 px-4 py-2 backdrop-blur-sm">
-                  Best for complex issues: <span className="font-bold text-[var(--color-text-primary)]">meeting</span>
+                <span className="rounded-full border border-orange-700 bg-orange-600 px-4 py-2 text-white shadow-sm">
+                  Best for complex issues: <span className="font-bold text-white">meeting</span>
                 </span>
               </div>
               
@@ -853,11 +852,14 @@ export default function SupportPage() {
                     Schedule a 30-minute call. We&apos;ll walk through your questions and get you the help you need.
                   </p>
                 </div>
-                <div
-                  className="calendly-inline-widget w-full bg-white"
-                  data-url={CALENDLY_EMBED_URL}
-                  style={{ minWidth: '100%', height: '660px' }}
-                />
+                <div className="h-[700px] w-full bg-white sm:h-[760px]">
+                  <iframe
+                    src={CALENDLY_EMBED_URL}
+                    title="Book a meeting with PreciseGovCon"
+                    className="h-full w-full border-0"
+                    loading="lazy"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -878,7 +880,7 @@ export default function SupportPage() {
                 </div>
               </div>
 
-              <div className="mt-6 space-y-5 text-sm sm:text-base">
+              <div className="mt-6 flex flex-1 flex-col gap-5 text-sm sm:text-base">
                 <div className="flex items-start gap-4">
                   <div className="mt-0.5 rounded-xl bg-[var(--color-accent-soft)] p-3.5 border border-[var(--color-border)]">
                     <Mail className="h-6 w-6 text-[var(--color-primary)]" />
@@ -927,27 +929,30 @@ export default function SupportPage() {
                 <button
                   type="button"
                   onClick={() => setSupportModalOpen(true)}
-                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/10 backdrop-blur-sm px-4 py-3 text-sm sm:text-base font-black hover:bg-white/15 transition-all hover:shadow-lg"
+                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-orange-700 bg-orange-600 px-4 py-3 text-sm sm:text-base font-black text-white shadow-lg hover:bg-orange-700 transition-all hover:shadow-xl"
                 >
-                  <Send className="h-5 w-5 text-orange-200" />
+                  <Send className="h-5 w-5 text-white" />
                   Open contact options
                 </button>
 
                 {/* Reassurance message below button */}
-                <div className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-accent-soft)] p-5 flex flex-col justify-between gap-4">
-                  <p className="text-xl font-black text-[var(--color-text-primary)] leading-snug">
+                <div
+                  className="flex-1 rounded-xl border border-orange-800 bg-orange-700 p-5 flex flex-col justify-between gap-4 text-white shadow-lg"
+                  style={{ color: '#ffffff' }}
+                >
+                  <p className="text-xl font-black text-white leading-snug" style={{ color: '#ffffff' }}>
                     🤝 We&apos;re happy to help — no issue is too big or too small.
                   </p>
-                  <p className="text-base font-bold text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-base font-bold text-white/90 leading-relaxed" style={{ color: '#ffffff' }}>
                     Whether you prefer a quick email, a phone call, or a dedicated 30-minute meeting, 
                     our team will make sure you get the support you need to keep winning contracts.
                   </p>
-                  <p className="text-base font-bold text-[var(--color-text-secondary)] leading-relaxed">
+                  <p className="text-base font-bold text-white/90 leading-relaxed" style={{ color: '#ffffff' }}>
                     Our specialists understand federal contracting inside and out. 
                     Bring your questions on SAM.gov registration, set-aside certifications, 
                     proposal strategy, or platform features — we&apos;ve got you covered.
                   </p>
-                  <p className="text-base font-black text-[var(--color-primary)] leading-relaxed">
+                  <p className="text-base font-black text-white leading-relaxed" style={{ color: '#ffffff' }}>
                     📅 Schedule a meeting and let us walk you through your questions one-on-one — 
                     we&apos;re here every step of the way.
                   </p>
@@ -994,8 +999,6 @@ export default function SupportPage() {
 
 
       </div>
-
-      <Script src="https://assets.calendly.com/assets/external/widget.js" strategy="lazyOnload" />
     </main>
   )
 }

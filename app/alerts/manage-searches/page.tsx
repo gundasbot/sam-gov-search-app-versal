@@ -2,72 +2,43 @@
 'use client'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Bookmark, Plus, Edit3, Trash2, Share2, Play, X, Mail, ExternalLink, Copy, Check, Bell, BellRing, ArrowLeft, ChevronDown, ChevronUp, Search, Filter, Calendar, Loader2, BookUser, RefreshCw } from 'lucide-react'
+import { Bookmark, Plus, Edit3, Trash2, Share2, Play, X, Mail, ExternalLink, Copy, Check, Bell, BellRing, ChevronDown, ChevronUp, Search, Filter, Calendar, Loader2, BookUser, RefreshCw } from 'lucide-react'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import QuickSearchPanel, { type QuickSearchParams } from '@/components/QuickSearchPanel'
 import TokenInput from '@/components/TokenInput'
+import WorkspaceNavRow from '@/components/WorkspaceNavRow'
 import { getPersonalizedGreeting, getTimeOfDayEmoji } from '@/lib/greeting'
+import {
+  PROCUREMENT_TYPE_OPTIONS as SAM_PROCUREMENT_TYPE_OPTIONS,
+  SET_ASIDE_CODES,
+  US_STATES as SAM_US_STATES,
+  OPPORTUNITY_STATUSES,
+  COMMON_NAICS_CODES,
+  PSC_CATEGORIES,
+} from '@/lib/sam-gov-constants'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const PROCUREMENT_TYPE_OPTIONS = [
-  { value: 'o', label: 'Solicitation' },
-  { value: 'p', label: 'Presolicitation' },
-  { value: 'k', label: 'Combined Synopsis/Solicitation' },
-  { value: 'r', label: 'Sources Sought' },
-  { value: 's', label: 'Special Notice' },
-  { value: 'g', label: 'Sale of Surplus Property' },
-  { value: 'i', label: 'Intent to Bundle' },
-  { value: 'a', label: 'Award Notice' },
-  { value: 'u', label: 'Justification' },
-]
+const PROCUREMENT_TYPE_OPTIONS = SAM_PROCUREMENT_TYPE_OPTIONS
+  .filter(o => o.value)
+  .map(o => ({ value: o.value, label: o.label }))
 
-const SET_ASIDE_OPTIONS = [
-  { value: 'SBA', label: 'Small Business' },
-  { value: 'SBP', label: 'Small Business Set-Aside (Partial)' },
-  { value: '8A', label: '8(a) Sole Source' },
-  { value: '8AN', label: '8(a) Competitive' },
-  { value: 'HZC', label: 'HUBZone Set-Aside' },
-  { value: 'HZS', label: 'HUBZone Sole Source' },
-  { value: 'SDVOSBC', label: 'SDVOSB Set-Aside' },
-  { value: 'SDVOSBS', label: 'SDVOSB Sole Source' },
-  { value: 'WOSB', label: 'Women-Owned Small Business' },
-  { value: 'WOSBSS', label: 'WOSB Sole Source' },
-  { value: 'EDWOSB', label: 'Economically Disadvantaged WOSB' },
-  { value: 'VSB', label: 'Veteran-Owned Small Business' },
-]
+const SET_ASIDE_OPTIONS = SET_ASIDE_CODES
+  .filter(o => o.value)
+  .map(o => ({ value: o.value, label: o.label }))
 
-const US_STATES = [
-  { value: 'AL', label: 'Alabama' }, { value: 'AK', label: 'Alaska' },
-  { value: 'AZ', label: 'Arizona' }, { value: 'AR', label: 'Arkansas' },
-  { value: 'CA', label: 'California' }, { value: 'CO', label: 'Colorado' },
-  { value: 'CT', label: 'Connecticut' }, { value: 'DE', label: 'Delaware' },
-  { value: 'DC', label: 'District of Columbia' }, { value: 'FL', label: 'Florida' },
-  { value: 'GA', label: 'Georgia' }, { value: 'HI', label: 'Hawaii' },
-  { value: 'ID', label: 'Idaho' }, { value: 'IL', label: 'Illinois' },
-  { value: 'IN', label: 'Indiana' }, { value: 'IA', label: 'Iowa' },
-  { value: 'KS', label: 'Kansas' }, { value: 'KY', label: 'Kentucky' },
-  { value: 'LA', label: 'Louisiana' }, { value: 'ME', label: 'Maine' },
-  { value: 'MD', label: 'Maryland' }, { value: 'MA', label: 'Massachusetts' },
-  { value: 'MI', label: 'Michigan' }, { value: 'MN', label: 'Minnesota' },
-  { value: 'MS', label: 'Mississippi' }, { value: 'MO', label: 'Missouri' },
-  { value: 'MT', label: 'Montana' }, { value: 'NE', label: 'Nebraska' },
-  { value: 'NV', label: 'Nevada' }, { value: 'NH', label: 'New Hampshire' },
-  { value: 'NJ', label: 'New Jersey' }, { value: 'NM', label: 'New Mexico' },
-  { value: 'NY', label: 'New York' }, { value: 'NC', label: 'North Carolina' },
-  { value: 'ND', label: 'North Dakota' }, { value: 'OH', label: 'Ohio' },
-  { value: 'OK', label: 'Oklahoma' }, { value: 'OR', label: 'Oregon' },
-  { value: 'PA', label: 'Pennsylvania' }, { value: 'RI', label: 'Rhode Island' },
-  { value: 'SC', label: 'South Carolina' }, { value: 'SD', label: 'South Dakota' },
-  { value: 'TN', label: 'Tennessee' }, { value: 'TX', label: 'Texas' },
-  { value: 'UT', label: 'Utah' }, { value: 'VT', label: 'Vermont' },
-  { value: 'VA', label: 'Virginia' }, { value: 'WA', label: 'Washington' },
-  { value: 'WV', label: 'West Virginia' }, { value: 'WI', label: 'Wisconsin' },
-  { value: 'WY', label: 'Wyoming' }, { value: 'GU', label: 'Guam' },
-  { value: 'PR', label: 'Puerto Rico' }, { value: 'VI', label: 'U.S. Virgin Islands' },
-]
+const US_STATES = SAM_US_STATES
+  .filter(o => o.value)
+  .map(o => ({ value: o.value, label: o.label }))
+
+const STATUS_OPTIONS = OPPORTUNITY_STATUSES
+  .filter(o => o.value)
+  .map(o => ({ value: o.value, label: o.label }))
+
+const COMMON_NAICS_OPTIONS = COMMON_NAICS_CODES.map(o => ({ value: o.value, label: o.label }))
+const PSC_CATEGORY_OPTIONS = PSC_CATEGORIES.map(o => ({ value: o.value, label: o.label }))
 
 // ---------------------------------------------------------------------------
 // Multi-Select Dropdown Component
@@ -115,22 +86,22 @@ function MultiSelect({ options, selected, onChange, placeholder = 'Any' }: Multi
       <button
         type="button"
         onClick={() => { setOpen(o => !o); setSearch('') }}
-        className="w-full px-3 py-2 bg-slate-700/80 border border-slate-600 rounded-lg text-left text-sm transition-colors focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 flex items-center justify-between gap-2 min-h-[38px]"
+        className="w-full px-3 py-2 bg-white border-2 border-blue-400 rounded-lg text-left text-base font-bold transition-colors focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/30 flex items-center justify-between gap-2 min-h-9.5"
       >
-        <span className={selected.length === 0 ? 'text-slate-400' : 'text-white truncate'}>
+        <span className={selected.length === 0 ? 'text-blue-700' : 'text-blue-950 truncate'}>
           {displayText}
         </span>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {selected.length > 0 && (
             <span
               onClick={e => { e.stopPropagation(); onChange([]) }}
-              className="text-slate-400 hover:text-red-400 cursor-pointer transition-colors"
+              className="text-blue-700 hover:text-red-600 cursor-pointer transition-colors"
               title="Clear all"
             >
               <X className="w-3.5 h-3.5" />
             </span>
           )}
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-blue-700 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -140,9 +111,9 @@ function MultiSelect({ options, selected, onChange, placeholder = 'Any' }: Multi
           {selected.map(v => {
             const opt = options.find(o => o.value === v)
             return (
-              <span key={v} className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-900/60 border border-teal-700/50 text-teal-300 rounded-md text-xs font-medium">
+              <span key={v} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-600 border border-orange-700 text-white rounded-md text-sm font-black">
                 {opt?.label ?? v}
-                <button type="button" onClick={() => toggle(v)} className="hover:text-red-400 transition-colors ml-0.5">
+                <button type="button" onClick={() => toggle(v)} className="hover:text-red-200 transition-colors ml-0.5">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -153,45 +124,45 @@ function MultiSelect({ options, selected, onChange, placeholder = 'Any' }: Multi
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full min-w-[220px] bg-slate-800 border border-slate-600 rounded-xl shadow-2xl overflow-hidden">
+        <div className="absolute z-50 mt-1 w-full min-w-55 bg-white border-2 border-blue-400 rounded-xl shadow-2xl overflow-hidden">
           {/* Search within dropdown */}
           {options.length > 5 && (
-            <div className="p-2 border-b border-slate-700">
+            <div className="p-2 border-b border-blue-200">
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search…"
-                className="w-full px-2.5 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs placeholder-slate-500 focus:outline-none focus:border-teal-400"
+                className="w-full px-2.5 py-1.5 bg-white border border-blue-300 rounded-lg text-blue-900 text-sm font-semibold placeholder-blue-500 focus:outline-none focus:border-blue-500"
                 autoFocus
               />
             </div>
           )}
           <div className="max-h-52 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-slate-500 text-center">No matches</div>
+              <div className="px-3 py-3 text-sm text-blue-800 text-center font-semibold">No matches</div>
             ) : filtered.map(o => (
               <button
                 key={o.value}
                 type="button"
                 onClick={() => toggle(o.value)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700/80 transition-colors flex items-center gap-2.5"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors flex items-center gap-2.5"
               >
-                <span className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${selected.includes(o.value) ? 'bg-teal-500 border-teal-500' : 'border-slate-500 bg-slate-800'}`}>
+                <span className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors ${selected.includes(o.value) ? 'bg-blue-600 border-blue-600' : 'border-blue-300 bg-white'}`}>
                   {selected.includes(o.value) && <Check className="w-2.5 h-2.5 text-white" />}
                 </span>
-                <span className={selected.includes(o.value) ? 'text-teal-300 font-medium' : 'text-slate-200'}>
+                <span className={selected.includes(o.value) ? 'text-blue-950 font-bold' : 'text-blue-800 font-semibold'}>
                   {o.label}
                 </span>
               </button>
             ))}
           </div>
           {selected.length > 0 && (
-            <div className="border-t border-slate-700 p-2">
+            <div className="border-t border-blue-200 p-2">
               <button
                 type="button"
                 onClick={() => { onChange([]); setOpen(false) }}
-                className="w-full text-xs text-slate-400 hover:text-red-400 transition-colors py-1 text-center"
+                className="w-full text-sm text-blue-700 hover:text-red-600 transition-colors py-1 text-center font-semibold"
               >
                 Clear all ({selected.length} selected)
               </button>
@@ -237,6 +208,25 @@ function getSixMonthsAgo(): string {
   return d.toISOString().split('T')[0]
 }
 
+function daySuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th'
+  const last = day % 10
+  if (last === 1) return 'st'
+  if (last === 2) return 'nd'
+  if (last === 3) return 'rd'
+  return 'th'
+}
+
+function formatLaymanDate(value?: string | Date | null): string {
+  if (!value) return ''
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return typeof value === 'string' ? value : ''
+  const month = d.toLocaleDateString('en-US', { month: 'long' })
+  const day = d.getDate()
+  const year = d.getFullYear()
+  return `${month} ${day}${daySuffix(day)} ${year}`
+}
+
 function makeEmptyForm(): FilterForm {
   return {
     name: '', keyword: '', ptypes: [], states: [], ncode: '', ccode: '',
@@ -252,6 +242,13 @@ function toArray(val: any): string[] {
   return String(val).split(',').map((s: string) => s.trim()).filter(Boolean)
 }
 
+function appendCsvValue(current: string, nextValue: string): string {
+  if (!nextValue) return current
+  const values = toArray(current)
+  if (values.includes(nextValue)) return current
+  return [...values, nextValue].join(', ')
+}
+
 function buildFilterSummary(f: FilterForm): string {
   const parts: string[] = []
   if (f.keyword) parts.push(`"${f.keyword}"`)
@@ -261,8 +258,8 @@ function buildFilterSummary(f: FilterForm): string {
   if (f.ccode) parts.push(`PSC ${f.ccode}`)
   if (f.setAsides.length) parts.push(f.setAsides.map(v => SET_ASIDE_OPTIONS.find(s => s.value === v)?.label ?? v).join(', '))
   if (f.organizationName) parts.push(f.organizationName)
-  if (f.postedFrom) parts.push(`from ${f.postedFrom}`)
-  if (f.rdlto) parts.push(`due by ${f.rdlto}`)
+  if (f.postedFrom) parts.push(`from ${formatLaymanDate(f.postedFrom)}`)
+  if (f.rdlto) parts.push(`due by ${formatLaymanDate(f.rdlto)}`)
   if (f.solnum) parts.push(`Sol# ${f.solnum}`)
   return parts.join(' · ')
 }
@@ -276,6 +273,8 @@ function RunConfirmModal({ search, onConfirm, onClose }: {
   onClose: () => void
 }) {
   const sp = search.params ?? {}
+  const postedFromValue = sp.postedFrom || sp.posted_after || sp.postedAfter || ''
+  const dueByValue = sp.rdlto || sp.rdl_to || ''
 
   // Build a list of every active filter to display
   const filters: { label: string; value: string }[] = []
@@ -311,11 +310,11 @@ function RunConfirmModal({ search, onConfirm, onClose }: {
   if (sp.organizationName) filters.push({ label: 'Agency', value: sp.organizationName })
   if (sp.solnum) filters.push({ label: 'Solicitation #', value: sp.solnum })
   if (sp.status) filters.push({ label: 'Status', value: sp.status })
-  if (sp.postedFrom) filters.push({ label: 'Posted After', value: sp.postedFrom })
-  if (sp.rdlto) filters.push({ label: 'Response Deadline Before', value: sp.rdlto })
+  if (postedFromValue) filters.push({ label: 'Posted After', value: formatLaymanDate(postedFromValue) })
+  if (dueByValue) filters.push({ label: 'Response Deadline Before', value: formatLaymanDate(dueByValue) })
 
-  const dateNote = sp.postedFrom
-    ? `Searching from ${sp.postedFrom} to today`
+  const dateNote = postedFromValue
+    ? `Searching from ${formatLaymanDate(postedFromValue)} to today`
     : 'No date filter — SAM.gov will default to the last 364 days'
 
   return (
@@ -350,7 +349,7 @@ function RunConfirmModal({ search, onConfirm, onClose }: {
             <div className="space-y-2">
               {filters.map(f => (
                 <div key={f.label} className="flex items-start gap-2 text-sm">
-                  <span className="text-slate-500 min-w-[140px] shrink-0 text-xs pt-0.5">{f.label}</span>
+                  <span className="text-slate-500 min-w-35 shrink-0 text-xs pt-0.5">{f.label}</span>
                   <span className="text-white font-medium leading-snug">{f.value}</span>
                 </div>
               ))}
@@ -414,6 +413,8 @@ function ManageSearchesContent() {
   const [confirmSearch, setConfirmSearch] = useState<SavedSearch | null>(null)
   const [sortField, setSortField] = useState<'name' | 'createdAt' | 'runCount'>('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [naicsQuickPick, setNaicsQuickPick] = useState('')
+  const [pscQuickPick, setPscQuickPick] = useState('')
 
   // ── Pre-fill from URL when arriving from Search page ──────────────────
   useEffect(() => {
@@ -543,7 +544,7 @@ function ManageSearchesContent() {
       ccode: sp.ccode || '',
       setAsides: toArray(sp.typeOfSetAside ?? sp.setAsides),
       organizationName: sp.organizationName || '',
-      status: sp.status || '',
+      status: sp.status || sp.opportunityStatus || '',
       postedFrom: sp.postedFrom || sp.posted_after || sp.postedAfter || '',
       rdlto: sp.rdlto || '',
       solnum: sp.solnum || sp.solicitationNumber || '',
@@ -702,12 +703,12 @@ function ManageSearchesContent() {
   })
 
   // ── Styles ────────────────────────────────────────────────────────────
-  const inputCls = 'w-full px-3 py-2 bg-slate-700/80 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-sm transition-colors'
-  const labelCls = 'block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide'
+  const inputCls = 'w-full px-3 py-2.5 bg-white border-2 border-blue-400 rounded-lg text-blue-950 placeholder-slate-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/30 text-base font-bold transition-colors'
+  const labelCls = 'block text-base font-black text-blue-950 mb-1.5 uppercase tracking-wide'
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1a2332 50%, #0f172a 100%)' }}>
-      <div className="text-white text-center">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#dbeafe' }}>
+      <div className="text-slate-900 text-center">
         <div className="animate-spin h-12 w-12 border-4 border-teal-500 border-t-transparent rounded-full mx-auto mb-4" />
         <p className="text-lg font-semibold">Loading saved searches…</p>
       </div>
@@ -715,137 +716,99 @@ function ManageSearchesContent() {
   )
 
   return (
-    <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1a2332 25%, #1f2937 50%, #1a1f2e 75%, #0f172a 100%)' }} className="min-h-screen">
+
+    <div style={{ background: '#dbeafe' }} className="min-h-screen manage-searches-page">
 
       {/* Toast notification */}
       {toast && (
-        <div className={`fixed top-5 right-5 z-[100] px-5 py-3 rounded-xl shadow-xl font-semibold text-sm flex items-center gap-2 animate-in slide-in-from-right ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-teal-600 text-white'}`}>
+        <div className={`fixed top-5 right-5 z-100 px-5 py-3 rounded-xl shadow-xl font-semibold text-sm flex items-center gap-2 animate-in slide-in-from-right ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-teal-600 text-white'}`}>
           {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
           {toast.msg}
         </div>
       )}
 
-      <div className="max-w-[1920px] mx-auto px-3 sm:px-6 lg:px-8 py-8">
 
-        {/* ── Back navigation with Action Button ─────────────────────────── */}
-        <div className="flex justify-between items-center gap-4 mb-6">
-          <Link
-            href="/alerts"
-            className="inline-flex items-center gap-2 px-5 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-base font-black transition-all group shadow-md"
-          >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Alerts Hub
-          </Link>
+      <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-8 py-8">
+        <section className="mb-6">
+          <WorkspaceNavRow active="saved-searches" />
+        </section>
 
-          {/* Right: Manage Alerts Button */}
-          <Link
-            href="/alerts/manage-alerts"
-            className="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-black rounded-xl hover:from-orange-700 hover:to-orange-600 flex items-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 text-sm"
-          >
-            <BellRing className="w-4 h-4" />
-            <div className="text-left">
-              <div>Manage Alerts</div>
-            </div>
-          </Link>
+        {/* Page heading with live count */}
+        <div className="flex items-center gap-3 mb-4">
+          <h1 className="text-3xl font-black text-slate-900">Manage Saved Searches</h1>
+          {searches.length > 0 && (
+            <span className="px-3 py-1 bg-blue-700 text-white border border-blue-900 rounded-full text-sm font-black">
+              {searches.length}
+            </span>
+          )}
         </div>
 
-        {/* ── Hero ─────────────────────────────────────────────────── */}
-        <div className="text-center mb-8 relative">
-          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-48 bg-gradient-to-r from-teal-900/0 via-teal-700/10 to-teal-900/0 blur-3xl pointer-events-none rounded-full" />
-          <h1 className="text-5xl sm:text-6xl font-black mb-4 leading-tight">
-            <span className="text-3xl sm:text-4xl mr-2">{getTimeOfDayEmoji()}</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-emerald-400 to-teal-400">
-              {getPersonalizedGreeting(session?.user?.name)}
-            </span>
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-
-            </span>
-          </h1>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Build, manage, and instantly run your saved search criteria — or convert any search into a fully automated email alert.
-          </p>
-        </div>
-
-        {/* ── Action bar ───────────────────────────────────────────── */}
-        <div className="flex flex-wrap justify-between items-center gap-3 mb-8">
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Left: New Search */}
-            <button
-              onClick={() => { setShowForm(f => !f); setEditingId(null); setFormData(makeEmptyForm()) }}
-              className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white font-bold rounded-xl flex items-center gap-2 text-sm transition-all shadow-lg hover:shadow-xl shadow-teal-900/30"
-            >
-              {showForm && !editingId ? <><X className="w-4 h-4" /> Cancel</> : <><Plus className="w-4 h-4" /> New Saved Search</>}
-            </button>
-
-            {/* Centre: count badge */}
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
-              <Bookmark className="w-4 h-4 text-teal-400" />
-              <span className="font-medium text-white">{searches.length}</span>
-              <span>saved {searches.length === 1 ? 'search' : 'searches'}</span>
-            </div>
-          </div>
-
-          {/* Manage Contacts button */}
-          <Link
-            href="/alerts/manage-alerts"
-            className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white font-black rounded-xl flex items-center gap-3 text-sm transition-all shadow-lg hover:shadow-xl transform hover:scale-105 shadow-teal-900/30"
+        {/* Create New Saved Search action */}
+        <div className="flex flex-wrap mb-6 items-center gap-3">
+          <button
+            onClick={() => { setShowForm(true); setEditingId(null); setFormData(makeEmptyForm()) }}
+            className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl flex items-center gap-2 text-base transition-colors shadow-md"
           >
-            <BookUser className="w-4 h-4" />
-            <div className="text-left">
-              <div>Manage Contacts</div>
-            </div>
-          </Link>
+            <Plus className="w-5 h-5" /> Create a New Saved Search
+          </button>
         </div>
 
         {/* ── Quick Search Panel ────────────────────────────────────── */}
-        <QuickSearchPanel
-          onSaveSearch={(params: QuickSearchParams) => {
-            setFormData({
-              ...makeEmptyForm(),
-              name: params.keyword ? `${params.keyword} – Saved Search` : 'My Saved Search',
-              keyword: params.keyword || '',
-              ptypes: params.ptypes || [],
-              states: params.states || [],
-              ncode: params.ncode || '',
-              ccode: params.ccode || '',
-              setAsides: params.setAside ? [params.setAside] : [],
-              organizationName: params.organizationName || '',
-            })
-            setEditingId(null)
-            setShowForm(true)
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-          }}
-          onCreateAlert={(params: QuickSearchParams) => {
-            const qp = new URLSearchParams({ new: '1' })
-            if (params.keyword) qp.set('title', params.keyword)
-            if (params.ncode) qp.set('ncode', params.ncode)
-            if (params.ccode) qp.set('ccode', params.ccode)
-            if (params.states?.length) qp.set('state', params.states.join(','))
-            if (params.ptypes?.length) qp.set('ptype', params.ptypes.join(','))
-            if (params.setAside) qp.set('typeOfSetAside', params.setAside)
-            if (params.organizationName) qp.set('organizationName', params.organizationName)
-            router.push(`/alerts/manage-alerts?${qp.toString()}`)
-          }}
-        />
+        <div className="mb-6">
+          <QuickSearchPanel
+            theme="light"
+            onSaveSearch={(params: QuickSearchParams) => {
+              // NOTE: This currently only opens the form prefilled, does not save directly
+              setFormData({
+                ...makeEmptyForm(),
+                name: params.keyword ? `${params.keyword} – Saved Search` : 'My Saved Search',
+                keyword: params.keyword || '',
+                ptypes: params.ptypes || [],
+                states: params.states || [],
+                ncode: params.ncode || '',
+                ccode: params.ccode || '',
+                setAsides: params.setAside ? [params.setAside] : [],
+                organizationName: params.organizationName || '',
+              })
+              setEditingId(null)
+              setShowForm(true)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+            onCreateAlert={(params: QuickSearchParams) => {
+              const qp = new URLSearchParams({ new: '1' })
+              if (params.keyword) qp.set('title', params.keyword)
+              if (params.ncode) qp.set('ncode', params.ncode)
+              if (params.ccode) qp.set('ccode', params.ccode)
+              if (params.states?.length) qp.set('state', params.states.join(','))
+              if (params.ptypes?.length) qp.set('ptype', params.ptypes.join(','))
+              if (params.setAside) qp.set('typeOfSetAside', params.setAside)
+              if (params.organizationName) qp.set('organizationName', params.organizationName)
+              router.push(`/alerts/manage-alerts?${qp.toString()}`)
+            }}
+          />
+          <div className="mt-3 rounded-lg border-2 border-orange-700 bg-orange-600 px-4 py-2.5 text-base font-black text-white">
+            Note: The Quick Search panel currently only pre-fills the form. Saving requires completing the form below.
+          </div>
+        </div>
 
         {/* ── Create / Edit Form ────────────────────────────────────── */}
         {showForm && (
-          <div className="bg-gradient-to-br from-teal-900/20 to-slate-800/40 border border-teal-700/50 rounded-2xl p-7 mb-8 shadow-2xl shadow-black/30 max-w-4xl mx-auto transition-colors">
+          <div className="saved-search-form-surface w-full bg-white border-2 border-blue-300 rounded-2xl p-6 lg:p-7 mb-8 shadow-xl transition-colors">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-black text-white flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-teal-400" />
+              <h2 className="text-2xl font-black text-blue-950 flex items-center gap-2">
+                <Bookmark className="w-5 h-5 text-blue-700" />
                 {editingId ? 'Edit Saved Search' : 'Save New Search'}
               </h2>
-              <button onClick={() => { setShowForm(false); setEditingId(null); setFormData(makeEmptyForm()) }} className="text-slate-400 hover:text-white transition-colors">
+              <button onClick={() => { setShowForm(false); setEditingId(null); setFormData(makeEmptyForm()) }} className="text-blue-600 hover:text-blue-900 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Live filter preview */}
             {buildFilterSummary(formData) && (
-              <div className="mb-5 px-4 py-3 bg-teal-900/30 border border-teal-700/40 rounded-xl text-teal-300 text-xs font-medium">
-                <span className="text-teal-400 font-bold">Filter preview: </span>
-                {buildFilterSummary(formData)}
+              <div className="filter-preview mb-5 px-4 py-3 bg-blue-700 border-2 border-blue-600 rounded-xl text-white text-base font-bold">
+                <span className="text-white font-black">Filter preview: </span>
+                <span className="text-white font-bold">{buildFilterSummary(formData)}</span>
               </div>
             )}
 
@@ -879,10 +842,35 @@ function ManageSearchesContent() {
               <div>
                 <label className={labelCls}>NAICS Code</label>
                 <TokenInput
+                  theme="light"
+                  className="border-2 border-blue-400 focus-within:border-blue-600"
                   value={formData.ncode}
                   onChange={v => setFormData(f => ({ ...f, ncode: v }))}
                   placeholder="e.g. 541512 — Enter to add more"
                 />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <select
+                    value={naicsQuickPick}
+                    onChange={e => setNaicsQuickPick(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 bg-white border-2 border-blue-400 rounded-lg text-sm font-bold text-blue-950"
+                  >
+                    <option value="">Add common NAICS…</option>
+                    {COMMON_NAICS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!naicsQuickPick) return
+                      setFormData(f => ({ ...f, ncode: appendCsvValue(f.ncode, naicsQuickPick) }))
+                      setNaicsQuickPick('')
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 border border-blue-900 text-white text-sm font-black"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
 
               {/* Procurement Type — MULTI-SELECT */}
@@ -907,6 +895,21 @@ function ManageSearchesContent() {
                 />
               </div>
 
+              {/* Status */}
+              <div>
+                <label className={labelCls}>Opportunity Status</label>
+                <select
+                  value={formData.status}
+                  onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}
+                  className={inputCls}
+                >
+                  <option value="">Any Status</option>
+                  {STATUS_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Set-Aside — MULTI-SELECT */}
               <div>
                 <label className={labelCls}>Set-Aside</label>
@@ -922,16 +925,43 @@ function ManageSearchesContent() {
               <div>
                 <label className={labelCls}>PSC Code</label>
                 <TokenInput
+                  theme="light"
+                  className="border-2 border-blue-400 focus-within:border-blue-600"
                   value={formData.ccode}
                   onChange={v => setFormData(f => ({ ...f, ccode: v }))}
                   placeholder="e.g. D307 — Enter to add more"
                 />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <select
+                    value={pscQuickPick}
+                    onChange={e => setPscQuickPick(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 bg-white border-2 border-blue-400 rounded-lg text-sm font-bold text-blue-950"
+                  >
+                    <option value="">Add PSC category…</option>
+                    {PSC_CATEGORY_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!pscQuickPick) return
+                      setFormData(f => ({ ...f, ccode: appendCsvValue(f.ccode, pscQuickPick) }))
+                      setPscQuickPick('')
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-800 border border-blue-900 text-white text-sm font-black"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
 
               {/* Agency */}
               <div>
                 <label className={labelCls}>Agency / Organization</label>
                 <TokenInput
+                  theme="light"
+                  className="border-2 border-blue-400 focus-within:border-blue-600"
                   value={formData.organizationName}
                   onChange={v => setFormData(f => ({ ...f, organizationName: v }))}
                   placeholder="e.g. Department of Defense — Enter to add more"
@@ -985,11 +1015,11 @@ function ManageSearchesContent() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6 pt-5 border-t border-slate-700">
+            <div className="flex gap-3 mt-6 pt-5 border-t border-blue-200">
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 disabled:opacity-60 text-white font-bold rounded-lg flex items-center gap-2 text-sm transition-all shadow-lg hover:shadow-xl shadow-teal-900/20"
+                className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-60 border border-orange-800 text-white font-black rounded-lg flex items-center gap-2 text-base transition-colors shadow-md"
               >
                 {saving
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving…</>
@@ -998,7 +1028,7 @@ function ManageSearchesContent() {
               </button>
               <button
                 onClick={() => { setShowForm(false); setEditingId(null); setFormData(makeEmptyForm()) }}
-                className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-lg text-sm transition-colors"
+                className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white border border-blue-900 font-black rounded-lg text-base transition-colors"
               >
                 Cancel
               </button>
@@ -1008,62 +1038,62 @@ function ManageSearchesContent() {
 
         {/* ── Saved searches list ───────────────────────────────────── */}
         {searches.length === 0 && !showForm ? (
-          <div className="text-center text-slate-400 py-20 bg-slate-800/30 border border-slate-700 rounded-2xl">
-            <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-5">
-              <Bookmark className="w-10 h-10 text-slate-600" />
+          <div className="text-center text-blue-900 py-20 bg-white border-2 border-blue-300 rounded-2xl shadow-sm">
+            <div className="w-20 h-20 rounded-2xl bg-blue-50 border border-blue-300 flex items-center justify-center mx-auto mb-5">
+              <Bookmark className="w-10 h-10 text-blue-600" />
             </div>
-            <h3 className="text-xl font-black text-white mb-2">No Saved Searches Yet</h3>
-            <p className="text-slate-400 mb-6 max-w-sm mx-auto">
-              Run a search and click <strong className="text-teal-400">Save Search</strong>, or create one manually here.
+            <h3 className="text-2xl font-black text-blue-900 mb-2">No Saved Searches Yet</h3>
+            <p className="text-blue-700 mb-6 max-w-sm mx-auto font-semibold">
+              Run a search and click <strong className="text-teal-700">Save Search</strong>, or create one manually here.
             </p>
             <div className="flex gap-3 justify-center flex-wrap">
-              <Link href="/search" className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-2">
+              <Link href="/search" className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-black rounded-lg text-base transition-colors flex items-center gap-2">
                 <ExternalLink className="w-4 h-4" /> Go to Search
               </Link>
               <button
                 onClick={() => setShowForm(true)}
-                className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-black rounded-lg text-base transition-colors flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" /> Create Manually
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-slate-800/30 border border-slate-700 rounded-2xl overflow-hidden">
+          <div className="bg-white border-2 border-blue-300 rounded-2xl overflow-hidden shadow-sm">
             {/* Sort column header */}
-            <div className="grid grid-cols-[1fr_160px_80px_auto] gap-0 border-b border-slate-700 bg-slate-900/50 px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wide">
+            <div className="grid grid-cols-[1fr_180px_90px_auto] gap-0 border-b-2 border-blue-700 bg-blue-700 px-4 py-3 text-sm font-black text-white uppercase tracking-wide">
               <button
                 onClick={() => toggleSort('name')}
-                className="flex items-center gap-1.5 hover:text-teal-300 transition-colors text-left"
+                className="flex items-center gap-1.5 hover:text-blue-100 transition-colors text-left"
               >
                 Name
                 {sortField === 'name' ? (
-                  sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-teal-400" /> : <ChevronDown className="w-3.5 h-3.5 text-teal-400" />
-                ) : <ChevronDown className="w-3.5 h-3.5 opacity-30" />}
+                  sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-blue-100" /> : <ChevronDown className="w-3.5 h-3.5 text-blue-100" />
+                ) : <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
               </button>
               <button
                 onClick={() => toggleSort('createdAt')}
-                className="flex items-center gap-1.5 hover:text-teal-300 transition-colors"
+                className="flex items-center gap-1.5 hover:text-blue-100 transition-colors"
               >
                 Date Created
                 {sortField === 'createdAt' ? (
-                  sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-teal-400" /> : <ChevronDown className="w-3.5 h-3.5 text-teal-400" />
-                ) : <ChevronDown className="w-3.5 h-3.5 opacity-30" />}
+                  sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-blue-100" /> : <ChevronDown className="w-3.5 h-3.5 text-blue-100" />
+                ) : <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
               </button>
               <button
                 onClick={() => toggleSort('runCount')}
-                className="flex items-center gap-1.5 hover:text-teal-300 transition-colors"
+                className="flex items-center gap-1.5 hover:text-blue-100 transition-colors"
               >
                 Runs
                 {sortField === 'runCount' ? (
-                  sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-teal-400" /> : <ChevronDown className="w-3.5 h-3.5 text-teal-400" />
-                ) : <ChevronDown className="w-3.5 h-3.5 opacity-30" />}
+                  sortDir === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-blue-100" /> : <ChevronDown className="w-3.5 h-3.5 text-blue-100" />
+                ) : <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
               </button>
               <span>Actions</span>
             </div>
 
-            <div className="divide-y divide-slate-700/50">
-              {sortedSearches.map(search => {
+            <div className="divide-y divide-blue-200">
+              {sortedSearches.map((search, index) => {
                 const sp = search.params ?? {}
                 const summary = buildFilterSummary({
                   name: search.name,
@@ -1075,47 +1105,48 @@ function ManageSearchesContent() {
                   setAsides: toArray(sp.typeOfSetAside ?? sp.setAsides),
                   organizationName: sp.organizationName || '',
                   status: sp.status || '',
-                  postedFrom: sp.postedFrom || '',
-                  rdlto: sp.rdlto || '',
+                  postedFrom: sp.postedFrom || sp.posted_after || sp.postedAfter || '',
+                  rdlto: sp.rdlto || sp.rdl_to || '',
                   solnum: sp.solnum || '',
                   zip: sp.zip || '',
                   limit: sp.limit || 1000,
                 })
 
                 const createdDate = new Date(search.createdAt)
-                const dateStr = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                const dateStr = formatLaymanDate(createdDate)
                 const timeStr = createdDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
                 return (
                   <div
                     key={search.id}
-                    className="grid grid-cols-[1fr_160px_80px_auto] gap-0 items-start px-4 py-4 hover:bg-slate-800/50 transition-colors border-l-4 border-l-teal-500"
+                    className="grid grid-cols-[1fr_180px_90px_auto] gap-0 items-start px-4 py-4 hover:bg-blue-50 transition-colors border-l-4 border-l-blue-600"
                   >
                     {/* Name + field values */}
                     <div className="min-w-0 pr-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Bookmark className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
-                        <span className="text-sm font-bold text-white truncate">{search.name}</span>
+                      <p className="text-xs font-black uppercase tracking-wider text-blue-700 mb-0.5">Search #{index + 1}</p>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Bookmark className="w-4 h-4 text-blue-700 shrink-0" />
+                        <span className="text-lg font-black text-blue-950 truncate">{search.name}</span>
                       </div>
                       {summary ? (
-                        <p className="text-xs text-slate-400 ml-5.5 line-clamp-2 leading-relaxed">{summary}</p>
+                        <p className="text-sm text-blue-800 ml-6 line-clamp-2 leading-relaxed font-semibold">{summary}</p>
                       ) : (
-                        <p className="text-xs text-slate-500 ml-5.5 italic">No filters — matches all opportunities</p>
+                        <p className="text-sm text-blue-700 ml-6 italic font-semibold">No filters — matches all opportunities</p>
                       )}
                     </div>
 
                     {/* Date Created */}
-                    <div className="text-xs text-slate-400 pt-0.5">
-                      <p className="text-white font-medium">{dateStr}</p>
-                      <p className="text-slate-500">{timeStr}</p>
+                    <div className="text-sm text-blue-800 pt-0.5">
+                      <p className="text-blue-950 font-black">{dateStr}</p>
+                      <p className="text-blue-700 font-semibold">{timeStr}</p>
                     </div>
 
                     {/* Run count */}
-                    <div className="text-xs pt-0.5">
+                    <div className="text-sm pt-0.5">
                       {search.runCount ? (
-                        <span className="text-emerald-400 font-bold">{search.runCount}×</span>
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-emerald-800 font-black">{search.runCount}×</span>
                       ) : (
-                        <span className="text-slate-600">—</span>
+                        <span className="text-blue-500">—</span>
                       )}
                     </div>
 
@@ -1123,7 +1154,7 @@ function ManageSearchesContent() {
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">
                       <button
                         onClick={() => handleRun(search)}
-                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-black flex items-center gap-1 transition-colors shadow-sm"
                         title="Run this search"
                       >
                         <Play className="w-3 h-3" /> Run
@@ -1131,7 +1162,7 @@ function ManageSearchesContent() {
 
                       <button
                         onClick={() => handleConvertToAlert(search)}
-                        className="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                        className="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-black flex items-center gap-1 transition-colors shadow-sm"
                         title="Create an email alert from this search"
                       >
                         <Bell className="w-3 h-3" /> Alert
@@ -1139,7 +1170,7 @@ function ManageSearchesContent() {
 
                       <button
                         onClick={() => handleEdit(search)}
-                        className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                        className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-black flex items-center gap-1 transition-colors shadow-sm"
                         title="Edit"
                       >
                         <Edit3 className="w-3 h-3" /> Edit
@@ -1147,7 +1178,7 @@ function ManageSearchesContent() {
 
                       <button
                         onClick={() => handleCopyLink(search)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm ${copiedId === search.id ? 'bg-green-600 text-white' : 'bg-slate-600 hover:bg-slate-500 text-white'}`}
+                        className={`px-2.5 py-1.5 rounded-lg text-sm font-black flex items-center gap-1 transition-colors shadow-sm ${copiedId === search.id ? 'bg-green-600 text-white' : 'bg-blue-700 hover:bg-blue-800 text-white'}`}
                         title="Copy link"
                       >
                         {copiedId === search.id ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy</>}
@@ -1155,7 +1186,7 @@ function ManageSearchesContent() {
 
                       <button
                         onClick={() => setShareSearch(search)}
-                        className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                        className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-black flex items-center gap-1 transition-colors shadow-sm"
                         title="Share"
                       >
                         <Share2 className="w-3 h-3" /> Share
@@ -1163,7 +1194,7 @@ function ManageSearchesContent() {
 
                       <button
                         onClick={() => handleDelete(search.id, search.name)}
-                        className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
+                        className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-black flex items-center gap-1 transition-colors shadow-sm"
                         title="Delete"
                       >
                         <Trash2 className="w-3 h-3" /> Delete
@@ -1189,17 +1220,17 @@ function ManageSearchesContent() {
       {/* Share Modal */}
       {shareSearch && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 shadow-2xl flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-lg rounded-2xl bg-linear-to-br from-slate-900 to-slate-800 border border-slate-700 shadow-2xl flex flex-col max-h-[90vh]">
 
             {/* ── Header ── */}
-            <div className="px-6 py-4 bg-gradient-to-r from-purple-900/60 to-slate-800 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+            <div className="px-6 py-4 bg-linear-to-r from-purple-900/60 to-slate-800 border-b border-slate-700 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-purple-500/20 border border-purple-500/30">
                   <Share2 className="w-4 h-4 text-purple-400" />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">Share Search Results</h3>
-                  <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[280px]">{shareSearch.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate max-w-70">{shareSearch.name}</p>
                 </div>
               </div>
               <button onClick={closeShareModal} className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
@@ -1226,7 +1257,7 @@ function ManageSearchesContent() {
                       setShareLinkCopied(true)
                       setTimeout(() => setShareLinkCopied(false), 2000)
                     }}
-                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium flex-shrink-0"
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium shrink-0"
                     title="Copy link"
                   >
                     {shareLinkCopied ? <><Check className="w-3.5 h-3.5 text-green-400" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
@@ -1342,7 +1373,7 @@ function ManageSearchesContent() {
                                       alreadyAdded ? 'bg-purple-900/20' : 'hover:bg-slate-700/50'
                                     }`}
                                   >
-                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
                                       alreadyAdded ? 'bg-purple-500 border-purple-500' : 'border-slate-600'
                                     }`}>
                                       {alreadyAdded && <Check className="w-2.5 h-2.5 text-white" />}
@@ -1352,7 +1383,7 @@ function ManageSearchesContent() {
                                       {displayName !== c.email && <p className="text-xs text-slate-500 truncate">{c.email}</p>}
                                     </div>
                                     {c.organization && (
-                                      <span className="text-xs text-slate-500 truncate max-w-[110px] flex-shrink-0">{c.organization}</span>
+                                      <span className="text-xs text-slate-500 truncate max-w-27.5 shrink-0">{c.organization}</span>
                                     )}
                                   </button>
                                 )
@@ -1452,10 +1483,10 @@ function ManageSearchesContent() {
             </div>
 
             {/* ── Footer ── */}
-            <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700 flex items-center justify-between flex-shrink-0">
+            <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700 flex items-center justify-between shrink-0">
               {shareSent ? (
                 <div className="w-full flex items-center justify-center gap-2 py-1">
-                  <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                  <Check className="w-5 h-5 text-emerald-400 shrink-0" />
                   <span className="text-emerald-300 font-bold text-sm">
                     Sent to {shareRecipients.length} recipient{shareRecipients.length !== 1 ? 's' : ''}! Closing…
                   </span>
@@ -1489,6 +1520,60 @@ function ManageSearchesContent() {
         </div>
       )}
 
+      <style jsx global>{`
+        .manage-searches-page {
+          font-family: Aptos, "Segoe UI", "Trebuchet MS", Arial, sans-serif;
+          color: #0b2a66;
+          font-size: 18px;
+        }
+        .manage-searches-page .text-xs { font-size: 1rem; line-height: 1.4rem; }
+        .manage-searches-page .text-sm { font-size: 1.08rem; line-height: 1.5rem; }
+        .manage-searches-page .text-base { font-size: 1.16rem; line-height: 1.62rem; }
+
+        .manage-searches-page .saved-search-form-surface h2,
+        .manage-searches-page .saved-search-form-surface label,
+        .manage-searches-page .saved-search-form-surface p,
+        .manage-searches-page .saved-search-form-surface span {
+          color: #0f172a;
+          font-weight: 800;
+        }
+
+        .manage-searches-page .saved-search-form-surface input,
+        .manage-searches-page .saved-search-form-surface select,
+        .manage-searches-page .saved-search-form-surface textarea {
+          color: #0f172a !important;
+          font-weight: 700;
+          background-color: #ffffff;
+          border-color: #60a5fa !important;
+        }
+
+        .manage-searches-page .saved-search-form-surface input::placeholder,
+        .manage-searches-page .saved-search-form-surface textarea::placeholder {
+          color: #64748b !important;
+        }
+
+        .manage-searches-page .saved-search-form-surface .filter-preview,
+        .manage-searches-page .saved-search-form-surface .filter-preview * {
+          color: #ffffff !important;
+        }
+
+        .manage-searches-page [class*='bg-orange-'],
+        .manage-searches-page [class*='bg-emerald-'],
+        .manage-searches-page [class*='bg-indigo-'],
+        .manage-searches-page [class*='bg-blue-'],
+        .manage-searches-page [class*='bg-red-'],
+        .manage-searches-page [class*='bg-purple-'],
+        .manage-searches-page [class*='bg-teal-'] {
+          color: #ffffff !important;
+          font-weight: 700;
+        }
+        .manage-searches-page input,
+        .manage-searches-page select,
+        .manage-searches-page textarea,
+        .manage-searches-page button {
+          letter-spacing: 0.01em;
+        }
+      `}</style>
     </div>
   )
 }
@@ -1496,7 +1581,7 @@ function ManageSearchesContent() {
 export default function ManageSearchesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1a2332 50%, #0f172a 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#dbeafe' }}>
         <div className="animate-spin h-12 w-12 border-4 border-teal-500 border-t-transparent rounded-full" />
       </div>
     }>

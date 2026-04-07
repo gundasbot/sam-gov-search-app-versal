@@ -35,7 +35,6 @@ export function generateCSV(opportunities: ExportOpportunity[]): string {
   if (!opportunities.length) return ''
 
   const headers = [
-    'Notice ID',
     'Title',
     'Solicitation Number',
     'Agency',
@@ -48,7 +47,7 @@ export function generateCSV(opportunities: ExportOpportunity[]): string {
     'City',
     'State',
     'Zip',
-    'Link',
+    'Solicitation link',
   ]
 
   const escapeCSV = (value: any): string => {
@@ -61,7 +60,6 @@ export function generateCSV(opportunities: ExportOpportunity[]): string {
   }
 
   const rows = opportunities.map(opp => [
-    escapeCSV(opp.noticeId),
     escapeCSV(opp.title),
     escapeCSV(opp.solicitationNumber),
     escapeCSV(opp.department || opp.fullParentPathName),
@@ -74,7 +72,7 @@ export function generateCSV(opportunities: ExportOpportunity[]): string {
     escapeCSV(opp.placeOfPerformance?.city?.name),
     escapeCSV(opp.placeOfPerformance?.state?.code),
     escapeCSV(opp.placeOfPerformance?.zip),
-    escapeCSV(opp.uiLink),
+    escapeCSV(opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`),
   ])
 
   return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
@@ -92,7 +90,6 @@ export async function generateExcel(opportunities: ExportOpportunity[]): Promise
 
   // Define columns
   worksheet.columns = [
-    { header: 'Notice ID', key: 'noticeId', width: 20 },
     { header: 'Title', key: 'title', width: 50 },
     { header: 'Solicitation Number', key: 'solicitationNumber', width: 20 },
     { header: 'Agency', key: 'agency', width: 40 },
@@ -105,8 +102,7 @@ export async function generateExcel(opportunities: ExportOpportunity[]): Promise
     { header: 'City', key: 'city', width: 20 },
     { header: 'State', key: 'state', width: 10 },
     { header: 'Zip', key: 'zip', width: 12 },
-    { header: 'Description', key: 'description', width: 60 },
-    { header: 'Link', key: 'link', width: 40 },
+    { header: 'Solicitation link', key: 'link', width: 40 },
     { header: 'POC Name', key: 'pocName', width: 25 },
     { header: 'POC Email', key: 'pocEmail', width: 30 },
     { header: 'POC Phone', key: 'pocPhone', width: 18 },
@@ -123,7 +119,6 @@ export async function generateExcel(opportunities: ExportOpportunity[]): Promise
   // Add data rows
   opportunities.forEach(opp => {
     worksheet.addRow({
-      noticeId: opp.noticeId,
       title: opp.title,
       solicitationNumber: opp.solicitationNumber || '',
       agency: opp.department || opp.fullParentPathName || '',
@@ -136,18 +131,28 @@ export async function generateExcel(opportunities: ExportOpportunity[]): Promise
       city: opp.placeOfPerformance?.city?.name || '',
       state: opp.placeOfPerformance?.state?.code || '',
       zip: opp.placeOfPerformance?.zip || '',
-      description: opp.description?.substring(0, 500) || '',
-      link: opp.uiLink || '',
+      link: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
       pocName: opp.pointOfContact?.fullName || '',
       pocEmail: opp.pointOfContact?.email || '',
       pocPhone: opp.pointOfContact?.phone || '',
     })
+
+    const rowNumber = worksheet.rowCount
+    const linkCell = worksheet.getCell(`M${rowNumber}`)
+    const linkValue = opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`
+    if (linkValue) {
+      linkCell.value = {
+        text: 'Open Solicitation',
+        hyperlink: linkValue,
+      }
+      linkCell.font = { color: { argb: 'FF0563C1' }, underline: true, bold: true }
+    }
   })
 
   // Auto-filter
   worksheet.autoFilter = {
     from: 'A1',
-    to: 'R1',
+    to: 'P1',
   }
 
   // Freeze header row
@@ -165,7 +170,6 @@ export async function generateExcelBinary(opportunities: ExportOpportunity[]): P
 
   // Define columns (streamlined for efficiency)
   worksheet.columns = [
-    { header: 'Notice ID', key: 'noticeId', width: 18 },
     { header: 'Title', key: 'title', width: 45 },
     { header: 'Solicitation #', key: 'solicitationNumber', width: 18 },
     { header: 'Agency', key: 'agency', width: 35 },
@@ -176,7 +180,7 @@ export async function generateExcelBinary(opportunities: ExportOpportunity[]): P
     { header: 'Deadline', key: 'responseDeadline', width: 12 },
     { header: 'State', key: 'state', width: 8 },
     { header: 'City', key: 'city', width: 18 },
-    { header: 'Link', key: 'link', width: 35 },
+    { header: 'Solicitation link', key: 'link', width: 35 },
   ]
 
   // Header styling
@@ -193,7 +197,6 @@ export async function generateExcelBinary(opportunities: ExportOpportunity[]): P
   // Add data with conditional formatting
   opportunities.forEach((opp, index) => {
     const row = worksheet.addRow({
-      noticeId: opp.noticeId,
       title: opp.title,
       solicitationNumber: opp.solicitationNumber || '',
       agency: opp.department || opp.fullParentPathName || '',
@@ -204,7 +207,7 @@ export async function generateExcelBinary(opportunities: ExportOpportunity[]): P
       responseDeadline: opp.responseDeadLine || '',
       state: opp.placeOfPerformance?.state?.code || '',
       city: opp.placeOfPerformance?.city?.name || '',
-      link: opp.uiLink || '',
+      link: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
     })
 
     // Zebra striping for readability
@@ -217,20 +220,20 @@ export async function generateExcelBinary(opportunities: ExportOpportunity[]): P
     }
 
     // Make link clickable
-    if (opp.uiLink) {
+    if (opp.uiLink || opp.noticeId) {
       const linkCell = row.getCell('link')
       linkCell.value = {
-        text: 'View on SAM.gov',
-        hyperlink: opp.uiLink,
+        text: 'Open Solicitation',
+        hyperlink: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
       }
-      linkCell.font = { color: { argb: 'FF0000FF' }, underline: true }
+      linkCell.font = { color: { argb: 'FF0563C1' }, underline: true, bold: true }
     }
   })
 
   // Auto-filter
   worksheet.autoFilter = {
     from: 'A1',
-    to: 'L1',
+    to: 'K1',
   }
 
   // Freeze panes
@@ -249,7 +252,6 @@ export function generatePDF(opportunities: ExportOpportunity[]): Buffer {
 // Generate XLSB (Excel Binary Workbook) — smaller file size, opens in Excel/Sheets
 export function generateXLSB(opportunities: ExportOpportunity[]): Buffer {
   const rows = opportunities.map(opp => ({
-    'Notice ID': opp.noticeId || '',
     'Title': opp.title || '',
     'Solicitation #': opp.solicitationNumber || '',
     'Agency': opp.department || opp.fullParentPathName || '',
@@ -262,14 +264,32 @@ export function generateXLSB(opportunities: ExportOpportunity[]): Buffer {
     'City': opp.placeOfPerformance?.city?.name || '',
     'State': opp.placeOfPerformance?.state?.code || '',
     'Zip': opp.placeOfPerformance?.zip || '',
-    'Description': typeof opp.description === 'string' ? opp.description.substring(0, 500) : '',
-    'Link': opp.uiLink || '',
+    'Solicitation link': opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
     'POC Name': opp.pointOfContact?.fullName || '',
     'POC Email': opp.pointOfContact?.email || '',
     'POC Phone': opp.pointOfContact?.phone || '',
   }))
 
   const worksheet = XLSX.utils.json_to_sheet(rows)
+  const hyperlinkColumnIndex = 12 // "Solicitation link"
+  opportunities.forEach((opp, idx) => {
+    const link = opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`
+    if (!link) return
+    const addr = XLSX.utils.encode_cell({ r: idx + 1, c: hyperlinkColumnIndex })
+    const cell = worksheet[addr]
+    if (!cell) return
+    const escapedLink = String(link).replace(/"/g, '""')
+    const displayLink = String(link)
+    const escapedDisplay = displayLink.replace(/"/g, '""')
+    // Use Excel's HYPERLINK formula with URL text so column M clearly looks like a link.
+    cell.f = `HYPERLINK("${escapedLink}","${escapedDisplay}")`
+    cell.t = 'str'
+    cell.v = displayLink
+    ;(cell as any).l = { Target: link, Tooltip: 'Open solicitation on SAM.gov' }
+    ;(cell as any).s = {
+      font: { color: { rgb: '0563C1' }, underline: true, bold: true },
+    }
+  })
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Opportunities')
   const buf = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsb' })
@@ -281,9 +301,9 @@ export function generateTXT(opportunities: ExportOpportunity[]): string {
   if (!opportunities.length) return ''
 
   const headers = [
-    'Notice ID', 'Title', 'Solicitation Number', 'Agency', 'Office',
+    'Title', 'Solicitation Number', 'Agency', 'Office',
     'Type', 'Set-Aside', 'NAICS', 'Posted Date', 'Response Deadline',
-    'City', 'State', 'Zip', 'Description', 'Link',
+    'City', 'State', 'Zip', 'Solicitation link',
     'POC Name', 'POC Email', 'POC Phone',
   ]
 
@@ -291,7 +311,6 @@ export function generateTXT(opportunities: ExportOpportunity[]): string {
     String(v ?? '').replace(/\t/g, ' ').replace(/\n/g, ' ')
 
   const rows = opportunities.map(opp => [
-    escape(opp.noticeId),
     escape(opp.title),
     escape(opp.solicitationNumber),
     escape(opp.department || opp.fullParentPathName),
@@ -304,8 +323,7 @@ export function generateTXT(opportunities: ExportOpportunity[]): string {
     escape(opp.placeOfPerformance?.city?.name),
     escape(opp.placeOfPerformance?.state?.code),
     escape(opp.placeOfPerformance?.zip),
-    escape(typeof opp.description === 'string' ? opp.description.substring(0, 200) : ''),
-    escape(opp.uiLink),
+    escape(opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`),
     escape(opp.pointOfContact?.fullName),
     escape(opp.pointOfContact?.email),
     escape(opp.pointOfContact?.phone),

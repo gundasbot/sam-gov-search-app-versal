@@ -294,8 +294,8 @@ export default function DashboardOnboardingPage() {
   const badge=(color:string)=>({background:color,color:'#fff',fontSize:11,fontWeight:900,padding:'2px 8px',borderRadius:5,textTransform:'uppercase' as const,border:'none',display:'inline-block' as const,marginBottom:7})
 
   return (
-    /* Outer wrapper matches dashboard exactly: mx-auto w-full max-w-[1920px] */
-    <div className="aptos-root mx-auto w-full max-w-[1920px] min-h-screen" style={{background:'#f1f5f9'}}>
+    /* Outer wrapper matches dashboard exactly: mx-auto w-full max-w-480 */
+    <div className="aptos-root mx-auto w-full max-w-480 min-h-screen" style={{background:'#f1f5f9'}}>
       <style dangerouslySetInnerHTML={{__html:APTOS_STYLE}}/>
 
       {/* Inner padding matches dashboard: px-3 sm:px-4 lg:px-6 xl:px-8 */}
