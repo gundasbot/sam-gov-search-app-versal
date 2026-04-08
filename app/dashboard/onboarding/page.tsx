@@ -18,14 +18,16 @@ const APTOS_STYLE = `
     font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif !important;
     -webkit-font-smoothing: antialiased;
   }
-  .aptos-root input::placeholder { font-weight:400 !important; color:#94a3b8; }
+  .aptos-root input::placeholder { font-weight:500 !important; color:#475569; }
 
   .onb-hero {
-    background-color: #0f172a;
+    background: linear-gradient(135deg, #eaf3ff 0%, #f8fbff 100%);
+    border: 1px solid #93c5fd;
     border-bottom: 4px solid #f97316;
   }
   .onb-bar {
-    background-color: #0f172a;
+    background-color: #ffffff;
+    border: 1px solid #93c5fd;
     border-bottom: 2px solid #f97316;
   }
 
@@ -87,6 +89,9 @@ const CONTRACT_SIZES = [
   { label:'$5M – $25M',   min:5000000,  max:25000000 },
   { label:'$25M+',        min:25000000, max:undefined },
 ]
+
+const ALL_SET_ASIDES = SET_ASIDE_CODES.filter(c => typeof c.value === 'string' && c.value).map(c => c.value)
+const ALL_STATES = US_STATES.slice(1).map(s => s.value)
 
 function firstName(session:any):string {
   const n = session?.user?.name?.trim?.() || ''
@@ -193,7 +198,7 @@ export default function DashboardOnboardingPage() {
   const [showModal, setShowModal] = useState(false)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [prefs, setPrefs] = useState<Partial<UserPreferences>>({
-    setAsides:[],naicsCodes:[],pscCodes:[],keywords:[],states:[],
+    setAsides:ALL_SET_ASIDES,naicsCodes:[],pscCodes:[],keywords:[],states:ALL_STATES,
   })
   const timerRef = useRef<NodeJS.Timeout|null>(null)
 
@@ -207,29 +212,73 @@ export default function DashboardOnboardingPage() {
       .then(r=>r.ok?r.json():null)
       .then(d => {
         if (!ok||!d) return
-        setPrefs({setAsides:d.setAsides||[],naicsCodes:d.naicsCodes||[],pscCodes:d.pscCodes||[],
-          keywords:d.keywords||[],states:d.states||[],contractSizeMin:d.contractSizeMin,contractSizeMax:d.contractSizeMax})
+        const useDefaultSetAsides = !d.completedOnboarding && (!Array.isArray(d.setAsides) || d.setAsides.length===0)
+        const useDefaultStates = !d.completedOnboarding && (!Array.isArray(d.states) || d.states.length===0)
+        setPrefs({
+          setAsides:useDefaultSetAsides?ALL_SET_ASIDES:(d.setAsides||[]),
+          naicsCodes:d.naicsCodes||[],
+          pscCodes:d.pscCodes||[],
+          keywords:d.keywords||[],
+          states:useDefaultStates?ALL_STATES:(d.states||[]),
+          contractSizeMin:d.contractSizeMin,
+          contractSizeMax:d.contractSizeMax
+        })
       }).catch(()=>{})
     return ()=>{ok=false}
   }, [nextPath])
+
+  const persistPrefs = useCallback(async (p: Partial<UserPreferences>) => {
+    const res = await fetch('/api/account/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data?.error || 'Failed to save preferences')
+    }
+  }, [])
 
   const autoSave = useCallback((p:Partial<UserPreferences>) => {
     if (timerRef.current) clearTimeout(timerRef.current)
     setSaving(true)
     timerRef.current = setTimeout(async()=>{
       try {
-        await fetch('/api/account/preferences',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({...p,completedOnboarding:true})})
+        await persistPrefs({ ...p, completedOnboarding: true })
         setSaved(true); setTimeout(()=>setSaved(false),2500)
-      } catch {} finally { setSaving(false) }
+      } catch (error) {
+        console.error('Failed to auto-save onboarding preferences:', error)
+      } finally { setSaving(false) }
     },800)
-  },[])
+  },[persistPrefs])
 
   const up = useCallback((u:Partial<UserPreferences>)=>{
     setPrefs(prev=>{ const n={...prev,...u}; autoSave(n); return n })
   },[autoSave])
 
+  const finalizePreferences = useCallback(async (targetPath: string) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setSaving(true)
+    try {
+      await persistPrefs({ ...prefs, completedOnboarding: true })
+      fetch('/api/ai/personalized-feed', { method: 'POST' }).catch(() => {})
+      setSaved(true)
+      setShowSuccessToast(true)
+      await new Promise((resolve) => setTimeout(resolve, 900))
+      router.refresh()
+      router.push(targetPath)
+    } catch (error) {
+      console.error('Failed to finalize onboarding preferences:', error)
+    } finally {
+      setSaving(false)
+    }
+  }, [persistPrefs, prefs, router])
+
   const tog = <T,>(arr:T[],v:T)=>arr.includes(v)?arr.filter(x=>x!==v):[...arr,v]
+  const addUnique = <T,>(arr: T[], values: T[]) => Array.from(new Set([...arr, ...values]))
 
   const filteredNaics = useMemo(()=>{
     if (!naicsSearch.trim()) return []
@@ -261,17 +310,28 @@ export default function DashboardOnboardingPage() {
   )
 
   const inputSt:React.CSSProperties = {
-    width:'100%',paddingLeft:34,paddingRight:30,paddingTop:8,paddingBottom:8,
-    fontSize:15,borderRadius:8,border:'2px solid #e2e8f0',outline:'none',
-    fontWeight:600,background:'#fff',color:'#0f172a',transition:'border 0.15s',
+    width:'100%',
+    paddingLeft:40,
+    paddingRight:34,
+    paddingTop:11,
+    paddingBottom:11,
+    fontSize:16,
+    borderRadius:10,
+    border:'3px solid #3b82f6',
+    outline:'none',
+    fontWeight:800,
+    background:'#ffffff',
+    color:'#0f172a',
+    boxShadow:'0 2px 10px rgba(30,64,175,0.14)',
+    transition:'all 0.15s',
     fontFamily:'Aptos,DM Sans,Calibri,ui-sans-serif,system-ui,sans-serif',
   }
 
   const EmptyState=({msg,hint}:{msg:string;hint:string})=>(
-    <div style={{textAlign:'center',padding:'20px 0',color:'#94a3b8'}}>
-      <Search style={{width:22,height:22,margin:'0 auto 5px',opacity:0.2}}/>
+    <div style={{textAlign:'center',padding:'20px 0',color:'#334155'}}>
+      <Search style={{width:22,height:22,margin:'0 auto 5px',color:'#1d4ed8'}}/>
       <p style={{fontSize:15,fontWeight:600}}>{msg}</p>
-      <p style={{fontSize:12,marginTop:2,opacity:0.7}}>{hint}</p>
+      <p style={{fontSize:12,marginTop:2,color:'#475569'}}>{hint}</p>
     </div>
   )
 
@@ -302,24 +362,24 @@ export default function DashboardOnboardingPage() {
       <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pb-10">
 
         {/* ── HERO — rounded card, same as dashboard hero section ── */}
-        <section className="onb-hero rounded-2xl mb-3 shadow-md border border-slate-700 overflow-hidden">
+        <section className="onb-hero rounded-2xl mb-3 shadow-md overflow-hidden">
           <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p style={{color:'#fb923c',fontSize:12,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:3}}>Profile Setup</p>
-              <h1 style={{fontSize:'clamp(18px,2vw,26px)',fontWeight:900,color:'#fff',margin:0}}>
-                Welcome, <span style={{color:'#fb923c'}}>{firstName(session)}</span> — Let&apos;s personalise your feed
+              <p style={{color:'#c2410c',fontSize:13,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:4}}>Profile Setup</p>
+              <h1 style={{fontSize:'clamp(22px,2.3vw,30px)',fontWeight:900,color:'#0f172a',margin:0}}>
+                Welcome, <span style={{color:'#ea580c'}}>{firstName(session)}</span> — Let&apos;s personalise your feed
               </h1>
-              <p style={{color:'#94a3b8',fontSize:14,marginTop:3}}>Only see contracts that match your business. Changes save automatically.</p>
+              <p style={{color:'#334155',fontSize:17,fontWeight:600,marginTop:4}}>Only see contracts that match your business. Changes save automatically.</p>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:9,flexShrink:0}}>
-              {saved  && <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'rgba(34,197,94,0.15)',border:'1px solid rgba(34,197,94,0.4)',borderRadius:7,padding:'5px 11px',fontSize:14,fontWeight:700,color:'#4ade80'}}><Check style={{width:13,height:13}}/>Saved</span>}
-              {saving && <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'#1e293b',border:'1px solid #334155',borderRadius:7,padding:'5px 11px',fontSize:14,fontWeight:700,color:'#94a3b8'}}><Loader2 style={{width:13,height:13}}/>Saving…</span>}
+              {saved  && <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'#16a34a',border:'1px solid #15803d',borderRadius:7,padding:'6px 12px',fontSize:15,fontWeight:800,color:'#ffffff'}}><Check style={{width:14,height:14}}/>Saved</span>}
+              {saving && <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'#1d4ed8',border:'1px solid #1e40af',borderRadius:7,padding:'6px 12px',fontSize:15,fontWeight:800,color:'#ffffff'}}><Loader2 style={{width:14,height:14}}/>Saving…</span>}
               <button onClick={()=>setShowModal(true)}
-                style={{...S.orange,display:'inline-flex',alignItems:'center',gap:7,padding:'9px 18px',borderRadius:8,fontWeight:900,fontSize:15,border:'none',cursor:'pointer',boxShadow:'0 4px 14px rgba(249,115,22,0.3)'}}>
+                style={{...S.orange,display:'inline-flex',alignItems:'center',gap:7,padding:'10px 18px',borderRadius:8,fontWeight:900,fontSize:16,border:'none',cursor:'pointer',boxShadow:'0 4px 14px rgba(249,115,22,0.3)'}}>
                 Review &amp; Confirm <ArrowRight style={{width:14,height:14}}/>
               </button>
-              <button onClick={()=>router.push('/dashboard')}
-                style={{background:'#334155',color:'#cbd5e1',border:'none',borderRadius:8,padding:'9px 14px',fontWeight:700,fontSize:15,cursor:'pointer'}}>
+              <button onClick={()=>{ void finalizePreferences(nextPath) }}
+                style={{background:'#334155',color:'#ffffff',border:'none',borderRadius:8,padding:'10px 14px',fontWeight:700,fontSize:15,cursor:'pointer'}}>
                 Skip
               </button>
             </div>
@@ -327,20 +387,20 @@ export default function DashboardOnboardingPage() {
         </section>
 
         {/* ── STICKY SELECTIONS BAR — sectioned by category, larger, with top margin so header doesn't clip it ── */}
-        <div className="onb-bar rounded-2xl mb-3" style={{position:'sticky',top:8,zIndex:50,boxShadow:'0 6px 24px rgba(0,0,0,0.35)',marginTop:6}}>
+        <div className="onb-bar rounded-2xl mb-3" style={{position:'sticky',top:8,zIndex:50,boxShadow:'0 8px 20px rgba(30,64,175,0.16)',marginTop:6}}>
           {total===0 ? (
             <div style={{padding:'14px 20px'}}>
-              <p style={{color:'#64748b',fontSize:15,fontWeight:600,margin:0}}>No selections yet — make your choices below</p>
+              <p style={{color:'#0f172a',fontSize:17,fontWeight:700,margin:0}}>No selections yet — make your choices below</p>
             </div>
           ) : (
             <div style={{padding:'12px 20px'}}>
               {/* Header row */}
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                <p style={{color:'#fb923c',fontSize:13,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.12em',margin:0}}>
-                  Your Selections <span style={{color:'#94a3b8',fontWeight:700}}>({total})</span>
+                <p style={{color:'#1d4ed8',fontSize:14,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.12em',margin:0}}>
+                  Your Selections <span style={{color:'#334155',fontWeight:800}}>({total})</span>
                 </p>
                 <button onClick={()=>up({setAsides:[],naicsCodes:[],pscCodes:[],states:[],contractSizeMin:undefined,contractSizeMax:undefined})}
-                  style={{background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'4px 14px',fontSize:13,fontWeight:900,cursor:'pointer'}}>
+                  style={{background:'#ef4444',color:'#fff',border:'none',borderRadius:6,padding:'6px 14px',fontSize:14,fontWeight:900,cursor:'pointer'}}>
                   Clear All
                 </button>
               </div>
@@ -350,22 +410,24 @@ export default function DashboardOnboardingPage() {
 
                 {/* Set-Asides */}
                 {(prefs.setAsides||[]).length>0 && (
-                  <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'rgba(249,115,22,0.08)',border:'1px solid rgba(249,115,22,0.25)',borderRadius:10,padding:'7px 12px'}}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'#fff7ed',border:'1px solid #fdba74',borderRadius:10,padding:'7px 12px'}}>
                     <span style={{fontSize:11,fontWeight:900,color:'#fb923c',textTransform:'uppercase',letterSpacing:'0.08em',whiteSpace:'nowrap',marginTop:4,width:72,flexShrink:0}}>Set-Asides</span>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                      {(prefs.setAsides||[]).map(c=><Pill key={`sa-${c}`} label={c} onRemove={()=>up({setAsides:(prefs.setAsides||[]).filter(v=>v!==c)})}/>)}
+                      {(prefs.setAsides||[]).length===ALL_SET_ASIDES.length
+                        ? <Pill label="All Set-Asides" onRemove={()=>up({setAsides:[]})}/>
+                        : (prefs.setAsides||[]).map(c=><Pill key={`sa-${c}`} label={c} onRemove={()=>up({setAsides:(prefs.setAsides||[]).filter(v=>v!==c)})}/>)}
                     </div>
                   </div>
                 )}
 
                 {/* NAICS — show first 6 then "+N more" */}
                 {(prefs.naicsCodes||[]).length>0 && (
-                  <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'rgba(79,70,229,0.08)',border:'1px solid rgba(79,70,229,0.25)',borderRadius:10,padding:'7px 12px'}}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'#eef2ff',border:'1px solid #a5b4fc',borderRadius:10,padding:'7px 12px'}}>
                     <span style={{fontSize:11,fontWeight:900,color:'#818cf8',textTransform:'uppercase',letterSpacing:'0.08em',whiteSpace:'nowrap',marginTop:4,width:44,flexShrink:0}}>NAICS</span>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5,flex:1}}>
                       {(prefs.naicsCodes||[]).slice(0,6).map(c=><Pill key={`n-${c}`} label={c} onRemove={()=>up({naicsCodes:(prefs.naicsCodes||[]).filter(v=>v!==c)})}/>)}
                       {(prefs.naicsCodes||[]).length>6 && (
-                        <span style={{display:'inline-flex',alignItems:'center',padding:'3px 10px',borderRadius:20,background:'rgba(129,140,248,0.15)',border:'1px solid rgba(129,140,248,0.4)',fontSize:12,fontWeight:900,color:'#818cf8'}}>
+                        <span style={{display:'inline-flex',alignItems:'center',padding:'3px 10px',borderRadius:20,background:'#c7d2fe',border:'1px solid #818cf8',fontSize:12,fontWeight:900,color:'#312e81'}}>
                           +{(prefs.naicsCodes||[]).length-6} more
                         </span>
                       )}
@@ -375,12 +437,12 @@ export default function DashboardOnboardingPage() {
 
                 {/* PSC */}
                 {(prefs.pscCodes||[]).length>0 && (
-                  <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'rgba(6,182,212,0.08)',border:'1px solid rgba(6,182,212,0.25)',borderRadius:10,padding:'7px 12px'}}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'#ecfeff',border:'1px solid #67e8f9',borderRadius:10,padding:'7px 12px'}}>
                     <span style={{fontSize:11,fontWeight:900,color:'#22d3ee',textTransform:'uppercase',letterSpacing:'0.08em',whiteSpace:'nowrap',marginTop:4,width:44,flexShrink:0}}>PSC</span>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5,flex:1}}>
                       {(prefs.pscCodes||[]).slice(0,6).map(c=><Pill key={`p-${c}`} label={c} onRemove={()=>up({pscCodes:(prefs.pscCodes||[]).filter(v=>v!==c)})}/>)}
                       {(prefs.pscCodes||[]).length>6 && (
-                        <span style={{display:'inline-flex',alignItems:'center',padding:'3px 10px',borderRadius:20,background:'rgba(34,211,238,0.15)',border:'1px solid rgba(34,211,238,0.4)',fontSize:12,fontWeight:900,color:'#22d3ee'}}>
+                        <span style={{display:'inline-flex',alignItems:'center',padding:'3px 10px',borderRadius:20,background:'#bae6fd',border:'1px solid #38bdf8',fontSize:12,fontWeight:900,color:'#0c4a6e'}}>
                           +{(prefs.pscCodes||[]).length-6} more
                         </span>
                       )}
@@ -392,10 +454,10 @@ export default function DashboardOnboardingPage() {
                 {((prefs.states||[]).length>0 || prefs.contractSizeMin!==undefined) && (
                   <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
                     {(prefs.states||[]).length>0 && (
-                      <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'rgba(5,150,105,0.08)',border:'1px solid rgba(5,150,105,0.25)',borderRadius:10,padding:'7px 12px',flex:1,minWidth:180}}>
+                      <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'#ecfdf5',border:'1px solid #34d399',borderRadius:10,padding:'7px 12px',flex:1,minWidth:180}}>
                         <span style={{fontSize:11,fontWeight:900,color:'#34d399',textTransform:'uppercase',letterSpacing:'0.08em',whiteSpace:'nowrap',marginTop:4,width:44,flexShrink:0}}>States</span>
                         <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                          {(prefs.states||[]).length===US_STATES.slice(1).length
+                          {(prefs.states||[]).length===ALL_STATES.length
                             ? <Pill label="All States" onRemove={()=>up({states:[]})}/>
                             : (prefs.states||[]).length>=10
                               ? <Pill label={`${(prefs.states||[]).length} States`} onRemove={()=>up({states:[]})}/>
@@ -404,7 +466,7 @@ export default function DashboardOnboardingPage() {
                       </div>
                     )}
                     {prefs.contractSizeMin!==undefined && (
-                      <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'rgba(124,58,237,0.08)',border:'1px solid rgba(124,58,237,0.25)',borderRadius:10,padding:'7px 12px'}}>
+                      <div style={{display:'flex',alignItems:'flex-start',gap:8,background:'#f5f3ff',border:'1px solid #c4b5fd',borderRadius:10,padding:'7px 12px'}}>
                         <span style={{fontSize:11,fontWeight:900,color:'#a78bfa',textTransform:'uppercase',letterSpacing:'0.08em',whiteSpace:'nowrap',marginTop:4,width:48,flexShrink:0}}>Budget</span>
                         <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                           <Pill label={`$${(prefs.contractSizeMin/1000).toFixed(0)}K${prefs.contractSizeMax?`–$${(prefs.contractSizeMax/1e6).toFixed(1)}M`:'+'}` }
@@ -420,6 +482,25 @@ export default function DashboardOnboardingPage() {
           )}
         </div>
 
+        {/* Setup guide */}
+        <section className="rounded-2xl mb-3" style={{background:'#ffffff',border:'1px solid #bfdbfe',boxShadow:'0 2px 10px rgba(30,64,175,0.08)',padding:'12px 16px'}}>
+          <p style={{fontSize:14,fontWeight:900,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.08em',margin:'0 0 8px'}}>Quick setup guide</p>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:8}}>
+            <div style={{background:'#fff7ed',border:'1px solid #fdba74',borderRadius:10,padding:'9px 11px'}}>
+              <p style={{fontSize:12,fontWeight:900,color:'#c2410c',margin:0}}>1) Choose Set-Asides</p>
+              <p style={{fontSize:13,fontWeight:700,color:'#7c2d12',margin:'3px 0 0'}}>Default is all set-asides. Keep all or narrow to your certifications.</p>
+            </div>
+            <div style={{background:'#eef2ff',border:'1px solid #a5b4fc',borderRadius:10,padding:'9px 11px'}}>
+              <p style={{fontSize:12,fontWeight:900,color:'#3730a3',margin:0}}>2) Add NAICS / Services</p>
+              <p style={{fontSize:13,fontWeight:700,color:'#312e81',margin:'3px 0 0'}}>Search NAICS, PSC, or keywords so matches reflect your real work.</p>
+            </div>
+            <div style={{background:'#ecfeff',border:'1px solid #67e8f9',borderRadius:10,padding:'9px 11px'}}>
+              <p style={{fontSize:12,fontWeight:900,color:'#0e7490',margin:0}}>3) Confirm Location</p>
+              <p style={{fontSize:13,fontWeight:700,color:'#155e75',margin:'3px 0 0'}}>Default is all states. Narrow only if you serve specific regions.</p>
+            </div>
+          </div>
+        </section>
+
         {/* ── MAIN CONTENT GRID ── */}
         <div style={{paddingTop:8,paddingBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(12,1fr)',gap:12,alignItems:'start'}}>
@@ -429,20 +510,24 @@ export default function DashboardOnboardingPage() {
             <span style={badge('#f97316')}>Step 1</span>
             <p style={{fontSize:18,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Set-Asides</p>
             <p style={{fontSize:15,color:'#374151',fontWeight:700,marginBottom:9}}>Business certifications</p>
-            <p style={{fontSize:12,color:'#64748b',fontWeight:600,marginBottom:9,lineHeight:1.5,background:'#f8fafc',borderRadius:6,padding:'5px 8px',border:'1px solid #e2e8f0'}}>
-              💡 Hover any option to see its description
-            </p>
+              <p style={{fontSize:12,color:'#334155',fontWeight:700,marginBottom:9,lineHeight:1.5,background:'#f8fafc',borderRadius:6,padding:'5px 8px',border:'1px solid #cbd5e1'}}>
+                💡 Hover any option to see its description
+              </p>
             <button onClick={()=>setSetAsideOpen(o=>!o)}
               style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 12px',borderRadius:8,border:'2px solid',borderColor:setAsideOpen?'#f97316':'#e2e8f0',background:'#f8fafc',cursor:'pointer',marginBottom:setAsideOpen?0:7}}>
               <span style={{fontSize:15,fontWeight:700,color:'#374151'}}>
-                {(prefs.setAsides||[]).length===0?'None selected':`${(prefs.setAsides||[]).length} selected`}
+                {(prefs.setAsides||[]).length===0
+                  ? 'None selected'
+                  : (prefs.setAsides||[]).length===ALL_SET_ASIDES.length
+                    ? 'All set-asides selected'
+                    : `${(prefs.setAsides||[]).length} selected`}
               </span>
               <ChevronDown style={{width:15,height:15,color:'#f97316',transform:setAsideOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}/>
             </button>
             {setAsideOpen && (
               <div style={{border:'2px solid #f97316',borderTop:'none',borderRadius:'0 0 8px 8px',marginBottom:7}}>
                 <div style={{display:'flex',gap:6,padding:'7px 9px',background:'#fff7ed',borderBottom:'1px solid #fed7aa'}}>
-                  <button onClick={()=>up({setAsides:SET_ASIDE_CODES.filter(c=>c.value).map(c=>c.value)})}
+                  <button onClick={()=>up({setAsides:ALL_SET_ASIDES})}
                     style={{...S.orange,fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>All</button>
                   <button onClick={()=>up({setAsides:[]})}
                     style={{background:'#f1f5f9',color:'#475569',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>None</button>
@@ -458,12 +543,19 @@ export default function DashboardOnboardingPage() {
             )}
             {(prefs.setAsides||[]).length>0 && (
               <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                {(prefs.setAsides||[]).map(c=>(
-                  <button key={c} onClick={()=>up({setAsides:(prefs.setAsides||[]).filter(v=>v!==c)})}
+                {(prefs.setAsides||[]).length===ALL_SET_ASIDES.length ? (
+                  <button onClick={()=>up({setAsides:[]})}
                     style={{...S.orange,fontSize:13,fontWeight:900,padding:'3px 8px',borderRadius:5,border:'none',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3}}>
-                    {c} <X style={{width:9,height:9}}/>
+                    All set-asides selected <X style={{width:9,height:9}}/>
                   </button>
-                ))}
+                ) : (
+                  (prefs.setAsides||[]).map(c=>(
+                    <button key={c} onClick={()=>up({setAsides:(prefs.setAsides||[]).filter(v=>v!==c)})}
+                      style={{...S.orange,fontSize:13,fontWeight:900,padding:'3px 8px',borderRadius:5,border:'none',cursor:'pointer',display:'inline-flex',alignItems:'center',gap:3}}>
+                      {c} <X style={{width:9,height:9}}/>
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -472,10 +564,15 @@ export default function DashboardOnboardingPage() {
           <div style={{gridColumn:'span 6',display:'flex',flexDirection:'column',gap:12}}>
 
             {/* Step 2: Industry & Services */}
-            <div style={card}>
+            <div style={{...card,border:'2px solid #a5b4fc',background:'#f8faff'}}>
               <span style={badge('#4f46e5')}>Step 2</span>
               <p style={{fontSize:18,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Industry &amp; Services</p>
               <p style={{fontSize:15,color:'#374151',fontWeight:700,marginBottom:9}}>Search NAICS or PSC codes that describe your work</p>
+              <div style={{background:'#eef2ff',border:'1px solid #a5b4fc',borderRadius:8,padding:'8px 10px',marginBottom:9}}>
+                <p style={{fontSize:13,fontWeight:800,color:'#3730a3',margin:0}}>
+                  Pro tip: choose set-asides first, then add NAICS/PSC to improve match quality.
+                </p>
+              </div>
 
               {/* Tabs */}
               <div style={{display:'flex',gap:3,background:'#f1f5f9',borderRadius:8,padding:3,marginBottom:9}}>
@@ -485,12 +582,62 @@ export default function DashboardOnboardingPage() {
                   return (
                     <button key={tab} onClick={()=>setActiveTab(tab)}
                       style={{flex:1,padding:'6px 4px',borderRadius:6,fontSize:13,fontWeight:900,textTransform:'uppercase',letterSpacing:'0.05em',border:'none',cursor:'pointer',transition:'all 0.15s',
-                        background:active?'#fff':'transparent',color:active?'#0f172a':'#94a3b8',
+                        background:active?'#fff':'#e2e8f0',color:active?'#0f172a':'#334155',
                         boxShadow:active?'0 1px 3px rgba(0,0,0,0.1)':'none'}}>
                       {tab==='naics'?('NAICS'+((count||0)>0?` (${count})`:'')):tab==='psc'?('PSC'+((count||0)>0?` (${count})`:'')):'Keyword'}
                     </button>
                   )
                 })}
+              </div>
+
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap',marginBottom:9}}>
+                <p style={{fontSize:12,fontWeight:900,color:'#334155',margin:0}}>Select from results or clear quickly:</p>
+                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                  {activeTab==='naics' && (
+                    <>
+                      <button
+                        onClick={() => up({ naicsCodes: addUnique(prefs.naicsCodes || [], filteredNaics.map(code => code.code)) })}
+                        disabled={filteredNaics.length===0}
+                        style={{background:filteredNaics.length===0?'#64748b':'#4f46e5',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:filteredNaics.length===0?'not-allowed':'pointer',opacity:filteredNaics.length===0?0.75:1}}
+                      >
+                        Select all shown NAICS
+                      </button>
+                      <button
+                        onClick={() => up({ naicsCodes: [] })}
+                        disabled={(prefs.naicsCodes || []).length===0}
+                        style={{background:(prefs.naicsCodes || []).length===0?'#e2e8f0':'#334155',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:(prefs.naicsCodes || []).length===0?'not-allowed':'pointer',opacity:(prefs.naicsCodes || []).length===0?0.6:1}}
+                      >
+                        Clear NAICS
+                      </button>
+                    </>
+                  )}
+                  {activeTab==='psc' && (
+                    <>
+                      <button
+                        onClick={() => up({ pscCodes: addUnique(prefs.pscCodes || [], filteredPsc.map(code => code.code)) })}
+                        disabled={filteredPsc.length===0}
+                        style={{background:filteredPsc.length===0?'#64748b':'#0284c7',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:filteredPsc.length===0?'not-allowed':'pointer',opacity:filteredPsc.length===0?0.75:1}}
+                      >
+                        Select all shown PSC
+                      </button>
+                      <button
+                        onClick={() => up({ pscCodes: [] })}
+                        disabled={(prefs.pscCodes || []).length===0}
+                        style={{background:(prefs.pscCodes || []).length===0?'#e2e8f0':'#334155',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:(prefs.pscCodes || []).length===0?'not-allowed':'pointer',opacity:(prefs.pscCodes || []).length===0?0.6:1}}
+                      >
+                        Clear PSC
+                      </button>
+                    </>
+                  )}
+                  {activeTab==='keywords' && (
+                    <button
+                      onClick={() => { setKeywordInput(''); setShowKwResults(false) }}
+                      style={{background:'#7c3aed',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:'pointer'}}
+                    >
+                      Clear keyword search
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Pills for active tab */}
@@ -508,11 +655,12 @@ export default function DashboardOnboardingPage() {
               {/* NAICS */}
               {activeTab==='naics'&&(
                 <div>
+                  <p style={{fontSize:13,fontWeight:900,color:'#4338ca',margin:'0 0 4px'}}>Search NAICS code or title</p>
                   <div style={{position:'relative',marginBottom:7}}>
-                    <Search style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#6366f1'}}/>
-                    <input style={inputSt} placeholder='Search: "541512", "computer systems", "cybersecurity"…'
+                    <Search style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',width:16,height:16,color:'#4338ca'}}/>
+                    <input style={{...inputSt,borderColor:'#4f46e5',boxShadow:'0 0 0 2px rgba(79,70,229,0.12), 0 2px 10px rgba(30,64,175,0.16)'}} placeholder='Search: "541512", "computer systems", "cybersecurity"…'
                       value={naicsSearch} onChange={e=>setNaicsSearch(e.target.value)}/>
-                    {naicsSearch&&<button onClick={()=>setNaicsSearch('')} style={{position:'absolute',right:7,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#94a3b8'}}><X style={{width:13,height:13}}/></button>}
+                    {naicsSearch&&<button onClick={()=>setNaicsSearch('')} style={{position:'absolute',right:7,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#334155'}}><X style={{width:13,height:13}}/></button>}
                   </div>
                   {!naicsSearch?<EmptyState msg="Start typing to search NAICS codes" hint='Try: "541512", "engineering", "cybersecurity"'/>
                    :filteredNaics.length===0?<EmptyState msg={`No results for "${naicsSearch}"`} hint="Try a different keyword or code"/>
@@ -526,11 +674,12 @@ export default function DashboardOnboardingPage() {
               {/* PSC */}
               {activeTab==='psc'&&(
                 <div>
+                  <p style={{fontSize:13,fontWeight:900,color:'#0c4a6e',margin:'0 0 4px'}}>Search PSC code, title, or category</p>
                   <div style={{position:'relative',marginBottom:7}}>
-                    <Search style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#3b82f6'}}/>
-                    <input style={inputSt} placeholder='Search: "D302", "data processing", "logistics"…'
+                    <Search style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',width:16,height:16,color:'#0369a1'}}/>
+                    <input style={{...inputSt,borderColor:'#0284c7',boxShadow:'0 0 0 2px rgba(2,132,199,0.14), 0 2px 10px rgba(2,132,199,0.16)'}} placeholder='Search: "D302", "data processing", "logistics"…'
                       value={pscSearch} onChange={e=>setPscSearch(e.target.value)}/>
-                    {pscSearch&&<button onClick={()=>setPscSearch('')} style={{position:'absolute',right:7,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#94a3b8'}}><X style={{width:13,height:13}}/></button>}
+                    {pscSearch&&<button onClick={()=>setPscSearch('')} style={{position:'absolute',right:7,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#334155'}}><X style={{width:13,height:13}}/></button>}
                   </div>
                   {!pscSearch?<EmptyState msg="Start typing to search PSC codes" hint='Try: "D302", "software", "logistics"'/>
                    :filteredPsc.length===0?<EmptyState msg={`No results for "${pscSearch}"`} hint="Try a different keyword or code"/>
@@ -544,14 +693,15 @@ export default function DashboardOnboardingPage() {
               {/* Keywords */}
               {activeTab==='keywords'&&(
                 <div>
+                  <p style={{fontSize:13,fontWeight:900,color:'#6d28d9',margin:'0 0 4px'}}>Keyword search across NAICS and PSC</p>
                   <div style={{position:'relative',marginBottom:7}}>
-                    <Search style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#8b5cf6'}}/>
-                    <input style={inputSt} placeholder='Type any keyword: "cloud", "cybersecurity", "AI"…'
+                    <Search style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',width:16,height:16,color:'#7c3aed'}}/>
+                    <input style={{...inputSt,borderColor:'#7c3aed',boxShadow:'0 0 0 2px rgba(124,58,237,0.14), 0 2px 10px rgba(124,58,237,0.18)'}} placeholder='Type any keyword: "cloud", "cybersecurity", "AI"…'
                       value={keywordInput}
                       onChange={e=>{setKeywordInput(e.target.value);setShowKwResults(e.target.value.trim().length>0)}}
                       onBlur={()=>setTimeout(()=>setShowKwResults(false),200)}
                       onFocus={()=>setShowKwResults(keywordInput.trim().length>0)}/>
-                    {keywordInput&&<button onClick={()=>{setKeywordInput('');setShowKwResults(false)}} style={{position:'absolute',right:7,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#94a3b8'}}><X style={{width:13,height:13}}/></button>}
+                    {keywordInput&&<button onClick={()=>{setKeywordInput('');setShowKwResults(false)}} style={{position:'absolute',right:7,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#334155'}}><X style={{width:13,height:13}}/></button>}
                   </div>
                   {!keywordInput?<EmptyState msg="Search NAICS and PSC at once" hint='Try: "cloud","data","engineering","cybersecurity"'/>
                    :showKwResults&&(kwResults.naics.length>0||kwResults.psc.length>0)?(
@@ -578,14 +728,14 @@ export default function DashboardOnboardingPage() {
               <button onClick={()=>setStatesOpen(o=>!o)}
                 style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 12px',borderRadius:8,border:'2px solid',borderColor:statesOpen?'#059669':'#e2e8f0',background:'#f8fafc',cursor:'pointer',marginBottom:statesOpen?0:7}}>
                 <span style={{fontSize:15,fontWeight:700,color:'#374151'}}>
-                  {(prefs.states||[]).length===0?'None selected':(prefs.states||[]).length===US_STATES.slice(1).length?'All states':`${(prefs.states||[]).length} states selected`}
+                  {(prefs.states||[]).length===0?'None selected':(prefs.states||[]).length===ALL_STATES.length?'All states':`${(prefs.states||[]).length} states selected`}
                 </span>
                 <ChevronDown style={{width:15,height:15,color:'#059669',transform:statesOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}/>
               </button>
               {statesOpen&&(
                 <div style={{border:'2px solid #059669',borderTop:'none',borderRadius:'0 0 8px 8px',overflow:'hidden',marginBottom:7}}>
                   <div style={{display:'flex',gap:6,padding:'7px 9px',background:'#f0fdf4',borderBottom:'1px solid #bbf7d0'}}>
-                    <button onClick={()=>up({states:US_STATES.slice(1).map(s=>s.value)})}
+                    <button onClick={()=>up({states:ALL_STATES})}
                       style={{background:'#059669',color:'#fff',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>All</button>
                     <button onClick={()=>up({states:[]})}
                       style={{background:'#f1f5f9',color:'#475569',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>None</button>
@@ -601,7 +751,7 @@ export default function DashboardOnboardingPage() {
                   </div>
                 </div>
               )}
-              {!statesOpen&&(prefs.states||[]).length>0&&(prefs.states||[]).length<US_STATES.slice(1).length&&(
+              {!statesOpen&&(prefs.states||[]).length>0&&(prefs.states||[]).length<ALL_STATES.length&&(
                 <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                   {(prefs.states||[]).slice(0,12).map(s=>(
                     <button key={s} onClick={()=>up({states:(prefs.states||[]).filter(v=>v!==s)})}
@@ -609,10 +759,10 @@ export default function DashboardOnboardingPage() {
                       {s} <X style={{width:9,height:9}}/>
                     </button>
                   ))}
-                  {(prefs.states||[]).length>12&&<span style={{fontSize:13,fontWeight:700,color:'#64748b',alignSelf:'center'}}>+{(prefs.states||[]).length-12} more</span>}
+                  {(prefs.states||[]).length>12&&<span style={{fontSize:13,fontWeight:800,color:'#334155',alignSelf:'center'}}>+{(prefs.states||[]).length-12} more</span>}
                 </div>
               )}
-              {!statesOpen&&(prefs.states||[]).length===US_STATES.slice(1).length&&(
+              {!statesOpen&&(prefs.states||[]).length===ALL_STATES.length&&(
                 <div style={{display:'inline-flex',alignItems:'center',gap:5,background:'#059669',color:'#fff',fontSize:14,fontWeight:900,padding:'4px 11px',borderRadius:6}}>
                   <Check style={{width:12,height:12}}/> All states selected
                 </div>
@@ -632,11 +782,11 @@ export default function DashboardOnboardingPage() {
               ))}
             </div>
             <div style={{borderTop:'1px solid #e2e8f0',paddingTop:9}}>
-              <p style={{fontSize:11,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',marginBottom:6}}>Custom</p>
+              <p style={{fontSize:11,fontWeight:900,color:'#334155',textTransform:'uppercase',marginBottom:6}}>Custom</p>
               <div style={{display:'flex',gap:6}}>
                 {[{label:'Min ($)',key:'min'},{label:'Max ($)',key:'max'}].map(f=>(
                   <div key={f.key} style={{flex:1}}>
-                    <p style={{fontSize:11,color:'#94a3b8',fontWeight:700,marginBottom:3}}>{f.label}</p>
+                    <p style={{fontSize:11,color:'#334155',fontWeight:700,marginBottom:3}}>{f.label}</p>
                     <input type="number" placeholder={f.key==='min'?'0':'Any'}
                       value={f.key==='min'?(prefs.contractSizeMin||''):(prefs.contractSizeMax||'')}
                       onChange={e=>up(f.key==='min'?{contractSizeMin:e.target.value?parseInt(e.target.value):undefined}:{contractSizeMax:e.target.value?parseInt(e.target.value):undefined})}
@@ -660,7 +810,7 @@ export default function DashboardOnboardingPage() {
                 {label:'PSC Codes', n:prefs.pscCodes?.length||0},
                 {label:'States',    n:prefs.states?.length||0},
               ].map(({label,n})=>(
-                <div key={label} style={{background:n>0?'#f97316':'#94a3b8',border:'none',borderRadius:8,padding:'9px 5px',textAlign:'center'}}>
+                <div key={label} style={{background:n>0?'#f97316':'#334155',border:'none',borderRadius:8,padding:'9px 5px',textAlign:'center'}}>
                   <p style={{fontSize:22,fontWeight:900,color:'#fff',margin:0}}>{n}</p>
                   <p style={{fontSize:13,color:'#fff',fontWeight:700,marginTop:2,opacity:0.85}}>{label}</p>
                 </div>
@@ -671,12 +821,12 @@ export default function DashboardOnboardingPage() {
               style={{...S.orange,width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',borderRadius:8,fontWeight:900,fontSize:15,border:'none',cursor:'pointer',boxShadow:'0 2px 8px rgba(249,115,22,0.25)',marginBottom:7}}>
               Review &amp; Confirm <ArrowRight style={{width:14,height:14}}/>
             </button>
-            <button onClick={()=>{up({completedOnboarding:true});setTimeout(()=>router.push('/dashboard'),500)}}
+            <button onClick={()=>{ void finalizePreferences(nextPath) }}
               style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',padding:'8px',borderRadius:8,fontWeight:700,fontSize:14,border:'2px solid #e2e8f0',background:'#f8fafc',color:'#475569',cursor:'pointer',marginBottom:4}}>
               Save &amp; go to Dashboard
             </button>
-            <button onClick={()=>router.push('/dashboard')}
-              style={{width:'100%',textAlign:'center',padding:'5px',fontSize:13,fontWeight:600,color:'#94a3b8',background:'none',border:'none',cursor:'pointer'}}>
+            <button onClick={()=>{ void finalizePreferences(nextPath) }}
+              style={{width:'100%',textAlign:'center',padding:'5px',fontSize:13,fontWeight:700,color:'#334155',background:'none',border:'none',cursor:'pointer'}}>
               Skip for now
             </button>
           </div>
@@ -705,12 +855,12 @@ export default function DashboardOnboardingPage() {
                 <p style={{fontSize:20,fontWeight:900,margin:0}}>Confirm Your Preferences</p>
                 <p style={{fontSize:14,color:'#fb923c',fontWeight:700,marginTop:2}}>Review your selections before saving</p>
               </div>
-              <button onClick={()=>setShowModal(false)} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer'}}><X style={{width:19,height:19}}/></button>
+              <button onClick={()=>setShowModal(false)} style={{background:'none',border:'none',color:'#334155',cursor:'pointer'}}><X style={{width:19,height:19}}/></button>
             </div>
             <div style={{padding:22,display:'flex',flexDirection:'column',gap:16}}>
               {(prefs.setAsides||[]).length>0&&(
                 <div>
-                  <p style={{fontSize:13,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Business Classifications</p>
+                  <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Business Classifications</p>
                   <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                     {(prefs.setAsides||[]).map(c=><span key={c} style={{...S.orange,padding:'5px 11px',borderRadius:7,fontSize:15,fontWeight:900,border:'none'}}>{c}</span>)}
                   </div>
@@ -718,7 +868,7 @@ export default function DashboardOnboardingPage() {
               )}
               {(prefs.naicsCodes||[]).length>0&&(
                 <div>
-                  <p style={{fontSize:13,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>NAICS Codes ({prefs.naicsCodes?.length})</p>
+                  <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>NAICS Codes ({prefs.naicsCodes?.length})</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:5}}>
                     {(prefs.naicsCodes||[]).map(c=>{const o=NAICS_CODES.find(n=>n.code===c);return o?<div key={c} style={{padding:'7px 11px',borderRadius:7,border:'2px solid #fed7aa',background:'#fff7ed'}}><p style={{fontSize:15,fontWeight:900,color:'#0f172a',margin:0}}>{c} — {o.title}</p></div>:null})}
                   </div>
@@ -726,7 +876,7 @@ export default function DashboardOnboardingPage() {
               )}
               {(prefs.pscCodes||[]).length>0&&(
                 <div>
-                  <p style={{fontSize:13,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>PSC Codes ({prefs.pscCodes?.length})</p>
+                  <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>PSC Codes ({prefs.pscCodes?.length})</p>
                   <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:5}}>
                     {(prefs.pscCodes||[]).map(c=>{const o=PSC_CODES.find(p=>p.code===c);return o?<div key={c} style={{padding:'7px 11px',borderRadius:7,border:'2px solid #fed7aa',background:'#fff7ed'}}><p style={{fontSize:15,fontWeight:900,color:'#0f172a',margin:0}}>{c} — {o.title}</p></div>:null})}
                   </div>
@@ -734,7 +884,7 @@ export default function DashboardOnboardingPage() {
               )}
               {(prefs.states||[]).length>0&&(
                 <div>
-                  <p style={{fontSize:13,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Geographic Focus — {prefs.states?.length} state{(prefs.states?.length||0)!==1?'s':''}</p>
+                  <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Geographic Focus — {prefs.states?.length} state{(prefs.states?.length||0)!==1?'s':''}</p>
                   <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                     {(prefs.states||[]).map(s=><span key={s} style={{...S.orange,padding:'5px 9px',borderRadius:7,fontSize:14,fontWeight:900,border:'none'}}>{s}</span>)}
                   </div>
@@ -742,35 +892,25 @@ export default function DashboardOnboardingPage() {
               )}
               {prefs.contractSizeMin!==undefined&&(
                 <div>
-                  <p style={{fontSize:13,fontWeight:900,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Contract Size Range</p>
+                  <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Contract Size Range</p>
                   <span style={{...S.orange,display:'inline-block',padding:'7px 13px',borderRadius:7,fontSize:15,fontWeight:900,border:'none'}}>
                     ${prefs.contractSizeMin.toLocaleString()} – {prefs.contractSizeMax?`$${prefs.contractSizeMax.toLocaleString()}`:'Unlimited'}
                   </span>
                 </div>
               )}
-              {total===0&&<p style={{color:'#94a3b8',textAlign:'center',padding:'22px 0',fontSize:15}}>No preferences selected yet.</p>}
+              {total===0&&<p style={{color:'#334155',textAlign:'center',padding:'22px 0',fontSize:15,fontWeight:700}}>No preferences selected yet.</p>}
               <div style={{borderTop:'1px solid #e2e8f0',paddingTop:14,display:'flex',flexWrap:'wrap',justifyContent:'flex-end',gap:7}}>
                 <button onClick={()=>setShowModal(false)} style={{padding:'9px 18px',borderRadius:8,border:'2px solid #e2e8f0',background:'#fff',color:'#374151',fontWeight:700,fontSize:15,cursor:'pointer'}}>Back to Editing</button>
                 <button onClick={async()=>{
-                  up({completedOnboarding:true})
-                  fetch('/api/ai/personalized-feed',{method:'POST'}).catch(()=>{})
                   setShowModal(false)
-                  setShowSuccessToast(true)
-                  await new Promise(r=>setTimeout(r,1800))
-                  router.refresh()
-                  router.push('/dashboard')
+                  await finalizePreferences(nextPath)
                 }} style={{padding:'9px 18px',borderRadius:8,border:'none',background:'#16a34a',color:'#fff',fontWeight:900,fontSize:15,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:6}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Save &amp; Go to Dashboard
                 </button>
                 <button onClick={async()=>{
-                  up({completedOnboarding:true})
-                  fetch('/api/ai/personalized-feed',{method:'POST'}).catch(()=>{})
                   setShowModal(false)
-                  setShowSuccessToast(true)
-                  await new Promise(r=>setTimeout(r,1800))
-                  router.refresh()
-                  router.push('/opportunities')
+                  await finalizePreferences('/opportunities')
                 }}
                   style={{...S.orange,display:'inline-flex',alignItems:'center',gap:6,padding:'9px 18px',borderRadius:8,border:'none',fontWeight:900,fontSize:15,cursor:'pointer',boxShadow:'0 2px 8px rgba(249,115,22,0.25)'}}>
                   Browse Opportunities <ArrowRight style={{width:14,height:14}}/>

@@ -9,6 +9,7 @@ import NextAuth, { type NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
+import { sendSignupWelcomeEmailOnce } from '@/lib/email/signup-welcome'
 import crypto from 'crypto'
 import { verifyBackupCode, verifyTwoFactorToken } from '@/lib/auth/two-factor'
 
@@ -67,7 +68,7 @@ async function ensureUserRow(params: {
 
   if (!existing) {
     const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
-    return prisma.users.create({
+    const created = await prisma.users.create({
       data: {
         id: crypto.randomUUID(),
         updated_at: now,
@@ -90,6 +91,15 @@ async function ensureUserRow(params: {
         email_verified: params.provider === 'google' ? now : null,
       },
     })
+
+    await sendSignupWelcomeEmailOnce({
+      userId: created.id,
+      email: created.email,
+      name: created.name || params.name || first || email.split('@')[0],
+      source: params.provider === 'google' ? 'google_signup' : 'email_signup',
+    })
+
+    return created
   }
 
   // Update profile fields if changed
@@ -265,19 +275,40 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (!user?.email) return false
+      const normalizedEmail = user.email.toLowerCase().trim()
+      const now = new Date()
 
       const existing = await prisma.users.findUnique({
-        where: { email: user.email.toLowerCase().trim() },
-        select: { is_suspended: true },
+        where: { email: normalizedEmail },
+        select: { id: true, name: true, is_suspended: true },
       })
       if (existing?.is_suspended) return false
 
+      let resolvedUserId = existing?.id || null
+      let resolvedName = user.name || existing?.name || null
+
       if (account?.provider === 'google') {
-        await ensureUserRow({
-          email: user.email,
+        const ensuredUser = await ensureUserRow({
+          email: normalizedEmail,
           name: user.name ?? null,
           image: user.image ?? null,
           provider: 'google',
+        })
+        resolvedUserId = (ensuredUser as any)?.id ?? resolvedUserId
+        resolvedName = (ensuredUser as any)?.name ?? resolvedName
+      }
+
+      await prisma.users.updateMany({
+        where: { email: normalizedEmail },
+        data: { last_login_at: now, updated_at: now },
+      })
+
+      if (resolvedUserId) {
+        await sendSignupWelcomeEmailOnce({
+          userId: resolvedUserId,
+          email: normalizedEmail,
+          name: resolvedName || normalizedEmail.split('@')[0],
+          source: account?.provider === 'google' ? 'google_signin' : 'credentials_signin',
         })
       }
 

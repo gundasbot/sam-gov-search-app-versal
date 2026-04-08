@@ -4,6 +4,7 @@ import NextAuth, { type NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/lib/prisma"
+import { sendSignupWelcomeEmailOnce } from "@/lib/email/signup-welcome"
 import crypto from "crypto"
 
 const TRIAL_DAYS = 7
@@ -65,7 +66,7 @@ async function ensureUserRow(params: {
     const trialExpires = endOfDay(addDays(now, TRIAL_DAYS))
     const displayName = params.name || `${first || ""} ${last || ""}`.trim() || email.split("@")[0]
 
-    const user = await prisma.users.create({
+    const created = await prisma.users.create({
       data: {
         // ✅ FIX: schema requires these on create
         id: crypto.randomUUID(),
@@ -88,7 +89,14 @@ async function ensureUserRow(params: {
       },
     })
 
-    return user
+    await sendSignupWelcomeEmailOnce({
+      userId: created.id,
+      email: created.email,
+      name: created.name || displayName,
+      source: params.provider === "google" ? "google_signup" : "email_signup",
+    })
+
+    return created
   }
 
   const shouldVerifyNow = params.provider === "google" && !existing.email_verified
@@ -252,20 +260,40 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (!user?.email) return false
+      const normalizedEmail = user.email.toLowerCase().trim()
+      const now = new Date()
 
       // Block suspended users from Google sign-in too
       const existing = await prisma.users.findUnique({
-        where: { email: user.email.toLowerCase().trim() },
-        select: { is_suspended: true },
+        where: { email: normalizedEmail },
+        select: { id: true, name: true, is_suspended: true },
       })
       if (existing?.is_suspended) return false
 
-      await ensureUserRow({
-        email: user.email,
+      const ensuredUser = await ensureUserRow({
+        email: normalizedEmail,
         name: user.name ?? null,
         image: (user as any).image ?? null,
         provider: account?.provider ?? null,
       })
+
+      const resolvedUserId = (ensuredUser as any)?.id ?? existing?.id ?? null
+      const resolvedName = (ensuredUser as any)?.name ?? user.name ?? existing?.name ?? null
+
+      await prisma.users.updateMany({
+        where: { email: normalizedEmail },
+        data: { last_login_at: now, updated_at: now },
+      })
+
+      if (resolvedUserId) {
+        await sendSignupWelcomeEmailOnce({
+          userId: resolvedUserId,
+          email: normalizedEmail,
+          name: resolvedName || normalizedEmail.split("@")[0],
+          source: account?.provider === "google" ? "google_signin" : "credentials_signin",
+        })
+      }
+
       return true
     },
 

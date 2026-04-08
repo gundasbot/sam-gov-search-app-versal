@@ -650,13 +650,14 @@ function SignInContent() {
                       <label htmlFor="password" className="text-base font-extrabold uppercase tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
                         Password
                       </label>
-                      <Link
-                        href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black transition-all hover:-translate-y-0.5"
-                        style={{ background: '#f97316', color: '#ffffff', boxShadow: '0 2px 6px rgba(249,115,22,0.3)' }}
+                      <button
+                        type="button"
+                        onClick={() => window.location.href = `/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                        className="text-sm font-medium transition-colors hover:text-orange-600"
+                        style={{ color: '#666', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                       >
-                        <KeyRound className="h-3 w-3" /> Forgot password?
-                      </Link>
+                        Forgot password?
+                      </button>
                     </div>
                     <div className="relative">
                       <input
@@ -720,12 +721,12 @@ function SignInContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="h-14 w-full inline-flex items-center justify-center gap-2 rounded-xl text-lg font-black transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-                    style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 14px #f97316a0' }}
+                    className="h-12 px-12 inline-flex items-center justify-center gap-2 rounded-lg text-base font-semibold transition-all hover:shadow-md disabled:opacity-60 mx-auto mt-6"
+                    style={{ background: '#f97316', color: '#fff', boxShadow: '0 2px 8px rgba(249,115,22,0.3)' }}
                   >
                     {loading
-                      ? <Loader2 className="h-5 w-5 animate-spin" />
-                      : <>{errorState?.type === 'TWO_FACTOR_REQUIRED' ? 'Verify 2FA & Log In' : 'Log In'} <ArrowRight className="h-4 w-4" /></>}
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <>{errorState?.type === 'TWO_FACTOR_REQUIRED' ? 'Verify 2FA & Log In' : 'Sign In'} <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </form>
                 )}
@@ -1043,7 +1044,3 @@ export default function SignInPage() {
     </Suspense>
   )
 }
-
-
-
-

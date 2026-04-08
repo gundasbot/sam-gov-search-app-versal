@@ -16,6 +16,7 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/send'
 import { getBrand } from '@/lib/email/brand'
+import { sendSignupWelcomeEmailOnce } from '@/lib/email/signup-welcome'
 import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
@@ -146,6 +147,14 @@ export async function POST(req: Request) {
         is_active:        false,
         is_suspended:     false,
       },
+    })
+
+    // Send welcome email at signup creation (non-blocking/deduped).
+    await sendSignupWelcomeEmailOnce({
+      userId: user.id,
+      email: user.email,
+      name: `${first_name} ${last_name}`.trim() || first_name,
+      source: 'email_signup',
     })
 
     // ── Increment offer code usage if one was applied ─────────────────────────

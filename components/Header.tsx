@@ -177,17 +177,36 @@ export default function Header() {
 
   // Nav link sizing — compact enough that all 9 items fit at lg without any overflow or clipping
   const navLinkBase = 'flex items-center gap-1.5 whitespace-nowrap font-semibold tracking-tight transition-all flex-shrink-0'
-  const navLinkSize = 'px-3 py-2.5 text-[0.9rem] lg:text-[0.95rem] xl:px-4 xl:text-[1rem] 2xl:text-[1.05rem]'
+  const navLinkSize = 'px-2.5 py-2.5 text-[0.86rem] lg:text-[0.9rem] xl:px-3 xl:text-[0.95rem] 2xl:px-4 2xl:text-[1rem]'
 
   return (
     <>
       <style jsx global>{`
         .header-nav-scroll {
           scrollbar-width: none;
-          overflow: visible;
+          overflow-x: auto;
+          overflow-y: hidden;
         }
         .header-nav-scroll::-webkit-scrollbar {
           display: none;
+        }
+        @keyframes ticker-scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .animate-scroll {
+          width: max-content;
+          will-change: transform;
+          animation: ticker-scroll 70s linear infinite;
+        }
+        @media (max-width: 640px) {
+          .animate-scroll {
+            animation-duration: 45s;
+          }
         }
       `}</style>
 
@@ -288,8 +307,8 @@ export default function Header() {
             </div>
 
             {/* ── Desktop Nav ── */}
-            <div className="hidden min-w-0 px-2 lg:flex lg:flex-none xl:px-3">
-              <nav className="header-nav-scroll flex flex-nowrap items-center justify-start gap-1 px-1 py-1.5 xl:gap-2 xl:px-1.5">
+            <div className="hidden min-w-0 px-2 lg:flex lg:flex-1 xl:px-3">
+              <nav className="header-nav-scroll flex flex-nowrap items-center justify-end gap-1 px-1 py-1.5 xl:gap-2 xl:px-1.5">
                 {[
                   { href: '/search', label: 'Search', icon: <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
@@ -434,22 +453,33 @@ export default function Header() {
                 </div>
 
                 {[
-                  { href: '/insights', label: 'Insights', icon: <LineChart className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, hideAtLg: false },
-                  { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, hideAtLg: true },
-                  { href: '/support', label: 'Support', icon: <Mail className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, hideAtLg: false },
-                ].map(({ href, label, icon, hideAtLg }) => (
+                  { href: '/insights', label: 'Insights', icon: <LineChart className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, visibility: '' },
+                  { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, visibility: 'hidden 2xl:inline-flex' },
+                  { href: '/support', label: 'Support', icon: <Mail className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, visibility: '' },
+                ].map(({ href, label, icon, visibility }) => (
                   <Link key={href} href={href} prefetch={false}
-                    className={`${hideAtLg ? 'hidden xl:inline-flex' : ''} ${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
+                    className={`${visibility} ${navLinkBase} ${navLinkSize} ${isActive(href) ? activePillClasses : inactivePillClasses}`}
                     style={isActive(href) ? {} : { color: 'var(--color-text-primary)' }}
                   >
                     {icon}{label}
                   </Link>
                 ))}
+
+                {!isAuthed && (
+                  <Link
+                    href="/login"
+                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02] ml-1"
+                    style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
+                  >
+                    <LogIn className="w-4 h-4 flex-shrink-0" />
+                    <span>Login</span>
+                  </Link>
+                )}
               </nav>
             </div>
 
             {/* ── Auth + Hamburger ── */}
-            <div className="ml-auto mr-1 sm:mr-2 flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="mr-1 sm:mr-2 flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
               <div className="block flex-shrink-0">
                 <ThemeToggle />
               </div>
@@ -520,7 +550,7 @@ export default function Header() {
               ) : (
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
+                  className="inline-flex lg:hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
                   style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
                 >
                   <LogIn className="w-4 h-4 flex-shrink-0" />

@@ -6,6 +6,8 @@ import OpportunityModal from '../../components/OpportunityModal'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { calculateMatchScore } from '@/lib/calculateMatchScore'
+import { useDashboardData } from '@/hooks/useDashboardData'
 import {
  Search, Bell, TrendingUp, Zap, Plus, ArrowRight, Loader2, CheckCircle,
  AlertCircle, X, Share2, Settings, ChevronRight, Activity, Clock,
@@ -43,9 +45,9 @@ type SavedOpportunity = {
 }
 
 type DashNotification = {
- type: 'deadline'|'match'|'alert'|'ai'
+ type: 'deadline'|'match'|'alert'|'ai'|'search'|'save'
  title: string; time?: string
- iconType: 'deadline'|'match'|'alert'|'ai'
+ iconType: 'deadline'|'match'|'alert'|'ai'|'search'|'save'
  noticeId?: string
 }
 
@@ -144,6 +146,10 @@ const EMPTY_DASH: Omit<DashboardData, 'loading' | 'error' | 'dataSource'> = {
  userGoals: [],
 }
 
+// Keep dashboard and opportunities-page drilldowns aligned to the same live window.
+const DASHBOARD_LIVE_WINDOW_DAYS = 30
+const DASHBOARD_POSTED_7D_WINDOW_DAYS = 7
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function fmtRel(dateStr: string): string {
@@ -179,24 +185,43 @@ function qs(p: Record<string,string|number|undefined|null>): string {
  const q = sp.toString(); return q ? `?${q}` : ''
 }
 
+function normalizeFirstFilter(value: unknown): string {
+ if (Array.isArray(value)) return String(value.find(Boolean) || '').trim()
+ if (typeof value === 'string') {
+ return value
+ .split(',')
+ .map(v => v.trim())
+ .filter(Boolean)[0] || ''
+ }
+ return ''
+}
+
 function matchScore(opp: any, searches: ActiveSearch[], goals: string[], prefs?: UserPreferences): number|null {
- let score = 40
- const text = `${opp?.title||''} ${opp?.description||''}`.toLowerCase()
- const kws = new Set(searches.flatMap(s => s.query.toLowerCase().split(/\s+/).filter(Boolean)))
- kws.forEach(kw => { if(text.includes(kw)) score += 4 })
- const naics = String(opp?.naics||opp?.naics_code||'').trim()
- if (naics && searches.some(s => s.filters?.naics===naics)) score += 20
- if (prefs?.naicsCodes?.includes(naics)) score += 10
- const sa = String(opp?.setAside||opp?.set_aside||'').toUpperCase()
- if (sa && prefs?.setAsides?.includes(sa)) score += 12
- if (sa && searches.some(s => s.filters?.setaside && sa.includes(s.filters.setaside))) score += 8
- const agency = String(opp?.agency||'').toLowerCase()
- if (prefs?.agencies?.some(a => agency.includes(a.toLowerCase().split(' ')[0]))) score += 6
- if (searches.some(s => s.filters?.agency && agency.includes(s.filters.agency.toLowerCase()))) score += 5
- const val = Number(opp?.value||0)
- if (prefs?.contractSizeMin && val>=prefs.contractSizeMin) score += 4
- if (prefs?.contractSizeMax && val<=prefs.contractSizeMax) score += 4
- return Math.min(100,Math.max(35,Math.round(score)))
+ const _goals = goals // Reserved for future goal-aware tuning.
+ void _goals
+
+ return calculateMatchScore(
+   {
+     title: opp?.title,
+     description: opp?.description,
+     agency: opp?.agency || opp?.department,
+     naicsCode: opp?.naics || opp?.naics_code || opp?.naicsCode,
+     setAside: opp?.setAside || opp?.set_aside || opp?.typeOfSetAside,
+     value: Number(opp?.value || opp?.awardValue || 0),
+     postedDate: opp?.postedDate || opp?.posted_date,
+     updatedPostedDate: opp?.updatedPostedDate || opp?.updated_posted_date,
+     responseDeadline: opp?.responseDeadline || opp?.response_deadline || opp?.responseDeadLine,
+   },
+   searches.map((search) => ({
+     query: search.query,
+     filters: {
+       naics: search.filters?.naics,
+       setaside: search.filters?.setaside,
+       agency: search.filters?.agency,
+     },
+   })),
+   prefs
+ )
 }
 
 // ─── Score pill ───────────────────────────────────────────────────────────────
@@ -581,14 +606,14 @@ function Survey({ name, onComplete, onDismiss }: {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
- // Dashboard refresh state and modal
- const [refreshing, setRefreshing] = useState(false);
+ // Dashboard modal state
  const [showOpportunityModal, setShowOpportunityModal] = useState(false);
  const [selectedOpportunity, setSelectedOpportunity] = useState<SavedOpportunity | null>(null);
  const router = useRouter()
  // required:false prevents next-auth from throwing CLIENT_FETCH_ERROR when
  // the session endpoint returns HTML (e.g. during initial cold start or proxy issues)
  const { data: session, status: sessionStatus } = useSession({ required: false })
+ const dashboardApi = useDashboardData({ enabled: sessionStatus === 'authenticated' })
  const name = useMemo(() => firstName(session), [session])
  const [mounted, setMounted] = useState(false)
 
@@ -701,13 +726,11 @@ export default function DashboardPage() {
 
  // Show survey modal if onboarding not completed and not suppressed
  useEffect(() => {
-   if (!mounted || sessionStatus !== 'authenticated' || !session?.user?.email) return;
-   fetch('/api/account/preferences').then(r=>r.ok?r.json():null)
-     .then(d => {
-       if (d?.completedOnboarding) return;
-       if (!shouldSuppressSurvey()) setShowSurvey(true);
-     });
- }, [mounted, sessionStatus, session?.user?.email, shouldSuppressSurvey])
+ if (!mounted || sessionStatus !== 'authenticated' || !session?.user?.email) return
+ if (dashboardApi.loading) return
+ if (dashboardApi.preferences?.completedOnboarding) return
+ if (!shouldSuppressSurvey()) setShowSurvey(true)
+ }, [mounted, sessionStatus, session?.user?.email, dashboardApi.loading, dashboardApi.preferences, shouldSuppressSurvey])
 
  // Real activity log built from live dashboard data
  const activityLog = useMemo<ActivityLog[]>(() => {
@@ -745,40 +768,36 @@ export default function DashboardPage() {
  }, [dash.weeklyOpportunities, dash.savedOpportunities, dash.recentOpportunities])
 
  useEffect(() => {
- // Don't run until next-auth has resolved — avoids CLIENT_FETCH_ERROR
- if (sessionStatus === 'loading') return
+ // Don't run until next-auth and dashboard endpoints have resolved.
+ if (sessionStatus === 'loading' || dashboardApi.loading) return
  if (!session?.user?.email) return
 
  let cancelled = false
  let surveyTimer: ReturnType<typeof setTimeout> | null = null
 
- const queueOnboardingRedirect = () => {
- if (shouldSuppressSurvey()) return
+ if (dashboardApi.preferences?.completedOnboarding) {
+ setUserPrefs(dashboardApi.preferences)
+ return () => {
+ cancelled = true
+ if (surveyTimer) clearTimeout(surveyTimer)
+ }
+ }
+
+ if (!shouldSuppressSurvey()) {
  // Give users a moment to settle on the dashboard after redirect/login.
  surveyTimer = setTimeout(() => {
  if (!cancelled) router.replace('/dashboard/onboarding?next=/dashboard')
  }, 1400)
  }
 
- fetch('/api/account/preferences').then(r=>r.ok?r.json():null)
- .then(d => {
- if (cancelled) return
- if (d?.completedOnboarding) { setUserPrefs(d); return }
- queueOnboardingRedirect()
- })
- .catch(() => {
- if (cancelled) return
- queueOnboardingRedirect()
- })
-
  return () => {
  cancelled = true
  if (surveyTimer) clearTimeout(surveyTimer)
  }
- }, [session?.user?.email, sessionStatus, shouldSuppressSurvey, router])
+ }, [session?.user?.email, sessionStatus, dashboardApi.loading, dashboardApi.preferences, shouldSuppressSurvey, router])
 
  useEffect(() => {
- // Wait for next-auth to resolve before deciding which data path to take
+ // Wait for next-auth and dashboard API sync before building the live SAM.gov summary.
  if (sessionStatus === 'loading') return
  if (!session?.user?.email) {
  setDash({
@@ -789,17 +808,14 @@ export default function DashboardPage() {
  })
  return
  }
+ if (dashboardApi.loading) {
+ setDash(prev => ({ ...prev, loading: true, error: null, dataSource: 'loading' }))
+ return
+ }
+
  async function load() {
  try {
- const since = new Date(Date.now()-7*86400000).toISOString().split('T')[0].replace(/-/g,'/')
- // Fetch prefs fresh — never rely on userPrefs state which may be stale on first render
- const [sR,oR,pR,prR] = await Promise.allSettled([
- fetch('/api/saved-searches').then(r=>r.ok?r.json():{searches:[]}),
- fetch('/api/saved-opportunities').then(r=>r.ok?r.json():{savedOpportunities:[]}),
- fetch('/api/account/profile').then(r=>r.ok?r.json():{goals:[]}),
- fetch('/api/account/preferences').then(r=>r.ok?r.json():null),
- ])
- const prefs: UserPreferences|null = prR.status==='fulfilled' ? prR.value : null
+ const prefs: UserPreferences | null = dashboardApi.preferences
  if (prefs) setUserPrefs(prefs)
  if (!prefs?.completedOnboarding || !prefs?.naicsCodes?.length) {
  setDash({
@@ -808,40 +824,94 @@ export default function DashboardPage() {
  loading: false,
  error: 'Complete your opportunity preferences to power live, preference-based SAM.gov analytics.',
  dataSource: 'live',
- lastRefreshed: new Date(),
+ lastRefreshed: dashboardApi.lastRefreshed || new Date(),
  })
  return
  }
- const searches: ActiveSearch[] = sR.status==='fulfilled' ? (sR.value?.searches??[]).map((s:any) => ({id:s.id,name:s.name,query:s.keywords||s.query||'',filters:{naics:s.naics||'',state:s.state||'',setaside:s.setAside||'',agency:s.agency||''},resultsCount:s._count?.search_runs,newCount:s.newResults??0})) : []
- const goals: string[] = pR.status==='fulfilled' ? (pR.value?.goals??[]) : []
+
+ const searchProfiles: ActiveSearch[] = dashboardApi.activeSearches
+ .filter((s) => s.subscriptionEnabled !== false)
+ .map((s) => {
+ const filters = (s.filters && typeof s.filters === 'object') ? s.filters : {}
+ return {
+ id: String(s.id || ''),
+ name: String(s.name || 'Untitled Search'),
+ query: String(s.query || ''),
+ filters: {
+ naics: String(filters.naics || ''),
+ state: normalizeFirstFilter(filters.state),
+ setaside: normalizeFirstFilter(filters.setAside || filters.setaside),
+ agency: String(filters.agency || ''),
+ },
+ resultsCount: typeof s.lastResultCount === 'number' ? s.lastResultCount : undefined,
+ newCount: typeof s.lastResultCount === 'number' ? s.lastResultCount : 0,
+ }
+ })
+
+ const goalsResponse = await fetch('/api/account/profile')
+ const goalsPayload = goalsResponse.ok ? await goalsResponse.json() : { goals: [] }
+ const goals: string[] = Array.isArray(goalsPayload?.goals) ? goalsPayload.goals : []
+
+ const since = new Date(Date.now() - DASHBOARD_LIVE_WINDOW_DAYS * 86400000).toISOString().split('T')[0].replace(/-/g, '/')
  // Fan-out: one SAM.gov call per NAICS code (API only accepts one ncode at a time)
- const naicsList = prefs?.naicsCodes?.length ? prefs.naicsCodes.slice(0,5) : [undefined]
- const setAside = prefs?.setAsides?.[0] || ''
- const state = prefs?.states?.[0] || ''
- const oppFetches = naicsList.map((naics: string|undefined) => {
+ const naicsList = prefs.naicsCodes.length ? prefs.naicsCodes.slice(0, 5) : [undefined]
+ const setAside = prefs.setAsides?.[0] || ''
+ const state = prefs.states?.[0] || ''
+ const oppFetches = naicsList.map((naics: string | undefined) => {
  const pq = [naics ? `&naics=${naics}` : '', setAside ? `&setAside=${setAside}` : '', state ? `&state=${state}` : ''].join('')
- return fetch(`/api/sam/opportunities?limit=40&postedFrom=${since}${pq}`).then(r=>r.ok?r.json():{totalRecords:0,opportunitiesData:[]}).catch(()=>({totalRecords:0,opportunitiesData:[]}))
+ return fetch(`/api/sam/opportunities?limit=200&postedFrom=${since}${pq}`)
+ .then(r => (r.ok ? r.json() : { totalRecords: 0, opportunitiesData: [] }))
+ .catch(() => ({ totalRecords: 0, opportunitiesData: [] }))
  })
  const wResults = await Promise.all(oppFetches)
  const seenIds = new Set<string>()
  const mergedOpps: any[] = []
  for (const result of wResults) {
  for (const opp of (result.opportunitiesData || result.opportunities || [])) {
- const id = opp.noticeId||opp.id||opp.solicitationNumber
+ const id = opp.noticeId || opp.id || opp.solicitationNumber
  if (id && seenIds.has(id)) continue
  if (id) seenIds.add(id)
  mergedOpps.push(opp)
  }
  }
- const weekly = { totalRecords: wResults[0]?.totalRecords ?? mergedOpps.length, opportunities: mergedOpps }
- const savedOpps: SavedOpportunity[] = oR.status==='fulfilled' ? (oR.value?.savedOpportunities??[]).map((o:any) => ({noticeId:o.notice_id||o.noticeId||o.id,title:o.title||'Untitled',agency:o.organization_name||o.agency||'',value:o.awardValue||o.value,posted:(o.posted_date||o.postedDate)?fmtRel(o.posted_date||o.postedDate):undefined,deadline:o.response_deadline?`${Math.ceil((new Date(o.response_deadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics_code||o.naics,setAside:o.setAside||o.set_aside,match:matchScore(o,searches,[],prefs||undefined)})) : []
+ const weekly = { totalRecords: mergedOpps.length, opportunities: mergedOpps }
+
+ const savedOpps: SavedOpportunity[] = dashboardApi.savedOpportunities.map((o) => {
+ const rawDeadline = o.deadline ? new Date(o.deadline).getTime() : NaN
+ const daysUntil = Number.isFinite(rawDeadline)
+ ? Math.ceil((rawDeadline - Date.now()) / 86400000)
+ : NaN
+ return {
+ noticeId: o.noticeId,
+ title: o.title || 'Untitled',
+ agency: o.agency || '',
+ value: typeof o.value === 'number' ? o.value : undefined,
+ posted: o.posted ? fmtRel(o.posted) : undefined,
+ deadline: Number.isFinite(daysUntil) ? (daysUntil < 0 ? 'Expired' : `${daysUntil} days`) : undefined,
+ naics: o.naics || undefined,
+ setAside: o.setAside || undefined,
+ match: matchScore(o, searchProfiles, [], prefs || undefined),
+ }
+ })
+
  const recentOpps: SavedOpportunity[] = [...(weekly.opportunities ?? [])]
  .sort((a: any, b: any) => {
  const aTime = new Date(a.updatedPostedDate || a.postedDate || a.posted_date || 0).getTime()
  const bTime = new Date(b.updatedPostedDate || b.postedDate || b.posted_date || 0).getTime()
  return bTime - aTime
  })
- .map((o:any) => ({noticeId:o.noticeId||o.id,title:o.title||'Untitled',agency:o.department||o.agency||'',value:o.awardValue||o.value,posted:o.postedDate?fmtRel(o.postedDate):undefined,deadline:o.responseDeadline?`${Math.ceil((new Date(o.responseDeadline).getTime()-Date.now())/86400000)} days`:undefined,naics:o.naics||o.naicsCode,setAside:o.setAside,match:matchScore(o,searches,goals,prefs||undefined)}))
+ .map((o: any) => ({
+ noticeId: o.noticeId || o.id,
+ title: o.title || 'Untitled',
+ agency: o.department || o.agency || '',
+ value: o.awardValue || o.value,
+ posted: o.updatedPostedDate || o.postedDate || o.posted_date ? fmtRel(o.updatedPostedDate || o.postedDate || o.posted_date) : undefined,
+ deadline: o.responseDeadline ? `${Math.ceil((new Date(o.responseDeadline).getTime() - Date.now()) / 86400000)} days` : undefined,
+ naics: o.naics || o.naicsCode,
+ setAside: o.setAside,
+ match: matchScore(o, searchProfiles, goals, prefs || undefined),
+ }))
+
  const nowTs = Date.now()
  const sevenDaysAgoTs = nowTs - 7 * 24 * 60 * 60 * 1000
  const postedThisWeekCount = (weekly.opportunities ?? []).filter((o: any) => {
@@ -850,33 +920,90 @@ export default function DashboardPage() {
  const ts = new Date(rawPosted).getTime()
  return Number.isFinite(ts) && ts >= sevenDaysAgoTs && ts <= nowTs
  }).length
+
  const highFitCount = recentOpps.filter(o => (o.match ?? 0) >= 80).length
- const notifs: DashNotification[] = [...savedOpps.filter(o=>o.deadline&&parseInt(o.deadline)<=7&&!o.deadline.includes('Expired')).slice(0,2).map(o=>({type:'deadline' as const,title:`Deadline in ${o.deadline}: ${o.title}`,time:o.agency,iconType:'deadline' as const,noticeId:o.noticeId})),...recentOpps.filter(o=>(o.match??0)>=80).slice(0,2).map(o=>({type:'match' as const,title:`${o.match}% match: ${o.title}`,time:`Posted ${o.posted}`,iconType:'match' as const,noticeId:o.noticeId}))].slice(0,5)
- const allScored = [...savedOpps,...recentOpps].filter(o=>o.match)
- const avgMatch = allScored.length ? Math.round(allScored.reduce((s,o)=>s+(o.match??0),0)/allScored.length) : null
+ const allScored = [...savedOpps, ...recentOpps].filter(o => typeof o.match === 'number')
+ const avgMatch = allScored.length ? Math.round(allScored.reduce((s, o) => s + (o.match ?? 0), 0) / allScored.length) : null
+
+ const mappedNotifications: DashNotification[] = dashboardApi.notifications.map((n) => ({
+ type: n.type,
+ title: n.title,
+ time: n.createdAt ? fmtRel(n.createdAt) : undefined,
+ iconType: n.iconType || n.type,
+ noticeId: n.noticeId || undefined,
+ }))
+
  const allDeadlines = savedOpps
  .filter(o => {
  const d = parseInt(o.deadline ?? '999', 10)
  return Number.isFinite(d) && d >= 0
  })
- .sort((a,b)=>parseInt(a.deadline??'999',10)-parseInt(b.deadline??'999',10))
- const deadlines = allDeadlines.slice(0, 25).map(o=>({title:o.title,agency:o.agency,deadline:o.deadline??'',value:o.value??'',noticeId:o.noticeId}))
- if(goals.length) setGoalInput(goals.join('\n'))
- setDash({activeSearchesCount:searches.length,savedOppCount:savedOpps.length,avgMatchScore:avgMatch,thisWeekCount:postedThisWeekCount,highFitCount,deadlineCount:allDeadlines.length,totalActiveOpportunities:weekly.totalRecords??recentOpps.length,activeSearches:searches,savedOpportunities:savedOpps,recentOpportunities:recentOpps,weeklyOpportunities:mergedOpps.map((o:any)=>({noticeId:o.noticeId||o.id,title:o.title||'Untitled',agency:o.department||o.agency||'',posted:o.updatedPostedDate||o.postedDate||o.posted_date,match:matchScore(o,searches,goals,prefs||undefined)})),notifications:notifs,upcomingDeadlines:deadlines,userGoals:goals,userPreferences:prefs||undefined,loading:false,error:null,dataSource:'live',lastRefreshed:new Date()})
+ .sort((a, b) => parseInt(a.deadline ?? '999', 10) - parseInt(b.deadline ?? '999', 10))
+ const fallbackDeadlines: DeadlineItem[] = dashboardApi.deadlines.map((d) => ({
+ title: d.title,
+ agency: d.agency,
+ deadline: `${d.daysUntil} day${d.daysUntil === 1 ? '' : 's'}`,
+ value: d.value ?? '',
+ noticeId: d.noticeId,
+ }))
+ const deadlines = allDeadlines.length
+ ? allDeadlines.slice(0, 25).map(o => ({ title: o.title, agency: o.agency, deadline: o.deadline ?? '', value: o.value ?? '', noticeId: o.noticeId }))
+ : fallbackDeadlines.slice(0, 25)
+
+ if (goals.length) setGoalInput(goals.join('\n'))
+ setDash({
+ activeSearchesCount: searchProfiles.length,
+ savedOppCount: savedOpps.length,
+ avgMatchScore: avgMatch,
+ thisWeekCount: postedThisWeekCount,
+ highFitCount,
+ deadlineCount: allDeadlines.length || fallbackDeadlines.length,
+ totalActiveOpportunities: mergedOpps.length,
+ activeSearches: searchProfiles,
+ savedOpportunities: savedOpps,
+ recentOpportunities: recentOpps,
+ weeklyOpportunities: mergedOpps.map((o: any) => ({
+ noticeId: o.noticeId || o.id,
+ title: o.title || 'Untitled',
+ agency: o.department || o.agency || '',
+ posted: o.updatedPostedDate || o.postedDate || o.posted_date,
+ match: matchScore(o, searchProfiles, goals, prefs || undefined),
+ })),
+ notifications: mappedNotifications,
+ upcomingDeadlines: deadlines,
+ userGoals: goals,
+ userPreferences: prefs || undefined,
+ loading: false,
+ error: dashboardApi.error ?? null,
+ dataSource: 'live',
+ lastRefreshed: dashboardApi.lastRefreshed || new Date(),
+ })
  } catch {
  setDash({
  ...EMPTY_DASH,
- userPreferences: userPrefs || undefined,
+ userPreferences: dashboardApi.preferences || undefined,
  loading: false,
  error: 'Live SAM.gov data is temporarily unavailable. No synthesized values are shown.',
  dataSource: 'live',
  })
  }
  }
- load()
- const id = setInterval(load,5*60*1000)
+
+ void load()
+ const id = setInterval(() => { void load() }, 5 * 60 * 1000)
  return () => clearInterval(id)
- }, [session?.user?.email, sessionStatus])
+ }, [
+ session?.user?.email,
+ sessionStatus,
+ dashboardApi.activeSearches,
+ dashboardApi.savedOpportunities,
+ dashboardApi.notifications,
+ dashboardApi.deadlines,
+ dashboardApi.preferences,
+ dashboardApi.loading,
+ dashboardApi.error,
+ dashboardApi.lastRefreshed,
+ ])
 
  const buildAnalysis = useCallback((d: DashboardData) => {
  const top = [...d.savedOpportunities,...d.recentOpportunities].filter(o=>typeof o.match==='number').sort((a,b)=>(b.match??0)-(a.match??0)).slice(0,3)
@@ -943,18 +1070,6 @@ export default function DashboardPage() {
  finally { setGoalSaving(false) }
  }, [goalInput])
 
- // Refresh handler for dashboard
- const handleRefresh = async () => {
- setRefreshing(true);
- try {
- // Simulate refresh delay
- await new Promise(res => setTimeout(res, 1200));
- window.location.reload();
- } finally {
- setRefreshing(false);
- }
- };
-
  useEffect(() => {
  if (!toast) return
  const t = setTimeout(()=>setToast(null),3500)
@@ -964,8 +1079,57 @@ export default function DashboardPage() {
  const isAuth = sessionStatus === 'authenticated' && !!session?.user?.email
  const hour = mounted ? new Date().getHours() : 12
  const greeting = hour<12?'Good morning':hour<17?'Good afternoon':'Good evening'
+ const liveWindowPostedFrom = useMemo(() => {
+ const d = new Date()
+ d.setDate(d.getDate() - DASHBOARD_LIVE_WINDOW_DAYS)
+ return d.toISOString().split('T')[0].replace(/-/g, '/')
+ }, [])
+ const liveWindowPostedTo = useMemo(
+ () => new Date().toISOString().split('T')[0].replace(/-/g, '/'),
+ []
+ )
+ const liveOppsHref = useMemo(() => {
+ const params = new URLSearchParams({
+ source: 'dashboard',
+ from: 'live-opps-pill',
+ postedFrom: liveWindowPostedFrom,
+ postedTo: liveWindowPostedTo,
+ })
+ const naics = dash.userPreferences?.naicsCodes?.[0]
+ const setAside = dash.userPreferences?.setAsides?.[0]
+ const state = dash.userPreferences?.states?.[0]
+ if (naics) params.set('naics', naics)
+ if (setAside) params.set('setAside', setAside)
+ if (state) params.set('state', state)
+ return `/opportunities?${params.toString()}`
+ }, [dash.userPreferences, liveWindowPostedFrom, liveWindowPostedTo])
+ const posted7dHref = useMemo(() => {
+ const postedFromDate = new Date()
+ postedFromDate.setDate(postedFromDate.getDate() - DASHBOARD_POSTED_7D_WINDOW_DAYS)
+ const postedFrom = postedFromDate.toISOString().split('T')[0].replace(/-/g, '/')
+ const postedTo = new Date().toISOString().split('T')[0].replace(/-/g, '/')
+ const params = new URLSearchParams({
+ source: 'dashboard',
+ from: 'posted-7d-pill',
+ postedFrom,
+ postedTo,
+ })
+ const naics = dash.userPreferences?.naicsCodes?.[0]
+ const setAside = dash.userPreferences?.setAsides?.[0]
+ const state = dash.userPreferences?.states?.[0]
+ if (naics) params.set('naics', naics)
+ if (setAside) params.set('setAside', setAside)
+ if (state) params.set('state', state)
+ return `/opportunities?${params.toString()}`
+ }, [dash.userPreferences])
 
- const stats = useMemo(() => [
+ const stats = useMemo(() => {
+ const latestAlert = dash.activeSearches.find(s => (s.name || '').trim() || (s.query || '').trim())
+ const latestAlertLabel = latestAlert
+ ? ((latestAlert.name || '').trim() || (latestAlert.query || '').trim())
+ : ''
+
+ return [
  {
  label: 'Deadlines',
  value: dash.deadlineCount,
@@ -980,13 +1144,13 @@ export default function DashboardPage() {
  label: 'Alert Subscriptions',
  value: dash.activeSearchesCount,
  sub: `${dash.activeSearches.reduce((s, a) => s + (a.newCount ?? 0), 0)} new matches`,
- detail: dash.activeSearches[0] ? `Latest alert: "${dash.activeSearches[0].name}"` : 'No email alerts configured',
+ detail: latestAlertLabel ? `Latest alert: "${latestAlertLabel}"` : 'No email alerts configured',
  src: 'From your saved searches and alert subscriptions',
  bg: '#1d4ed8',
  onClick: () => setDrawer('activeSearches'),
  },
  {
- label: 'Saved Opps',
+ label: 'Saved Opportunities',
  value: dash.savedOppCount,
  sub: 'Watchlist',
  detail: dash.savedOpportunities[0] ? `Top: ${dash.savedOpportunities[0].title}` : 'No saved opportunities',
@@ -1024,7 +1188,8 @@ export default function DashboardPage() {
  bg: '#334155',
  onClick: () => setDrawer('notifications'),
  },
- ], [dash, router])
+ ]
+ }, [dash, router])
 
  const primarySearch = dash.activeSearches[0]
 
@@ -1044,8 +1209,22 @@ export default function DashboardPage() {
  goalSetup:'Business Goals', settings:'Settings',
  }
 
- const notifIconMap: Record<string, LucideIcon> = { deadline:AlertTriangle, match:Target, alert:Bell, ai:Bell }
- const notifColorMap: Record<string, string> = { deadline:'text-amber-500', match:'text-emerald-500', alert:'text-rose-500', ai:'text-violet-500' }
+ const notifIconMap: Record<string, LucideIcon> = {
+ deadline: AlertTriangle,
+ match: Target,
+ alert: Bell,
+ ai: Brain,
+ search: Search,
+ save: CheckCircle,
+ }
+ const notifColorMap: Record<string, string> = {
+ deadline: 'text-amber-500',
+ match: 'text-emerald-500',
+ alert: 'text-rose-500',
+ ai: 'text-violet-500',
+ search: 'text-sky-500',
+ save: 'text-emerald-500',
+ }
 
  return (
  <div className="dashboard-page mx-auto w-full max-w-480 min-h-screen bg-(--color-surface) text-(--color-text-primary)">
@@ -1276,7 +1455,7 @@ export default function DashboardPage() {
  <div className="min-w-0">
  <p className="font-bold text-sm text-slate-900 truncate mb-1">{s.name}</p>
  <p className="text-xs text-slate-500 ">
- "{s.query}"
+ {s.query ? `"${s.query}"` : 'No keyword criteria saved'}
  {s.filters?.naics && <span className="text-sky-500 font-mono ml-2">NAICS {s.filters.naics}</span>}
  </p>
  </div>
@@ -1530,6 +1709,44 @@ export default function DashboardPage() {
  {/* ── Page content ─────────────────────────────────────────────────────── */}
  <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pb-10">
 
+ {sessionStatus === 'authenticated' && (
+ <div className="mb-3 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+ <div className="text-sm font-semibold text-cyan-900">
+ <span className="font-black mr-2">Dashboard sync</span>
+ {dashboardApi.loading
+ ? 'Loading dashboard endpoints...'
+ : dashboardApi.lastRefreshed
+ ? `Last refreshed ${dashboardApi.lastRefreshed.toLocaleTimeString()} · auto-refresh every 45 seconds`
+ : 'Waiting for first refresh...'}
+ </div>
+ <button
+ type="button"
+ onClick={() => void dashboardApi.refresh()}
+ disabled={dashboardApi.loading || dashboardApi.isRefreshing}
+ className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-sm font-black text-white disabled:opacity-60"
+ >
+ {dashboardApi.isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+ {dashboardApi.isRefreshing ? 'Refreshing...' : 'Refresh dashboard data'}
+ </button>
+ </div>
+ )}
+
+ {sessionStatus === 'authenticated' && dashboardApi.error && (
+ <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+ <div className="text-sm font-semibold text-red-800">
+ Dashboard API sync warning: {dashboardApi.error}
+ </div>
+ <button
+ type="button"
+ onClick={() => void dashboardApi.refresh()}
+ className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-black text-white"
+ >
+ <RefreshCw className="h-4 w-4" />
+ Retry sync
+ </button>
+ </div>
+ )}
+
  {/* ── Hero section ─────────────────────────────────────────────────── */}
  <section className="relative overflow-hidden rounded-2xl mb-4 shadow-md border border-(--color-border) bg-(--color-surface) ">
  <div className="relative w-full px-4 sm:px-6 lg:px-8 py-6">
@@ -1551,7 +1768,7 @@ export default function DashboardPage() {
  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4" style={{ background: '#047857', color: 'white' }}>
  <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'white', flexShrink: 0, animation: 'pulse 2s infinite' }} />
  <span style={{ color: 'white', fontWeight: 900, fontSize: '14px', letterSpacing: '0.02em' }}>
- Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities
+ Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities (last {DASHBOARD_LIVE_WINDOW_DAYS} days)
  </span>
  </div>
  )}
@@ -1574,8 +1791,8 @@ export default function DashboardPage() {
  {/* Live stat pills */}
  <div className="flex items-center gap-2 shrink-0 flex-wrap">
  {[
- { label: 'Live Opps', value: (dash.totalActiveOpportunities || 0).toLocaleString(), bg: '#047857', onClick: () => router.push('/opportunities') },
- { label: 'Posted 7d', value: dash.thisWeekCount, bg: '#b45309', onClick: () => setDrawer('recentMatches') },
+ { label: 'Live Opportunities', value: (dash.totalActiveOpportunities || 0).toLocaleString(), bg: '#047857', onClick: () => router.push(liveOppsHref) },
+ { label: 'Posted 7 Days', value: dash.thisWeekCount, bg: '#b45309', onClick: () => router.push(posted7dHref) },
  { label: 'High-Fit 80+', value: dash.highFitCount, bg: '#0f766e', onClick: () => setDrawer('matchInfo') },
  { label: 'Deadlines', value: dash.deadlineCount, bg: '#b91c1c', onClick: () => setDrawer('deadlines') },
  ].map(s => (
@@ -1583,7 +1800,7 @@ export default function DashboardPage() {
  key={s.label}
  type="button"
  onClick={s.onClick}
- style={{ background: s.bg, minWidth: 90 }}
+ style={{ background: s.bg, minWidth: 130 }}
  className="text-center px-5 py-3 rounded-xl shadow-lg cursor-pointer hover:brightness-110 transition"
  >
                  <p style={{ color: '#fff', fontSize: 26, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>{dash.loading ? '—' : s.value}</p>
@@ -1604,7 +1821,7 @@ export default function DashboardPage() {
  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4" style={{ background: '#047857', color: 'white' }}>
  <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'white', flexShrink: 0, animation: 'pulse 2s infinite' }} />
  <span style={{ color: 'white', fontWeight: 900, fontSize: '14px', letterSpacing: '0.02em' }}>
- Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities
+ Live · SAM.gov · {dash.totalActiveOpportunities.toLocaleString()} active opportunities (last {DASHBOARD_LIVE_WINDOW_DAYS} days)
  </span>
  </div>
  )}
@@ -2031,7 +2248,7 @@ export default function DashboardPage() {
  <span className="text-xs font-normal text-slate-400 ml-1">Last 7 days · live data</span>
  </h3>
  <div className="flex gap-4">
- {[['bg-orange-400','Total Opps'],['bg-emerald-500','Your Matches']].map(([c,l]) => (
+ {[['bg-orange-400','Total Opportunities'],['bg-emerald-500','Your Matches']].map(([c,l]) => (
  <div key={l} className="flex items-center gap-1.5 text-xs text-slate-500 ">
  <div className={`w-3 h-3 rounded-sm ${c}`} />{l}
  </div>
@@ -2076,7 +2293,7 @@ export default function DashboardPage() {
  {/* Summary stats strip below chart */}
  <div className="grid grid-cols-3 gap-3 pt-4 border-t border-slate-100 ">
  {[
- {label:'Avg Opps/Mo', value: Math.round(trend.reduce((s,p)=>s+p.opportunities,0)/trend.length).toLocaleString(), color:'text-orange-500'},
+ {label:'Avg Opportunities/Month', value: Math.round(trend.reduce((s,p)=>s+p.opportunities,0)/trend.length).toLocaleString(), color:'text-orange-500'},
  {label:'Avg Matches', value: Math.round(trend.reduce((s,p)=>s+p.matches,0)/trend.length).toLocaleString(), color:'text-emerald-500'},
  {label:'Avg Hit Rate', value: `${((trend.reduce((s,p)=>s+(p.matches/p.opportunities),0)/trend.length)*100).toFixed(1)}%`, color:'text-amber-500'},
  ].map(({label,value,color}) => (

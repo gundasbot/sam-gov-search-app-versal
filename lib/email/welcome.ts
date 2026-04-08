@@ -2,11 +2,11 @@
 import { sendEmail } from './send'
 import { getBrand } from './brand'
 
-export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
+export async function sendWelcomeEmail(email: string, name: string) {
   const brand = getBrand()
   const firstName = name.split(' ')[0] || 'there'
 
-  await sendEmail({
+  return sendEmail({
     to: email,
     subject: `You're in, ${firstName}! Your Precise GovCon trial is active 🚀`,
     html: getWelcomeEmailHtml(firstName),
@@ -26,32 +26,32 @@ function getWelcomeEmailHtml(firstName: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to ${brand.name}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0f172a;">
+<body style="margin:0;padding:0;background-color:#eef6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef6ff;">
     <tr>
-      <td align="center" style="padding:40px 20px;">
+      <td align="center" style="padding:36px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
-               style="max-width:600px;width:100%;background:#1e293b;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+               style="max-width:600px;width:100%;background:#ffffff;border-radius:22px;overflow:hidden;box-shadow:0 16px 40px rgba(15,23,42,0.18);border:1px solid #bfdbfe;">
 
           <!-- Logo header -->
           <tr>
-            <td style="padding:30px 40px 20px;background-color:#0f172a;text-align:center;">
+            <td style="padding:24px 28px 16px;background-color:#ffffff;text-align:center;border-bottom:1px solid #dbeafe;">
               <img src="${brand.logoUrl}" alt="${brand.name}"
                    style="max-width:220px;height:auto;display:inline-block;border:0;margin-bottom:8px;" />
-              <div style="font-size:11px;color:#94a3b8;letter-spacing:0.3px;">${brand.tagline}</div>
+              <div style="font-size:13px;color:#334155;font-weight:600;letter-spacing:0.2px;">${brand.tagline}</div>
             </td>
           </tr>
 
           <!-- Hero banner -->
           <tr>
-            <td style="background:linear-gradient(135deg,#166534 0%,#14532d 100%);padding:36px 40px 28px;text-align:center;">
-              <div style="width:72px;height:72px;margin:0 auto 16px;background:rgba(255,255,255,0.15);border-radius:18px;text-align:center;line-height:72px;font-size:36px;">
+            <td style="background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);padding:30px 28px 26px;text-align:center;">
+              <div style="width:74px;height:74px;margin:0 auto 14px;background:#dcfce7;border-radius:18px;text-align:center;line-height:74px;font-size:34px;">
                 🚀
               </div>
-              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">
+              <h1 style="margin:0;color:#ffffff;font-size:34px;font-weight:900;letter-spacing:-0.4px;line-height:1.2;">
                 You're in, ${firstName}!
               </h1>
-              <p style="margin:8px 0 0;color:#bbf7d0;font-size:15px;">
+              <p style="margin:8px 0 0;color:#f0fdf4;font-size:18px;font-weight:700;line-height:1.4;">
                 Your 7-day free trial is now active — no credit card required.
               </p>
             </td>
@@ -59,22 +59,22 @@ function getWelcomeEmailHtml(firstName: string): string {
 
           <!-- Body -->
           <tr>
-            <td style="padding:36px 40px 28px;background-color:#1e293b;">
-              <p style="margin:0 0 18px;color:#f1f5f9;font-size:17px;font-weight:600;">
+            <td style="padding:30px 28px 24px;background-color:#ffffff;">
+              <p style="margin:0 0 14px;color:#0f172a;font-size:23px;font-weight:800;">
                 Hi ${firstName},
               </p>
-              <p style="margin:0 0 28px;color:#cbd5e1;font-size:15px;line-height:1.7;">
-                Welcome to <strong style="color:#ffffff;">Precise GovCon</strong> — your all-in-one platform for finding,
+              <p style="margin:0 0 24px;color:#1e293b;font-size:18px;line-height:1.65;font-weight:500;">
+                Welcome to <strong style="color:#0f172a;">Precise GovCon</strong> — your all-in-one platform for finding,
                 tracking, and winning government contract opportunities. Your email is verified and your
-                <strong style="color:#4ade80;">7-day free trial</strong> is live. Start exploring now.
+                <strong style="color:#15803d;">7-day free trial</strong> is live. Start exploring now.
               </p>
 
               <!-- CTA -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td align="center" style="padding:0 0 32px;">
+                  <td align="center" style="padding:0 0 24px;">
                     <a href="${appUrl}/search"
-                       style="display:inline-block;padding:16px 48px;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:700;font-size:17px;border-radius:12px;box-shadow:0 8px 24px rgba(22,163,74,0.35);">
+                       style="display:inline-block;padding:16px 42px;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:800;font-size:20px;border-radius:12px;box-shadow:0 8px 20px rgba(22,163,74,0.25);">
                       Start Searching Now &rarr;
                     </a>
                   </td>
@@ -83,49 +83,49 @@ function getWelcomeEmailHtml(firstName: string): string {
 
               <!-- What's included -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background:#14532d;border:1px solid #166534;border-radius:12px;margin-bottom:28px;">
+                     style="background:#f0fdf4;border:2px solid #86efac;border-radius:12px;margin-bottom:24px;">
                 <tr>
-                  <td style="padding:20px 24px;">
-                    <p style="margin:0 0 14px;color:#86efac;font-size:15px;font-weight:700;">
+                  <td style="padding:18px 18px;">
+                    <p style="margin:0 0 12px;color:#14532d;font-size:20px;font-weight:800;">
                       What's included in your trial:
                     </p>
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Unlimited opportunity searches across federal, state &amp; local</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Real-time contract alerts by NAICS code, keyword &amp; agency</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Save &amp; track opportunities through your pipeline</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Export results to CSV / Excel</td></tr>
-                      <tr><td style="padding:0;color:#dcfce7;font-size:14px;line-height:1.6;">&#10003; Advanced filtering &amp; saved searches</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Unlimited opportunity searches across federal, state &amp; local</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Real-time contract alerts by NAICS code, keyword &amp; agency</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Save &amp; track opportunities through your pipeline</td></tr>
+                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Export results to CSV / Excel</td></tr>
+                      <tr><td style="padding:0;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Advanced filtering &amp; saved searches</td></tr>
                     </table>
                   </td>
                 </tr>
               </table>
 
               <!-- Getting started steps -->
-              <p style="margin:0 0 14px;color:#f1f5f9;font-size:15px;font-weight:700;">
+              <p style="margin:0 0 10px;color:#0f172a;font-size:20px;font-weight:800;">
                 3 things to do right now:
               </p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
                 <tr><td style="padding:0 0 12px;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td width="28" valign="top" style="color:#4ade80;font-size:15px;font-weight:800;padding-top:1px;">1.</td>
-                      <td style="color:#cbd5e1;font-size:14px;line-height:1.6;"><strong style="color:#f1f5f9;">Set up your NAICS code filters</strong> — focus on contracts that match your capabilities</td>
+                      <td width="30" valign="top" style="color:#16a34a;font-size:19px;font-weight:900;padding-top:1px;">1.</td>
+                      <td style="color:#1e293b;font-size:17px;line-height:1.65;"><strong style="color:#0f172a;">Set up your NAICS code filters</strong> — focus on contracts that match your capabilities</td>
                     </tr>
                   </table>
                 </td></tr>
                 <tr><td style="padding:0 0 12px;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td width="28" valign="top" style="color:#4ade80;font-size:15px;font-weight:800;padding-top:1px;">2.</td>
-                      <td style="color:#cbd5e1;font-size:14px;line-height:1.6;"><strong style="color:#f1f5f9;">Enable email alerts</strong> — get notified the moment new matching opportunities are posted</td>
+                      <td width="30" valign="top" style="color:#16a34a;font-size:19px;font-weight:900;padding-top:1px;">2.</td>
+                      <td style="color:#1e293b;font-size:17px;line-height:1.65;"><strong style="color:#0f172a;">Enable email alerts</strong> — get notified the moment new matching opportunities are posted</td>
                     </tr>
                   </table>
                 </td></tr>
                 <tr><td style="padding:0;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td width="28" valign="top" style="color:#4ade80;font-size:15px;font-weight:800;padding-top:1px;">3.</td>
-                      <td style="color:#cbd5e1;font-size:14px;line-height:1.6;"><strong style="color:#f1f5f9;">Save your first opportunity</strong> — track deadlines and submission requirements</td>
+                      <td width="30" valign="top" style="color:#16a34a;font-size:19px;font-weight:900;padding-top:1px;">3.</td>
+                      <td style="color:#1e293b;font-size:17px;line-height:1.65;"><strong style="color:#0f172a;">Save your first opportunity</strong> — track deadlines and submission requirements</td>
                     </tr>
                   </table>
                 </td></tr>
@@ -133,13 +133,13 @@ function getWelcomeEmailHtml(firstName: string): string {
 
               <!-- VOSB callout -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4338ca;border-radius:12px;margin-bottom:28px;">
+                     style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #93c5fd;border-radius:12px;margin-bottom:22px;">
                 <tr>
-                  <td style="padding:18px 22px;text-align:center;">
-                    <p style="margin:0 0 4px;color:#c7d2fe;font-size:14px;font-weight:700;">
+                  <td style="padding:16px 16px;text-align:center;">
+                    <p style="margin:0 0 4px;color:#1d4ed8;font-size:18px;font-weight:800;">
                       &#127482;&#127480; Built for businesses like yours
                     </p>
-                    <p style="margin:0;color:#a5b4fc;font-size:13px;line-height:1.6;">
+                    <p style="margin:0;color:#1e3a8a;font-size:15px;line-height:1.65;font-weight:600;">
                       Precise GovCon is a Minority-Owned, Veteran-Owned Small Business based in Richmond, Virginia —
                       we understand the contracting landscape because we operate in it.
                     </p>
@@ -149,14 +149,14 @@ function getWelcomeEmailHtml(firstName: string): string {
 
               <!-- Support box -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background:#1e3a5f;border:1px solid #1e40af;border-radius:8px;">
+                     style="background:#eff6ff;border:2px solid #93c5fd;border-radius:10px;">
                 <tr>
-                  <td style="padding:16px 20px;text-align:center;">
-                    <p style="margin:0 0 6px;color:#bfdbfe;font-size:14px;">
+                  <td style="padding:16px 16px;text-align:center;">
+                    <p style="margin:0 0 6px;color:#1e3a8a;font-size:16px;font-weight:700;">
                       Questions? We typically respond within one business day.
                     </p>
-                    <p style="margin:0;color:#93c5fd;font-size:13px;">
-                      <a href="mailto:${brand.supportEmail}" style="color:#60a5fa;text-decoration:underline;">${brand.supportEmail}</a>
+                    <p style="margin:0;color:#1d4ed8;font-size:16px;font-weight:700;">
+                      <a href="mailto:${brand.supportEmail}" style="color:#1d4ed8;text-decoration:underline;">${brand.supportEmail}</a>
                     </p>
                   </td>
                 </tr>
@@ -166,8 +166,8 @@ function getWelcomeEmailHtml(firstName: string): string {
 
           <!-- Trial reminder bar -->
           <tr>
-            <td style="padding:16px 40px;background:#0c1a0c;border-top:1px solid #14532d;text-align:center;">
-              <p style="margin:0;color:#86efac;font-size:13px;font-weight:600;">
+            <td style="padding:14px 20px;background:#dcfce7;border-top:1px solid #86efac;text-align:center;">
+              <p style="margin:0;color:#14532d;font-size:15px;font-weight:700;">
                 &#9200; Your 7-day trial gives you full access — subscribe any time from account settings to keep it going.
               </p>
             </td>
@@ -175,21 +175,21 @@ function getWelcomeEmailHtml(firstName: string): string {
 
           <!-- Footer -->
           <tr>
-            <td style="padding:28px 40px;background-color:#0f172a;text-align:center;border-top:1px solid rgba(100,116,139,0.2);">
+            <td style="padding:20px 20px;background-color:#f8fafc;text-align:center;border-top:1px solid #dbeafe;">
               <img src="${brand.logoUrl}" alt="${brand.name}"
-                   style="max-width:140px;height:auto;display:inline-block;border:0;opacity:0.85;margin-bottom:12px;" />
-              <p style="margin:0;color:#475569;font-size:12px;font-weight:600;">
+                   style="max-width:140px;height:auto;display:inline-block;border:0;opacity:0.9;margin-bottom:10px;" />
+              <p style="margin:0;color:#334155;font-size:13px;font-weight:700;">
                 &copy; ${new Date().getFullYear()} ${brand.name}
               </p>
-              <p style="margin:4px 0 0;color:#475569;font-size:11px;">
+              <p style="margin:4px 0 0;color:#475569;font-size:12px;font-weight:600;">
                 Minority-Owned &middot; Veteran-Owned Small Business &middot; Richmond, Virginia
               </p>
-              <p style="margin:8px 0 0;font-size:12px;">
-                <a href="https://precisegovcon.com/privacy" style="color:#64748b;text-decoration:none;">Privacy</a>
+              <p style="margin:8px 0 0;font-size:13px;font-weight:700;">
+                <a href="https://precisegovcon.com/privacy" style="color:#334155;text-decoration:none;">Privacy</a>
                 &nbsp;&bull;&nbsp;
-                <a href="https://precisegovcon.com/terms" style="color:#64748b;text-decoration:none;">Terms</a>
+                <a href="https://precisegovcon.com/terms" style="color:#334155;text-decoration:none;">Terms</a>
               </p>
-              <p style="margin:8px 0 0;color:#334155;font-size:11px;">
+              <p style="margin:8px 0 0;color:#64748b;font-size:12px;font-weight:600;">
                 You're receiving this because you created an account at precisegovcon.com.
               </p>
             </td>

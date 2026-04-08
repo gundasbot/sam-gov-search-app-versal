@@ -2200,6 +2200,7 @@ function SearchPageContent() {
 
  const DEFAULT_LIMIT = 10000 // Increased to get more results
  const LOAD_MORE_INCREMENT = 1000
+ const DEFAULT_RESULTS_PER_PAGE = 25
 
  // Search form states
  const [keywords, setKeywords] = useState('')
@@ -2291,12 +2292,13 @@ function SearchPageContent() {
  const [error, setError] = useState<string | null>(null)
  const [data, setData] = useState<ApiResponse | null>(null)
  const [hasSearched, setHasSearched] = useState(false)
- const [showFilters, setShowFilters] = useState(true)
+ const [showFilters, setShowFilters] = useState(false)
  const [showExportMenu, setShowExportMenu] = useState(false)
  const [showSavedOnly, setShowSavedOnly] = useState(false)
+ const [showAllSearchParams, setShowAllSearchParams] = useState(false)
  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
  const [copiedId, setCopiedId] = useState<string | null>(null)
- const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+ const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
  const [sortBy, setSortBy] = useState<"posted-desc"|"posted-asc"|"deadline-desc"|"deadline-asc"|"relevance">("posted-desc")
  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
  
@@ -2331,6 +2333,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  const [resultsLimit, setResultsLimit] = useState(DEFAULT_LIMIT)
  const [hasMoreResults, setHasMoreResults] = useState(false)
  const [currentPage, setCurrentPage] = useState(1)
+ const [uiPage, setUiPage] = useState(1)
+ const [resultsPerPage, setResultsPerPage] = useState(DEFAULT_RESULTS_PER_PAGE)
  // Drill-down states
  const [showSetAsideDrilldown, setShowSetAsideDrilldown] = useState(false)
  const [showStateDrilldown, setShowStateDrilldown] = useState(false)
@@ -2424,6 +2428,11 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  const savedData = localStorage.getItem('govcon_saved_opportunities')
  if (savedData) setSaved(JSON.parse(savedData))
 
+ const savedViewMode = localStorage.getItem('pgc_search_view_mode')
+ if (savedViewMode === 'list' || savedViewMode === 'grid') {
+ setViewMode(savedViewMode)
+ }
+
  // Restore search state from sessionStorage
  const restoredState = restoreSearchState();
  if (restoredState) {
@@ -2452,6 +2461,12 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  console.error('Failed to load data:', error)
  }
  }, [setRecentSearches, setSaved, restoreSearchState, restoreSearchResults, clearSearchResults])
+
+ useEffect(() => {
+ try {
+ localStorage.setItem('pgc_search_view_mode', viewMode)
+ } catch {}
+ }, [viewMode])
 
  // Persist returned results so users can navigate away and return without re-querying.
  useEffect(() => {
@@ -2711,7 +2726,7 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  sessionStorage.setItem('govcon_gate_shown', 'true')
 
  setBlockedFeature('Advanced Federal Bid Search')
- pendingActionRef.current = () => { void runSearch(false) }
+ pendingActionRef.current = () => { void runSearch(false, true) }
  setTimeout(() => setShowAccessModal(true), 350)
  } catch {
  // ignore
@@ -2927,7 +2942,9 @@ useEffect(() => {
  setSearchStartTime(new Date());
  setResultsLimit(DEFAULT_LIMIT);
  setCurrentPage(1);
+ setUiPage(1);
  setHasSearched(true);
+ setShowAllSearchParams(false);
  setError(null);
 
  try {
@@ -3054,6 +3071,7 @@ useEffect(() => {
  setHasMoreResults(currentTotalLoaded < total);
  setData(payload);
  setActiveFilter(null);
+ setShowFilters(false);
  if ((opps?.length ?? 0) === 0) {
  showToast('No results found. Try broadening your search filters.')
  }
@@ -3101,7 +3119,7 @@ useEffect(() => {
  setAdvResponseDeadline(quickDeadlineDate)
  
  // Trigger the actual search
- runSearch(false)
+ runSearch(false, true)
  }, [quickKeyword, quickPostedDate, quickDeadlineDate])
 
  // ✅ NEW: Stop Quick Search
@@ -3114,7 +3132,7 @@ useEffect(() => {
  }
  }, [])
 
- const runSearch = async (isLoadMore = false) => {
+ const runSearch = async (isLoadMore = false, forceRefresh = false) => {
  // ── Prevent duplicate simultaneous searches ───────────────────────────
  if (!isLoadMore && loading) return
  if (isLoadMore && loadingMore) return
@@ -3141,7 +3159,9 @@ useEffect(() => {
  setSearchStartTime(new Date()) // Start timer
  setResultsLimit(DEFAULT_LIMIT)
  setCurrentPage(1)
+ setUiPage(1)
  setHasSearched(true)
+ setShowAllSearchParams(false)
  }
  
  setError(null)
@@ -3158,9 +3178,9 @@ useEffect(() => {
  }
  
  // ===== TEXT SEARCH =====
- // PERFORMANCE FIX: Use debounced keywords
- if (debouncedKeywords.trim()) {
- const kw = debouncedKeywords.trim()
+ // Use the live keyword value for explicit button-triggered searches.
+ if (keywords.trim()) {
+ const kw = keywords.trim()
  const isNaicsLike = /^\d{2,6}$/.test(kw)
  if (isNaicsLike && !naics.trim()) { qs.set('ncode', kw) }
  else if (!isNaicsLike) { qs.set('title', kw) }
@@ -3244,7 +3264,7 @@ useEffect(() => {
 
  // CRITICAL FIX: Prevent duplicate identical searches
  const searchParamsString = qs.toString()
- if (!isLoadMore && searchParamsString === lastSearchParamsRef.current) {
+ if (!isLoadMore && !forceRefresh && searchParamsString === lastSearchParamsRef.current) {
  console.log('⚠️ Duplicate search prevented - params unchanged')
  setLoading(false)
  setSearchStartTime(null)
@@ -3346,6 +3366,7 @@ useEffect(() => {
  } else {
  setData(payload)
  setActiveFilter(null) // reset subset view on fresh search
+ setShowFilters(false)
  if ((opps?.length ?? 0) === 0) {
  showToast('No results found. Try broadening your search filters.')
  }
@@ -3388,6 +3409,64 @@ useEffect(() => {
  }
  }
  }
+
+ const runSearchWithOverrides = useCallback((overrides: Record<string, string>) => {
+ void executeSearchWithParams({
+ keywords: keywords.trim(),
+ naics: naics.trim(),
+ classificationCode: classificationCode.trim(),
+ agency: agency.trim(),
+ procurementType: procurementType.trim(),
+ setAside: setAsideCodesToString(selectedSetAsides),
+ stateOfPerformance: locationCodesToString(selectedStates),
+ solicitationNumber: solicitationNumber.trim(),
+ placeOfPerformanceZip: placeOfPerformanceZip.trim(),
+ opportunityStatus: (opportunityStatus || 'active').trim(),
+ postedAfter: postedAfter.trim(),
+ postedBefore: postedBefore.trim(),
+ responseDeadlineFrom: responseDeadlineAfter.trim(),
+ responseDeadlineTo: (responseDeadlineBefore || responseDeadline).trim(),
+ responseDeadline: (responseDeadlineBefore || responseDeadline).trim(),
+ noticeId: noticeId.trim(),
+ organizationCode: organizationCode.trim(),
+ is_active: isActive,
+ ...overrides,
+ })
+ }, [
+ executeSearchWithParams,
+ keywords,
+ naics,
+ classificationCode,
+ agency,
+ procurementType,
+ selectedSetAsides,
+ selectedStates,
+ solicitationNumber,
+ placeOfPerformanceZip,
+ opportunityStatus,
+ postedAfter,
+ postedBefore,
+ responseDeadlineAfter,
+ responseDeadlineBefore,
+ responseDeadline,
+ noticeId,
+ organizationCode,
+ isActive,
+ ])
+
+ // Keep initial date card interactive: changing dates after first search reruns immediately.
+ const updatePostedAfterAndRefresh = useCallback((value: string) => {
+ setPostedAfter(value)
+ if (!hasSearched) return
+ runSearchWithOverrides({ postedAfter: value })
+ }, [hasSearched, runSearchWithOverrides])
+
+ const updateDeadlineBeforeAndRefresh = useCallback((value: string) => {
+ setResponseDeadlineBefore(value)
+ setResponseDeadline(value)
+ if (!hasSearched) return
+ runSearchWithOverrides({ responseDeadlineTo: value, responseDeadline: value })
+ }, [hasSearched, runSearchWithOverrides])
 
  // Load more results
  const loadMoreResults = () => {
@@ -3433,8 +3512,10 @@ useEffect(() => {
  setError(null)
  setData(null)
  setHasSearched(false)
+ setShowAllSearchParams(false)
  setResultsLimit(DEFAULT_LIMIT)
  setCurrentPage(1)
+ setUiPage(1)
  setSortBy('deadline-asc')
  setSortOrder('asc')
  setActiveFilter(null)
@@ -3722,7 +3803,7 @@ ${filteredResults.map(opp => ` <opportunity>
  
  // Defer to next tick so state is flushed before runSearch reads it
  setTimeout(() => {
- runSearch(false)
+ runSearch(false, true)
  // Don't restore - let advanced values persist
  }, 0)
  } else {
@@ -3820,6 +3901,33 @@ ${filteredResults.map(opp => ` <opportunity>
  advKeywords, advPostedAfter, advResponseDeadline,
  agency, selectedSetAsides, naics, classificationCode, selectedStates,
  procurementType, opportunityStatus, solicitationNumber, organizationCode])
+
+ const totalUiPages = useMemo(
+ () => Math.max(1, Math.ceil(filteredResults.length / resultsPerPage)),
+ [filteredResults.length, resultsPerPage]
+ )
+
+ useEffect(() => {
+ setUiPage(prev => Math.min(prev, totalUiPages))
+ }, [totalUiPages])
+
+ const paginatedResults = useMemo(() => {
+ const start = (uiPage - 1) * resultsPerPage
+ return filteredResults.slice(start, start + resultsPerPage)
+ }, [filteredResults, uiPage, resultsPerPage])
+
+ const pageStartIndex = filteredResults.length === 0 ? 0 : (uiPage - 1) * resultsPerPage + 1
+ const pageEndIndex = Math.min(uiPage * resultsPerPage, filteredResults.length)
+
+ const visiblePageNumbers = useMemo(() => {
+ const maxButtons = 7
+ if (totalUiPages <= maxButtons) {
+ return Array.from({ length: totalUiPages }, (_, idx) => idx + 1)
+ }
+
+ const start = Math.max(1, Math.min(uiPage - 3, totalUiPages - (maxButtons - 1)))
+ return Array.from({ length: maxButtons }, (_, idx) => start + idx)
+ }, [uiPage, totalUiPages])
 
  // Summary statistics - ENHANCED with detailed breakdowns
 const summaryStats = useMemo(() => {
@@ -3958,6 +4066,13 @@ const summaryStats = useMemo(() => {
  responseDeadlineBefore,
  ])
 
+const visibleSearchSummaryParts = useMemo(
+ () => (showAllSearchParams ? activeSearchSummaryParts : activeSearchSummaryParts.slice(0, 3)),
+ [activeSearchSummaryParts, showAllSearchParams]
+ )
+
+ const hiddenSearchSummaryCount = Math.max(0, activeSearchSummaryParts.length - visibleSearchSummaryParts.length)
+
  // Active filter count for sticky search bar
  const activeFilterCount = useMemo(() => [
  agency, naics, classificationCode, solicitationNumber, procurementType,
@@ -4008,6 +4123,13 @@ const summaryStats = useMemo(() => {
  .pgc-green svg polyline, .pgc-green svg rect,
  button[style*="166534"] svg path, button[style*="166534"] svg circle,
  button[style*="166534"] svg line, button[style*="166534"] svg polyline { stroke: #ffffff !important; }
+
+ /* Force reset button to render as a true button (not pill-shaped) */
+ .search-reset-btn {
+ border-radius: 2px !important;
+ min-height: 44px !important;
+ padding: 0 18px !important;
+ }
 `}</style>
  <main
  className="search-main min-h-screen flex flex-col"
@@ -4123,7 +4245,7 @@ const summaryStats = useMemo(() => {
  type="text"
  value={keywords}
  onChange={(e) => setKeywords(e.target.value)}
- onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+ onKeyDown={(e) => e.key === 'Enter' && runSearch(false, true)}
  placeholder="Type a keyword, NAICS code, agency name, or solicitation #"
  autoFocus
  style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", fontSize: '1rem' }}
@@ -4131,7 +4253,7 @@ const summaryStats = useMemo(() => {
  />
  </div>
  <button
- onClick={() => runSearch()}
+ onClick={() => runSearch(false, true)}
  disabled={loading}
  style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", background: '#166534', color: '#ffffff', borderColor: '#166534' }}
  className="pgc-green h-14 px-8 hover:opacity-90 active:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed font-black text-base rounded-r-xl border-2 flex items-center gap-2 transition-opacity whitespace-nowrap shadow-md"
@@ -4155,7 +4277,7 @@ const summaryStats = useMemo(() => {
  ].map(({ label, value }) => (
  <button
  key={value}
- onClick={() => { setKeywords(value); setTimeout(() => runSearch(), 0); }}
+ onClick={() => { setKeywords(value); runSearchWithOverrides({ keywords: value }); }}
  className="keyword-chip px-3 py-1.5 rounded-full font-semibold bg-gray-50 text-gray-600 border border-gray-200 hover:bg-green-50 hover:text-[#166534] hover:border-green-300 transition-colors" style={{ fontSize: "16px" }}
  >
  {label}
@@ -4169,11 +4291,11 @@ const summaryStats = useMemo(() => {
  <div className="flex-1"/>
             <button
               onClick={resetAll}
-              className="flex items-center gap-2 px-4 py-2 font-extrabold text-white bg-red-600 hover:bg-red-500 rounded-lg border border-red-700 shadow-md transition-all"
-              style={{ fontSize: "15px", letterSpacing: '0.01em' }}
+              className="search-reset-btn inline-flex h-11 items-center gap-2 px-5 font-black text-white bg-red-600 hover:bg-red-700 border-2 border-red-700 shadow-sm transition-colors"
+              style={{ fontSize: "16px", letterSpacing: '0.01em' }}
             >
               <RefreshCw className="h-4 w-4" />
-              Reset all
+              Reset all filters
             </button>
  </div>
  </div>
@@ -4194,7 +4316,7 @@ const summaryStats = useMemo(() => {
  <input
  type="date"
  value={postedAfter}
- onChange={(e) => setPostedAfter(e.target.value)}
+ onChange={(e) => updatePostedAfterAndRefresh(e.target.value)}
  
  className="date-input w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-[#166534] focus:ring-2 focus:ring-green-100 outline-none transition-all mb-2"
  />
@@ -4210,7 +4332,11 @@ const summaryStats = useMemo(() => {
  ].map(({ label, days }) => (
  <button
  key={label}
- onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setPostedAfter(d.toISOString().split('T')[0]); }}
+ onClick={() => {
+ const d = new Date()
+ d.setDate(d.getDate() + days)
+ updatePostedAfterAndRefresh(d.toISOString().split('T')[0])
+ }}
  className="date-btn-green pgc-green px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-[#166534] border border-[#166534] hover:bg-[#166534] hover:text-white transition-all"
  >
  {label}
@@ -4228,7 +4354,7 @@ const summaryStats = useMemo(() => {
  <input
  type="date"
  value={responseDeadlineBefore}
- onChange={(e) => setResponseDeadlineBefore(e.target.value)}
+ onChange={(e) => updateDeadlineBeforeAndRefresh(e.target.value)}
  
  className="date-input w-full h-11 px-4 rounded-xl border-2 border-gray-300 bg-white text-gray-900 font-semibold text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition-all mb-2"
  />
@@ -4243,7 +4369,11 @@ const summaryStats = useMemo(() => {
  ].map(({ label, days }) => (
  <button
  key={label}
- onClick={() => { const d = new Date(); d.setDate(d.getDate() + days); setResponseDeadlineBefore(d.toISOString().split('T')[0]); }}
+ onClick={() => {
+ const d = new Date()
+ d.setDate(d.getDate() + days)
+ updateDeadlineBeforeAndRefresh(d.toISOString().split('T')[0])
+ }}
  className="date-btn-amber px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-amber-600 border border-amber-400 hover:bg-amber-500 hover:text-white transition-all"
  >
  {label}
@@ -4258,12 +4388,12 @@ const summaryStats = useMemo(() => {
  <div className="search-action-row px-6 py-4 flex items-center justify-between gap-3 flex-wrap bg-white border-t border-gray-100">
  <div className="flex items-center gap-3 flex-wrap">
  <button
- onClick={() => runSearch()}
+ onClick={() => runSearch(false, true)}
  disabled={loading}
  style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif", background: '#166534', color: '#ffffff' }}
  className="pgc-green h-12 px-8 hover:opacity-90 disabled:opacity-50 font-black text-base rounded-xl flex items-center gap-2 transition-opacity shadow-md"
  >
- {loading ? <><Loader2 className="h-5 w-5 animate-spin"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Searching…</span></> : <><Search className="h-5 w-5"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Search SAM.gov</span></>}
+ {loading ? <><Loader2 className="h-5 w-5 animate-spin"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Updating…</span></> : <><Search className="h-5 w-5"style={{ color: '#ffffff' }} /><span style={{ color: '#ffffff', fontWeight: 900 }}>Update results</span></>}
  </button>
  {loading && (
  <button onClick={stopSearch}
@@ -4331,7 +4461,7 @@ const summaryStats = useMemo(() => {
  </button>
  <button
  type="button"
- onClick={() => runSearch()}
+ onClick={() => runSearch(false, true)}
  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700 transition-colors"
  >
  <Search className="h-4 w-4" />
@@ -4355,15 +4485,24 @@ const summaryStats = useMemo(() => {
  {filteredResults.length.toLocaleString()} <span className="text-[#166534]">opportunities found</span>
  </h2>
  <div className="mt-2">
- <div className="mb-2 flex items-center gap-2">
+ <div className="mb-2 flex items-center gap-2 flex-wrap">
  <span className="inline-flex items-center rounded-md bg-[#1d4ed8] px-3 py-1 text-sm font-black text-white">
  Search includes
  </span>
+ {activeSearchSummaryParts.length > 3 && (
+ <button
+ type="button"
+ onClick={() => setShowAllSearchParams(v => !v)}
+ className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+ >
+ {showAllSearchParams ? 'Show fewer parameters' : `Show ${hiddenSearchSummaryCount} more parameters`}
+ </button>
+ )}
  </div>
  <div className="flex flex-wrap items-center gap-2">
  {activeSearchSummaryParts.length > 0 ? (
  <>
- {activeSearchSummaryParts.map((part, index) => (
+ {visibleSearchSummaryParts.map((part, index) => (
  <span
  key={`${part}-${index}`}
  className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-bold shadow-sm ${getSummaryChipTone(part)}`}
@@ -4385,29 +4524,31 @@ const summaryStats = useMemo(() => {
  </div>
  </div>
  </div>
- <div className="flex items-center gap-2 flex-wrap justify-start xl:justify-end">
+<div className="flex items-center gap-2 flex-wrap justify-start xl:justify-end">
 <ExportSharePanel results={filteredResults} searchLabel={keywords || 'All opportunities'} requireAccess={requireAccess} />
-<button
-  onClick={() => handleOpenSaveModal('save')}
-  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 shadow-md transition-all"
-  aria-label="Save this search"
+<Link
+  href="/alerts/manage-searches"
+  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-cyan-600 text-white font-bold text-base hover:bg-cyan-700 shadow-md transition-all"
+  aria-label="View your saved searches"
 >
-  <Save className="h-5 w-5 shrink-0"/>
-  Save This Search
-</button>
-<button
-  onClick={() => handleOpenSaveModal('alert')}
+  <Bookmark className="h-5 w-5 shrink-0" />
+  View your saved searches
+</Link>
+<Link
+  href="/alerts/manage-alerts"
   className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-blue-600 text-white font-bold text-base hover:bg-blue-700 shadow-md transition-all"
-  aria-label="Create alert from this search"
+  aria-label="View your alerts"
 >
-  <Bell className="h-5 w-5 shrink-0"/>
-  Create an Alert from This Search
-</button>
+  <Bell className="h-5 w-5 shrink-0" />
+  View your alerts
+</Link>
 </div>
 </div>
 
  {/* Toolbar: sort + view + filter toggle */}
- <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-gray-100">
+ <div className="pt-3 border-t border-gray-100">
+ <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+ <div className="flex items-center gap-2 flex-wrap">
  <button onClick={() => setShowFilters(!showFilters)}
  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${showFilters ? 'bg-[#166534] text-white border-[#166534]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#166534] hover:text-[#166534] '}`}>
  <SlidersHorizontal className="h-3.5 w-3.5"/>
@@ -4422,15 +4563,29 @@ const summaryStats = useMemo(() => {
  <option value="posted-desc">Posted (Newest first)</option>
  <option value="posted-asc">Posted (Oldest first)</option>
  </select>
- <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden">
- <button onClick={() => setViewMode('list')}
- className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50 '}`}>
- <List className="h-3.5 w-3.5"/>
+ </div>
+ <div className="sm:ml-auto inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5">
+ <button
+ onClick={() => setViewMode('list')}
+ className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-black transition-colors ${
+ viewMode === 'list' ? 'bg-[#166534] text-white' : 'text-gray-700 hover:bg-gray-100'
+ }`}
+ aria-label="Switch to list view"
+ >
+ <List className="h-3.5 w-3.5" />
+ List view
  </button>
- <button onClick={() => setViewMode('grid')}
- className={`px-3 py-2 text-xs font-bold transition-colors ${viewMode === 'grid' ? 'bg-[#166534] text-white' : 'bg-white text-gray-500 hover:bg-gray-50 '}`}>
- <Grid className="h-3.5 w-3.5"/>
+ <button
+ onClick={() => setViewMode('grid')}
+ className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-black transition-colors ${
+ viewMode === 'grid' ? 'bg-[#166534] text-white' : 'text-gray-700 hover:bg-gray-100'
+ }`}
+ aria-label="Switch to card view"
+ >
+ <Grid className="h-3.5 w-3.5" />
+ Card view
  </button>
+ </div>
  </div>
  </div>
  </div>
@@ -4442,12 +4597,22 @@ const summaryStats = useMemo(() => {
  <h3 className="font-black text-sm text-gray-900 flex items-center gap-2"style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}>
  <Filter className="h-4 w-4 text-[#166534]"/>Refine Results
  </h3>
+ <div className="flex items-center gap-2">
+ <button
+ type="button"
+ onClick={() => setShowFilters(false)}
+ className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-100"
+ >
+ <ChevronUp className="h-3.5 w-3.5" />
+ Collapse
+ </button>
  <button
  onClick={() => { setAgency(''); setSelectedSetAsides([]); setNaics(''); setSelectedStates([]); setProcurementType(''); setClassificationCode(''); setSolicitationNumber(''); setOpportunityStatus('active'); setAdvancedApplied(false); }}
- className="flex items-center gap-2 rounded-lg border border-red-700 bg-red-600 px-4 py-2 text-sm font-black text-white shadow-sm transition-all hover:bg-red-700 active:scale-98"
+ className="search-reset-btn flex items-center gap-2 border border-red-700 bg-red-600 px-4 py-2 text-sm font-black text-white shadow-sm transition-all hover:bg-red-700 active:scale-98"
  style={{ color: '#fff' }}>
  <RefreshCw className="h-4 w-4 text-white"/>Reset filters
  </button>
+ </div>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
  {/* Keyword refine */}
@@ -4578,7 +4743,7 @@ const summaryStats = useMemo(() => {
  <span className="inline-flex items-center rounded-md bg-slate-700 px-2.5 py-1 text-xs font-black text-white">
  Filters
  </span>
- {activeSearchSummaryParts.slice(0, 4).map((part, index) => (
+ {visibleSearchSummaryParts.map((part, index) => (
  <span
  key={`${part}-mini-${index}`}
  className={`inline-flex items-center rounded-md border px-3 py-1 text-xs font-bold shadow-sm ${getSummaryChipTone(part)}`}
@@ -4586,10 +4751,14 @@ const summaryStats = useMemo(() => {
  {part}
  </span>
  ))}
- {activeSearchSummaryParts.length > 4 && (
- <span className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 shadow-sm">
- +{activeSearchSummaryParts.length - 4} more
- </span>
+ {activeSearchSummaryParts.length > 3 && (
+ <button
+ type="button"
+ onClick={() => setShowAllSearchParams(v => !v)}
+ className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 shadow-sm hover:bg-blue-100 transition-colors"
+ >
+ {showAllSearchParams ? 'Show less' : `+${hiddenSearchSummaryCount} more`}
+ </button>
  )}
  </div>
  )}
@@ -4621,14 +4790,15 @@ const summaryStats = useMemo(() => {
  <>
  {viewMode === 'list' ? (
  <div className="space-y-3">
- {filteredResults.map((opp, idx) => {
+ {paginatedResults.map((opp, idx) => {
+ const globalIndex = (uiPage - 1) * resultsPerPage + idx
  const rawSetAside = getSetAsideLabel(opp.typeOfSetAside || opp.setAside || '') || '';
  const setAsideLabel = isMeaningful(rawSetAside) ? rawSetAside : null;
  const place = getPlaceLabel(opp);
  const naics = isMeaningful(opp.naicsCode) ? opp.naicsCode : null;
  const deadlineMeta = getDeadlineMeta(opp.responseDeadLine);
  return (
- <div key={opp.noticeId || idx}
+ <div key={opp.noticeId || globalIndex}
  className="result-list-card bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#166534]/30 transition-all p-5 cursor-pointer"
  style={{ fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif"}}
  onClick={() => setSelectedOpp(opp)}
@@ -4645,12 +4815,12 @@ const summaryStats = useMemo(() => {
  onClick={(e) => {
  e.stopPropagation();
  if (!requireAccess('Save Opportunities')) return;
- toggleSaved(opp.noticeId || String(idx), opp);
+ toggleSaved(opp.noticeId || String(globalIndex), opp);
  }}
- className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 ${saved[opp.noticeId || String(idx)] ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-400 hover:text-orange-500'}`}
+ className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 ${saved[opp.noticeId || String(globalIndex)] ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-400 hover:text-orange-500'}`}
  >
- <Bookmark className={`h-4 w-4 ${saved[opp.noticeId || String(idx)] ? 'fill-current' : ''}`} />
- {saved[opp.noticeId || String(idx)] ? 'Saved ✓' : 'Save'}
+ <Bookmark className={`h-4 w-4 ${saved[opp.noticeId || String(globalIndex)] ? 'fill-current' : ''}`} />
+ {saved[opp.noticeId || String(globalIndex)] ? 'Saved ✓' : 'Save'}
  </button>
  </div>
  {/* Highlight badges */}
@@ -4762,28 +4932,99 @@ const summaryStats = useMemo(() => {
  </div>
  ) : (
  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
- {filteredResults.map((opp, idx) => (
+ {paginatedResults.map((opp, idx) => {
+ const globalIndex = (uiPage - 1) * resultsPerPage + idx
+ return (
  <OpportunityCard
- key={opp.noticeId || idx}
- opportunity={opp} index={idx}
- isSaved={!!saved[opp.noticeId || String(idx)]}
+ key={opp.noticeId || globalIndex}
+ opportunity={opp} index={globalIndex}
+ isSaved={!!saved[opp.noticeId || String(globalIndex)]}
  toggleSaved={toggleSaved}
  copyText={copyText} copiedId={copiedId}
  onOpen={setSelectedOpp}
  />
- ))}
+ )})}
  </div>
  )}
 
- {/* Load more */}
+ {/* Pagination */}
+ <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <p className="text-sm font-bold text-gray-700">
+ Showing <span className="text-[#166534]">{pageStartIndex.toLocaleString()}</span>–
+ <span className="text-[#166534]">{pageEndIndex.toLocaleString()}</span> of{' '}
+ <span className="text-[#166534]">{filteredResults.length.toLocaleString()}</span> results
+ </p>
+ <div className="flex items-center gap-2">
+ <label htmlFor="results-per-page" className="text-xs font-bold uppercase tracking-wide text-gray-500">
+ Per page
+ </label>
+ <select
+ id="results-per-page"
+ value={resultsPerPage}
+ onChange={(e) => {
+ const next = Number(e.target.value)
+ setResultsPerPage(next)
+ setUiPage(1)
+ }}
+ className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm font-bold text-gray-700 focus:border-[#166534] focus:outline-none"
+ >
+ <option value={10}>10</option>
+ <option value={25}>25</option>
+ <option value={50}>50</option>
+ <option value={100}>100</option>
+ </select>
+ </div>
+ </div>
+
+ <div className="flex flex-wrap items-center gap-2">
+ <button
+ type="button"
+ onClick={() => setUiPage(p => Math.max(1, p - 1))}
+ disabled={uiPage <= 1}
+ className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+ >
+ Previous
+ </button>
+ {visiblePageNumbers.map((page) => (
+ <button
+ key={`page-${page}`}
+ type="button"
+ onClick={() => setUiPage(page)}
+ className={`inline-flex h-9 min-w-9 items-center justify-center rounded-md border px-3 text-sm font-black transition-colors ${
+ page === uiPage
+ ? 'border-[#166534] bg-[#166534] text-white'
+ : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+ }`}
+ >
+ {page}
+ </button>
+ ))}
+ <button
+ type="button"
+ onClick={() => setUiPage(p => Math.min(totalUiPages, p + 1))}
+ disabled={uiPage >= totalUiPages}
+ className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+ >
+ Next
+ </button>
+ <span className="ml-1 text-xs font-semibold text-gray-500">
+ Page {uiPage.toLocaleString()} of {totalUiPages.toLocaleString()}
+ </span>
+ </div>
+
  {hasMoreResults && (
- <div className="text-center py-4">
- <button onClick={() => runSearch(true)} disabled={loadingMore}
- className="load-more-btn inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-[#166534] text-[#166534] font-bold text-sm hover:bg-green-50 transition-colors disabled:opacity-50">
- {loadingMore ? <><Loader2 className="h-4 w-4 animate-spin"/>Loading…</> : <><Plus className="h-4 w-4"/>Load more results</>}
+ <div className="pt-1">
+ <button
+ onClick={() => runSearch(true)}
+ disabled={loadingMore}
+ className="inline-flex items-center gap-2 rounded-md border-2 border-[#166534] bg-white px-4 py-2 text-sm font-black text-[#166534] transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+ >
+ {loadingMore ? <><Loader2 className="h-4 w-4 animate-spin"/>Loading…</> : <><Plus className="h-4 w-4"/>Load next 1,000 from SAM.gov</>}
  </button>
  </div>
  )}
+ </div>
  </>
  ) : (
  <div className="no-results bg-white rounded-2xl border border-gray-200 shadow-sm py-16 text-center">

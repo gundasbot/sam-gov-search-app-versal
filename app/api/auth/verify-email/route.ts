@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma'
 import { encode } from 'next-auth/jwt'
 import crypto from 'crypto'
 import { getBrand } from '@/lib/email/brand'
+import { sendSignupWelcomeEmailOnce } from '@/lib/email/signup-welcome'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +64,10 @@ async function verifyAndActivate(rawToken: string): Promise<
 
   if (user.email_verified) {
     // Already verified — still log them in
+    await prisma.users.update({
+      where: { id: user.id },
+      data: { last_login_at: now, updated_at: now },
+    }).catch(() => {})
     await prisma.email_verification_tokens.delete({ where: { token_hash: tokenHash } }).catch(() => {})
     return { ok: true, user: { id: user.id, email: user.email, name: user.name }, planTier: user.plan_tier || 'BASIC' }
   }
@@ -81,6 +86,7 @@ async function verifyAndActivate(rawToken: string): Promise<
       trial_started_at: now,
       trial_expires_at: trialEndsAt,
       trial_ends_at:    trialEndsAt,
+      last_login_at:    now,
       updated_at:       now,
     },
   })
@@ -88,8 +94,9 @@ async function verifyAndActivate(rawToken: string): Promise<
   // Delete used token (non-critical)
   await prisma.email_verification_tokens.delete({ where: { token_hash: tokenHash } }).catch(() => {})
 
-  // Send welcome email non-blocking
+  // Send welcome email non-blocking (deduped to one per user)
   sendWelcomeEmailSilent(
+    user.id,
     user.email,
     user.name || user.first_name || 'there'
   )
@@ -217,17 +224,14 @@ export async function POST(req: NextRequest) {
 
 // ─── non-blocking welcome email ────────────────────────────────────────────────
 
-function sendWelcomeEmailSilent(email: string, name: string) {
-  import('@/lib/email/send').then(({ sendEmail }) => {
-    import('@/lib/email/brand').then(({ getBrand }) => {
-      const brand = getBrand()
-      sendEmail({
-        to:      email,
-        subject: `Welcome to ${brand.name} — Your Trial Is Active! 🎉`,
-        html: buildWelcomeEmail(name, brand.appUrl, brand.name),
-        text: `Welcome to ${brand.name}, ${name}!\n\nYour 7-day free trial is now active. Explore thousands of live government contract opportunities at ${brand.appUrl}/search\n\nGood luck!`,
-      }).catch((e: any) => console.error('Welcome email failed (non-blocking):', e.message))
-    })
+function sendWelcomeEmailSilent(userId: string, email: string, name: string) {
+  void sendSignupWelcomeEmailOnce({
+    userId,
+    email,
+    name,
+    source: 'email_verification',
+  }).catch((e: any) => {
+    console.error('Welcome email failed (non-blocking):', e?.message || e)
   })
 }
 

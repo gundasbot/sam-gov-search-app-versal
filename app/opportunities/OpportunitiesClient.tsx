@@ -748,6 +748,39 @@ export default function OpportunitiesClient() {
   const searchParams = useSearchParams();
   const filterParam = searchParams?.get('filter') ?? null;
   const searchParamSnapshot = searchParams?.toString() ?? '';
+  const urlSearchOverrides = useMemo(() => {
+    const read = (key: string) => {
+      const value = searchParams?.get(key);
+      if (!value) return '';
+      try {
+        return decodeURIComponent(value).trim();
+      } catch {
+        return value.trim();
+      }
+    };
+    return {
+      source: read('source'),
+      from: read('from'),
+      naics: read('naics') || read('naicsCode'),
+      setAside: read('setAside') || read('setaside'),
+      state: read('state'),
+      postedFrom: read('postedFrom'),
+      postedTo: read('postedTo'),
+    };
+  }, [searchParamSnapshot, searchParams]);
+  const dashboardDrilldown = useMemo(() => {
+    if (urlSearchOverrides.source !== 'dashboard') return null;
+    const heading = urlSearchOverrides.from === 'posted-7d-pill'
+      ? 'Dashboard drilldown: Opportunities posted in the last 7 days'
+      : 'Dashboard drilldown: Live opportunities for your preferences';
+    const details: string[] = [];
+    if (urlSearchOverrides.naics) details.push(`NAICS ${urlSearchOverrides.naics}`);
+    if (urlSearchOverrides.setAside) details.push(`Set-aside ${urlSearchOverrides.setAside}`);
+    if (urlSearchOverrides.state) details.push(`State ${urlSearchOverrides.state}`);
+    if (urlSearchOverrides.postedFrom) details.push(`Posted on/after ${formatDate(urlSearchOverrides.postedFrom)}`);
+    if (urlSearchOverrides.postedTo) details.push(`Posted on/before ${formatDate(urlSearchOverrides.postedTo)}`);
+    return { heading, details };
+  }, [urlSearchOverrides]);
   const { data: session, status: sessionStatus } = useSession();
   const isLoggedIn = sessionStatus === 'authenticated';
 
@@ -764,7 +797,7 @@ export default function OpportunitiesClient() {
   const [selectedSetAside, setSelectedSetAside] = useState<string>('all');
   const [displayCount, setDisplayCount] = useState(250);
   const [totalRecords, setTotalRecords] = useState(0);
-  const [lastUpdated, setLastUpdated] = useState('Just now');
+  const [lastUpdated, setLastUpdated] = useState('Not synced yet');
   const [dataLoaded, setDataLoaded] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'active' | 'setasides' | 'expiring' | 'departments' | null>(null);
   const [savedOpportunities, setSavedOpportunities] = useState<Set<string>>(new Set());
@@ -779,6 +812,25 @@ export default function OpportunitiesClient() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [refreshIndicator, setRefreshIndicator] = useState(false);
+
+  const getLastUpdatedLabel = useCallback(() => (
+    new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  ), []);
+
+  const getSamErrorMessage = useCallback((payload: any, fallback: string) => {
+    if (!payload) return fallback;
+    if (typeof payload === 'string') return payload || fallback;
+
+    const message = typeof payload.message === 'string' ? payload.message.trim() : '';
+    const errorCode = typeof payload.error === 'string' ? payload.error.trim() : '';
+
+    if (errorCode === 'rate_limited' && payload.retryAfter) {
+      return `SAM.gov rate limit hit. Please retry in ${payload.retryAfter}s.`;
+    }
+    if (message) return message;
+    if (errorCode) return errorCode;
+    return fallback;
+  }, []);
 
   // 📌 NEW: View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -1439,29 +1491,36 @@ Provide analysis in JSON format with:
     }
     setLoadingMore(true);
     setRefreshIndicator(true);
+    setError(null);
     try {
       const prefRes = await fetch('/api/account/preferences', { cache: 'no-store' });
       const prefs = prefRes.ok ? await prefRes.json() : null;
-      const naics = prefs?.naicsCodes?.[0] || '';
-      const setAside = prefs?.setAsides?.[0] || '';
-      const state = prefs?.states?.[0] || '';
+      const naics = urlSearchOverrides.naics || prefs?.naicsCodes?.[0] || '';
+      const setAside = urlSearchOverrides.setAside || prefs?.setAsides?.[0] || '';
+      const state = urlSearchOverrides.state || prefs?.states?.[0] || '';
       if (!prefs?.completedOnboarding || !naics) {
         setAllOpportunities([]);
         setFilteredOpportunities([]);
         setDisplayedOpportunities([]);
         setError('Complete your preferences (including NAICS) to refresh live opportunities.');
         setToast({ type: 'error', msg: 'Complete preferences to refresh opportunities.' });
+        setDataLoaded(true);
         return;
       }
 
-      const query = new URLSearchParams({ limit: '100', status: 'active', naics, t: String(Date.now()) });
+      const query = new URLSearchParams({ limit: '200', status: 'active', naics, t: String(Date.now()) });
       if (setAside) query.set('setAside', setAside);
       if (state) query.set('state', state);
+      if (urlSearchOverrides.postedFrom) query.set('postedFrom', urlSearchOverrides.postedFrom);
+      if (urlSearchOverrides.postedTo) query.set('postedTo', urlSearchOverrides.postedTo);
 
       const res = await fetch(`/api/sam/opportunities?${query.toString()}`, { method: 'GET' });
       if (res.ok) {
         const data = await res.json();
         setAllOpportunities(data.opportunities || []);
+        setFilteredOpportunities(data.opportunities || []);
+        setDisplayedOpportunities(data.opportunities || []);
+        setTotalRecords(data.totalRecords ?? (data.opportunities?.length || 0));
         setDisplayCount(250);
         setShowAllOpportunities(false);
         setShowMoreBands({});
@@ -1470,13 +1529,34 @@ Provide analysis in JSON format with:
         setKeywordSearch('');
         setSearchTerm('');
         setError(null);
+        setDataLoaded(true);
+        setLastUpdated(getLastUpdatedLabel());
+        setApiStatus({ status: res.status, statusText: res.statusText, message: 'Success' });
         setToast({ type: 'success', msg: 'Feed refreshed from SAM.gov.' });
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        setToast({ type: 'error', msg: 'Failed to refresh feed.' });
+        let errorPayload: any = null;
+        try {
+          errorPayload = await res.json();
+        } catch {
+          errorPayload = await res.text();
+        }
+        const msg = getSamErrorMessage(errorPayload, 'Unable to refresh opportunities from SAM.gov.');
+        setError(msg);
+        setDataLoaded(true);
+        setApiStatus({
+          status: res.status,
+          statusText: res.statusText,
+          message: typeof errorPayload === 'string' ? errorPayload : JSON.stringify(errorPayload),
+        });
+        setToast({ type: 'error', msg });
       }
-    } catch {
-      setToast({ type: 'error', msg: 'Failed to refresh feed.' });
+    } catch (e: any) {
+      const msg = e?.message ? `Unable to refresh opportunities: ${e.message}` : 'Unable to refresh opportunities.';
+      setError(msg);
+      setDataLoaded(true);
+      setApiStatus({ status: null, statusText: 'Network Error', message: msg });
+      setToast({ type: 'error', msg });
     } finally {
       setLoadingMore(false);
       setRefreshIndicator(false);
@@ -1611,12 +1691,13 @@ Provide analysis in JSON format with:
     if (allOpportunities.length === 0 && !error) {
       const fetchInitialOpportunities = async () => {
         setLoading(true);
+        setError(null);
         try {
           const prefRes = await fetch('/api/account/preferences', { cache: 'no-store' });
           const prefs = prefRes.ok ? await prefRes.json() : null;
-          const naics = prefs?.naicsCodes?.[0] || '';
-          const setAside = prefs?.setAsides?.[0] || '';
-          const state = prefs?.states?.[0] || '';
+          const naics = urlSearchOverrides.naics || prefs?.naicsCodes?.[0] || '';
+          const setAside = urlSearchOverrides.setAside || prefs?.setAsides?.[0] || '';
+          const state = urlSearchOverrides.state || prefs?.states?.[0] || '';
 
           if (!prefs?.completedOnboarding || !naics) {
             setAllOpportunities([]);
@@ -1628,9 +1709,11 @@ Provide analysis in JSON format with:
             return;
           }
 
-          const query = new URLSearchParams({ limit: '100', status: 'active', naics });
+          const query = new URLSearchParams({ limit: '200', status: 'active', naics });
           if (setAside) query.set('setAside', setAside);
           if (state) query.set('state', state);
+          if (urlSearchOverrides.postedFrom) query.set('postedFrom', urlSearchOverrides.postedFrom);
+          if (urlSearchOverrides.postedTo) query.set('postedTo', urlSearchOverrides.postedTo);
           const url = `/api/sam/opportunities?${query.toString()}`;
           const res = await fetch(url);
           if (res.ok) {
@@ -1638,26 +1721,39 @@ Provide analysis in JSON format with:
             setAllOpportunities(data.opportunities || []);
             setFilteredOpportunities(data.opportunities || []);
             setDisplayedOpportunities(data.opportunities || []);
-            setTotalRecords(data.opportunities?.length || 0);
+            setTotalRecords(data.totalRecords ?? (data.opportunities?.length || 0));
             setDataLoaded(true);
             setDataSource('live');
             setError(null);
+            setLastUpdated(getLastUpdatedLabel());
             setApiStatus({ status: res.status, statusText: res.statusText, message: 'Success' });
           } else {
-            const text = await res.text();
-            setError('Unable to load opportunities. Please try Refresh.');
-            setApiStatus({ status: res.status, statusText: res.statusText, message: text });
+            let errorPayload: any = null;
+            try {
+              errorPayload = await res.json();
+            } catch {
+              errorPayload = await res.text();
+            }
+            const msg = getSamErrorMessage(errorPayload, 'Unable to load opportunities. Please try Refresh.');
+            setError(msg);
+            setApiStatus({
+              status: res.status,
+              statusText: res.statusText,
+              message: typeof errorPayload === 'string' ? errorPayload : JSON.stringify(errorPayload),
+            });
           }
         } catch (err: any) {
-          setError('Unable to load opportunities. Please try Refresh.');
+          const msg = err?.message ? `Unable to load opportunities: ${err.message}` : 'Unable to load opportunities. Please try Refresh.';
+          setError(msg);
           setApiStatus({ status: null, statusText: 'Network Error', message: err?.message || String(err) });
         } finally {
           setLoading(false);
+          setDataLoaded(true);
         }
       };
       fetchInitialOpportunities();
     }
-  }, [isLoggedIn, sessionStatus, viewMode, allOpportunities.length, error, opportunityPreferences]);
+  }, [allOpportunities.length, error, getLastUpdatedLabel, getSamErrorMessage, isLoggedIn, opportunityPreferences, sessionStatus, urlSearchOverrides, viewMode]);
 
     // Fetch ALL opportunities from SAM.gov
 
@@ -1984,15 +2080,37 @@ Provide analysis in JSON format with:
         </div>
       </div>
 
+      {dashboardDrilldown && (
+        <div className="border-b border-cyan-200 bg-cyan-50">
+          <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3">
+            <div className="rounded-xl border border-cyan-300 bg-white px-4 py-3 shadow-sm">
+              <p className="text-sm font-black text-cyan-800">{dashboardDrilldown.heading}</p>
+              {dashboardDrilldown.details.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {dashboardDrilldown.details.map((item, idx) => (
+                    <span
+                      key={`${item}-${idx}`}
+                      className="inline-flex items-center rounded-md border border-cyan-300 bg-cyan-100 px-2.5 py-1 text-sm font-bold text-cyan-900"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with status */}
       <div className="border-b border-slate-200 bg-white">
         <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-700">
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${dataLoaded ? 'bg-emerald-400' : error ? 'bg-orange-400 animate-pulse' : 'bg-amber-400 animate-pulse'}`}></div>
-                <span>Last updated: <span className="font-semibold text-slate-300">{lastUpdated}</span></span>
-                {!dataLoaded && (
+                <div className={`w-2 h-2 rounded-full ${error ? 'bg-orange-500 animate-pulse' : dataLoaded ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
+                <span>Last updated: <span className="font-semibold text-slate-900">{lastUpdated}</span></span>
+                {(loading || (!dataLoaded && !error)) && (
                   <span className="text-amber-400 text-sm flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Syncing live data...
@@ -2013,9 +2131,9 @@ Provide analysis in JSON format with:
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="font-medium text-white">
+                <span className="font-medium text-slate-800">
                   {error ? (
-                      <span className="text-white">SAM.gov API Unavailable</span>
+                    <span className="text-orange-600">SAM.gov API unavailable</span>
                   ) : dataLoaded ? (
                     'Live data from SAM.gov'
                   ) : (

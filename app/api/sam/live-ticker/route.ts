@@ -6,8 +6,8 @@ const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search';
 
 // ─── In-process cache (shared across all requests in the same Node process) ───
 // This is more reliable than next: { revalidate } which can be bypassed
-const CACHE_TTL_MS   = 15 * 60 * 1000  // 15 minutes — ticker is cosmetic, freshness matters less than quota
-const FETCH_COOLDOWN = 60 * 1000        // 60s minimum between live fetches regardless of cache state
+const CACHE_TTL_MS   = 2 * 60 * 1000   // 2 minutes — keeps ticker feeling live without hammering quota
+const FETCH_COOLDOWN = 30 * 1000        // 30s minimum between live fetches regardless of cache state
 
 let tickerCache: { data: any; expiresAt: number } | null = null
 let lastFetchAt = 0
