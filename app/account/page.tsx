@@ -489,7 +489,6 @@ function AccountPageContent() {
   const currentPlanDetails = plan?.tier && plan.tier !== 'NONE' ? PLAN_DETAILS[plan.tier as keyof typeof PLAN_DETAILS] : null
   const activeBids = bids.filter(b => b.status === 'draft' || b.status === 'submitted').length
   const awardedBids = bids.filter(b => b.status === 'awarded').length
-  const activeG = (G as any)[activeTab] || G.slate
 
   return (
     <div
@@ -500,9 +499,6 @@ function AccountPageContent() {
         fontFamily: "'Aptos', 'Inter', 'Segoe UI', system-ui, sans-serif",
       }}
     >
-
-      {/* Colored accent strip that follows active tab */}
-      <div style={{ height: 5, background: activeG.bg, transition: 'background 0.3s' }} />
 
       {/* ── Page header ── */}
       <div className="border-b" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)' }}>

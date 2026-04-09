@@ -113,17 +113,6 @@ export async function POST(req: NextRequest) {
   console.log('🔔 [STRIPE] POST /api/stripe/checkout called')
 
   try {
-    const session = await getServerSession(authOptions)
-    console.log('👤 Session:', session?.user?.email || 'Not authenticated')
-    
-    if (!session?.user?.email) {
-      console.log('❌ No session - returning 401')
-      return jsonError('You must be signed in to manage a subscription.', 401)
-    }
-
-    const email = session.user.email
-    const name = session.user.name || null
-
     let body: any = {}
     try {
       body = await req.json()
@@ -131,6 +120,17 @@ export async function POST(req: NextRequest) {
     } catch {
       console.log('⚠️ Failed to parse request body')
       body = {}
+    }
+
+    const session = await getServerSession(authOptions)
+    const sessionEmail = String(session?.user?.email || '').trim().toLowerCase()
+    const guestEmail = String(body?.email || body?.customerEmail || '').trim().toLowerCase()
+    const email = sessionEmail || guestEmail || null
+    const name = session?.user?.name || String(body?.name || body?.customerName || '').trim() || null
+    const isGuestCheckout = !sessionEmail
+
+    if (guestEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+      return jsonError('Please provide a valid email address for checkout.', 400)
     }
 
     const requestedPlan = normalizePlan(body?.plan ?? body?.tier)
@@ -162,33 +162,29 @@ export async function POST(req: NextRequest) {
       return jsonError(`Price ID not found in Stripe: ${finalPriceId}`, 400, { hint: 'Check Stripe dashboard price IDs.' })
     }
 
-    // Load user
-    const user = await prisma.users.findUnique({
-      where: { email },
-      select: { id: true, stripe_customer_id: true, stripe_subscription_id: true },
-    })
-    
-    if (!user) {
-      console.log('❌ User not found in database')
-      return jsonError('User not found', 404)
-    }
-    
-    console.log('👤 User found:', user.id)
+    // Load user for authenticated checkout (guest checkout is allowed without a local account)
+    const user = email
+      ? await prisma.users.findUnique({
+          where: { email },
+          select: { id: true, stripe_customer_id: true, stripe_subscription_id: true },
+        })
+      : null
 
-    // Ensure customer exists
-    const customerId = await ensureCustomerId(email, name, user.stripe_customer_id || null)
-    if (!customerId) {
-      console.log('❌ Failed to create customer')
-      return jsonError('Failed to create or find Stripe customer', 500)
+    let customerId: string | null = null
+    if (user?.stripe_customer_id || email) {
+      customerId = await ensureCustomerId(email || '', name, user?.stripe_customer_id || null)
+      if (!customerId) {
+        console.log('❌ Failed to create customer')
+        return jsonError('Failed to create or find Stripe customer', 500)
+      }
+      console.log('✅ Customer ID:', customerId)
     }
-    
-    console.log('✅ Customer ID:', customerId)
 
-    // Persist customer id if missing
-    if (!user.stripe_customer_id || user.stripe_customer_id !== customerId) {
-      await prisma.users.update({ 
-        where: { id: user.id }, 
-        data: { stripe_customer_id: customerId } 
+    // Persist customer id if authenticated user exists and changed
+    if (user && customerId && (!user.stripe_customer_id || user.stripe_customer_id !== customerId)) {
+      await prisma.users.update({
+        where: { id: user.id },
+        data: { stripe_customer_id: customerId },
       }).catch((err) => {
         console.error('Failed to save customer ID:', err)
       })
@@ -196,6 +192,9 @@ export async function POST(req: NextRequest) {
 
     let verifiedPaymentMethodId: string | null = null
     if (selectedPaymentMethodId) {
+      if (!customerId) {
+        return jsonError('Sign in to use a saved payment method.', 400)
+      }
       try {
         const pm = await stripe.paymentMethods.retrieve(selectedPaymentMethodId)
         const pmCustomerId = typeof pm.customer === 'string' ? pm.customer : pm.customer?.id
@@ -227,8 +226,8 @@ export async function POST(req: NextRequest) {
 
     // ✅ FIXED: Check for existing subscription but don't block
     // Instead, inform client that they should use change-plan API
-    const existingSub = await findActiveSubscription(customerId, user.stripe_subscription_id || null)
-    
+    const existingSub = customerId ? await findActiveSubscription(customerId, user?.stripe_subscription_id || null) : null
+
     if (existingSub?.id) {
       console.log('⚠️ User already has active subscription:', existingSub.id)
       console.log('💡 Client should have routed to change-plan API instead')
@@ -240,7 +239,7 @@ export async function POST(req: NextRequest) {
         { 
           hasSubscription: true,
           currentSubscriptionId: existingSub.id,
-          redirectTo: '/account/plan'
+          redirectTo: user ? '/account/plan' : '/pricing'
         }
       )
     }
@@ -250,7 +249,8 @@ export async function POST(req: NextRequest) {
     // Stripe will email the customer before the trial ends to collect payment.
     console.log('🎫 Creating checkout session...')
     const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
+      ...(customerId ? { customer: customerId } : {}),
+      ...(!customerId && email ? { customer_email: email } : {}),
       mode: 'subscription',
       payment_method_types: ['card'],
       payment_method_collection: 'if_required', // ✅ No card required during trial
@@ -260,10 +260,11 @@ export async function POST(req: NextRequest) {
       cancel_url: cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      customer_update: { address: 'auto', name: 'auto' },
+      ...(customerId ? { customer_update: { address: 'auto', name: 'auto' } } : {}),
       metadata: {
-        user_id: user.id,
-        email,
+        user_id: user?.id || 'guest',
+        email: email || '',
+        checkout_type: isGuestCheckout ? 'guest' : 'authenticated',
         plan: requestedPlan || 'unknown',
         billing: requestedBilling,
         created_at: new Date().toISOString(),
@@ -277,7 +278,7 @@ export async function POST(req: NextRequest) {
             missing_payment_method: 'cancel', // Cancel if no card added by end of trial
           },
         },
-        metadata: { user_id: user.id, email },
+        metadata: { user_id: user?.id || 'guest', email: email || '' },
       },
     })
 
@@ -299,12 +300,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Test endpoint for debugging
-export async function GET(req: NextRequest) {
-  console.log('👋 [STRIPE] GET /api/stripe/checkout called (test endpoint)')
-  return NextResponse.json({ 
-    status: 'ok',
-    message: 'Stripe checkout API route is working!',
-    timestamp: new Date().toISOString()
-  })
+export async function GET() {
+  return NextResponse.json({ error: 'Not found' }, { status: 404 })
 }

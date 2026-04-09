@@ -108,8 +108,18 @@ const serviceConfigs: Record<string, {
   },
 }
 
+const serviceColorStyles: Record<string, { iconBg: string; iconText: string }> = {
+  blue: { iconBg: 'bg-blue-100', iconText: 'text-blue-700' },
+  orange: { iconBg: 'bg-orange-100', iconText: 'text-orange-700' },
+  indigo: { iconBg: 'bg-indigo-100', iconText: 'text-indigo-700' },
+  purple: { iconBg: 'bg-purple-100', iconText: 'text-purple-700' },
+  teal: { iconBg: 'bg-teal-100', iconText: 'text-teal-700' },
+  emerald: { iconBg: 'bg-emerald-100', iconText: 'text-emerald-700' },
+  cyan: { iconBg: 'bg-cyan-100', iconText: 'text-cyan-700' },
+}
+
 function ContactPageContent() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -118,15 +128,25 @@ function ContactPageContent() {
   // Get service from URL parameter
   const serviceParam = searchParams?.get('service') || 'general'
   const config = serviceConfigs[serviceParam] || serviceConfigs['general']
+  const colorStyle = serviceColorStyles[config.color] || serviceColorStyles.cyan
 
   const [formData, setFormData] = useState({
-    name: session?.user?.name || '',
-    email: session?.user?.email || '',
+    name: '',
+    email: '',
     company: '',
     phone: '',
     service: serviceParam,
     message: '',
   })
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.user) return
+    setFormData((prev) => ({
+      ...prev,
+      name: prev.name || session.user.name || '',
+      email: prev.email || session.user.email || '',
+    }))
+  }, [status, session?.user?.name, session?.user?.email])
 
   // Update service when URL parameter changes
   useEffect(() => {
@@ -169,37 +189,37 @@ function ContactPageContent() {
     return (
       <div
         className="min-h-screen flex items-center justify-center px-4 py-16"
-        style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+        style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #ecfeff 100%)', color: '#0f172a' }}
       >
         <div className="max-w-md w-full text-center">
           <div
             className="rounded-2xl p-8 backdrop-blur-sm"
-            style={{ background: 'var(--color-surface-card)', border: '1.5px solid var(--color-border-card)' }}
+            style={{ background: '#ffffff', border: '1.5px solid #bae6fd' }}
           >
             <div
               className="h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{ background: 'var(--color-accent-muted)' }}
+              style={{ background: '#dcfce7' }}
             >
-              <CheckCircle className="h-8 w-8" style={{ color: 'var(--color-on-accent)' }} />
+              <CheckCircle className="h-8 w-8" style={{ color: '#15803d' }} />
             </div>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: '#0f172a' }}>
               Thank You!
             </h2>
-            <p className="mb-6" style={{ color: 'var(--color-text-body)' }}>
+            <p className="mb-6" style={{ color: '#334155' }}>
               We've received your inquiry and one of our team members will reach out to you within 24 hours.
             </p>
             <div className="flex gap-3 justify-center">
               <Link
                 href="/search"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                style={{ background: 'var(--color-accent)', color: 'var(--color-on-accent)' }}
+                style={{ background: '#059669', color: '#ffffff' }}
               >
                 Continue to Search
               </Link>
               <Link
                 href="/services"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-primary)' }}
+                style={{ background: '#0ea5e9', color: '#ffffff' }}
               >
                 View Services
               </Link>
@@ -211,32 +231,32 @@ function ContactPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4">
+    <div className="min-h-screen bg-linear-to-br from-cyan-50 via-white to-emerald-50 py-12 px-4 text-slate-900">
       <div className="max-w-480 mx-auto">
         {/* Dynamic Header based on service */}
         <div className="mb-10">
           <div className="flex items-center justify-center mb-4">
-            <div className={`h-16 w-16 rounded-2xl bg-${config.color}-500/20 flex items-center justify-center text-${config.color}-400`}>
+            <div className={`h-16 w-16 rounded-2xl border border-white shadow ${colorStyle.iconBg} ${colorStyle.iconText} flex items-center justify-center`}>
               {config.icon}
             </div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 text-center">
             {config.title}
           </h1>
-          <p className="text-lg text-slate-300 text-center max-w-2xl mx-auto">
+          <p className="text-lg text-slate-700 text-center max-w-2xl mx-auto font-semibold">
             {config.subtitle}
           </p>
         </div>
 
         <div className="grid lg:grid-cols-[2fr_1fr] gap-8">
           {/* Contact Form - Takes up ~66% (2/3) of width */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur-sm">
-            <h2 className="text-2xl font-bold text-white mb-6">Send Us a Message</h2>
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Send Us a Message</h2>
             
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Name */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="name" className="block text-sm font-bold text-slate-700 mb-2">
                   Full Name *
                 </label>
                 <div className="relative">
@@ -248,15 +268,16 @@ function ContactPageContent() {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-10 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    placeholder="John Doe"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-10 py-3 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="Enter your full name"
+                    autoComplete="name"
                   />
                 </div>
               </div>
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="email" className="block text-sm font-bold text-slate-700 mb-2">
                   Email Address *
                 </label>
                 <div className="relative">
@@ -268,8 +289,9 @@ function ContactPageContent() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-10 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    placeholder="john@company.com"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-10 py-3 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="Enter your email address"
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -277,7 +299,7 @@ function ContactPageContent() {
               <div className="grid sm:grid-cols-2 gap-4">
                 {/* Company */}
                 <div>
-                  <label htmlFor="company" className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor="company" className="block text-sm font-bold text-slate-700 mb-2">
                     Company Name
                   </label>
                   <div className="relative">
@@ -288,15 +310,16 @@ function ContactPageContent() {
                       name="company"
                       value={formData.company}
                       onChange={handleChange}
-                      className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-10 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      placeholder="Acme Corp"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-10 py-3 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      placeholder="Company name (optional)"
+                      autoComplete="organization"
                     />
                   </div>
                 </div>
 
                 {/* Phone */}
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor="phone" className="block text-sm font-bold text-slate-700 mb-2">
                     Phone Number
                   </label>
                   <div className="relative">
@@ -307,8 +330,9 @@ function ContactPageContent() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-10 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      placeholder="(555) 123-4567"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-10 py-3 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      placeholder="Phone number (optional)"
+                      autoComplete="tel"
                     />
                   </div>
                 </div>
@@ -316,7 +340,7 @@ function ContactPageContent() {
 
               {/* Service Dropdown */}
               <div>
-                <label htmlFor="service" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="service" className="block text-sm font-bold text-slate-700 mb-2">
                   What are you interested in? *
                 </label>
                 <select
@@ -325,7 +349,7 @@ function ContactPageContent() {
                   required
                   value={formData.service}
                   onChange={handleChange}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 >
                   <option value="general">General Inquiry</option>
                   <option value="sam-registration">SAM Registration</option>
@@ -339,7 +363,7 @@ function ContactPageContent() {
 
               {/* Message */}
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="message" className="block text-sm font-bold text-slate-700 mb-2">
                   Tell us about your needs
                 </label>
                 <div className="relative">
@@ -350,7 +374,7 @@ function ContactPageContent() {
                     rows={4}
                     value={formData.message}
                     onChange={handleChange}
-                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-10 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                    className="w-full bg-white border border-slate-300 rounded-lg px-10 py-3 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
                     placeholder="Tell us about your requirements and what you're looking to achieve..."
                   />
                 </div>
@@ -387,22 +411,22 @@ function ContactPageContent() {
           {/* Sidebar - Takes up ~33% (1/3) of width */}
           <div className="space-y-6">
             {/* What You Get */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur-sm">
-              <h3 className="text-xl font-bold text-white mb-6">What You Get</h3>
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+              <h3 className="text-xl font-bold text-slate-900 mb-6">What You Get</h3>
               <ul className="space-y-4">
                 {config.benefits.map((benefit, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-slate-300">{benefit}</span>
+                    <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <span className="text-slate-700 font-semibold">{benefit}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Schedule a Call with Calendly */}
-            <div className="bg-linear-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm">
-              <h3 className="text-xl font-bold text-white mb-4">Schedule a Call</h3>
-              <p className="text-slate-300 text-sm mb-4">
+            <div className="bg-linear-to-br from-emerald-50 to-cyan-50 border border-emerald-200 rounded-2xl p-8">
+              <h3 className="text-xl font-bold text-slate-900 mb-4">Schedule a Call</h3>
+              <p className="text-slate-700 text-sm mb-4 font-semibold">
                 Prefer to talk? Schedule a time that works for you.
               </p>
               <a
@@ -417,16 +441,16 @@ function ContactPageContent() {
             </div>
 
             {/* Need Help Right Away */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur-sm">
-              <h3 className="text-xl font-bold text-white mb-4">Need Help Right Away?</h3>
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+              <h3 className="text-xl font-bold text-slate-900 mb-4">Need Help Right Away?</h3>
               <div className="space-y-3">
-                <p className="text-slate-300 text-sm">
+                <p className="text-slate-700 text-sm font-semibold">
                   Our team is here to help. Reach out directly:
                 </p>
 
                 <a
                   href="mailto:support@precisegovcon.com"
-                  className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+                  className="flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors font-bold"
                 >
                   <Mail className="h-5 w-5" />
                   support@precisegovcon.com
@@ -434,13 +458,13 @@ function ContactPageContent() {
 
                 <a
                   href="tel:804-404-6005"
-                  className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+                  className="flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors font-bold"
                 >
                   <Phone className="h-5 w-5" />
                   (804) 404-6005
                 </a>
 
-                <p className="text-sm text-slate-400 mt-4">
+                <p className="text-sm text-slate-600 mt-4 font-semibold">
                   We typically respond within 1 business day.
                 </p>
               </div>
@@ -455,8 +479,8 @@ function ContactPageContent() {
 export default function ContactPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-linear-to-br from-cyan-50 via-white to-emerald-50 flex items-center justify-center">
+        <div className="text-slate-800 font-semibold">Loading...</div>
       </div>
     }>
       <ContactPageContent />

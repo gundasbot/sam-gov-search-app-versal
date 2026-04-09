@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { generateAlertEmailHTML, generateAlertEmailText } from '@/lib/email-templates'
 import { generateExcel, generateTXT } from '@/lib/export'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 import { randomBytes } from 'crypto'
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -264,38 +265,35 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     const samUrl = `https://api.sam.gov/prod/opportunities/v2/search?${validatedParams.toString()}`
     console.log('📡 Calling SAM.gov API:', validatedParams.toString())
 
-    const samResponse = await fetch(samUrl, {
-      headers: { Accept: 'application/json', 'User-Agent': 'PreciseGovCon/1.0' },
-    })
+    const samData = await coalesceInFlight<any>(
+      `sam:saved-search-run:${validatedParams.toString().replace(/api_key=[^&]+/, 'api_key=KEY')}`,
+      async () => {
+        const samResponse = await fetch(samUrl, {
+          headers: { Accept: 'application/json', 'User-Agent': 'PreciseGovCon/1.0' },
+        })
 
-    if (!samResponse.ok) {
-      const errorText = await samResponse.text()
-      console.error('SAM.gov API error response:', errorText)
+        if (!samResponse.ok) {
+          const errorText = await samResponse.text()
+          console.error('SAM.gov API error response:', errorText)
 
-      await prisma.search_runs.update({
-        where: { id: alertRun.id },
-        data: {
-          error_message: `SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`,
-        },
-      })
+          await prisma.search_runs.update({
+            where: { id: alertRun.id },
+            data: {
+              error_message: `SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`,
+            },
+          })
 
-      await prisma.saved_searches_new.update({
-        where: { id },
-        data: { lastRunAt: new Date() },
-      })
+          await prisma.saved_searches_new.update({
+            where: { id },
+            data: { lastRunAt: new Date() },
+          })
 
-      return NextResponse.json(
-        {
-          error_message: `SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`,
-          details: errorText,
-          success: false,
-          result_count: 0,
-        },
-        { status: 200 }
-      )
-    }
+          throw new Error(`SAM.gov API error: ${samResponse.status} ${samResponse.statusText}`)
+        }
 
-    const samData = await samResponse.json()
+        return await samResponse.json()
+      }
+    )
     const opportunities = samData.opportunitiesData || []
 
     console.log('✅ SAM.gov responded with', opportunities.length, 'opportunities')

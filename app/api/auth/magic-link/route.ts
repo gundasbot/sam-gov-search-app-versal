@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { resolvePublicAppUrl } from '@/lib/url-safety'
 
 export const runtime = 'nodejs'
 
@@ -45,7 +46,11 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://precisegovcon.com'
+    const baseUrl = resolvePublicAppUrl(
+      process.env.NEXTAUTH_URL,
+      process.env.APP_URL,
+      process.env.NEXT_PUBLIC_APP_URL
+    )
     const magicUrl = `${baseUrl}/api/auth/magic-link/verify?token=${rawToken}`
     const name = String(user.first_name || 'there')
     const year = new Date().getFullYear()
@@ -66,8 +71,8 @@ export async function POST(req: NextRequest) {
 
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%);padding:28px 32px;text-align:center">
-      <a href="https://precisegovcon.com" style="display:inline-flex;align-items:center;gap:12px;background:#1e293b;border-radius:10px;padding:10px 18px;border:1px solid rgba(249,115,22,0.35);text-decoration:none">
-        <img src="https://precisegovcon.com/logo.svg" alt="PreciseGovCon" width="36" height="36" style="display:block;border-radius:6px;flex-shrink:0" />
+      <a href="${baseUrl}" style="display:inline-flex;align-items:center;gap:12px;background:#1e293b;border-radius:10px;padding:10px 18px;border:1px solid rgba(249,115,22,0.35);text-decoration:none">
+        <img src="${baseUrl}/logo.svg" alt="PreciseGovCon" width="36" height="36" style="display:block;border-radius:6px;flex-shrink:0" />
         <span style="font-size:22px;font-weight:900;color:#ffffff;font-family:Inter,Arial,sans-serif">Precise</span><span style="font-size:22px;font-weight:900;color:#f97316;font-family:Inter,Arial,sans-serif">GovCon</span>
       </a>
       <p style="color:#94a3b8;font-size:11px;margin:10px 0 0;letter-spacing:0.1em;text-transform:uppercase;font-weight:600">Federal Opportunity Intelligence</p>
@@ -102,9 +107,9 @@ export async function POST(req: NextRequest) {
     <div style="border-top:1px solid #e2e8f0;padding:20px 32px;background:#f8fafc;text-align:center">
       <p style="font-size:12px;color:#94a3b8;margin:0;line-height:1.8">
         &copy; ${year} Precise GovCon &middot; PreciseGovCon<br>
-        <a href="https://precisegovcon.com" style="color:#f97316;text-decoration:none;font-weight:600">precisegovcon.com</a>
+        <a href="${baseUrl}" style="color:#f97316;text-decoration:none;font-weight:600">${new URL(baseUrl).hostname}</a>
         &nbsp;&middot;&nbsp;
-        <a href="https://precisegovcon.com/support" style="color:#94a3b8;text-decoration:none">Support</a>
+        <a href="${baseUrl}/support" style="color:#94a3b8;text-decoration:none">Support</a>
       </p>
     </div>
   </div>

@@ -2,6 +2,8 @@
 import { sendEmail } from './send'
 import { getBrand } from './brand'
 
+const LIVE_SITE_URL = 'https://www.precisegovcon.com'
+
 export async function sendWelcomeEmail(email: string, name: string) {
   const brand = getBrand()
   const firstName = name.split(' ')[0] || 'there'
@@ -14,9 +16,37 @@ export async function sendWelcomeEmail(email: string, name: string) {
   })
 }
 
+function resolveWelcomeAppUrl(rawUrl: string): string {
+  const candidate = (rawUrl || '').trim()
+  if (!candidate) return LIVE_SITE_URL
+
+  try {
+    const parsed = new URL(candidate)
+    const host = parsed.hostname.toLowerCase()
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.endsWith('.local')) {
+      return LIVE_SITE_URL
+    }
+    return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '')
+  } catch {
+    if (candidate.includes('localhost') || candidate.includes('127.0.0.1')) {
+      return LIVE_SITE_URL
+    }
+    return candidate.replace(/\/$/, '')
+  }
+}
+
+function getDomainLabel(appUrl: string): string {
+  try {
+    return new URL(appUrl).hostname
+  } catch {
+    return appUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+  }
+}
+
 function getWelcomeEmailHtml(firstName: string): string {
   const brand = getBrand()
-  const appUrl = brand.appUrl
+  const appUrl = resolveWelcomeAppUrl(brand.appUrl)
+  const domainLabel = getDomainLabel(appUrl)
 
   return `
 <!DOCTYPE html>
@@ -185,12 +215,12 @@ function getWelcomeEmailHtml(firstName: string): string {
                 Minority-Owned &middot; Veteran-Owned Small Business &middot; Richmond, Virginia
               </p>
               <p style="margin:8px 0 0;font-size:13px;font-weight:700;">
-                <a href="https://precisegovcon.com/privacy" style="color:#334155;text-decoration:none;">Privacy</a>
+                <a href="${appUrl}/privacy" style="color:#334155;text-decoration:none;">Privacy</a>
                 &nbsp;&bull;&nbsp;
-                <a href="https://precisegovcon.com/terms" style="color:#334155;text-decoration:none;">Terms</a>
+                <a href="${appUrl}/terms" style="color:#334155;text-decoration:none;">Terms</a>
               </p>
               <p style="margin:8px 0 0;color:#64748b;font-size:12px;font-weight:600;">
-                You're receiving this because you created an account at precisegovcon.com.
+                You're receiving this because you created an account at ${domainLabel}.
               </p>
             </td>
           </tr>
@@ -205,7 +235,7 @@ function getWelcomeEmailHtml(firstName: string): string {
 
 function getWelcomeEmailText(firstName: string): string {
   const brand = getBrand()
-  const appUrl = brand.appUrl
+  const appUrl = resolveWelcomeAppUrl(brand.appUrl)
 
   return `
 ${brand.name.toUpperCase()} — ${brand.tagline}
@@ -237,6 +267,6 @@ Questions? Email us at ${brand.supportEmail} — we respond within one business 
 ---
 © ${new Date().getFullYear()} ${brand.name}
 Minority-Owned · Veteran-Owned Small Business · Richmond, Virginia
-https://precisegovcon.com
+${appUrl}
   `.trim()
 }

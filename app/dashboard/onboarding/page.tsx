@@ -79,6 +79,7 @@ type UserPreferences = {
   setAsides:string[]; naicsCodes:string[]; pscCodes:string[]
   keywords:string[]; states:string[]
   contractSizeMin?:number; contractSizeMax?:number
+  businessType?: string
   completedOnboarding:boolean
 }
 
@@ -92,12 +93,44 @@ const CONTRACT_SIZES = [
 
 const ALL_SET_ASIDES = SET_ASIDE_CODES.filter(c => typeof c.value === 'string' && c.value).map(c => c.value)
 const ALL_STATES = US_STATES.slice(1).map(s => s.value)
+const GUIDE_STEPS = [
+  { title: 'Set-Asides', hint: 'Choose certifications' },
+  { title: 'Industry', hint: 'Add NAICS / PSC / keywords' },
+  { title: 'Location', hint: 'Choose service states' },
+  { title: 'Budget', hint: 'Set contract range' },
+  { title: 'Review', hint: 'Confirm and launch' },
+] as const
+const KEYWORD_SUGGESTIONS = [
+  'cybersecurity',
+  'cloud migration',
+  'data analytics',
+  'machine learning',
+  'systems engineering',
+  'program management',
+  'logistics',
+  'help desk',
+]
 
 function firstName(session:any):string {
   const n = session?.user?.name?.trim?.() || ''
   if (n) return n.split(' ')[0]
   const e = session?.user?.email || ''
   return e.includes('@') ? e.split('@')[0] : 'there'
+}
+
+function pickRandomSubset<T>(values: T[], min = 1, max = values.length): T[] {
+  if (!values.length) return []
+  const upper = Math.max(min, Math.min(max, values.length))
+  const lower = Math.max(1, Math.min(min, upper))
+  const count = lower + Math.floor(Math.random() * (upper - lower + 1))
+  const shuffled = [...values]
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const temp = shuffled[i]
+    shuffled[i] = shuffled[j]
+    shuffled[j] = temp
+  }
+  return shuffled.slice(0, count)
 }
 
 // ─── Pill ────────────────────────────────────────────────────────────────────
@@ -197,10 +230,12 @@ export default function DashboardOnboardingPage() {
   const [saved,  setSaved]  = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [guideStep, setGuideStep] = useState(0)
   const [prefs, setPrefs] = useState<Partial<UserPreferences>>({
     setAsides:ALL_SET_ASIDES,naicsCodes:[],pscCodes:[],keywords:[],states:ALL_STATES,
   })
   const timerRef = useRef<NodeJS.Timeout|null>(null)
+  const sectionRefs = useRef<Array<HTMLDivElement | null>>([])
 
   useEffect(() => {
     if (status==='unauthenticated') router.replace('/login?callbackUrl=/dashboard/onboarding')
@@ -227,34 +262,89 @@ export default function DashboardOnboardingPage() {
     return ()=>{ok=false}
   }, [nextPath])
 
+  const normalizeBudgetPair = useCallback((minValue?: number, maxValue?: number) => {
+    const min = typeof minValue === 'number' && Number.isFinite(minValue) ? minValue : undefined
+    const max = typeof maxValue === 'number' && Number.isFinite(maxValue) ? maxValue : undefined
+    if (typeof min === 'number' && typeof max === 'number' && min > max) {
+      return { min: max, max: min }
+    }
+    return { min, max }
+  }, [])
+
+  const toPatchPayload = useCallback((p: Partial<UserPreferences>, completedOnboarding = true) => {
+    const budget = normalizeBudgetPair(p.contractSizeMin, p.contractSizeMax)
+    return {
+      setAsides: Array.isArray(p.setAsides) ? p.setAsides : [],
+      naicsCodes: Array.isArray(p.naicsCodes) ? p.naicsCodes : [],
+      keywords: Array.isArray(p.keywords) ? p.keywords : [],
+      states: Array.isArray(p.states) ? p.states : [],
+      contractSizeMin: budget.min ?? null,
+      contractSizeMax: budget.max ?? null,
+      businessType: typeof p.businessType === 'string' && p.businessType.trim() ? p.businessType.trim() : 'SDVOSB',
+      completedOnboarding,
+    }
+  }, [normalizeBudgetPair])
+
   const persistPrefs = useCallback(async (p: Partial<UserPreferences>) => {
+    const payload = toPatchPayload(p, true)
     const res = await fetch('/api/account/preferences', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(p),
+      body: JSON.stringify(payload),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      throw new Error(data?.error || 'Failed to save preferences')
+      const details = Array.isArray(data?.errors) ? data.errors.join('; ') : ''
+      throw new Error(details || data?.error || 'Failed to save preferences')
     }
-  }, [])
+  }, [toPatchPayload])
 
   const autoSave = useCallback((p:Partial<UserPreferences>) => {
     if (timerRef.current) clearTimeout(timerRef.current)
     setSaving(true)
     timerRef.current = setTimeout(async()=>{
       try {
-        await persistPrefs({ ...p, completedOnboarding: true })
+        await persistPrefs(p)
         setSaved(true); setTimeout(()=>setSaved(false),2500)
-      } catch (error) {
-        console.error('Failed to auto-save onboarding preferences:', error)
+      } catch {
+        setSaved(false)
       } finally { setSaving(false) }
     },800)
   },[persistPrefs])
 
   const up = useCallback((u:Partial<UserPreferences>)=>{
-    setPrefs(prev=>{ const n={...prev,...u}; autoSave(n); return n })
-  },[autoSave])
+    setPrefs(prev=>{
+      const merged = { ...prev, ...u }
+      const budget = normalizeBudgetPair(merged.contractSizeMin, merged.contractSizeMax)
+      const next = { ...merged, contractSizeMin: budget.min, contractSizeMax: budget.max }
+      autoSave(next)
+      return next
+    })
+  },[autoSave, normalizeBudgetPair])
+
+  const focusGuideStep = useCallback((index: number) => {
+    const bounded = Math.max(0, Math.min(index, GUIDE_STEPS.length - 1))
+    setGuideStep(bounded)
+    sectionRefs.current[bounded]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
+
+  const applyRandomSetAsides = useCallback(() => {
+    const randomSetAsides = pickRandomSubset(ALL_SET_ASIDES, 2, Math.min(6, ALL_SET_ASIDES.length))
+    up({ setAsides: randomSetAsides })
+    setSetAsideOpen(true)
+  }, [up])
+
+  const applyRandomStates = useCallback(() => {
+    const randomStates = pickRandomSubset(ALL_STATES, 4, Math.min(12, ALL_STATES.length))
+    up({ states: randomStates })
+    setStatesOpen(true)
+  }, [up])
+
+  const applyRandomBudget = useCallback(() => {
+    if (!CONTRACT_SIZES.length) return
+    const randomRange = CONTRACT_SIZES[Math.floor(Math.random() * CONTRACT_SIZES.length)]
+    up({ contractSizeMin: randomRange.min, contractSizeMax: randomRange.max })
+  }, [up])
 
   const finalizePreferences = useCallback(async (targetPath: string) => {
     if (timerRef.current) {
@@ -263,19 +353,23 @@ export default function DashboardOnboardingPage() {
     }
     setSaving(true)
     try {
-      await persistPrefs({ ...prefs, completedOnboarding: true })
+      await persistPrefs(prefs)
+      if (typeof window !== 'undefined') {
+        const emailKey = session?.user?.email?.toLowerCase?.() || 'anon'
+        window.localStorage.setItem(`pgc-survey-dismissed:${emailKey}`, '1')
+      }
       fetch('/api/ai/personalized-feed', { method: 'POST' }).catch(() => {})
       setSaved(true)
       setShowSuccessToast(true)
       await new Promise((resolve) => setTimeout(resolve, 900))
       router.refresh()
       router.push(targetPath)
-    } catch (error) {
-      console.error('Failed to finalize onboarding preferences:', error)
+    } catch {
+      setShowSuccessToast(false)
     } finally {
       setSaving(false)
     }
-  }, [persistPrefs, prefs, router])
+  }, [persistPrefs, prefs, router, session?.user?.email])
 
   const tog = <T,>(arr:T[],v:T)=>arr.includes(v)?arr.filter(x=>x!==v):[...arr,v]
   const addUnique = <T,>(arr: T[], values: T[]) => Array.from(new Set([...arr, ...values]))
@@ -302,6 +396,70 @@ export default function DashboardOnboardingPage() {
   },[keywordInput,prefs.naicsCodes,prefs.pscCodes])
 
   const total=(prefs.setAsides?.length||0)+(prefs.naicsCodes?.length||0)+(prefs.pscCodes?.length||0)+(prefs.states?.length||0)
+  const budgetSummary = useMemo(() => {
+    const min = typeof prefs.contractSizeMin === 'number' ? prefs.contractSizeMin : undefined
+    const max = typeof prefs.contractSizeMax === 'number' ? prefs.contractSizeMax : undefined
+    if (typeof min === 'number' && typeof max === 'number') {
+      return {
+        primary: `$${min.toLocaleString()} to $${max.toLocaleString()}`,
+        secondary: `Floor: $${min.toLocaleString()} · Ceiling: $${max.toLocaleString()}`,
+      }
+    }
+    if (typeof min === 'number') {
+      return {
+        primary: `$${min.toLocaleString()}+`,
+        secondary: `Floor: $${min.toLocaleString()} · Ceiling: No limit`,
+      }
+    }
+    if (typeof max === 'number') {
+      return {
+        primary: `Up to $${max.toLocaleString()}`,
+        secondary: `Floor: none · Ceiling: $${max.toLocaleString()}`,
+      }
+    }
+    return {
+      primary: 'Any budget',
+      secondary: 'Floor: none · Ceiling: none',
+    }
+  }, [prefs.contractSizeMin, prefs.contractSizeMax])
+
+  const selectAllForActiveStepTwo = useCallback(() => {
+    if (activeTab === 'naics') {
+      const source = filteredNaics.length ? filteredNaics.map(code => code.code) : NAICS_CODES.slice(0, 30).map(code => code.code)
+      up({ naicsCodes: addUnique(prefs.naicsCodes || [], source) })
+      return
+    }
+    if (activeTab === 'psc') {
+      const source = filteredPsc.length ? filteredPsc.map(code => code.code) : PSC_CODES.slice(0, 30).map(code => code.code)
+      up({ pscCodes: addUnique(prefs.pscCodes || [], source) })
+      return
+    }
+    up({ keywords: addUnique(prefs.keywords || [], KEYWORD_SUGGESTIONS) })
+  }, [activeTab, addUnique, filteredNaics, filteredPsc, prefs.keywords, prefs.naicsCodes, prefs.pscCodes, up])
+
+  const clearForActiveStepTwo = useCallback(() => {
+    if (activeTab === 'naics') {
+      up({ naicsCodes: [] })
+      return
+    }
+    if (activeTab === 'psc') {
+      up({ pscCodes: [] })
+      return
+    }
+    up({ keywords: [] })
+  }, [activeTab, up])
+
+  const randomForActiveStepTwo = useCallback(() => {
+    if (activeTab === 'naics') {
+      up({ naicsCodes: pickRandomSubset(NAICS_CODES.map(code => code.code), 4, 8) })
+      return
+    }
+    if (activeTab === 'psc') {
+      up({ pscCodes: pickRandomSubset(PSC_CODES.map(code => code.code), 4, 8) })
+      return
+    }
+    up({ keywords: pickRandomSubset(KEYWORD_SUGGESTIONS, 2, Math.min(5, KEYWORD_SUGGESTIONS.length)) })
+  }, [activeTab, up])
 
   if (status==='loading') return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#0f172a'}}>
@@ -484,20 +642,42 @@ export default function DashboardOnboardingPage() {
 
         {/* Setup guide */}
         <section className="rounded-2xl mb-3" style={{background:'#ffffff',border:'1px solid #bfdbfe',boxShadow:'0 2px 10px rgba(30,64,175,0.08)',padding:'12px 16px'}}>
-          <p style={{fontSize:14,fontWeight:900,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.08em',margin:'0 0 8px'}}>Quick setup guide</p>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:8}}>
-            <div style={{background:'#fff7ed',border:'1px solid #fdba74',borderRadius:10,padding:'9px 11px'}}>
-              <p style={{fontSize:12,fontWeight:900,color:'#c2410c',margin:0}}>1) Choose Set-Asides</p>
-              <p style={{fontSize:13,fontWeight:700,color:'#7c2d12',margin:'3px 0 0'}}>Default is all set-asides. Keep all or narrow to your certifications.</p>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+            <p style={{fontSize:14,fontWeight:900,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.08em',margin:0}}>Guided setup</p>
+            <div style={{display:'inline-flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:13,fontWeight:800,color:'#334155'}}>Step {guideStep + 1} of {GUIDE_STEPS.length}</span>
+              <button
+                type="button"
+                onClick={() => focusGuideStep(Math.min(guideStep + 1, GUIDE_STEPS.length - 1))}
+                style={{...S.orange,padding:'6px 12px',borderRadius:7,border:'none',fontSize:13,fontWeight:900,cursor:'pointer'}}
+              >
+                Next step
+              </button>
             </div>
-            <div style={{background:'#eef2ff',border:'1px solid #a5b4fc',borderRadius:10,padding:'9px 11px'}}>
-              <p style={{fontSize:12,fontWeight:900,color:'#3730a3',margin:0}}>2) Add NAICS / Services</p>
-              <p style={{fontSize:13,fontWeight:700,color:'#312e81',margin:'3px 0 0'}}>Search NAICS, PSC, or keywords so matches reflect your real work.</p>
-            </div>
-            <div style={{background:'#ecfeff',border:'1px solid #67e8f9',borderRadius:10,padding:'9px 11px'}}>
-              <p style={{fontSize:12,fontWeight:900,color:'#0e7490',margin:0}}>3) Confirm Location</p>
-              <p style={{fontSize:13,fontWeight:700,color:'#155e75',margin:'3px 0 0'}}>Default is all states. Narrow only if you serve specific regions.</p>
-            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(165px,1fr))',gap:8,marginTop:10}}>
+            {GUIDE_STEPS.map((item, idx) => {
+              const active = idx === guideStep
+              return (
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => focusGuideStep(idx)}
+                  style={{
+                    textAlign:'left',
+                    borderRadius:10,
+                    padding:'10px 11px',
+                    cursor:'pointer',
+                    border: active ? '2px solid #f97316' : '1px solid #bfdbfe',
+                    background: active ? '#fff7ed' : '#f8fbff',
+                    boxShadow: active ? '0 2px 10px rgba(249,115,22,0.16)' : 'none',
+                  }}
+                >
+                  <p style={{fontSize:12,fontWeight:900,color:active ? '#c2410c' : '#1d4ed8',margin:0}}>{idx + 1}. {item.title}</p>
+                  <p style={{fontSize:13,fontWeight:700,color:active ? '#7c2d12' : '#334155',margin:'3px 0 0'}}>{item.hint}</p>
+                </button>
+              )
+            })}
           </div>
         </section>
 
@@ -506,13 +686,27 @@ export default function DashboardOnboardingPage() {
         <div style={{display:'grid',gridTemplateColumns:'repeat(12,1fr)',gap:12,alignItems:'start'}}>
 
           {/* ── Step 1: Set-Asides ── */}
-          <div style={{gridColumn:'span 2',...card}}>
+          <div
+            ref={(el) => { sectionRefs.current[0] = el }}
+            onMouseEnter={() => setGuideStep(0)}
+            style={{gridColumn:'span 2',...card,border:guideStep===0?'2px solid #f97316':card.border}}
+          >
             <span style={badge('#f97316')}>Step 1</span>
             <p style={{fontSize:18,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Set-Asides</p>
             <p style={{fontSize:15,color:'#374151',fontWeight:700,marginBottom:9}}>Business certifications</p>
               <p style={{fontSize:12,color:'#334155',fontWeight:700,marginBottom:9,lineHeight:1.5,background:'#f8fafc',borderRadius:6,padding:'5px 8px',border:'1px solid #cbd5e1'}}>
                 💡 Hover any option to see its description
               </p>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:5,marginBottom:9}}>
+              <button type="button" onClick={()=>{up({setAsides:ALL_SET_ASIDES});setSetAsideOpen(false)}}
+                style={{...S.orange,padding:'6px 4px',borderRadius:6,border:'none',fontSize:12,fontWeight:900,cursor:'pointer'}}>All</button>
+              <button type="button" onClick={()=>{up({setAsides:[]});setSetAsideOpen(false)}}
+                style={{background:'#f1f5f9',color:'#475569',padding:'6px 4px',borderRadius:6,border:'1px solid #cbd5e1',fontSize:12,fontWeight:900,cursor:'pointer'}}>None</button>
+              <button type="button" onClick={applyRandomSetAsides}
+                style={{background:'#7c3aed',color:'#fff',padding:'6px 4px',borderRadius:6,border:'none',fontSize:12,fontWeight:900,cursor:'pointer'}}>Random</button>
+              <button type="button" onClick={()=>setSetAsideOpen(true)}
+                style={{background:'#e0f2fe',color:'#075985',padding:'6px 4px',borderRadius:6,border:'1px solid #7dd3fc',fontSize:12,fontWeight:900,cursor:'pointer'}}>Manual</button>
+            </div>
             <button onClick={()=>setSetAsideOpen(o=>!o)}
               style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 12px',borderRadius:8,border:'2px solid',borderColor:setAsideOpen?'#f97316':'#e2e8f0',background:'#f8fafc',cursor:'pointer',marginBottom:setAsideOpen?0:7}}>
               <span style={{fontSize:15,fontWeight:700,color:'#374151'}}>
@@ -531,6 +725,10 @@ export default function DashboardOnboardingPage() {
                     style={{...S.orange,fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>All</button>
                   <button onClick={()=>up({setAsides:[]})}
                     style={{background:'#f1f5f9',color:'#475569',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>None</button>
+                  <button onClick={applyRandomSetAsides}
+                    style={{background:'#7c3aed',color:'#fff',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>Random</button>
+                  <button onClick={()=>setSetAsideOpen(true)}
+                    style={{background:'#e0f2fe',color:'#075985',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'1px solid #7dd3fc',cursor:'pointer'}}>Manual</button>
                 </div>
                 <div style={{maxHeight:250,overflowY:'auto',padding:'5px 7px',display:'flex',flexDirection:'column',gap:3}}>
                   {SET_ASIDE_CODES.filter(c => typeof c.value === 'string' && c.value).map(code => (
@@ -560,11 +758,15 @@ export default function DashboardOnboardingPage() {
             )}
           </div>
 
-          {/* ── Steps 2 + 3 stacked in same 6 cols ── */}
-          <div style={{gridColumn:'span 6',display:'flex',flexDirection:'column',gap:12}}>
+          {/* ── Steps 2 + 3 stacked in center panel ── */}
+          <div style={{gridColumn:'span 5',display:'flex',flexDirection:'column',gap:12}}>
 
             {/* Step 2: Industry & Services */}
-            <div style={{...card,border:'2px solid #a5b4fc',background:'#f8faff'}}>
+            <div
+              ref={(el) => { sectionRefs.current[1] = el }}
+              onMouseEnter={() => setGuideStep(1)}
+              style={{...card,border:guideStep===1?'2px solid #f97316':'2px solid #a5b4fc',background:'#f8faff'}}
+            >
               <span style={badge('#4f46e5')}>Step 2</span>
               <p style={{fontSize:18,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Industry &amp; Services</p>
               <p style={{fontSize:15,color:'#374151',fontWeight:700,marginBottom:9}}>Search NAICS or PSC codes that describe your work</p>
@@ -591,52 +793,36 @@ export default function DashboardOnboardingPage() {
               </div>
 
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap',marginBottom:9}}>
-                <p style={{fontSize:12,fontWeight:900,color:'#334155',margin:0}}>Select from results or clear quickly:</p>
-                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  {activeTab==='naics' && (
-                    <>
-                      <button
-                        onClick={() => up({ naicsCodes: addUnique(prefs.naicsCodes || [], filteredNaics.map(code => code.code)) })}
-                        disabled={filteredNaics.length===0}
-                        style={{background:filteredNaics.length===0?'#64748b':'#4f46e5',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:filteredNaics.length===0?'not-allowed':'pointer',opacity:filteredNaics.length===0?0.75:1}}
-                      >
-                        Select all shown NAICS
-                      </button>
-                      <button
-                        onClick={() => up({ naicsCodes: [] })}
-                        disabled={(prefs.naicsCodes || []).length===0}
-                        style={{background:(prefs.naicsCodes || []).length===0?'#e2e8f0':'#334155',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:(prefs.naicsCodes || []).length===0?'not-allowed':'pointer',opacity:(prefs.naicsCodes || []).length===0?0.6:1}}
-                      >
-                        Clear NAICS
-                      </button>
-                    </>
-                  )}
-                  {activeTab==='psc' && (
-                    <>
-                      <button
-                        onClick={() => up({ pscCodes: addUnique(prefs.pscCodes || [], filteredPsc.map(code => code.code)) })}
-                        disabled={filteredPsc.length===0}
-                        style={{background:filteredPsc.length===0?'#64748b':'#0284c7',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:filteredPsc.length===0?'not-allowed':'pointer',opacity:filteredPsc.length===0?0.75:1}}
-                      >
-                        Select all shown PSC
-                      </button>
-                      <button
-                        onClick={() => up({ pscCodes: [] })}
-                        disabled={(prefs.pscCodes || []).length===0}
-                        style={{background:(prefs.pscCodes || []).length===0?'#e2e8f0':'#334155',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:(prefs.pscCodes || []).length===0?'not-allowed':'pointer',opacity:(prefs.pscCodes || []).length===0?0.6:1}}
-                      >
-                        Clear PSC
-                      </button>
-                    </>
-                  )}
-                  {activeTab==='keywords' && (
-                    <button
-                      onClick={() => { setKeywordInput(''); setShowKwResults(false) }}
-                      style={{background:'#7c3aed',color:'#fff',fontSize:12,fontWeight:900,padding:'5px 10px',border:'none',borderRadius:6,cursor:'pointer'}}
-                    >
-                      Clear keyword search
-                    </button>
-                  )}
+                <p style={{fontSize:12,fontWeight:900,color:'#334155',margin:0}}>Selection mode for this step:</p>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:6,maxWidth:460,width:'100%'}}>
+                  <button
+                    type="button"
+                    onClick={selectAllForActiveStepTwo}
+                    style={{background:'#4f46e5',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 8px',border:'none',borderRadius:6,cursor:'pointer'}}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearForActiveStepTwo}
+                    style={{background:'#334155',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 8px',border:'none',borderRadius:6,cursor:'pointer'}}
+                  >
+                    None
+                  </button>
+                  <button
+                    type="button"
+                    onClick={randomForActiveStepTwo}
+                    style={{background:'#7c3aed',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 8px',border:'none',borderRadius:6,cursor:'pointer'}}
+                  >
+                    Random
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowKwResults(activeTab === 'keywords')}
+                    style={{background:'#e0f2fe',color:'#075985',fontSize:12,fontWeight:900,padding:'6px 8px',border:'1px solid #7dd3fc',borderRadius:6,cursor:'pointer'}}
+                  >
+                    Manual
+                  </button>
                 </div>
               </div>
 
@@ -720,11 +906,25 @@ export default function DashboardOnboardingPage() {
               )}
             </div>
 
-            {/* Step 3: Location — sits BELOW Step 2 in the same 6-col span */}
-            <div style={card}>
+            {/* Step 3: Location — sits below Step 2 in the center panel */}
+            <div
+              ref={(el) => { sectionRefs.current[2] = el }}
+              onMouseEnter={() => setGuideStep(2)}
+              style={{...card,border:guideStep===2?'2px solid #f97316':card.border}}
+            >
               <span style={badge('#059669')}>Step 3</span>
               <p style={{fontSize:18,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Location</p>
               <p style={{fontSize:15,color:'#374151',fontWeight:700,marginBottom:9}}>States you can serve</p>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:5,marginBottom:9}}>
+                <button type="button" onClick={()=>{up({states:ALL_STATES});setStatesOpen(false)}}
+                  style={{background:'#059669',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 4px',border:'none',borderRadius:6,cursor:'pointer'}}>All</button>
+                <button type="button" onClick={()=>{up({states:[]});setStatesOpen(false)}}
+                  style={{background:'#334155',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 4px',border:'none',borderRadius:6,cursor:'pointer'}}>None</button>
+                <button type="button" onClick={applyRandomStates}
+                  style={{background:'#7c3aed',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 4px',border:'none',borderRadius:6,cursor:'pointer'}}>Random</button>
+                <button type="button" onClick={()=>setStatesOpen(true)}
+                  style={{background:'#e0f2fe',color:'#075985',fontSize:12,fontWeight:900,padding:'6px 4px',border:'1px solid #7dd3fc',borderRadius:6,cursor:'pointer'}}>Manual</button>
+              </div>
               <button onClick={()=>setStatesOpen(o=>!o)}
                 style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 12px',borderRadius:8,border:'2px solid',borderColor:statesOpen?'#059669':'#e2e8f0',background:'#f8fafc',cursor:'pointer',marginBottom:statesOpen?0:7}}>
                 <span style={{fontSize:15,fontWeight:700,color:'#374151'}}>
@@ -739,6 +939,10 @@ export default function DashboardOnboardingPage() {
                       style={{background:'#059669',color:'#fff',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>All</button>
                     <button onClick={()=>up({states:[]})}
                       style={{background:'#f1f5f9',color:'#475569',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>None</button>
+                    <button onClick={applyRandomStates}
+                      style={{background:'#7c3aed',color:'#fff',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'none',cursor:'pointer'}}>Random</button>
+                    <button onClick={()=>setStatesOpen(true)}
+                      style={{background:'#e0f2fe',color:'#075985',fontSize:13,fontWeight:900,padding:'4px 11px',borderRadius:5,border:'1px solid #7dd3fc',cursor:'pointer'}}>Manual</button>
                   </div>
                   {/* 6 cols so all states visible without deep scrolling */}
                   <div style={{maxHeight:200,overflowY:'auto',padding:'5px 7px'}}>
@@ -771,11 +975,32 @@ export default function DashboardOnboardingPage() {
           </div>
 
           {/* ── Step 4: Budget Range — promoted to right of Step 2 ── */}
-          <div style={{gridColumn:'span 2',...card}}>
+          <div
+            ref={(el) => { sectionRefs.current[3] = el }}
+            onMouseEnter={() => setGuideStep(3)}
+            style={{gridColumn:'span 2',...card,border:guideStep===3?'2px solid #f97316':card.border}}
+          >
             <span style={badge('#7c3aed')}>Step 4</span>
             <p style={{fontSize:18,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Budget Range</p>
             <p style={{fontSize:15,color:'#374151',fontWeight:700,marginBottom:9}}>Target contract value</p>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:5,marginBottom:9}}>
+              <button type="button" onClick={()=>up({contractSizeMin:undefined,contractSizeMax:undefined})}
+                style={{background:'#7c3aed',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 4px',border:'none',borderRadius:6,cursor:'pointer'}}>All</button>
+              <button type="button" onClick={()=>up({contractSizeMin:undefined,contractSizeMax:undefined})}
+                style={{background:'#334155',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 4px',border:'none',borderRadius:6,cursor:'pointer'}}>None</button>
+              <button type="button" onClick={applyRandomBudget}
+                style={{background:'#f97316',color:'#fff',fontSize:12,fontWeight:900,padding:'6px 4px',border:'none',borderRadius:6,cursor:'pointer'}}>Random</button>
+              <button type="button"
+                style={{background:'#e0f2fe',color:'#075985',fontSize:12,fontWeight:900,padding:'6px 4px',border:'1px solid #7dd3fc',borderRadius:6,cursor:'pointer'}}>
+                Manual
+              </button>
+            </div>
+            <p style={{fontSize:12,fontWeight:800,color:'#475569',margin:'0 0 10px'}}>
+              {(prefs.contractSizeMin===undefined && prefs.contractSizeMax===undefined) ? 'Any budget selected' : 'Custom budget filter selected'}
+            </p>
             <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:11}}>
+              <Chip key="Any budget" label="Any budget" selected={prefs.contractSizeMin===undefined && prefs.contractSizeMax===undefined}
+                onClick={()=>up({contractSizeMin:undefined,contractSizeMax:undefined})}/>
               {CONTRACT_SIZES.map(sz=>(
                 <Chip key={sz.label} label={sz.label} selected={prefs.contractSizeMin===sz.min}
                   onClick={()=>up({contractSizeMin:sz.min,contractSizeMax:sz.max})}/>
@@ -798,35 +1023,46 @@ export default function DashboardOnboardingPage() {
           </div>
 
           {/* ── Step 5: Review CTA ── */}
-          <div style={{gridColumn:'span 2',...card}}>
+          <div
+            ref={(el) => { sectionRefs.current[4] = el }}
+            onMouseEnter={() => setGuideStep(4)}
+            style={{gridColumn:'span 3',...card,border:guideStep===4?'2px solid #f97316':card.border,padding:'16px 14px',minHeight:360}}
+          >
             <span style={badge('#f97316')}>Step 5</span>
-            <p style={{fontSize:18,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Ready?</p>
-            <p style={{fontSize:15,color:'#374151',fontWeight:700,marginBottom:12,lineHeight:1.5}}>Review your selections and go live.</p>
+            <p style={{fontSize:24,fontWeight:900,color:'#0f172a',margin:'0 0 2px'}}>Ready to launch?</p>
+            <p style={{fontSize:16,color:'#374151',fontWeight:700,marginBottom:14,lineHeight:1.5}}>
+              Review your feed profile and go live with the best-matching opportunities.
+            </p>
 
-            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:7,marginBottom:12}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8,marginBottom:14}}>
               {[
                 {label:'Set-Asides',n:prefs.setAsides?.length||0},
                 {label:'NAICS',     n:prefs.naicsCodes?.length||0},
                 {label:'PSC Codes', n:prefs.pscCodes?.length||0},
                 {label:'States',    n:prefs.states?.length||0},
               ].map(({label,n})=>(
-                <div key={label} style={{background:n>0?'#f97316':'#334155',border:'none',borderRadius:8,padding:'9px 5px',textAlign:'center'}}>
-                  <p style={{fontSize:22,fontWeight:900,color:'#fff',margin:0}}>{n}</p>
-                  <p style={{fontSize:13,color:'#fff',fontWeight:700,marginTop:2,opacity:0.85}}>{label}</p>
+                <div key={label} style={{background:n>0?'#f97316':'#334155',border:'none',borderRadius:10,padding:'12px 8px',textAlign:'center'}}>
+                  <p style={{fontSize:28,fontWeight:900,color:'#fff',margin:0,lineHeight:1}}>{n}</p>
+                  <p style={{fontSize:13,color:'#fff',fontWeight:800,marginTop:4,opacity:0.9,letterSpacing:'0.02em'}}>{label}</p>
                 </div>
               ))}
             </div>
+            <div style={{background:'#f8fafc',border:'2px solid #bfdbfe',borderRadius:10,padding:'10px 12px',marginBottom:12}}>
+              <p style={{fontSize:12,fontWeight:900,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.08em',margin:'0 0 4px'}}>Contract Budget Target</p>
+              <p style={{fontSize:17,fontWeight:900,color:'#0f172a',margin:0}}>{budgetSummary.primary}</p>
+              <p style={{fontSize:13,fontWeight:700,color:'#334155',margin:'2px 0 0'}}>{budgetSummary.secondary}</p>
+            </div>
 
             <button onClick={()=>setShowModal(true)}
-              style={{...S.orange,width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',borderRadius:8,fontWeight:900,fontSize:15,border:'none',cursor:'pointer',boxShadow:'0 2px 8px rgba(249,115,22,0.25)',marginBottom:7}}>
+              style={{...S.orange,width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'12px',borderRadius:10,fontWeight:900,fontSize:17,border:'none',cursor:'pointer',boxShadow:'0 4px 14px rgba(249,115,22,0.3)',marginBottom:8}}>
               Review &amp; Confirm <ArrowRight style={{width:14,height:14}}/>
             </button>
             <button onClick={()=>{ void finalizePreferences(nextPath) }}
-              style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',padding:'8px',borderRadius:8,fontWeight:700,fontSize:14,border:'2px solid #e2e8f0',background:'#f8fafc',color:'#475569',cursor:'pointer',marginBottom:4}}>
+              style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',padding:'10px',borderRadius:10,fontWeight:700,fontSize:15,border:'2px solid #e2e8f0',background:'#f8fafc',color:'#475569',cursor:'pointer',marginBottom:5}}>
               Save &amp; go to Dashboard
             </button>
             <button onClick={()=>{ void finalizePreferences(nextPath) }}
-              style={{width:'100%',textAlign:'center',padding:'5px',fontSize:13,fontWeight:700,color:'#334155',background:'none',border:'none',cursor:'pointer'}}>
+              style={{width:'100%',textAlign:'center',padding:'6px',fontSize:14,fontWeight:700,color:'#334155',background:'none',border:'none',cursor:'pointer'}}>
               Skip for now
             </button>
           </div>
@@ -849,15 +1085,15 @@ export default function DashboardOnboardingPage() {
       {/* ── Confirmation Modal ── */}
       {showModal&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200,padding:16}}>
-          <div style={{background:'#fff',borderRadius:18,boxShadow:'0 25px 60px rgba(0,0,0,0.3)',maxWidth:620,width:'100%',maxHeight:'90vh',overflowY:'auto',border:'1px solid #e2e8f0'}}>
+          <div style={{background:'#fff',borderRadius:18,boxShadow:'0 25px 60px rgba(0,0,0,0.3)',maxWidth:1100,width:'min(96vw, 1100px)',maxHeight:'92vh',overflowY:'auto',border:'1px solid #e2e8f0'}}>
             <div style={{background:'#0f172a',color:'#fff',padding:'16px 22px',borderRadius:'18px 18px 0 0',borderBottom:'4px solid #f97316',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0}}>
               <div>
                 <p style={{fontSize:20,fontWeight:900,margin:0}}>Confirm Your Preferences</p>
                 <p style={{fontSize:14,color:'#fb923c',fontWeight:700,marginTop:2}}>Review your selections before saving</p>
               </div>
-              <button onClick={()=>setShowModal(false)} style={{background:'none',border:'none',color:'#334155',cursor:'pointer'}}><X style={{width:19,height:19}}/></button>
+              <button onClick={()=>setShowModal(false)} style={{background:'none',border:'none',color:'#ffffff',cursor:'pointer'}}><X style={{width:19,height:19}}/></button>
             </div>
-            <div style={{padding:22,display:'flex',flexDirection:'column',gap:16}}>
+            <div style={{padding:26,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:18,alignItems:'start'}}>
               {(prefs.setAsides||[]).length>0&&(
                 <div>
                   <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Business Classifications</p>
@@ -890,16 +1126,15 @@ export default function DashboardOnboardingPage() {
                   </div>
                 </div>
               )}
-              {prefs.contractSizeMin!==undefined&&(
-                <div>
-                  <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Contract Size Range</p>
-                  <span style={{...S.orange,display:'inline-block',padding:'7px 13px',borderRadius:7,fontSize:15,fontWeight:900,border:'none'}}>
-                    ${prefs.contractSizeMin.toLocaleString()} – {prefs.contractSizeMax?`$${prefs.contractSizeMax.toLocaleString()}`:'Unlimited'}
-                  </span>
-                </div>
-              )}
-              {total===0&&<p style={{color:'#334155',textAlign:'center',padding:'22px 0',fontSize:15,fontWeight:700}}>No preferences selected yet.</p>}
-              <div style={{borderTop:'1px solid #e2e8f0',paddingTop:14,display:'flex',flexWrap:'wrap',justifyContent:'flex-end',gap:7}}>
+              <div>
+                <p style={{fontSize:13,fontWeight:900,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>Contract Size Range</p>
+                <span style={{...S.orange,display:'inline-block',padding:'7px 13px',borderRadius:7,fontSize:15,fontWeight:900,border:'none'}}>
+                  {budgetSummary.primary}
+                </span>
+                <p style={{fontSize:13,fontWeight:700,color:'#334155',margin:'6px 0 0'}}>{budgetSummary.secondary}</p>
+              </div>
+              {total===0&&<p style={{color:'#334155',textAlign:'center',padding:'22px 0',fontSize:15,fontWeight:700,gridColumn:'1 / -1'}}>No preferences selected yet.</p>}
+              <div style={{gridColumn:'1 / -1',borderTop:'1px solid #e2e8f0',paddingTop:14,display:'flex',flexWrap:'wrap',justifyContent:'flex-end',gap:7}}>
                 <button onClick={()=>setShowModal(false)} style={{padding:'9px 18px',borderRadius:8,border:'2px solid #e2e8f0',background:'#fff',color:'#374151',fontWeight:700,fontSize:15,cursor:'pointer'}}>Back to Editing</button>
                 <button onClick={async()=>{
                   setShowModal(false)

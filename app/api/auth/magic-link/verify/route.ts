@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { resolveAuthBaseUrl } from '@/lib/url-safety'
 
 export const runtime = 'nodejs'
 
@@ -12,7 +13,7 @@ function sha256(s: string) {
 // GET /api/auth/magic-link/verify?token=xxx
 // Called when user clicks the email link — signs them in and redirects
 export async function GET(req: NextRequest) {
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://precisegovcon.com'
+  const baseUrl = resolveAuthBaseUrl(req)
   const errorUrl = `${baseUrl}/login?error=invalid-link`
 
   try {

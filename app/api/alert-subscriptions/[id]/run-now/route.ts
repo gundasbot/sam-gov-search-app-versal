@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { sendAlertEmail } from '@/lib/email'
 import { generateEnhancedCSV } from '@/lib/csv-export-enhanced'
 import { generateExcel, generateExcelBinary, generateTXT, generateXLSB } from '@/lib/export'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 import { randomBytes } from 'crypto'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -327,20 +328,25 @@ export async function POST(
         throw new Error('Missing SAM.gov API key (set SAM_GOV_API_KEY, SAM_API_KEY, or SAMGOVAPIKEY in .env.local)')
       }
 
-      const samResponse = await fetch(samUrl.toString(), {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(30000),
-      })
+      const samQueryKey = logQuery.toString()
+      const samData = await coalesceInFlight<any>(
+        `sam:alert-run-now:${samQueryKey}`,
+        async () => {
+          const samResponse = await fetch(samUrl.toString(), {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(30000),
+          })
 
-      if (!samResponse.ok) {
-        const errText = await samResponse.text()
-        console.error('SAM.gov error:', errText)
-        throw new Error(`SAM.gov ${samResponse.status}: ${samResponse.statusText}`)
-      }
-
-      const samData = await samResponse.json()
+          if (!samResponse.ok) {
+            const errText = await samResponse.text()
+            console.error('SAM.gov error:', errText)
+            throw new Error(`SAM.gov ${samResponse.status}: ${samResponse.statusText}`)
+          }
+          return await samResponse.json()
+        }
+      )
       opportunities = samData.opportunitiesData || []
       resultCount = opportunities.length
       console.log(`✅ SAM.gov returned ${resultCount} results`)

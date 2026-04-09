@@ -1,8 +1,32 @@
 //C:\Users\owner\Documents\sam-gov-search-app\app\api\analytics\solicitations\route
 
 import { NextResponse } from 'next/server'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 export const runtime = 'nodejs'
+
+// ─── In-process cache to protect SAM.gov daily quota ─────────────────────────
+const ANALYTICS_CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const ANALYTICS_CACHE_LIMIT = 40
+const ANALYTICS_CACHE = new Map<string, { payload: any; expiresAt: number }>()
+
+function getAnalyticsCache(key: string) {
+  const hit = ANALYTICS_CACHE.get(key)
+  if (!hit) return null
+  if (Date.now() > hit.expiresAt) {
+    ANALYTICS_CACHE.delete(key)
+    return null
+  }
+  return hit.payload
+}
+
+function setAnalyticsCache(key: string, payload: any) {
+  if (ANALYTICS_CACHE.size >= ANALYTICS_CACHE_LIMIT) {
+    const oldest = ANALYTICS_CACHE.keys().next().value
+    if (oldest) ANALYTICS_CACHE.delete(oldest)
+  }
+  ANALYTICS_CACHE.set(key, { payload, expiresAt: Date.now() + ANALYTICS_CACHE_TTL_MS })
+}
 
 type Period = 'today' | 'week' | 'month' | 'year'
 
@@ -161,35 +185,37 @@ async function samSearch(params: {
   url.searchParams.set('offset', String(params.offset))
   // Note: request-side status filters vary by environment; we filter for active notices below when the field is present.
 
-  const res = await fetch(url.toString(), {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    // Reduce accidental caching in dev; CDN caching is added in response headers.
-    cache: 'no-store',
+  const requestKey = `sam:analytics:solicitations:${url.toString().replace(/api_key=[^&]+/, 'api_key=KEY')}`
+  return coalesceInFlight<any>(requestKey, async () => {
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+
+    const text = await res.text()
+    let json: any = null
+    try {
+      json = text ? JSON.parse(text) : null
+    } catch {
+      json = null
+    }
+
+    if (!res.ok) {
+      const msg =
+        json?.error?.message ||
+        json?.message ||
+        json?.error ||
+        (text && text.length < 400 ? text : `SAM.gov API error (HTTP ${res.status})`)
+      throw new Error(msg)
+    }
+
+    if (!json || typeof json !== 'object') {
+      throw new Error('SAM.gov API returned non-JSON or empty response')
+    }
+
+    return json
   })
-
-  const text = await res.text()
-  let json: any = null
-  try {
-    json = text ? JSON.parse(text) : null
-  } catch {
-    json = null
-  }
-
-  if (!res.ok) {
-    const msg =
-      json?.error?.message ||
-      json?.message ||
-      json?.error ||
-      (text && text.length < 400 ? text : `SAM.gov API error (HTTP ${res.status})`)
-    throw new Error(msg)
-  }
-
-  if (!json || typeof json !== 'object') {
-    throw new Error('SAM.gov API returned non-JSON or empty response')
-  }
-
-  return json
 }
 
 function topN(map: Record<string, number>, n = 10) {
@@ -217,8 +243,23 @@ export async function GET(req: Request) {
 
   const maxRecords = Math.min(Math.max(Number(searchParams.get('maxRecords') || 5000), 1000), 20000)
   const sampleLimit = Math.min(Math.max(Number(searchParams.get('sampleLimit') || 12), 5), 50)
+  const refresh = ['1', 'true', 'yes'].includes((searchParams.get('refresh') || '').toLowerCase())
 
   const now = new Date()
+  const cacheDay = mmddyyyy(now, 'America/New_York')
+  const cacheKey = `period=${selected}|max=${maxRecords}|sample=${sampleLimit}|day=${cacheDay}`
+  if (!refresh) {
+    const cached = getAnalyticsCache(cacheKey)
+    if (cached) {
+      return new NextResponse(JSON.stringify({ ...cached, cached: true, source: 'cache' }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 's-maxage=60, stale-while-revalidate=300',
+        },
+      })
+    }
+  }
 
   const periods: Period[] = ['today', 'week', 'month', 'year']
 
@@ -327,6 +368,8 @@ export async function GET(req: Request) {
           : 'Breakdowns cover all records returned for the selected period.',
       },
     }
+
+    setAnalyticsCache(cacheKey, payload)
 
     return new NextResponse(JSON.stringify(payload), {
       status: 200,

@@ -744,6 +744,43 @@ select:focus-visible {
   font-size: 1.25rem !important;
 }
 
+/* Insights page: enforce Aptos typography + larger readable text */
+.pg-insights-aptos,
+.pg-insights-aptos * {
+  font-family: Aptos, Calibri, "Noto Sans", "Segoe UI", sans-serif !important;
+}
+
+.pg-insights-aptos {
+  font-size: 110% !important;
+}
+
+.pg-insights-aptos .text-xs { font-size: calc(0.75rem * 1.1) !important; }
+.pg-insights-aptos .text-sm { font-size: calc(0.875rem * 1.1) !important; }
+.pg-insights-aptos .text-base { font-size: calc(1rem * 1.1) !important; }
+.pg-insights-aptos .text-lg { font-size: calc(1.125rem * 1.1) !important; }
+.pg-insights-aptos .text-xl { font-size: calc(1.25rem * 1.1) !important; }
+.pg-insights-aptos .text-2xl { font-size: calc(1.5rem * 1.1) !important; }
+.pg-insights-aptos .text-3xl { font-size: calc(1.875rem * 1.1) !important; }
+.pg-insights-aptos .text-4xl { font-size: calc(2.25rem * 1.1) !important; }
+.pg-insights-aptos .text-\[16px\] { font-size: calc(16px * 1.1) !important; }
+.pg-insights-aptos .sm\:text-\[17px\] { font-size: calc(17px * 1.1) !important; }
+
+/* Insights hero: force solid high-contrast text regardless of global utility overrides */
+.pg-insights-hero .insights-hero-title {
+  color: #0f172a !important;
+}
+
+.pg-insights-hero .insights-hero-subtitle {
+  color: #334155 !important;
+}
+
+.pg-insights-hero .bg-orange-600,
+.pg-insights-hero .bg-orange-600 *,
+.pg-insights-hero .bg-orange-700,
+.pg-insights-hero .bg-orange-700 * {
+  color: #ffffff !important;
+}
+
 /* Support page: keep readability while preserving structure-heavy existing markup */
 .pg-support-modern [class*="text-white/70"],
 .pg-support-modern [class*="text-white/65"],

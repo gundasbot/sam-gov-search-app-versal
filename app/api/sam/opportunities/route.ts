@@ -1,6 +1,7 @@
 // app/api/sam/opportunities/route.ts
 // ✅ FIX: Date format normalization — accepts any format, always sends MM/DD/YYYY to SAM.gov
 import { NextResponse } from 'next/server'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -12,9 +13,9 @@ const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search'
 const CACHE = new Map<string, { data: any; expiresAt: number }>()
 const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes — SAM.gov data rarely changes more often than this
 
-// ── Per-key cooldown: prevents hammering the same query even after cache clear ──
-// Minimum gap between live SAM.gov fetches for the same query = 60 seconds
-const FETCH_COOLDOWN_MS = 60 * 1000
+// ── Per-key cooldown: prevents hammering the same query from repeated refreshes ──
+// Minimum gap between live SAM.gov fetches for the same query = 10 minutes
+const FETCH_COOLDOWN_MS = 10 * 60 * 1000
 const LAST_FETCH = new Map<string, number>()
 
 function isOnCooldown(key: string): boolean {
@@ -43,13 +44,6 @@ function setCache(key: string, data: any) {
     if (firstKey) CACHE.delete(firstKey)
   }
   CACHE.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS })
-}
-
-// ✅ Force-clear the in-memory cache (called by ?refresh=true)
-// Does NOT reset the cooldown — prevents rapid re-fetching after clear
-function clearCache() {
-  CACHE.clear()
-  console.log('🗑️ SAM cache cleared')
 }
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
@@ -171,11 +165,10 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
 
-    // ✅ NEW: Support ?refresh=true to bust the server-side cache
-    const refreshParam = searchParams.get('refresh');
-    if (refreshParam === 'true' || refreshParam === '1') {
-      clearCache()
-    }
+    // ?refresh=true bypasses cache for this request key only.
+    // It no longer clears the full in-process cache map.
+    const refreshParam = (searchParams.get('refresh') || '').toLowerCase()
+    const forceLiveRefresh = refreshParam === 'true' || refreshParam === '1'
 
     // ── Pagination ──────────────────────────────────────────────────────────
     const requestedLimit = Number(searchParams.get('limit') || 20)
@@ -229,115 +222,134 @@ export async function GET(req: Request) {
 
     // ── Check cache ──────────────────────────────────────────────────────────
     const cached = getCached(cacheKey)
-    if (cached) {
+    if (cached && !forceLiveRefresh) {
       console.log('⚡ SAM cache HIT:', cacheKey.substring(0, 80))
       return NextResponse.json({ ...cached, cached: true }, { status: 200, headers: NO_CACHE_HEADERS })
     }
 
-    // ── Cooldown guard: if this exact query was fetched within the last 60s,
+    // ── Cooldown guard: if this exact query was fetched recently,
     // return a 429 instead of hammering SAM.gov (e.g. rapid Refresh clicks) ──
     if (isOnCooldown(cacheKey)) {
       const secondsLeft = Math.ceil((FETCH_COOLDOWN_MS - (Date.now() - (LAST_FETCH.get(cacheKey) ?? 0))) / 1000)
       console.warn(`⏱️ SAM rate-limit cooldown: ${secondsLeft}s remaining for this query`)
+      if (cached) {
+        return NextResponse.json(
+          {
+            ...cached,
+            cached: true,
+            refreshDeferred: true,
+            message: `Using cached data. Next live refresh available in ${secondsLeft}s.`,
+          },
+          { status: 200, headers: { ...NO_CACHE_HEADERS, 'Retry-After': String(secondsLeft) } }
+        )
+      }
       return NextResponse.json(
         { ok: false, error: 'rate_limited', message: `Please wait ${secondsLeft}s before refreshing again.`, retryAfter: secondsLeft },
         { status: 429, headers: { ...NO_CACHE_HEADERS, 'Retry-After': String(secondsLeft) } }
       )
     }
 
-    const apiUrl = `${SAM_BASE_URL}?${params.toString()}`
-    console.log('📡 SAM.gov fetch (limit=%d):', limit, apiUrl.replace(SAM_API_KEY, 'KEY'))
-    markFetched(cacheKey)
+    const liveOutcome = await coalesceInFlight<
+      | { kind: 'success'; result: any }
+      | { kind: 'error'; status: number; payload: any }
+    >(`sam:opportunities:${cacheKey}`, async () => {
+      const apiUrl = `${SAM_BASE_URL}?${params.toString()}`
+      console.log('📡 SAM.gov fetch (limit=%d):', limit, apiUrl.replace(SAM_API_KEY, 'KEY'))
+      markFetched(cacheKey)
 
-    // ── Fetch without timeout ────────────────────────────────────────────────
-    const response = await fetch(apiUrl, {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    })
+      const response = await fetch(apiUrl, {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      })
 
-    if (!response.ok) {
-      const text = await response.text();
-      const isSuspended = response.status === 500 && /SUSPENDED/i.test(text);
-      const is504 = response.status === 504 || text.includes('Gateway Time-out');
+      if (!response.ok) {
+        const text = await response.text()
+        const isSuspended = response.status === 500 && /SUSPENDED/i.test(text)
+        const is504 = response.status === 504 || text.includes('Gateway Time-out')
 
-      console.error('❌ SAM.gov API ERROR');
-      console.error(`Status: ${response.status}`);
-      console.error(`StatusText: ${response.statusText}`);
-      console.error(`URL: ${apiUrl.replace(SAM_API_KEY, 'KEY')}`);
-      console.error('Headers:', Object.fromEntries(response.headers.entries()));
-      console.error('Response Body:', text);
-      if (is504) {
-        console.error('504 Gateway Timeout detected. Try reducing the limit, checking your API key, or contacting SAM.gov support.');
+        console.error('❌ SAM.gov API ERROR')
+        console.error(`Status: ${response.status}`)
+        console.error(`StatusText: ${response.statusText}`)
+        console.error(`URL: ${apiUrl.replace(SAM_API_KEY, 'KEY')}`)
+        console.error('Headers:', Object.fromEntries(response.headers.entries()))
+        console.error('Response Body:', text)
+        if (is504) {
+          console.error('504 Gateway Timeout detected. Try reducing the limit, checking your API key, or contacting SAM.gov support.')
+        }
+
+        return {
+          kind: 'error' as const,
+          status: is504 ? 504 : isSuspended ? 503 : response.status,
+          payload: {
+            ok: false,
+            upstream: 'sam.gov',
+            suspended: isSuspended,
+            timedOut: is504,
+            message: is504
+              ? 'SAM.gov timed out. Try a smaller date range or add more search filters.'
+              : isSuspended
+                ? 'SAM.gov is temporarily unavailable.'
+                : 'SAM.gov request failed',
+            details: text.slice(0, 300),
+          },
+        }
       }
 
-      return NextResponse.json(
-        {
-          ok: false,
-          upstream: 'sam.gov',
-          suspended: isSuspended,
-          timedOut: is504,
-          message: is504
-            ? 'SAM.gov timed out. Try a smaller date range or add more search filters.'
-            : isSuspended
-              ? 'SAM.gov is temporarily unavailable.'
-              : 'SAM.gov request failed',
-          details: text.slice(0, 300),
-        },
-        { status: is504 ? 504 : isSuspended ? 503 : response.status, headers: NO_CACHE_HEADERS }
-      )
-    }
+      const data = await response.json()
+      const opportunities = (data.opportunitiesData || []).map((opp: any) => {
+        const { code: setAsideCode, description: setAsideDesc } = normalizeSetAside(
+          opp.typeOfSetAside,
+          opp.typeOfSetAsideDescription
+        )
 
-    const data = await response.json()
+        return {
+          noticeId:             opp.noticeId ?? '',
+          title:                opp.title ?? 'Untitled',
+          solicitationNumber:   opp.solicitationNumber ?? opp.solicitation_number ?? opp.noticeId ?? '',
+          department:           opp.fullParentPathName?.split(':')?.[0]?.trim()
+                                ?? opp.departmentName ?? opp.department ?? 'Unknown',
+          fullParentPathName:   opp.fullParentPathName ?? '',
+          postedDate:           opp.postedDate ?? opp.publishDate ?? null,
+          updatedPostedDate:    opp.updatedPostedDate ?? null,
+          responseDeadLine:     opp.responseDeadLine ?? opp.responseDate ?? null,
+          responseDeadline:     opp.responseDeadLine ?? opp.responseDate ?? null,
+          updatedResponseDeadLine: opp.updatedResponseDeadLine ?? null,
+          typeOfSetAside:            setAsideCode,
+          typeOfSetAsideDescription: setAsideDesc,
+          setAside:                  setAsideCode,
+          naicsCode:  Array.isArray(opp.naics) ? opp.naics[0] : (opp.naicsCode ?? opp.naics ?? null),
+          naics:      Array.isArray(opp.naics) ? opp.naics.join(', ') : (opp.naicsCode ?? opp.naics ?? null),
+          classificationCode: opp.classificationCode ?? null,
+          type:               opp.type ?? opp.baseType ?? null,
+          active:             opp.active ?? 'Yes',
+          uiLink:             opp.uiLink ?? `https://sam.gov/opp/${opp.noticeId}/view`,
+          officeAddress:      opp.officeAddress ?? null,
+          placeOfPerformance: opp.placeOfPerformance ?? null,
+          pointOfContact:     Array.isArray(opp.pointOfContact) ? opp.pointOfContact : [],
+          organizationType:   opp.organizationType ?? null,
+        }
+      })
 
-    // ── Normalize opportunities ───────────────────────────────────────────────
-    const opportunities = (data.opportunitiesData || []).map((opp: any) => {
-      const { code: setAsideCode, description: setAsideDesc } = normalizeSetAside(
-        opp.typeOfSetAside,
-        opp.typeOfSetAsideDescription
-      )
-
-      return {
-        noticeId:             opp.noticeId ?? '',
-        title:                opp.title ?? 'Untitled',
-        solicitationNumber:   opp.solicitationNumber ?? opp.solicitation_number ?? opp.noticeId ?? '',
-        department:           opp.fullParentPathName?.split(':')?.[0]?.trim()
-                               ?? opp.departmentName ?? opp.department ?? 'Unknown',
-        fullParentPathName:   opp.fullParentPathName ?? '',
-        postedDate:           opp.postedDate ?? opp.publishDate ?? null,
-        updatedPostedDate:    opp.updatedPostedDate ?? null,
-        responseDeadLine:     opp.responseDeadLine ?? opp.responseDate ?? null,
-        responseDeadline:     opp.responseDeadLine ?? opp.responseDate ?? null,
-        updatedResponseDeadLine: opp.updatedResponseDeadLine ?? null,
-        typeOfSetAside:            setAsideCode,
-        typeOfSetAsideDescription: setAsideDesc,
-        setAside:                  setAsideCode,
-        naicsCode:  Array.isArray(opp.naics) ? opp.naics[0] : (opp.naicsCode ?? opp.naics ?? null),
-        naics:      Array.isArray(opp.naics) ? opp.naics.join(', ') : (opp.naicsCode ?? opp.naics ?? null),
-        classificationCode: opp.classificationCode ?? null,
-        type:               opp.type ?? opp.baseType ?? null,
-        active:             opp.active ?? 'Yes',
-        uiLink:             opp.uiLink ?? `https://sam.gov/opp/${opp.noticeId}/view`,
-        officeAddress:      opp.officeAddress ?? null,
-        placeOfPerformance: opp.placeOfPerformance ?? null,
-        pointOfContact:     Array.isArray(opp.pointOfContact) ? opp.pointOfContact : [],
-        organizationType:   opp.organizationType ?? null,
+      const result = {
+        ok:           true,
+        totalRecords: data.totalRecords ?? 0,
+        count:        opportunities.length,
+        limit,
+        offset,
+        opportunities,
+        fetchedAt:    new Date().toISOString(),
+        cached:       false,
       }
+
+      setCache(cacheKey, result)
+      return { kind: 'success' as const, result }
     })
 
-    const result = {
-      ok:           true,
-      totalRecords: data.totalRecords ?? 0,
-      count:        opportunities.length,
-      limit,
-      offset,
-      opportunities,
-      fetchedAt:    new Date().toISOString(),
-      cached:       false,
+    if (liveOutcome.kind === 'error') {
+      return NextResponse.json(liveOutcome.payload, { status: liveOutcome.status, headers: NO_CACHE_HEADERS })
     }
 
-    setCache(cacheKey, result)
-
-    return NextResponse.json(result, { status: 200, headers: NO_CACHE_HEADERS })
+    return NextResponse.json(liveOutcome.result, { status: 200, headers: NO_CACHE_HEADERS })
 
   } catch (e: any) {
     const isAbort = e?.name === 'AbortError'

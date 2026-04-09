@@ -351,7 +351,11 @@ function SignInContent() {
 
   async function handleGoogleOAuth() {
     setLoading(true)
-    await signIn('google', { callbackUrl: safeCallbackUrl })
+    const callback =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}${safeCallbackUrl}`
+        : safeCallbackUrl
+    await signIn('google', { callbackUrl: callback })
   }
 
   async function handleResendOrOTC() {

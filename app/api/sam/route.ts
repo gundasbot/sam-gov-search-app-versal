@@ -3,10 +3,62 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 const SAM_UPSTREAM_BASE =
   process.env.SAM_UPSTREAM_BASE ||
   'https://api.sam.gov/prod/opportunities/v2/search'
+
+// ─── In-process per-query cache and cooldown ─────────────────────────────────
+// Goal: protect SAM.gov daily quota by reusing identical query results and
+// preventing rapid repeated fetches for the same search key.
+const SAM_CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const SAM_FETCH_COOLDOWN_MS = 20 * 1000 // 20 seconds
+const MAX_CACHE_ENTRIES = 200
+
+const SAM_QUERY_CACHE = new Map<string, { payload: any; expiresAt: number }>()
+const SAM_QUERY_LAST_FETCH = new Map<string, number>()
+
+function normalizeCacheKey(params: URLSearchParams): string {
+  const entries = Array.from(params.entries())
+    .filter(([k]) => !['api_key', 'refresh', '_', 't', 'ts'].includes(k))
+    .sort(([a], [b]) => a.localeCompare(b))
+  return entries.map(([k, v]) => `${k}=${v}`).join('&')
+}
+
+function getCachedPayload(cacheKey: string): any | null {
+  const hit = SAM_QUERY_CACHE.get(cacheKey)
+  if (!hit) return null
+  if (Date.now() > hit.expiresAt) {
+    SAM_QUERY_CACHE.delete(cacheKey)
+    return null
+  }
+  return hit.payload
+}
+
+function setCachedPayload(cacheKey: string, payload: any) {
+  if (SAM_QUERY_CACHE.size >= MAX_CACHE_ENTRIES) {
+    const oldest = SAM_QUERY_CACHE.keys().next().value
+    if (oldest) SAM_QUERY_CACHE.delete(oldest)
+  }
+  SAM_QUERY_CACHE.set(cacheKey, { payload, expiresAt: Date.now() + SAM_CACHE_TTL_MS })
+}
+
+function getCooldownSeconds(cacheKey: string): number {
+  const last = SAM_QUERY_LAST_FETCH.get(cacheKey)
+  if (!last) return 0
+  const delta = Date.now() - last
+  if (delta >= SAM_FETCH_COOLDOWN_MS) return 0
+  return Math.ceil((SAM_FETCH_COOLDOWN_MS - delta) / 1000)
+}
+
+function markFetch(cacheKey: string) {
+  SAM_QUERY_LAST_FETCH.set(cacheKey, Date.now())
+  if (SAM_QUERY_LAST_FETCH.size > 500) {
+    const oldest = SAM_QUERY_LAST_FETCH.keys().next().value
+    if (oldest) SAM_QUERY_LAST_FETCH.delete(oldest)
+  }
+}
 
 function pad2(n: number) {
   return String(n).padStart(2, '0')
@@ -369,6 +421,12 @@ export async function GET(req: NextRequest) {
 
     // Build upstream SAM.gov URL
     const requestUrl = new URL(req.url)
+    const refresh = ['1', 'true', 'yes'].includes(
+      (requestUrl.searchParams.get('refresh') || '').toLowerCase()
+    )
+    if (refresh) {
+      requestUrl.searchParams.delete('refresh')
+    }
     const upstreamUrl = new URL(SAM_UPSTREAM_BASE)
 
     // Map frontend parameters to SAM.gov API parameters
@@ -392,90 +450,99 @@ export async function GET(req: NextRequest) {
     // ✅ Ensure required postedFrom/postedTo and correct date format
     ensurePostedDateRange(upstreamUrl.searchParams)
 
-    // 🔍 Log the exact URL for debugging
-    console.log('📤 SAM.gov params:', Array.from(upstreamUrl.searchParams.entries()).slice(0, 10))
-    console.log('🔍 SAM.gov URL:', upstreamUrl.toString().replace(/api_key=[^&]+/, 'api_key=***'))
-
-    // 🔍 Capture the requested set-aside for backend filtering
-    const requestedSetAside = requestUrl.searchParams.get('typeOfSetAsideCode') || 
-                               requestUrl.searchParams.get('setAside') ||
-                               requestUrl.searchParams.get('typeOfSetAside')
-    
-    // 🔎 Optional: broader keyword search by fanning out title searches per token and merging results.
-    // The SAM Opportunities API doesn't support full-text keyword search across description like sam.gov UI.
-    // For multi-word searches, we approximate "ANY word" by querying title for each token and merging/deduping.
-    const keywordMode = (upstreamUrl.searchParams.get('keywordMode') || '').toLowerCase()
-    const keywords = (upstreamUrl.searchParams.get('keywords') || '').trim()
-
-    if (keywordMode === 'any' && keywords) {
-      // Remove control params so they don't get forwarded to SAM API
-      upstreamUrl.searchParams.delete('keywordMode')
-      upstreamUrl.searchParams.delete('keywords')
-
-      // Remove any existing title to avoid overly strict phrase matching
-      upstreamUrl.searchParams.delete('title')
-
-      // Tokenize: split on whitespace, drop short tokens, de-dupe
-      const tokens = Array.from(
-        new Set(
-          keywords
-            .split(/\s+/g)
-            .map((t) => t.trim())
-            .filter((t) => t.length >= 3)
-        )
-      ).slice(0, 5) // safety cap
-
-      // Fan out requests (up to 5 tokens)
-      const urls = tokens.map((tok) => {
-        const u = new URL(upstreamUrl.toString())
-        u.searchParams.set('title', tok)
-        return u.toString()
-      })
-
-      const results = await Promise.all(urls.map((u) => fetchSAM(u)))
-
-      // Merge + dedupe
-      const merged: any[] = []
-      const seen = new Set<string>()
-
-      for (const r of results) {
-        const items = Array.isArray((r as any)?.opportunitiesData) ? (r as any).opportunitiesData : []
-        for (const it of items) {
-          const key =
-            (it as any)?.noticeId ||
-            (it as any)?.noticeId ||
-            (it as any)?.id ||
-            JSON.stringify([it?.solnum, it?.title, it?.postedDate])
-          if (seen.has(key)) continue
-          seen.add(key)
-          merged.push(it)
-        }
+    const cacheKey = normalizeCacheKey(upstreamUrl.searchParams)
+    if (!refresh) {
+      const cached = getCachedPayload(cacheKey)
+      if (cached) {
+        return NextResponse.json({ ...cached, cached: true, source: 'cache' })
       }
-
-      // Respect original limit if present
-      const limitStr = upstreamUrl.searchParams.get('limit') || ''
-      const limit = limitStr ? Math.max(1, Math.min(1000, Number(limitStr) || 1000)) : 1000
-
-      const responsePayload: any = results[0] || {}
-      responsePayload.opportunitiesData = merged.slice(0, limit)
-      responsePayload.totalRecords = merged.length
-      responsePayload.hasMoreResults = merged.length > limit
-
-      // 🔍 DEBUG & Filter
-      debugSAMResponse(responsePayload, requestedSetAside)
-      return NextResponse.json(filterBySetAside(responsePayload, requestedSetAside))
+      const cooldownSeconds = getCooldownSeconds(cacheKey)
+      if (cooldownSeconds > 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: 'rate_limited',
+            message: `Please wait ${cooldownSeconds}s before requesting the same search again.`,
+            retryAfter: cooldownSeconds,
+          },
+          { status: 429, headers: { 'Retry-After': String(cooldownSeconds) } }
+        )
+      }
     }
 
-    // Execute query
-    let data = await fetchSAM(upstreamUrl.toString())
-    
-    // 🔍 DEBUG: Show what SAM.gov returned
-    debugSAMResponse(data, requestedSetAside)
-    
-    // 🔍 Apply set-aside filtering before returning
-    data = filterBySetAside(data, requestedSetAside)
-    
-    return NextResponse.json(data)
+    const livePayload = await coalesceInFlight<any>(`sam:search:${cacheKey}`, async () => {
+      console.log('📤 SAM.gov params:', Array.from(upstreamUrl.searchParams.entries()).slice(0, 10))
+      console.log('🔍 SAM.gov URL:', upstreamUrl.toString().replace(/api_key=[^&]+/, 'api_key=***'))
+
+      const requestedSetAside = requestUrl.searchParams.get('typeOfSetAsideCode') ||
+        requestUrl.searchParams.get('setAside') ||
+        requestUrl.searchParams.get('typeOfSetAside')
+
+      const keywordMode = (upstreamUrl.searchParams.get('keywordMode') || '').toLowerCase()
+      const keywords = (upstreamUrl.searchParams.get('keywords') || '').trim()
+
+      if (keywordMode === 'any' && keywords) {
+        upstreamUrl.searchParams.delete('keywordMode')
+        upstreamUrl.searchParams.delete('keywords')
+        upstreamUrl.searchParams.delete('title')
+
+        const tokens = Array.from(
+          new Set(
+            keywords
+              .split(/\s+/g)
+              .map((t) => t.trim())
+              .filter((t) => t.length >= 3)
+          )
+        ).slice(0, 5)
+
+        const urls = tokens.map((tok) => {
+          const u = new URL(upstreamUrl.toString())
+          u.searchParams.set('title', tok)
+          return u.toString()
+        })
+
+        const results = await Promise.all(urls.map((u) => fetchSAM(u)))
+        const merged: any[] = []
+        const seen = new Set<string>()
+
+        for (const r of results) {
+          const items = Array.isArray((r as any)?.opportunitiesData) ? (r as any).opportunitiesData : []
+          for (const it of items) {
+            const key =
+              (it as any)?.noticeId ||
+              (it as any)?.noticeId ||
+              (it as any)?.id ||
+              JSON.stringify([it?.solnum, it?.title, it?.postedDate])
+            if (seen.has(key)) continue
+            seen.add(key)
+            merged.push(it)
+          }
+        }
+
+        const limitStr = upstreamUrl.searchParams.get('limit') || ''
+        const limit = limitStr ? Math.max(1, Math.min(1000, Number(limitStr) || 1000)) : 1000
+
+        const responsePayload: any = results[0] || {}
+        responsePayload.opportunitiesData = merged.slice(0, limit)
+        responsePayload.totalRecords = merged.length
+        responsePayload.hasMoreResults = merged.length > limit
+
+        debugSAMResponse(responsePayload, requestedSetAside)
+        const filteredPayload = filterBySetAside(responsePayload, requestedSetAside)
+        markFetch(cacheKey)
+        setCachedPayload(cacheKey, filteredPayload)
+        return filteredPayload
+      }
+
+      let data = await fetchSAM(upstreamUrl.toString())
+      debugSAMResponse(data, requestedSetAside)
+      data = filterBySetAside(data, requestedSetAside)
+      markFetch(cacheKey)
+      setCachedPayload(cacheKey, data)
+      return data
+    })
+
+    return NextResponse.json({ ...livePayload, cached: false, source: 'live' })
   } catch (err: any) {
     console.error('SAM API error:', err)
 

@@ -121,6 +121,7 @@ export default function Header() {
   useEffect(() => {
     let mounted = true
     const fetchTicker = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return
       if (!mounted) return
       setLoadingTicker(true)
       setTickerError(null)
@@ -136,8 +137,16 @@ export default function Header() {
       }
     }
     fetchTicker()
-    const interval = setInterval(fetchTicker, 120000)
-    return () => { mounted = false; clearInterval(interval) }
+    const onVisibilityChange = () => {
+      if (!document.hidden) void fetchTicker()
+    }
+    const interval = setInterval(fetchTicker, 300000)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      mounted = false
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [])
 
   /* ── Click outside ── */

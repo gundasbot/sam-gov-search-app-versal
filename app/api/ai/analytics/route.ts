@@ -1,10 +1,33 @@
 // app/api/ai/analytics/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
+
+const ANALYTICS_CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
+const ANALYTICS_CACHE = new Map<string, { payload: any; expiresAt: number }>()
+const ANALYTICS_CACHE_LIMIT = 20
+
+function getAnalyticsCache(key: string) {
+  const hit = ANALYTICS_CACHE.get(key)
+  if (!hit) return null
+  if (Date.now() > hit.expiresAt) {
+    ANALYTICS_CACHE.delete(key)
+    return null
+  }
+  return hit.payload
+}
+
+function setAnalyticsCache(key: string, payload: any) {
+  if (ANALYTICS_CACHE.size >= ANALYTICS_CACHE_LIMIT) {
+    const oldest = ANALYTICS_CACHE.keys().next().value
+    if (oldest) ANALYTICS_CACHE.delete(oldest)
+  }
+  ANALYTICS_CACHE.set(key, { payload, expiresAt: Date.now() + ANALYTICS_CACHE_TTL_MS })
+}
 
 const AnalyticsSchema = {
   name: 'GovConAnalytics',
@@ -83,6 +106,17 @@ const AnalyticsSchema = {
 
 export async function POST(req: NextRequest) {
   try {
+    const cacheKey = 'ai-analytics:default'
+    const refresh = ['1', 'true', 'yes'].includes(
+      (req.nextUrl.searchParams.get('refresh') || '').toLowerCase()
+    )
+    if (!refresh) {
+      const cached = getAnalyticsCache(cacheKey)
+      if (cached) {
+        return NextResponse.json({ ...cached, cached: true, source: 'cache' })
+      }
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'Missing ANTHROPIC_API_KEY' },
@@ -93,15 +127,24 @@ export async function POST(req: NextRequest) {
     // Fetch real data from SAM.gov (non-fatal fallback if unavailable)
     let opportunities: any[] = []
     try {
-      const samResponse = await fetch(
-        `https://api.sam.gov/opportunities/v2/search?api_key=${process.env.SAM_GOV_API_KEY}&limit=100&postedFrom=${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}&postedTo=${new Date().toISOString().split('T')[0]}`,
-        { headers: { 'Accept': 'application/json' } }
+      const postedFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const postedTo = new Date().toISOString().split('T')[0]
+      const samUrl = `https://api.sam.gov/opportunities/v2/search?api_key=${process.env.SAM_GOV_API_KEY}&limit=100&postedFrom=${postedFrom}&postedTo=${postedTo}`
+      const samPayload = await coalesceInFlight<any>(
+        `sam:ai-analytics:window:${postedFrom}:${postedTo}`,
+        async () => {
+          const response = await fetch(samUrl, { headers: { 'Accept': 'application/json' } })
+          if (!response.ok) {
+            return { ok: false, status: response.status, opportunitiesData: [] }
+          }
+          const data = await response.json()
+          return { ok: true, status: 200, opportunitiesData: data?.opportunitiesData || [] }
+        }
       )
-      if (samResponse.ok) {
-        const samData = await samResponse.json()
-        opportunities = samData.opportunitiesData || []
+      if (samPayload?.ok) {
+        opportunities = samPayload.opportunitiesData || []
       } else {
-        console.warn(`SAM.gov API returned ${samResponse.status} — proceeding with empty dataset`)
+        console.warn(`SAM.gov API returned ${samPayload?.status || 'unknown'} — proceeding with empty dataset`)
       }
     } catch (samErr) {
       console.warn('SAM.gov fetch failed — proceeding with empty dataset:', samErr)
@@ -222,9 +265,14 @@ Return ONLY a valid JSON object matching the schema provided in the system promp
       )
     }
 
-    return NextResponse.json(json)
+    setAnalyticsCache(cacheKey, json)
+    return NextResponse.json({ ...json, cached: false, source: 'live' })
   } catch (err: any) {
     console.error('Analytics generation error:', err)
+    const fallback = getAnalyticsCache('ai-analytics:default')
+    if (fallback) {
+      return NextResponse.json({ ...fallback, cached: true, stale: true, source: 'cache-fallback' })
+    }
     return NextResponse.json(
       {
         error: 'Failed to generate analytics',

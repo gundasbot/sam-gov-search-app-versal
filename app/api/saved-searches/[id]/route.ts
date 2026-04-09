@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { randomBytes } from 'crypto'
 import { sendAlertEmail } from '@/lib/email'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 /* ---------------- helpers ---------------- */
 
@@ -254,22 +255,25 @@ export async function POST(
     })
 
     try {
-      const res = await fetch(
-        `https://api.sam.gov/prod/opportunities/v2/search?${searchParams.toString()}`,
-        {
-          headers: {
-            'X-Api-Key': process.env.SAM_GOV_API_KEY!,
-            'Content-Type': 'application/json',
-          },
+      const samQuery = searchParams.toString()
+      const samKey = `sam:saved-search:${samQuery.replace(/api_key=[^&]+/, 'api_key=KEY')}`
+      const data = await coalesceInFlight<any>(samKey, async () => {
+        const res = await fetch(
+          `https://api.sam.gov/prod/opportunities/v2/search?${samQuery}`,
+          {
+            headers: {
+              'X-Api-Key': process.env.SAM_GOV_API_KEY!,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`SAM.gov ${res.status}: ${text}`)
         }
-      )
-
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`SAM.gov ${res.status}: ${text}`)
-      }
-
-      const data = await res.json()
+        return await res.json()
+      })
       const results = data.opportunitiesData ?? []
 
       console.log(`✅ SAM.gov returned ${results.length} results`)

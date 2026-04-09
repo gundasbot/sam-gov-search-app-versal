@@ -208,5 +208,5 @@ export async function getTrialDaysRemaining(userId: string): Promise<number> {
   return Math.max(0, diffDays)
 }
 
-// Re-export NextAuth configuration so route handlers can import from '@/lib/auth'
-export { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
+// ✅ FIXED: Re-export authOptions from route.ts (single source of truth)
+export { authOptions } from '@/app/api/auth/[...nextauth]/route'

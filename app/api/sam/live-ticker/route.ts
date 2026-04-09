@@ -1,13 +1,14 @@
 // app/api/sam/live-ticker/route.ts
 import { NextResponse } from 'next/server';
+import { coalesceInFlight } from '@/lib/in-flight-coalescer';
 
 const SAM_API_KEY = process.env.SAMGOVAPIKEY || process.env.SAM_API_KEY || '';
 const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search';
 
 // ─── In-process cache (shared across all requests in the same Node process) ───
 // This is more reliable than next: { revalidate } which can be bypassed
-const CACHE_TTL_MS   = 2 * 60 * 1000   // 2 minutes — keeps ticker feeling live without hammering quota
-const FETCH_COOLDOWN = 30 * 1000        // 30s minimum between live fetches regardless of cache state
+const CACHE_TTL_MS   = 5 * 60 * 1000   // 5 minutes — protects daily quota while still feeling live
+const FETCH_COOLDOWN = 60 * 1000       // 60s minimum between live fetches regardless of cache state
 
 let tickerCache: { data: any; expiresAt: number } | null = null
 let lastFetchAt = 0
@@ -60,66 +61,75 @@ export async function GET() {
       postedTo: formatMMDDYYYY(today),
     });
 
-    const apiUrl = `${SAM_BASE_URL}?${params.toString()}`;
-    console.log('📡 Fetching ticker from SAM.gov...');
-    lastFetchAt = Date.now()
+    const liveOutcome = await coalesceInFlight<
+      | { kind: 'success'; payload: any }
+      | { kind: 'rate_limited'; nextAccessTime?: string }
+      | { kind: 'upstream_error'; status: number }
+    >(`sam:live-ticker`, async () => {
+      const apiUrl = `${SAM_BASE_URL}?${params.toString()}`;
+      console.log('📡 Fetching ticker from SAM.gov...');
+      lastFetchAt = Date.now()
 
-    const response = await fetch(apiUrl, {
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      cache: 'no-store', // skip Next.js fetch cache — we handle caching ourselves
-    });
+      const response = await fetch(apiUrl, {
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        cache: 'no-store',
+      });
 
-    // ── 429 Rate limit ────────────────────────────────────────────────────
-    if (response.status === 429) {
-      const errorData = await response.json().catch(() => ({}));
-      console.warn('🚫 Ticker: SAM.gov rate limit hit. Next access:', errorData.nextAccessTime);
-      // Extend cooldown to 10 min on rate limit to stop hammering
-      lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
+      if (response.status === 429) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('🚫 Ticker: SAM.gov rate limit hit. Next access:', errorData.nextAccessTime);
+        lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
+        return { kind: 'rate_limited' as const, nextAccessTime: errorData?.nextAccessTime }
+      }
+
+      if (!response.ok) {
+        console.error('❌ Ticker SAM error:', response.status);
+        return { kind: 'upstream_error' as const, status: response.status }
+      }
+
+      const data = await response.json();
+      console.log('✅ Ticker received:', data.totalRecords || 0, 'total records');
+
+      const opportunities = (data.opportunitiesData || []).map((opp: any) => ({
+        id: opp.noticeId || '',
+        title: truncate(opp.title || 'Untitled Opportunity', 60),
+        solicitationNumber: opp.solicitation_number || opp.noticeId || 'N/A',
+        agency: truncate(opp.departmentName || opp.department || opp.fullParentPathName?.split('.')[0] || 'Unknown', 40),
+        postedDate: opp.postedDate || opp.publishDate || new Date().toISOString(),
+        type: opp.type || opp.noticeType || 'Solicitation',
+        samUrl: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
+        naics: opp.naicsCode || (Array.isArray(opp.naics) ? opp.naics[0] : '') || '',
+        setAside: opp.typeOfSetAsideDescription || opp.typeOfSetAside || '',
+        responseDeadLine: opp.responseDeadLine || opp.responseDate || '',
+        state: opp.placeOfPerformance?.state?.code || opp.officeAddress?.state || '',
+      }));
+
+      console.log('✅ Transformed', opportunities.length, 'ticker items');
+      const payload = {
+        count: data.totalRecords || opportunities.length,
+        opportunities,
+        rateLimitExceeded: false,
+        error: null,
+      };
+
+      tickerCache = { data: payload, expiresAt: Date.now() + CACHE_TTL_MS }
+      return { kind: 'success' as const, payload }
+    })
+
+    if (liveOutcome.kind === 'success') {
+      return NextResponse.json({ ...liveOutcome.payload, cached: false }, { headers: NO_STORE });
+    }
+    if (liveOutcome.kind === 'rate_limited') {
       return NextResponse.json({
         count: 0, opportunities: [], rateLimitExceeded: true,
-        nextAccessTime: errorData.nextAccessTime,
+        nextAccessTime: liveOutcome.nextAccessTime,
         message: 'SAM.gov quota exceeded — will retry later.',
       }, { status: 200, headers: NO_STORE });
     }
-
-    if (!response.ok) {
-      console.error('❌ Ticker SAM error:', response.status);
-      return NextResponse.json({
-        count: 0, opportunities: [], rateLimitExceeded: false,
-        error: `SAM.gov API error (${response.status})`,
-      }, { status: 200, headers: NO_STORE });
-    }
-
-    const data = await response.json();
-    console.log('✅ Ticker received:', data.totalRecords || 0, 'total records');
-
-    const opportunities = (data.opportunitiesData || []).map((opp: any) => ({
-      id: opp.noticeId || '',
-      title: truncate(opp.title || 'Untitled Opportunity', 60),
-      solicitationNumber: opp.solicitation_number || opp.noticeId || 'N/A',
-      agency: truncate(opp.departmentName || opp.department || opp.fullParentPathName?.split('.')[0] || 'Unknown', 40),
-      postedDate: opp.postedDate || opp.publishDate || new Date().toISOString(),
-      type: opp.type || opp.noticeType || 'Solicitation',
-      samUrl: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
-      naics: opp.naicsCode || (Array.isArray(opp.naics) ? opp.naics[0] : '') || '',
-      setAside: opp.typeOfSetAsideDescription || opp.typeOfSetAside || '',
-      responseDeadLine: opp.responseDeadLine || opp.responseDate || '',
-      state: opp.placeOfPerformance?.state?.code || opp.officeAddress?.state || '',
-    }));
-
-    console.log('✅ Transformed', opportunities.length, 'ticker items');
-
-    const payload = {
-      count: data.totalRecords || opportunities.length,
-      opportunities,
-      rateLimitExceeded: false,
-      error: null,
-    };
-
-    // Cache it
-    tickerCache = { data: payload, expiresAt: Date.now() + CACHE_TTL_MS }
-
-    return NextResponse.json({ ...payload, cached: false }, { headers: NO_STORE });
+    return NextResponse.json({
+      count: 0, opportunities: [], rateLimitExceeded: false,
+      error: `SAM.gov API error (${liveOutcome.status})`,
+    }, { status: 200, headers: NO_STORE });
 
   } catch (error) {
     console.error('❌ Ticker fetch error:', error);

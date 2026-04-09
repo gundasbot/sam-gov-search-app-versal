@@ -228,7 +228,7 @@ function PricingContent() {
 
   const handleSelectPlan = async (planId: string) => {
     if (!session) {
-      router.push(`/signup?plan=${planId}&interval=${interval}`)
+      router.push(`/pricing/checkout?plan=${planId.toLowerCase()}&billing=${interval}`)
       return
     }
 

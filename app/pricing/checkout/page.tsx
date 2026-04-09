@@ -36,7 +36,7 @@ function CheckoutPageInner() {
   const [loading, setLoading] = useState(true)
 
   const isValid = useMemo(() => {
-    const okPlan = plan === 'professional' || plan === 'enterprise'
+    const okPlan = plan === 'basic' || plan === 'professional' || plan === 'enterprise'
     const okBilling = billing === 'monthly' || billing === 'annual'
     return okPlan && okBilling
   }, [plan, billing])
@@ -58,7 +58,11 @@ function CheckoutPageInner() {
         const res = await fetch('/api/stripe/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan, billing }),
+          body: JSON.stringify({
+            plan,
+            billing,
+            source: 'public_pricing_checkout',
+          }),
         })
 
         const data = await res.json().catch(() => ({}))

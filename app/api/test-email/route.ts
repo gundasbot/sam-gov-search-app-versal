@@ -1,9 +1,26 @@
+import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { isEmailAdmin } from '@/lib/admin'
+import { authOptions } from '@/lib/auth'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+async function requireAdmin() {
+  const session = await getServerSession(authOptions)
+  const email = session?.user?.email?.toLowerCase().trim()
+  if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const isAdmin = await isEmailAdmin(email)
+  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  return null
+}
+
 export async function GET() {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   try {
     const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Precise GovCon <noreply@precisegovcon.com>',

@@ -5,13 +5,13 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useSession, signIn } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 
-type Plan = 'professional' | 'enterprise'
+type Plan = 'basic' | 'professional' | 'enterprise'
 type Billing = 'monthly' | 'annual'
 
 function isPlan(v: string | null): v is Plan {
-  return v === 'professional' || v === 'enterprise'
+  return v === 'basic' || v === 'professional' || v === 'enterprise'
 }
 function isBilling(v: string | null): v is Billing {
   return v === 'monthly' || v === 'annual'
@@ -44,18 +44,15 @@ export default function ClientCheckout() {
         return
       }
 
-      // If not logged in, redirect to sign-in then come back here
-      if (status !== 'authenticated') {
-        const callbackUrl = `/pricing/checkout?plan=${safe.plan}&billing=${safe.billing}`
-        await signIn(undefined, { callbackUrl })
-        return
-      }
-
       try {
         const res = await fetch('/api/stripe/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: safe.plan, billing: safe.billing }),
+          body: JSON.stringify({
+            plan: safe.plan,
+            billing: safe.billing,
+            source: status === 'authenticated' ? 'authenticated_checkout' : 'public_pricing_checkout',
+          }),
         })
 
         const data = await res.json().catch(() => ({}))

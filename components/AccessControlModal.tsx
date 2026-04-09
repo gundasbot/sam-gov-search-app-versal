@@ -133,19 +133,19 @@ function InputField({
 }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon?: any; error?: string }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-[--color-text-secondary] uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-sm font-bold text-[--color-text-secondary] uppercase tracking-wider mb-1.5">{label}</label>
       <div className="relative">
-        {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[--color-text-subtle]" />}
+        {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-[--color-text-subtle]" />}
         <input
           {...props}
           className={cx(
-            'pg-input w-full py-3 rounded-xl text-sm font-semibold',
-            Icon ? 'pl-10 pr-4' : 'px-4',
+            'pg-input w-full py-3.5 rounded-xl text-base font-semibold',
+            Icon ? 'pl-11 pr-4' : 'px-4',
             error ? 'border-red-300 bg-red-50' : 'bg-[--color-surface]'
           )}
         />
       </div>
-      {error && <p className="mt-1.5 text-sm font-black text-red-600">{error}</p>}
+      {error && <p className="mt-1.5 text-base font-black text-red-600">{error}</p>}
     </div>
   )
 }
@@ -156,9 +156,9 @@ function PasswordField({
   const [show, setShow] = useState(false)
   return (
     <div>
-      <label className="block text-xs font-bold text-[--color-text-secondary] uppercase tracking-wider mb-1.5">{label}</label>
+      <label className="block text-sm font-bold text-[--color-text-secondary] uppercase tracking-wider mb-1.5">{label}</label>
       <div className="relative">
-        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[--color-text-subtle]" />
+        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-[--color-text-subtle]" />
         <input
           type={show ? 'text' : 'password'}
           value={value}
@@ -166,16 +166,16 @@ function PasswordField({
           placeholder={placeholder || 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'}
           disabled={disabled}
           className={cx(
-            'pg-input w-full pl-10 pr-11 py-3 rounded-xl text-sm font-semibold',
+            'pg-input w-full pl-11 pr-12 py-3.5 rounded-xl text-base font-semibold',
             error ? 'border-red-300 bg-red-50' : 'bg-[--color-surface]'
           )}
         />
         <button type="button" onClick={() => setShow(v => !v)}
           className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[--color-text-subtle] hover:text-[--color-text-secondary]">
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
       </div>
-      {error && <p className="mt-1.5 text-sm font-black text-red-600">{error}</p>}
+      {error && <p className="mt-1.5 text-base font-black text-red-600">{error}</p>}
     </div>
   )
 }
@@ -498,12 +498,12 @@ export default function AccessControlModal({
     : 'Sign in to access your dashboard'
 
   return (
-    <div className="pg-theme-cleanup pg-uniform fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif" }}>
+    <div className="pg-theme-cleanup pg-uniform fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5" style={{ fontFamily: "'Aptos', 'Segoe UI', system-ui, sans-serif" }}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-[80vw] max-h-[92vh] overflow-y-auto rounded-3xl bg-[var(--color-surface)] shadow-2xl border border-[var(--color-border)]"
+      <div className="relative w-full max-w-[min(1650px,96vw)] max-h-[95vh] overflow-y-auto rounded-3xl bg-[var(--color-surface)] shadow-2xl border border-[var(--color-border)]"
         style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--color-border) transparent' }}>
 
         {/* Top accent bar */}
@@ -515,16 +515,16 @@ export default function AccessControlModal({
           <X className="h-4 w-4" /> Close
         </button>
 
-        <div className="p-6 lg:p-10">
+        <div className="p-7 lg:p-12">
           {/* Header */}
           <div className="text-center mb-10">
             <Image src="/logo.png" alt="Precise GovCon" width={48} height={48} className="h-12 w-auto mx-auto mb-5" />
             <div className="mb-3">
-              <span className="text-xs font-black uppercase tracking-widest text-[var(--color-primary)]">
+              <span className="text-sm font-black uppercase tracking-widest text-[var(--color-primary)]">
                 7-Day Free Trial Â· No Credit Card Required
               </span>
             </div>
-            <h2 className="text-3xl lg:text-4xl font-black text-[var(--color-text-primary)] mb-3">
+            <h2 className="text-4xl lg:text-5xl font-black text-[var(--color-text-primary)] mb-3">
               Welcome to{' '}
               <span
                 className="inline-flex items-center rounded-md px-2 py-1"
@@ -534,7 +534,7 @@ export default function AccessControlModal({
                 <span className="font-black" style={{ color: wordmark.colors.govcon }}>{wordmark.govconText}</span>
               </span>
             </h2>
-            <p className="text-xl font-black tracking-tight text-[var(--color-text-secondary)]">
+            <p className="text-2xl font-black tracking-tight text-[var(--color-text-secondary)]">
               Find, track and win more government contracts. Sign in or start your free trial below.
             </p>
           </div>
@@ -543,7 +543,7 @@ export default function AccessControlModal({
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 lg:gap-10">
 
             {/* LEFT: Auth panel */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-3">
               <div className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden shadow-sm">
 
                 {/* SIGNUP COMPLETE â€” confirmation screen, no form visible */}
@@ -633,25 +633,25 @@ export default function AccessControlModal({
                 <div className="px-5 pb-5">
                   {/* Alerts */}
                   {successMessage && (
-                    <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 flex items-start gap-2.5">
+                    <div className="mb-4 p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300 flex items-start gap-2.5">
                       <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm font-bold text-[var(--color-text-primary)] leading-relaxed">{successMessage}</p>
+                      <p className="text-base font-bold text-[var(--color-text-primary)] leading-relaxed">{successMessage}</p>
                     </div>
                   )}
                   {generalError && (() => {
                     const isUnverified = generalError.startsWith('__UNVERIFIED__:')
                     if (isUnverified) return <UnverifiedEmailBanner email={generalError.replace('__UNVERIFIED__:', '')} />
                     return (
-                      <div className="mb-4 p-3.5 rounded-xl bg-red-50 border-2 border-red-300 flex items-start gap-2.5">
+                      <div className="mb-4 p-4 rounded-xl bg-red-50 border-2 border-red-300 flex items-start gap-2.5">
                         <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm font-bold text-red-900">{generalError}</p>
+                        <p className="text-base font-bold text-red-900">{generalError}</p>
                       </div>
                     )
                   })()}
                   {stripeError && (
-                    <div className="mb-4 p-3.5 rounded-xl bg-amber-50 border-2 border-amber-300 flex items-start gap-2.5">
+                    <div className="mb-4 p-4 rounded-xl bg-amber-50 border-2 border-amber-300 flex items-start gap-2.5">
                       <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm font-bold text-amber-900">{stripeError}</p>
+                      <p className="text-base font-bold text-amber-900">{stripeError}</p>
                     </div>
                   )}
 
@@ -662,7 +662,7 @@ export default function AccessControlModal({
                         <h3 className="text-lg font-black text-slate-900">Set New Password</h3>
                         <div className="p-3 rounded-xl bg-blue-50 border-2 border-blue-200 flex gap-2">
                           <Key className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm font-bold text-blue-900">Enter your new password below.</p>
+                          <p className="text-base font-bold text-blue-900">Enter your new password below.</p>
                         </div>
                         <PasswordField label="New Password" value={newPassword} onChange={setNewPassword} error={newPasswordError} disabled={isLoading} />
                         <PasswordField label="Confirm New Password" value={confirmNewPassword} onChange={setConfirmNewPassword} error={confirmNewPasswordError} disabled={isLoading} />
@@ -682,7 +682,7 @@ export default function AccessControlModal({
                       <>
                         <div className="mb-2">
                           <h3 className="text-lg font-black text-slate-900">Reset Your Password</h3>
-                          <p className="text-sm font-bold text-slate-500 mt-1">We'll send a secure reset link to your email.</p>
+                          <p className="text-base font-bold text-slate-500 mt-1">We'll send a secure reset link to your email.</p>
                         </div>
                         <InputField label="Email Address" icon={Mail} type="email" value={email} onChange={e => setEmail(e.target.value)} error={emailError} placeholder="you@company.com" disabled={isLoading} />
                         <button type="submit" disabled={isLoading}
@@ -751,14 +751,14 @@ export default function AccessControlModal({
 
               {/* Trust bar */}
               <div className="mt-4 flex items-center justify-center gap-4">
-                <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-text-secondary)]"><Shield className="h-4 w-4 text-[var(--color-primary)]" /> SSL Secured</span>
-                <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-text-secondary)]"><Lock className="h-4 w-4 text-[var(--color-primary)]" /> No card needed</span>
-                <span className="flex items-center gap-1.5 text-sm font-bold text-[var(--color-text-secondary)]"><Zap className="h-4 w-4 text-[var(--color-primary)]" /> Instant access</span>
+                <span className="flex items-center gap-1.5 text-base font-bold text-[var(--color-text-secondary)]"><Shield className="h-4 w-4 text-[var(--color-primary)]" /> SSL Secured</span>
+                <span className="flex items-center gap-1.5 text-base font-bold text-[var(--color-text-secondary)]"><Lock className="h-4 w-4 text-[var(--color-primary)]" /> No card needed</span>
+                <span className="flex items-center gap-1.5 text-base font-bold text-[var(--color-text-secondary)]"><Zap className="h-4 w-4 text-[var(--color-primary)]" /> Instant access</span>
               </div>
             </div>
 
             {/* RIGHT: Pricing plans */}
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-4">
               {/* Billing toggle */}
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-xl font-black text-[var(--color-text-primary)]">Choose Your Plan</h3>

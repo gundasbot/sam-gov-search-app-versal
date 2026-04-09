@@ -1,7 +1,7 @@
 // app/dashboard/page.tsx
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import OpportunityModal from '../../components/OpportunityModal'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -149,6 +149,8 @@ const EMPTY_DASH: Omit<DashboardData, 'loading' | 'error' | 'dataSource'> = {
 // Keep dashboard and opportunities-page drilldowns aligned to the same live window.
 const DASHBOARD_LIVE_WINDOW_DAYS = 30
 const DASHBOARD_POSTED_7D_WINDOW_DAYS = 7
+const DASHBOARD_SAM_REFRESH_COOLDOWN_MS = 10 * 60 * 1000
+const DASHBOARD_GOALS_CACHE_TTL_MS = 30 * 60 * 1000
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -640,6 +642,9 @@ export default function DashboardPage() {
  const [hoveredTrend, setHoveredTrend] = useState<TrendData | null>(null)
  const [quickSavingIds, setQuickSavingIds] = useState<Set<string>>(new Set())
  const [quickSavedIds, setQuickSavedIds] = useState<Set<string>>(new Set())
+ const summaryLoadInFlightRef = useRef(false)
+ const goalsCacheRef = useRef<{ goals: string[]; fetchedAt: number }>({ goals: [], fetchedAt: 0 })
+ const samSummaryCacheRef = useRef<Map<string, { fetchedAt: number; opportunities: any[] }>>(new Map())
 
  const surveyDismissKey = useMemo(
  () => `pgc-survey-dismissed:${session?.user?.email?.toLowerCase() ?? 'anon'}`,
@@ -661,6 +666,49 @@ export default function DashboardPage() {
  typeOfSetAside: o.setAside,
  organizationName: o.agency,
  })}`
+ }, [])
+
+ const loadUserGoals = useCallback(async (force = false): Promise<string[]> => {
+ if (!force) {
+ const cacheAge = Date.now() - goalsCacheRef.current.fetchedAt
+ if (goalsCacheRef.current.fetchedAt > 0 && cacheAge < DASHBOARD_GOALS_CACHE_TTL_MS) {
+ return goalsCacheRef.current.goals
+ }
+ }
+ try {
+ const goalsResponse = await fetch('/api/account/profile')
+ const goalsPayload = goalsResponse.ok ? await goalsResponse.json() : { goals: [] }
+ const goals: string[] = Array.isArray(goalsPayload?.goals) ? goalsPayload.goals : []
+ goalsCacheRef.current = { goals, fetchedAt: Date.now() }
+ return goals
+ } catch {
+ return goalsCacheRef.current.goals || []
+ }
+ }, [])
+
+ const fetchSamSummaryForQuery = useCallback(async (query: string): Promise<any[]> => {
+ const cached = samSummaryCacheRef.current.get(query)
+ const now = Date.now()
+ if (cached && (now - cached.fetchedAt) < DASHBOARD_SAM_REFRESH_COOLDOWN_MS) {
+ return cached.opportunities
+ }
+
+ try {
+ const response = await fetch(`/api/sam/opportunities?${query}`)
+ const payload = response.ok ? await response.json() : null
+ const opportunities = Array.isArray(payload?.opportunitiesData)
+ ? payload.opportunitiesData
+ : (Array.isArray(payload?.opportunities) ? payload.opportunities : [])
+
+ samSummaryCacheRef.current.set(query, { fetchedAt: now, opportunities })
+ if (samSummaryCacheRef.current.size > 6) {
+ const oldestKey = samSummaryCacheRef.current.keys().next().value
+ if (oldestKey) samSummaryCacheRef.current.delete(oldestKey)
+ }
+ return opportunities
+ } catch {
+ return cached?.opportunities || []
+ }
  }, [])
 
  const handleQuickAddSavedOpportunity = useCallback(async (o: SavedOpportunity) => {
@@ -752,9 +800,9 @@ export default function DashboardPage() {
  }, [dash.activeSearches, dash.savedOpportunities, dash.notifications])
 
  // Real 7-day posting trend from live weekly data
- const trend = useMemo<TrendData[]>(() => {
- const allOpps = dash.weeklyOpportunities
- const result: TrendData[] = []
+const trend = useMemo<TrendData[]>(() => {
+const allOpps = dash.weeklyOpportunities
+const result: TrendData[] = []
  for (let i = 6; i >= 0; i--) {
  const d = new Date()
  d.setDate(d.getDate() - i)
@@ -764,8 +812,38 @@ export default function DashboardPage() {
  const dayMatches = dayOpps.filter(o => (o.match ?? 0) >= 70)
  result.push({ month: label, opportunities: dayOpps.length, matches: dayMatches.length })
  }
- return result
- }, [dash.weeklyOpportunities, dash.savedOpportunities, dash.recentOpportunities])
+return result
+}, [dash.weeklyOpportunities, dash.savedOpportunities, dash.recentOpportunities])
+
+ const railSignals = useMemo(() => {
+ const agencyCounts = new Map<string, number>()
+ ;[...dash.recentOpportunities, ...dash.savedOpportunities].forEach((opp) => {
+ const key = (opp.agency || '').trim()
+ if (!key) return
+ agencyCounts.set(key, (agencyCounts.get(key) || 0) + 1)
+ })
+ const topAgencies = Array.from(agencyCounts.entries())
+ .sort((a, b) => b[1] - a[1])
+ .slice(0, 5)
+ .map(([agency, count]) => ({ agency, count }))
+
+ let critical = 0
+ let soon = 0
+ let later = 0
+ let unknown = 0
+ dash.upcomingDeadlines.forEach((dl) => {
+ const days = Number.parseInt(dl.deadline || '', 10)
+ if (!Number.isFinite(days)) {
+ unknown += 1
+ return
+ }
+ if (days <= 3) critical += 1
+ else if (days <= 7) soon += 1
+ else later += 1
+ })
+
+ return { topAgencies, critical, soon, later, unknown }
+ }, [dash.recentOpportunities, dash.savedOpportunities, dash.upcomingDeadlines])
 
  useEffect(() => {
  // Don't run until next-auth and dashboard endpoints have resolved.
@@ -814,6 +892,8 @@ export default function DashboardPage() {
  }
 
  async function load() {
+ if (summaryLoadInFlightRef.current) return
+ summaryLoadInFlightRef.current = true
  try {
  const prefs: UserPreferences | null = dashboardApi.preferences
  if (prefs) setUserPrefs(prefs)
@@ -848,26 +928,27 @@ export default function DashboardPage() {
  }
  })
 
- const goalsResponse = await fetch('/api/account/profile')
- const goalsPayload = goalsResponse.ok ? await goalsResponse.json() : { goals: [] }
- const goals: string[] = Array.isArray(goalsPayload?.goals) ? goalsPayload.goals : []
+ const goals = await loadUserGoals(false)
 
  const since = new Date(Date.now() - DASHBOARD_LIVE_WINDOW_DAYS * 86400000).toISOString().split('T')[0].replace(/-/g, '/')
  // Fan-out: one SAM.gov call per NAICS code (API only accepts one ncode at a time)
- const naicsList = prefs.naicsCodes.length ? prefs.naicsCodes.slice(0, 5) : [undefined]
+ // Quota guard: dashboard summary uses one representative NAICS to avoid
+ // multiplying SAM.gov calls on each refresh cycle.
+ const naicsList = prefs.naicsCodes.length ? prefs.naicsCodes.slice(0, 1) : [undefined]
  const setAside = prefs.setAsides?.[0] || ''
  const state = prefs.states?.[0] || ''
  const oppFetches = naicsList.map((naics: string | undefined) => {
- const pq = [naics ? `&naics=${naics}` : '', setAside ? `&setAside=${setAside}` : '', state ? `&state=${state}` : ''].join('')
- return fetch(`/api/sam/opportunities?limit=200&postedFrom=${since}${pq}`)
- .then(r => (r.ok ? r.json() : { totalRecords: 0, opportunitiesData: [] }))
- .catch(() => ({ totalRecords: 0, opportunitiesData: [] }))
+ const query = new URLSearchParams({ limit: '200', postedFrom: since, status: 'active' })
+ if (naics) query.set('naics', naics)
+ if (setAside) query.set('setAside', setAside)
+ if (state) query.set('state', state)
+ return fetchSamSummaryForQuery(query.toString())
  })
  const wResults = await Promise.all(oppFetches)
  const seenIds = new Set<string>()
  const mergedOpps: any[] = []
- for (const result of wResults) {
- for (const opp of (result.opportunitiesData || result.opportunities || [])) {
+ for (const opportunities of wResults) {
+ for (const opp of opportunities) {
  const id = opp.noticeId || opp.id || opp.solicitationNumber
  if (id && seenIds.has(id)) continue
  if (id) seenIds.add(id)
@@ -986,12 +1067,12 @@ export default function DashboardPage() {
  error: 'Live SAM.gov data is temporarily unavailable. No synthesized values are shown.',
  dataSource: 'live',
  })
+ } finally {
+ summaryLoadInFlightRef.current = false
  }
  }
 
  void load()
- const id = setInterval(() => { void load() }, 5 * 60 * 1000)
- return () => clearInterval(id)
  }, [
  session?.user?.email,
  sessionStatus,
@@ -1003,6 +1084,8 @@ export default function DashboardPage() {
  dashboardApi.loading,
  dashboardApi.error,
  dashboardApi.lastRefreshed,
+ loadUserGoals,
+ fetchSamSummaryForQuery,
  ])
 
  const buildAnalysis = useCallback((d: DashboardData) => {
@@ -1063,6 +1146,7 @@ export default function DashboardPage() {
  setGoalSaving(true)
  try {
  await fetch('/api/account/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({goals})})
+ goalsCacheRef.current = { goals, fetchedAt: Date.now() }
  setDash(prev=>({...prev,userGoals:goals}))
  setDrawer(null)
  setToast({type:'success',msg:'Goals saved. Match scores updated.'})
@@ -1716,7 +1800,7 @@ export default function DashboardPage() {
  {dashboardApi.loading
  ? 'Loading dashboard endpoints...'
  : dashboardApi.lastRefreshed
- ? `Last refreshed ${dashboardApi.lastRefreshed.toLocaleTimeString()} · auto-refresh every 45 seconds`
+? `Last refreshed ${dashboardApi.lastRefreshed.toLocaleTimeString()} · dashboard sync every 5 minutes · SAM snapshot max every 10 minutes`
  : 'Waiting for first refresh...'}
  </div>
  <button
@@ -2308,7 +2392,7 @@ export default function DashboardPage() {
  </div>
 
  {/* Right sidebar */}
- <div className="flex flex-col gap-5">
+ <div className="flex flex-col gap-5 h-full">
 
 {/* Deadlines */}
 {dash.upcomingDeadlines.length > 0 && (
@@ -2464,6 +2548,141 @@ className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-vi
 </div>
 </div>
 </div>
+
+ {/* Action Center — fills unused right-rail space with useful controls */}
+ <div className="rounded-2xl overflow-hidden border border-sky-200 bg-white shadow-lg min-h-[220px]">
+ <div className="px-4 py-3 bg-linear-to-r from-sky-600 to-cyan-500">
+ <h3 className="text-sm font-black text-white flex items-center gap-2">
+ <Database className="w-4 h-4" />Action Center
+ </h3>
+ </div>
+ <div className="p-4 flex flex-col">
+ <div className="grid grid-cols-3 gap-2 mb-4">
+ <Link href={liveOppsHref} className="rounded-lg border border-sky-500 bg-sky-700 px-2 py-2 text-center hover:bg-sky-600 transition-colors">
+ <p className="text-lg font-black text-white">{dash.totalActiveOpportunities.toLocaleString()}</p>
+ <p className="text-[11px] font-bold text-sky-100 uppercase tracking-wide">Live Opps</p>
+ </Link>
+ <Link href="/dashboard/saved-opportunities" className="rounded-lg border border-emerald-500 bg-emerald-700 px-2 py-2 text-center hover:bg-emerald-600 transition-colors">
+ <p className="text-lg font-black text-white">{dash.savedOppCount.toLocaleString()}</p>
+ <p className="text-[11px] font-bold text-emerald-100 uppercase tracking-wide">Saved</p>
+ </Link>
+ <Link href="/alerts" className="rounded-lg border border-orange-400 bg-orange-600 px-2 py-2 text-center hover:bg-orange-500 transition-colors">
+ <p className="text-lg font-black text-white">{dash.activeSearchesCount.toLocaleString()}</p>
+ <p className="text-[11px] font-bold text-orange-100 uppercase tracking-wide">Alerts</p>
+ </Link>
+ </div>
+
+ <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 mb-4">
+ <p className="text-xs font-black uppercase tracking-widest text-slate-700 mb-2">Counted Items</p>
+ <div className="grid grid-cols-2 gap-2">
+ <Link href={liveOppsHref} className="rounded-lg border border-sky-500 bg-sky-600 px-2.5 py-2 min-h-[62px] flex flex-col justify-center hover:bg-sky-500 transition-colors">
+ <span className="text-[11px] font-bold text-sky-100 uppercase tracking-wide">Active Opps</span>
+ <span className="text-lg font-black text-white leading-none mt-1">{dash.totalActiveOpportunities.toLocaleString()}</span>
+ </Link>
+ <Link href={posted7dHref} className="rounded-lg border border-orange-500 bg-orange-600 px-2.5 py-2 min-h-[62px] flex flex-col justify-center hover:bg-orange-500 transition-colors">
+ <span className="text-[11px] font-bold text-orange-100 uppercase tracking-wide">New This Week</span>
+ <span className="text-lg font-black text-white leading-none mt-1">{dash.thisWeekCount.toLocaleString()}</span>
+ </Link>
+ <Link href="/dashboard/saved-opportunities" className="rounded-lg border border-emerald-500 bg-emerald-600 px-2.5 py-2 min-h-[62px] flex flex-col justify-center hover:bg-emerald-500 transition-colors">
+ <span className="text-[11px] font-bold text-emerald-100 uppercase tracking-wide">Saved Opps</span>
+ <span className="text-lg font-black text-white leading-none mt-1">{dash.savedOppCount.toLocaleString()}</span>
+ </Link>
+ <Link href="/alerts" className="rounded-lg border border-violet-500 bg-violet-600 px-2.5 py-2 min-h-[62px] flex flex-col justify-center hover:bg-violet-500 transition-colors">
+ <span className="text-[11px] font-bold text-violet-100 uppercase tracking-wide">Alerts</span>
+ <span className="text-lg font-black text-white leading-none mt-1">{dash.activeSearchesCount.toLocaleString()}</span>
+ </Link>
+ </div>
+ </div>
+
+ <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2.5 mb-4">
+ <p className="text-xs font-black uppercase tracking-widest text-slate-800 mb-1">Data Sync</p>
+ <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+ <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+ {dashboardApi.lastRefreshed
+ ? `Last refresh ${dashboardApi.lastRefreshed.toLocaleTimeString()}`
+ : 'Waiting for first sync'}
+ </p>
+ <p className="text-xs text-orange-700 mt-1 font-semibold">
+ Source: {dash.dataSource === 'live' ? 'Live SAM snapshot' : 'Loading'}
+ </p>
+ </div>
+
+ <div className="grid grid-cols-3 gap-2">
+ <button
+ type="button"
+ onClick={() => void dashboardApi.refresh()}
+ disabled={dashboardApi.loading || dashboardApi.isRefreshing}
+ className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-2 py-2 text-xs font-black text-white disabled:opacity-60 hover:bg-sky-500 transition-colors"
+ >
+ {dashboardApi.isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+ {dashboardApi.isRefreshing ? 'Refreshing…' : 'Refresh Snapshot'}
+ </button>
+ <Link
+ href="/dashboard/onboarding?next=/dashboard"
+ className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-orange-600 px-2 py-2 text-xs font-black text-white hover:bg-orange-500 transition-colors"
+ >
+ <Target className="h-4 w-4" />Tune Feed Preferences
+ </Link>
+ <Link
+ href="/opportunities?view=list&sort=posted_desc"
+ className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-black text-slate-700 hover:bg-slate-100 transition-colors"
+ >
+ Browse Opportunities <ArrowRight className="h-4 w-4" />
+ </Link>
+ </div>
+ </div>
+ </div>
+
+ <div className="rounded-2xl overflow-hidden border border-indigo-200 bg-white shadow-lg flex-1 min-h-[240px]">
+ <div className="px-4 py-3 bg-linear-to-r from-indigo-600 to-violet-500">
+ <h3 className="text-sm font-black text-white flex items-center gap-2">
+ <Activity className="w-4 h-4" />Market Signals
+ </h3>
+ </div>
+ <div className="p-4 flex flex-col h-full">
+ <div className="mb-4">
+ <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Top Agencies in Your Feed</p>
+ {railSignals.topAgencies.length === 0 ? (
+ <p className="text-xs text-slate-500">No agency signal yet. Save opportunities or refresh your feed.</p>
+ ) : (
+ <div className="flex flex-col gap-2">
+ {railSignals.topAgencies.map((entry, idx) => (
+ <div key={entry.agency} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+ <p className="text-xs font-bold text-slate-700 truncate">
+ {idx + 1}. {entry.agency}
+ </p>
+ <span className="shrink-0 px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[11px] font-black">
+ {entry.count}
+ </span>
+ </div>
+ ))}
+ </div>
+ )}
+ </div>
+
+ <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+ <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Deadline Pressure</p>
+ <div className="grid grid-cols-4 gap-2">
+ <div className="rounded-lg bg-rose-50 border border-rose-200 px-2 py-1.5 text-center">
+ <p className="text-sm font-black text-rose-700">{railSignals.critical}</p>
+ <p className="text-[10px] font-bold text-rose-600 uppercase">≤3d</p>
+ </div>
+ <div className="rounded-lg bg-amber-50 border border-amber-200 px-2 py-1.5 text-center">
+ <p className="text-sm font-black text-amber-700">{railSignals.soon}</p>
+ <p className="text-[10px] font-bold text-amber-600 uppercase">4-7d</p>
+ </div>
+ <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-1.5 text-center">
+ <p className="text-sm font-black text-emerald-700">{railSignals.later}</p>
+ <p className="text-[10px] font-bold text-emerald-600 uppercase">8+d</p>
+ </div>
+ <div className="rounded-lg bg-slate-100 border border-slate-200 px-2 py-1.5 text-center">
+ <p className="text-sm font-black text-slate-700">{railSignals.unknown}</p>
+ <p className="text-[10px] font-bold text-slate-500 uppercase">N/A</p>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
  </div>
 
  </div>

@@ -85,7 +85,8 @@ type UseDashboardDataOptions = {
   enabled?: boolean
 }
 
-const POLL_MS = 45_000
+const POLL_MS = 5 * 60 * 1000
+const MIN_AUTO_REFRESH_GAP_MS = 60 * 1000
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -123,6 +124,7 @@ export function useDashboardData(options: UseDashboardDataOptions = {}): Dashboa
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const inFlightRef = useRef(false)
+  const lastAutoLoadAtRef = useRef(0)
 
   const load = useCallback(async (isManual = false) => {
     if (!enabled) {
@@ -131,6 +133,13 @@ export function useDashboardData(options: UseDashboardDataOptions = {}): Dashboa
       return
     }
     if (inFlightRef.current) return
+    if (!isManual) {
+      const now = Date.now()
+      if (lastAutoLoadAtRef.current && (now - lastAutoLoadAtRef.current) < MIN_AUTO_REFRESH_GAP_MS) {
+        return
+      }
+      lastAutoLoadAtRef.current = now
+    }
     inFlightRef.current = true
     if (isManual) setIsRefreshing(true)
     if (!isManual) setLoading(true)
@@ -168,11 +177,19 @@ export function useDashboardData(options: UseDashboardDataOptions = {}): Dashboa
     void load(false)
 
     const interval = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
       void load(false)
     }, POLL_MS)
 
+    const handleVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      void load(false)
+    }
+    document.addEventListener('visibilitychange', handleVisible)
+
     return () => {
       window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisible)
     }
   }, [enabled, load])
 

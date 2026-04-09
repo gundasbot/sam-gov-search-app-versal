@@ -23,6 +23,9 @@ import {
 } from 'lucide-react';
 // import { getPersonalizedGreeting, getTimeOfDayEmoji } from '@/lib/greeting';
 
+const CLIENT_SAM_REFRESH_COOLDOWN_MS = 10 * 60 * 1000;
+const CLIENT_SAM_REFRESH_STORAGE_PREFIX = 'pgc:sam:last-fetch:';
+
 interface SamOpportunity {
   noticeId: string;
   title: string;
@@ -761,6 +764,8 @@ export default function OpportunitiesClient() {
     return {
       source: read('source'),
       from: read('from'),
+      detail: read('detail'),
+      update: read('update'),
       naics: read('naics') || read('naicsCode'),
       setAside: read('setAside') || read('setaside'),
       state: read('state'),
@@ -781,6 +786,32 @@ export default function OpportunitiesClient() {
     if (urlSearchOverrides.postedTo) details.push(`Posted on/before ${formatDate(urlSearchOverrides.postedTo)}`);
     return { heading, details };
   }, [urlSearchOverrides]);
+  const insightsDrilldown = useMemo(() => {
+    if (urlSearchOverrides.source !== 'insights') return null;
+    const headingByFrom: Record<string, string> = {
+      'active-opportunities-pill': 'Insights drilldown: Active opportunities in your current feed',
+      'new-today-pill': 'Insights drilldown: New opportunities posted today',
+      'preference-matches-pill': 'Insights drilldown: Opportunities matching your saved preferences',
+      'preference-matches-checklist': 'Insights drilldown: Preference-match triage queue',
+      'preference-matches-action-center': 'Insights drilldown: Preference-match workflow view',
+      'preference-matches-brief': 'Insights drilldown: Medium-priority preference matches',
+      'preference-matches-chip': 'Insights drilldown: Preference-match summary results',
+      'expiring-7d-pill': 'Insights drilldown: Opportunities expiring within 7 days',
+      'active-agencies-pill': 'Insights drilldown: Agency-focused opportunities',
+      'update-opportunities-btn': 'Insights drilldown: Manual opportunity update requested',
+    };
+    const heading = headingByFrom[urlSearchOverrides.from] || 'Insights drilldown: Filtered opportunity details';
+    const details: string[] = [];
+    if (urlSearchOverrides.detail) details.push(urlSearchOverrides.detail);
+    if (urlSearchOverrides.naics) details.push(`NAICS ${urlSearchOverrides.naics}`);
+    if (urlSearchOverrides.setAside) details.push(`Set-aside ${urlSearchOverrides.setAside}`);
+    if (urlSearchOverrides.state) details.push(`State ${urlSearchOverrides.state}`);
+    if (urlSearchOverrides.postedFrom) details.push(`Posted on/after ${formatDate(urlSearchOverrides.postedFrom)}`);
+    if (urlSearchOverrides.postedTo) details.push(`Posted on/before ${formatDate(urlSearchOverrides.postedTo)}`);
+    if (filterParam === 'today') details.push('Filter: posted today');
+    if (filterParam === 'expiring') details.push('Filter: expiring within 7 days');
+    return { heading, details };
+  }, [filterParam, urlSearchOverrides]);
   const { data: session, status: sessionStatus } = useSession();
   const isLoggedIn = sessionStatus === 'authenticated';
 
@@ -809,13 +840,83 @@ export default function OpportunitiesClient() {
   const [selectedNAICS, setSelectedNAICS] = useState<string>('all');
   const [selectedUrgency, setSelectedUrgency] = useState<string>('all');
   const [selectedUrgencyFilters, setSelectedUrgencyFilters] = useState<Set<string>>(new Set());
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const liveFetchInFlightRef = useRef(false);
+  const autoRefreshFromInsightsRef = useRef(false);
+  const lastSamFetchRef = useRef<{ key: string; at: number }>({ key: '', at: 0 });
   const [refreshIndicator, setRefreshIndicator] = useState(false);
 
   const getLastUpdatedLabel = useCallback(() => (
     new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   ), []);
+
+  const getSamQueryKey = useCallback((query: URLSearchParams) => {
+    const normalized = new URLSearchParams(query.toString());
+    normalized.delete('t');
+    return normalized.toString();
+  }, []);
+
+  const getClientSamFetchStorageKey = useCallback((queryKey: string) => (
+    `${CLIENT_SAM_REFRESH_STORAGE_PREFIX}${encodeURIComponent(queryKey)}`
+  ), []);
+
+  const getPersistedClientSamFetch = useCallback((queryKey: string) => {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const raw = window.localStorage.getItem(getClientSamFetchStorageKey(queryKey));
+      const parsed = Number(raw || 0);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    } catch {
+      return 0;
+    }
+  }, [getClientSamFetchStorageKey]);
+
+  const isClientSamFetchCoolingDown = useCallback((queryKey: string) => {
+    const lastInMemory = lastSamFetchRef.current.key === queryKey ? lastSamFetchRef.current.at : 0;
+    const lastPersisted = getPersistedClientSamFetch(queryKey);
+    const latest = Math.max(lastInMemory, lastPersisted);
+    if (!latest) return false;
+    if ((Date.now() - latest) >= CLIENT_SAM_REFRESH_COOLDOWN_MS) return false;
+    if (lastPersisted > lastInMemory) {
+      lastSamFetchRef.current = { key: queryKey, at: lastPersisted };
+    }
+    return true;
+  }, [getPersistedClientSamFetch]);
+
+  const getClientSamCooldownRemainingSec = useCallback((queryKey: string) => {
+    const lastInMemory = lastSamFetchRef.current.key === queryKey ? lastSamFetchRef.current.at : 0;
+    const lastPersisted = getPersistedClientSamFetch(queryKey);
+    const latest = Math.max(lastInMemory, lastPersisted);
+    if (!latest) return 0;
+    const remainingMs = CLIENT_SAM_REFRESH_COOLDOWN_MS - (Date.now() - latest);
+    return remainingMs > 0 ? Math.ceil(remainingMs / 1000) : 0;
+  }, [getPersistedClientSamFetch]);
+
+  const markClientSamFetch = useCallback((queryKey: string) => {
+    const now = Date.now();
+    lastSamFetchRef.current = { key: queryKey, at: now };
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(getClientSamFetchStorageKey(queryKey), String(now));
+      } catch {
+        // ignore storage write issues
+      }
+    }
+  }, [getClientSamFetchStorageKey]);
+
+  const applyQuickSearch = useCallback((term: string) => {
+    setSearchTerm(term);
+    setKeywordSearch(term);
+    searchInputRef.current?.focus();
+  }, []);
+
+  const clearQuickSearch = useCallback(() => {
+    setSearchTerm('');
+    setKeywordSearch('');
+    searchInputRef.current?.focus();
+  }, []);
 
   const getSamErrorMessage = useCallback((payload: any, fallback: string) => {
     if (!payload) return fallback;
@@ -854,9 +955,10 @@ export default function OpportunitiesClient() {
 
   // Γ£à NEW: Toggle for showing/hiding all opportunities including no-deadline
   const [showAllOpportunities, setShowAllOpportunities] = useState(true);
+  const [showUrgencyLegend, setShowUrgencyLegend] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [boardPage, setBoardPage] = useState(1);
-  const PAGE_SIZE = 20;
+  const [listPageSize, setListPageSize] = useState(20);
   const BOARD_PAGE_SIZE = 18;
 
   // Share tray state
@@ -1470,6 +1572,9 @@ Provide analysis in JSON format with:
   };
 
   const handleRefresh = async () => {
+    if (liveFetchInFlightRef.current) return;
+    liveFetchInFlightRef.current = true;
+
     // Guests: live personalized feed requires sign-in/preferences
     if (!isLoggedIn) {
       setRefreshIndicator(true);
@@ -1487,6 +1592,7 @@ Provide analysis in JSON format with:
       setToast({ type: 'error', msg: 'Sign in required for live personalized opportunities.' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => setRefreshIndicator(false), 600);
+      liveFetchInFlightRef.current = false;
       return;
     }
     setLoadingMore(true);
@@ -1508,15 +1614,26 @@ Provide analysis in JSON format with:
         return;
       }
 
-      const query = new URLSearchParams({ limit: '200', status: 'active', naics, t: String(Date.now()) });
+      const query = new URLSearchParams({ limit: '200', status: 'active', naics });
       if (setAside) query.set('setAside', setAside);
       if (state) query.set('state', state);
       if (urlSearchOverrides.postedFrom) query.set('postedFrom', urlSearchOverrides.postedFrom);
       if (urlSearchOverrides.postedTo) query.set('postedTo', urlSearchOverrides.postedTo);
 
+      const queryKey = getSamQueryKey(query);
+      if (allOpportunities.length > 0 && isClientSamFetchCoolingDown(queryKey)) {
+        const remaining = Math.max(1, getClientSamCooldownRemainingSec(queryKey));
+        const msg = `Using cached results to protect API quota. Next live refresh available in ${remaining}s.`;
+        setToast({ type: 'success', msg });
+        setApiStatus({ status: 200, statusText: 'Client Cooldown', message: msg });
+        setLastUpdated(getLastUpdatedLabel());
+        return;
+      }
+
       const res = await fetch(`/api/sam/opportunities?${query.toString()}`, { method: 'GET' });
       if (res.ok) {
         const data = await res.json();
+        markClientSamFetch(queryKey);
         setAllOpportunities(data.opportunities || []);
         setFilteredOpportunities(data.opportunities || []);
         setDisplayedOpportunities(data.opportunities || []);
@@ -1560,8 +1677,18 @@ Provide analysis in JSON format with:
     } finally {
       setLoadingMore(false);
       setRefreshIndicator(false);
+      liveFetchInFlightRef.current = false;
     }
   };
+
+  useEffect(() => {
+    if (urlSearchOverrides.source !== 'insights' || urlSearchOverrides.update !== '1') return;
+    if (sessionStatus === 'loading') return;
+    if (autoRefreshFromInsightsRef.current) return;
+    autoRefreshFromInsightsRef.current = true;
+    handleRefresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionStatus, urlSearchOverrides.source, urlSearchOverrides.update]);
 
   const handlePillClick = (type: 'active' | 'setasides' | 'expiring' | 'departments') => {
     if (activeFilter === type) {
@@ -1689,7 +1816,10 @@ Provide analysis in JSON format with:
     if (sessionStatus === 'loading') return;
     if (!isLoggedIn) return;
     if (allOpportunities.length === 0 && !error) {
+      if (liveFetchInFlightRef.current) return;
+
       const fetchInitialOpportunities = async () => {
+        liveFetchInFlightRef.current = true;
         setLoading(true);
         setError(null);
         try {
@@ -1706,6 +1836,7 @@ Provide analysis in JSON format with:
             setTotalRecords(0);
             setDataLoaded(true);
             setError('Complete your preferences (including NAICS) to load live opportunities.');
+            liveFetchInFlightRef.current = false;
             return;
           }
 
@@ -1714,10 +1845,12 @@ Provide analysis in JSON format with:
           if (state) query.set('state', state);
           if (urlSearchOverrides.postedFrom) query.set('postedFrom', urlSearchOverrides.postedFrom);
           if (urlSearchOverrides.postedTo) query.set('postedTo', urlSearchOverrides.postedTo);
+          const queryKey = getSamQueryKey(query);
           const url = `/api/sam/opportunities?${query.toString()}`;
           const res = await fetch(url);
           if (res.ok) {
             const data = await res.json();
+            markClientSamFetch(queryKey);
             setAllOpportunities(data.opportunities || []);
             setFilteredOpportunities(data.opportunities || []);
             setDisplayedOpportunities(data.opportunities || []);
@@ -1749,6 +1882,7 @@ Provide analysis in JSON format with:
         } finally {
           setLoading(false);
           setDataLoaded(true);
+          liveFetchInFlightRef.current = false;
         }
       };
       fetchInitialOpportunities();
@@ -1788,15 +1922,21 @@ Provide analysis in JSON format with:
 
   useEffect(() => {
     setCurrentPage(1); // Reset to page 1 when filters change
-  }, [keywordSearch, searchTerm, selectedType, selectedSetAside, activeFilter, selectedAgency, selectedNAICS, sortMode]);
+  }, [keywordSearch, searchTerm, selectedType, selectedSetAside, activeFilter, selectedAgency, selectedNAICS, sortMode, listPageSize]);
 
   useEffect(() => {
     setBoardPage(1); // Reset board page when filters/view change
   }, [keywordSearch, searchTerm, selectedType, selectedSetAside, activeFilter, selectedAgency, selectedNAICS, selectedUrgency, sortMode, viewMode]);
 
   useEffect(() => {
+    if (selectedUrgencyFilters.size > 0) {
+      setShowUrgencyLegend(true);
+    }
+  }, [selectedUrgencyFilters]);
+
+  useEffect(() => {
     setCurrentPage(1); // Reset to page 1 when filters change
-  }, [keywordSearch, searchTerm, selectedType, selectedSetAside, activeFilter, selectedAgency, selectedNAICS, sortMode]);
+  }, [keywordSearch, searchTerm, selectedType, selectedSetAside, activeFilter, selectedAgency, selectedNAICS, sortMode, listPageSize]);
 
   useEffect(() => {
     if (dataLoaded) {
@@ -1937,13 +2077,13 @@ Provide analysis in JSON format with:
   // visibleOpportunities: the actual set shown in list/compact views.
   // For guests, show whatever live opportunities are available from cache/API.
   // For logged-in users, respect displayCount.
-  const totalPages = Math.ceil(keywordFiltered.length / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(keywordFiltered.length / listPageSize));
   // keywordFiltered now uses allOpportunities for logged-in — should show all 100
   const visibleOpportunities = !isLoggedIn
     ? keywordFiltered
     : viewMode === 'grid'
       ? keywordFiltered.slice(0, displayCount)
-      : keywordFiltered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+      : keywordFiltered.slice((currentPage - 1) * listPageSize, currentPage * listPageSize);
   const hasMore = !isLoggedIn
     ? false  // guests always see all mock items — no "load more"
     : showAllOpportunities
@@ -2035,47 +2175,92 @@ Provide analysis in JSON format with:
 
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 [&_.text-xs]:text-sm [&_.text-sm]:text-base [&_.text-base]:text-[1.25rem] [&_.text-lg]:text-[1.4rem]" style={{ overflowX: 'hidden', width: '100%', maxWidth: '100%' }}>
+    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50" style={{ overflowX: 'hidden', width: '100%', maxWidth: '100%' }}>
       {/* Top Search Bar */}
-      <div className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-sm">
-        <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-700 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search opportunities by title, agency, NAICS, set-aside, solicitation, or location"
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setKeywordSearch(e.target.value); }}
-              className="w-full pl-12 pr-12 py-3.5 bg-white text-slate-900 border border-cyan-300 rounded-xl placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-base font-semibold shadow-sm"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => { setSearchTerm(''); setKeywordSearch(''); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 transition-colors bg-slate-100 hover:bg-slate-200 rounded-full p-1.5"
-                aria-label="Clear search"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
+      <div className="sticky top-0 z-40 border-b border-cyan-100 bg-gradient-to-r from-slate-50 via-white to-cyan-50/50 backdrop-blur-md">
+        <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3.5">
+          <div className="rounded-2xl border border-cyan-200/90 bg-white p-3 shadow-[0_10px_30px_-18px_rgba(14,116,144,0.65)]">
+            <div className="mb-2 px-1 relative">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+                <h2 className="text-[17px] sm:text-[19px] leading-tight font-black text-slate-900">
+                  Welcome to Smart Opportunity Search. Find the right federal bids faster.
+                </h2>
+                <div className="inline-flex flex-col rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-900 px-4 py-2.5 shadow-lg self-start lg:self-auto lg:justify-self-end">
+                  <span className="mt-0.5 text-[13px] sm:text-[14px] font-black leading-tight whitespace-nowrap">
+                    <span className="uppercase tracking-[0.12em] text-[10px] sm:text-[11px] text-cyan-200 mr-1.5">Powered by</span>
+                    <span className="text-orange-300">PreciseGovCon<sup className="text-[9px] font-black text-orange-300"> ®</sup></span>
+                    <span className="text-cyan-100 ml-1.5">Contract Intelligence</span>
+                  </span>
+                </div>
+              </div>
+              {isLoggedIn && (
+                <div className="mt-1 flex justify-center lg:mt-0 lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 pointer-events-none">
+                  <div className="inline-flex items-center justify-center rounded-xl border border-orange-300 bg-gradient-to-r from-orange-600 to-amber-500 px-4 py-1.5 text-[15px] sm:text-[16px] font-black text-white leading-tight shadow-md">
+                    {userName ? `Welcome back, ${userName}` : 'Welcome back'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative mt-1 rounded-2xl ring-2 ring-orange-300/90 shadow-[0_0_0_1px_rgba(251,146,60,0.28)]">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center">
+                <Search className="text-cyan-700 w-5 h-5" />
+              </div>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search opportunities by title, agency, NAICS, set-aside, solicitation, or location"
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setKeywordSearch(e.target.value); }}
+                className="w-full pl-14 pr-12 py-3 bg-linear-to-r from-white to-orange-50/30 text-slate-900 border-2 border-orange-300 rounded-2xl placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition-all text-[16px] sm:text-[17px] font-extrabold shadow-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={clearQuickSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 transition-colors bg-slate-100 hover:bg-slate-200 rounded-full p-1.5"
+                  aria-label="Clear search"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {(searchTerm || keywordSearch) && (
+              <p className="mt-1.5 px-1 text-[12px] sm:text-[13px] text-slate-700 font-semibold">
+                {keywordFiltered.length === 0
+                  ? `No results for "${searchTerm || keywordSearch}". Try terms like veteran, army, wosb, 8a, hubzone, or a state abbreviation.`
+                  : `${keywordFiltered.length} result${keywordFiltered.length !== 1 ? 's' : ''} for "${searchTerm || keywordSearch}"`
+                }
+              </p>
             )}
-          </div>
-          {(searchTerm || keywordSearch) && (
-            <p className="mt-1.5 text-sm text-slate-700 pl-1 font-medium">
-              {keywordFiltered.length === 0
-                ? `No results for "${searchTerm || keywordSearch}". Try terms like veteran, army, wosb, 8a, hubzone, or a state abbreviation.`
-                : `${keywordFiltered.length} result${keywordFiltered.length !== 1 ? 's' : ''} for "${searchTerm || keywordSearch}"`
-              }
-            </p>
-          )}
-          <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <p className="text-sm font-extrabold text-slate-900">Search includes:</p>
-            <ul className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-sm text-slate-800">
-              <li><span className="font-bold text-slate-900">Title:</span> opportunity name and keywords</li>
-              <li><span className="font-bold text-slate-900">Agency:</span> department and full org path</li>
-              <li><span className="font-bold text-slate-900">Solicitation #:</span> notice and solicitation IDs</li>
-              <li><span className="font-bold text-slate-900">NAICS:</span> industry classification code</li>
-              <li><span className="font-bold text-slate-900">Set-Aside:</span> small-business program codes</li>
-              <li><span className="font-bold text-slate-900">Location:</span> city, state, and zip</li>
-            </ul>
+
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 pr-1">Popular</span>
+              {['SDVOSB', 'WOSB', '8(a)', 'HUBZone', 'Army', 'Air Force', 'VA', 'Texas'].map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => applyQuickSearch(term)}
+                  className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wide text-cyan-800 hover:bg-cyan-100 hover:border-cyan-300 transition"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+
+            <details className="mt-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2">
+              <summary className="cursor-pointer list-none text-[11px] font-black uppercase tracking-[0.12em] text-slate-700 flex items-center justify-between">
+                Search includes title, agency, solicitation, NAICS, set-aside, and location
+                <span className="text-cyan-700">Details</span>
+              </summary>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {['Title: opportunity name and keywords', 'Agency: department and org path', 'Solicitation #: notice and IDs', 'NAICS: industry code', 'Set-Aside: small-business program', 'Location: city, state, zip'].map((item) => (
+                  <span key={item} className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -2101,13 +2286,34 @@ Provide analysis in JSON format with:
           </div>
         </div>
       )}
+      {insightsDrilldown && (
+        <div className="border-b border-orange-200 bg-orange-50">
+          <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-3">
+            <div className="rounded-xl border border-orange-300 bg-white px-4 py-3 shadow-sm">
+              <p className="text-sm font-black text-orange-800">{insightsDrilldown.heading}</p>
+              {insightsDrilldown.details.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {insightsDrilldown.details.map((item, idx) => (
+                    <span
+                      key={`${item}-${idx}`}
+                      className="inline-flex items-center rounded-md border border-orange-300 bg-orange-100 px-2.5 py-1 text-sm font-bold text-orange-900"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header with status */}
-      <div className="border-b border-slate-200 bg-white">
+      <div className="border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-cyan-50/30">
         <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-700">
-              <div className="flex items-center gap-2">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
                 <div className={`w-2 h-2 rounded-full ${error ? 'bg-orange-500 animate-pulse' : dataLoaded ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
                 <span>Last updated: <span className="font-semibold text-slate-900">{lastUpdated}</span></span>
                 {(loading || (!dataLoaded && !error)) && (
@@ -2129,8 +2335,8 @@ Provide analysis in JSON format with:
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 shadow-sm">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <span className="font-medium text-slate-800">
                   {error ? (
                     <span className="text-orange-600">SAM.gov API unavailable</span>
@@ -2142,33 +2348,31 @@ Provide analysis in JSON format with:
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               {userProfile && (
                 <div
-                className="hidden sm:flex items-center gap-2.5 px-3 py-2 rounded-lg border border-slate-300 bg-white cursor-pointer hover:bg-slate-50 transition-colors"
+                className="hidden md:flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 border-indigo-200 bg-linear-to-br from-indigo-50 via-white to-cyan-50 cursor-pointer hover:shadow-md transition-all"
                   title="Monthly save goal: number of opportunities you want to bookmark this month. Click to update your target."
                   onClick={openGoalEditor}
                 >
-                  <TargetIcon className="w-4 h-4 text-slate-700 flex-shrink-0" />
-                  <div className="leading-tight">
-                    <p className="text-xs font-bold text-slate-800">Monthly bookmark goal</p>
-                    <p className="text-xs text-slate-600">
-                      <span className="font-extrabold text-slate-900">{userProfile.achievedThisMonth || 0}</span>
-                      /{userProfile.monthlyGoal || 10} opportunities saved this month
-                    </p>
-                  </div>
+                  <TargetIcon className="w-4 h-4 text-indigo-700 flex-shrink-0" />
+                  <p className="text-sm text-slate-800 font-bold whitespace-nowrap">
+                    <span className="font-black text-indigo-700 mr-1">Monthly bookmark goal:</span>
+                    <span className="font-extrabold text-slate-900">{userProfile.achievedThisMonth || 0}</span>
+                    /{userProfile.monthlyGoal || 10} opportunities saved this month
+                  </p>
                 </div>
               )}
               <button
                 onClick={handleExportOpportunities}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-slate-800 transition shadow-sm hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-bold text-cyan-900 transition hover:bg-cyan-100 shadow-sm"
               >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Export CSV</span>
               </button>
               <Link
                 href="/dashboard/saved-opportunities"
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition shadow-sm hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-900 transition hover:bg-emerald-100 shadow-sm"
               >
                 <Bookmark className="h-4 w-4" />
                 <span className="hidden sm:inline">Saved Opportunities</span>
@@ -2176,12 +2380,12 @@ Provide analysis in JSON format with:
               <button
                 onClick={() => {
                   if (!isLoggedIn) {
-                    window.location.href = '/login?next=/opportunities';
-                    return;
-                  }
-                  window.location.href = '/dashboard/onboarding?next=/opportunities';
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-semibold shadow-sm hover:bg-slate-50 transition-all"
+                  window.location.href = '/login?next=/opportunities';
+                  return;
+                }
+                window.location.href = '/dashboard/onboarding?next=/opportunities';
+              }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-orange-200 bg-orange-50 text-orange-900 font-bold shadow-sm hover:bg-orange-100 transition-all"
               >
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">{isLoggedIn ? 'Update Preferences' : 'Sign In to Set Preferences'}</span>
@@ -2189,7 +2393,7 @@ Provide analysis in JSON format with:
               <button
                 onClick={handleRefresh}
                 disabled={refreshIndicator}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl text-slate-800 text-sm font-medium transition-colors disabled:opacity-50 border border-slate-200 shadow-sm hover:bg-slate-50"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-sm font-bold transition-colors disabled:opacity-50 border border-slate-900 shadow-sm hover:bg-slate-800"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshIndicator ? 'animate-spin' : ''}`} />
                 {refreshIndicator ? 'Refreshing...' : 'Refresh'}
@@ -2267,25 +2471,7 @@ Provide analysis in JSON format with:
       <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-10 xl:px-12 py-2">
 
         {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
-        {isLoggedIn ? (
-          /* Signed-in: compact single bar */
-          <div className="mb-3 px-4 py-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-4" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
-            <div className="flex items-center gap-3 min-w-0">
-              <Image src="/logo.png" alt="PreciseGovCon" width={40} height={40} className="w-9 h-9 object-contain flex-shrink-0" />
-              <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-tight" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
-                  {userName ? `Welcome back, ${userName}` : 'Welcome to your streamlined opportunities dashboard'}
-                </h1>
-              </div>
-            </div>
-            <div className="flex-shrink-0 text-right hidden sm:block">
-              <p className="text-xs text-slate-400 leading-none mb-0.5">Powered by</p>
-              <p className="text-sm font-extrabold text-[#ff7a18] leading-none">
-                PreciseGovCon<sup className="text-[10px] font-bold text-slate-400"> ®</sup> Contract Intelligence
-              </p>
-            </div>
-          </div>
-        ) : (
+        {isLoggedIn ? null : (
           /* Guest: informational banner (CTA kept at bottom of page) */
           <div className="mb-3 bg-gradient-to-r from-slate-50 via-white to-emerald-50 rounded-xl border border-slate-200 overflow-hidden shadow-md" style={{ fontFamily: 'Aptos, Inter, Arial, sans-serif' }}>
             <div className="flex flex-col sm:flex-row">
@@ -2381,172 +2567,193 @@ Provide analysis in JSON format with:
           </div>
         )}
 
-        {/* ── Filter Buttons ─────────────────────────────────────────────── */}
-        <div className="mb-3 grid grid-cols-5 gap-2">
-          {([
-            { filter: 'active'      as const, icon: <CheckCircle2 style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.totalActive, label: 'Active',       solid: '#059669', active: '#047857' },
-            { filter: 'setasides'   as const, icon: <Award         style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.setAsides,   label: 'Set-Asides',  solid: '#7c3aed', active: '#6d28d9' },
-            { filter: 'expiring'    as const, icon: <Timer         style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.closingSoon, label: 'Closing ≤7d', solid: '#dc2626', active: '#b91c1c' },
-            { filter: 'departments' as const, icon: <Building2     style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.departments, label: 'Agencies',    solid: '#0891b2', active: '#0e7490' },
-          ] as const).map(s => {
-            const isActive = activeFilter === s.filter;
-            return (
-              <button
-                key={s.filter}
-                type="button"
-                onClick={() => handlePillClick(s.filter)}
-                style={{
-                  background: isActive ? s.active : s.solid,
-                  border: isActive ? `2px solid #fff` : '2px solid transparent',
-                  borderRadius: 12,
-                  padding: '10px 10px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  gap: 4,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  boxShadow: isActive ? '0 0 0 3px rgba(255,255,255,0.25), 0 4px 14px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.25)',
-                  width: '100%',
-                }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.filter = 'brightness(1.12)'; }}
-                onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
-              >
-                <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  {s.icon}
-                  <span style={{color:'#ffffff',fontSize:20,fontWeight:900,lineHeight:1,letterSpacing:'-0.01em'}}>
-                    {s.value.toLocaleString()}
+        {/* ── Unified Filter + View Controls ──────────────────────────────── */}
+        <div className="mb-2 rounded-xl border border-slate-200 bg-white shadow-sm p-2">
+          <div className="grid grid-cols-5 gap-2">
+            {([
+              { filter: 'active'      as const, icon: <CheckCircle2 style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.totalActive, label: 'Active',       solid: '#059669', active: '#047857' },
+              { filter: 'setasides'   as const, icon: <Award         style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.setAsides,   label: 'Set-Asides',  solid: '#7c3aed', active: '#6d28d9' },
+              { filter: 'expiring'    as const, icon: <Timer         style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.closingSoon, label: 'Closing ≤7d', solid: '#dc2626', active: '#b91c1c' },
+              { filter: 'departments' as const, icon: <Building2     style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />, value: stats.departments, label: 'Agencies',    solid: '#0891b2', active: '#0e7490' },
+            ] as const).map(s => {
+              const isActive = activeFilter === s.filter;
+              return (
+                <button
+                  key={s.filter}
+                  type="button"
+                  onClick={() => handlePillClick(s.filter)}
+                  style={{
+                    background: isActive ? s.active : s.solid,
+                    border: isActive ? `2px solid #fff` : '2px solid transparent',
+                    borderRadius: 12,
+                    padding: '10px 10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: 4,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    boxShadow: isActive ? '0 0 0 3px rgba(255,255,255,0.25), 0 4px 14px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.25)',
+                    width: '100%',
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.filter = 'brightness(1.12)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
+                >
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    {s.icon}
+                    <span style={{color:'#ffffff',fontSize:20,fontWeight:900,lineHeight:1,letterSpacing:'-0.01em'}}>
+                      {s.value.toLocaleString()}
+                    </span>
+                  </div>
+                  <span style={{color:'#ffffff',fontSize:13,fontWeight:700,letterSpacing:'0.02em',textTransform:'uppercase'}}>
+                    {s.label}
                   </span>
-                </div>
-                <span style={{color:'#ffffff',fontSize:13,fontWeight:700,letterSpacing:'0.02em',textTransform:'uppercase'}}>
-                  {s.label}
+                  {isActive && (
+                    <span style={{color:'rgba(255,255,255,0.75)',fontSize:11,fontWeight:600}}>
+                      ✓ Active filter — click to clear
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {/* Posted Today — non-filterable info button */}
+            <div
+              style={{
+                background: '#d97706',
+                border: '2px solid transparent',
+                borderRadius: 12,
+                padding: '10px 10px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 4,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+              }}
+            >
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <Calendar style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />
+                <span style={{color:'#ffffff',fontSize:20,fontWeight:900,lineHeight:1,letterSpacing:'-0.01em'}}>
+                  {stats.postedToday.toLocaleString()}
                 </span>
-                {isActive && (
-                  <span style={{color:'rgba(255,255,255,0.75)',fontSize:11,fontWeight:600}}>
-                    ✓ Active filter — click to clear
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          {/* Posted Today — non-filterable info button */}
-          <div
-            style={{
-              background: '#d97706',
-              border: '2px solid transparent',
-              borderRadius: 12,
-              padding: '10px 10px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: 4,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-            }}
-          >
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              <Calendar style={{width:18,height:18,color:'#ffffff',flexShrink:0}} />
-              <span style={{color:'#ffffff',fontSize:20,fontWeight:900,lineHeight:1,letterSpacing:'-0.01em'}}>
-                {stats.postedToday.toLocaleString()}
+              </div>
+              <span style={{color:'#ffffff',fontSize:13,fontWeight:700,letterSpacing:'0.02em',textTransform:'uppercase'}}>
+                Posted Today
               </span>
             </div>
-            <span style={{color:'#ffffff',fontSize:13,fontWeight:700,letterSpacing:'0.02em',textTransform:'uppercase'}}>
-              Posted Today
-            </span>
           </div>
-        </div>
 
-        {/* ── View / Sort / Group Controls ─────────────────────────────────── */}
-        <div className="mb-2 flex flex-wrap items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 shadow-sm">
-
-          {/* View mode */}
-          <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg border border-slate-200">
-            {([
-              { mode: 'list' as ViewMode, icon: <List className="w-3.5 h-3.5" />, label: 'List' },
-              { mode: 'grid' as ViewMode, icon: <Grid3x3 className="w-3.5 h-3.5" />, label: 'Board' },
-              { mode: 'compact' as ViewMode, icon: <Layers className="w-3.5 h-3.5" />, label: 'Compact' },
-            ] as {mode: ViewMode; icon: React.ReactNode; label: string}[]).map(v => (
-              <button
-                key={v.mode}
-                onClick={() => { setViewMode(v.mode); if (v.mode === 'grid') setGroupMode('none'); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
-                  viewMode === v.mode
-                    ? (v.mode === 'list'
-                      ? 'bg-sky-100 text-sky-800 shadow-sm border border-sky-300'
-                      : v.mode === 'grid'
-                        ? 'bg-amber-100 text-amber-800 shadow-sm border border-amber-300'
-                        : 'bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-300')
-                    : 'text-slate-600 hover:bg-slate-200 border border-transparent'
-                }`}
+          <div className="mt-2 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
+            {!isLoggedIn && (
+              <a
+                href="/login"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold hover:bg-orange-100 transition-colors whitespace-nowrap mr-auto"
               >
-                {v.icon}{v.label}
-              </button>
-            ))}
-          </div>
+                <Settings className="w-3.5 h-3.5" />
+                Sign in to update preferences
+              </a>
+            )}
 
-          <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              {/* View mode */}
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg border border-slate-200">
+                {([
+                  { mode: 'list' as ViewMode, icon: <List className="w-3.5 h-3.5" />, label: 'List' },
+                  { mode: 'grid' as ViewMode, icon: <Grid3x3 className="w-3.5 h-3.5" />, label: 'Board' },
+                  { mode: 'compact' as ViewMode, icon: <Layers className="w-3.5 h-3.5" />, label: 'Compact' },
+                ] as {mode: ViewMode; icon: React.ReactNode; label: string}[]).map(v => (
+                  <button
+                    key={v.mode}
+                    onClick={() => { setViewMode(v.mode); if (v.mode === 'grid') setGroupMode('none'); }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                      viewMode === v.mode
+                        ? (v.mode === 'list'
+                          ? 'bg-sky-100 text-sky-800 shadow-sm border border-sky-300'
+                          : v.mode === 'grid'
+                            ? 'bg-amber-100 text-amber-800 shadow-sm border border-amber-300'
+                            : 'bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-300')
+                        : 'text-slate-600 hover:bg-slate-200 border border-transparent'
+                    }`}
+                  >
+                    {v.icon}{v.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* Sort */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Sort</span>
-            <select
-              value={sortMode}
-              onChange={e => setSortMode(e.target.value as SortMode)}
-              className="text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm"
-            >
-              <option value="deadline_asc">⏰ Deadline: Soonest First</option>
-              <option value="deadline_desc">⏰ Deadline: Latest First</option>
-              <option value="posted_desc">📅 Posted: Newest First</option>
-              <option value="posted_asc">📅 Posted: Oldest First</option>
-              <option value="title_asc">🔤 Title: A → Z</option>
-              <option value="agency_asc">🏛 Agency: A → Z</option>
-            </select>
-          </div>
-
-          {/* Group By — only for list/compact */}
-          {viewMode !== 'grid' && (
-            <>
               <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+
+              {/* Sort */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Group</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Sort</span>
                 <select
-                  value={groupMode}
-                  onChange={e => setGroupMode(e.target.value as GroupMode)}
+                  value={sortMode}
+                  onChange={e => setSortMode(e.target.value as SortMode)}
                   className="text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm"
                 >
-                  <option value="none">No Grouping</option>
-                  <option value="urgency">Deadline Urgency</option>
-                  <option value="deadline_month">Deadline Month</option>
-                  <option value="department">Agency / Department</option>
-                  <option value="setaside">Set-Aside Type</option>
-                  <option value="naics">NAICS Code (4-digit)</option>
-                  <option value="state">Place of Performance</option>
+                  <option value="deadline_asc">⏰ Deadline: Soonest First</option>
+                  <option value="deadline_desc">⏰ Deadline: Latest First</option>
+                  <option value="posted_desc">📅 Posted: Newest First</option>
+                  <option value="posted_asc">📅 Posted: Oldest First</option>
+                  <option value="title_asc">🔤 Title: A → Z</option>
+                  <option value="agency_asc">🏛 Agency: A → Z</option>
                 </select>
               </div>
-            </>
-          )}
 
-          {/* Spacer + Preferences nudge for guests */}
-          <div className="flex-1" />
-          {!isLoggedIn && (
-            <a
-              href="/login"
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold hover:bg-orange-100 transition-colors whitespace-nowrap"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Sign in to update preferences
-            </a>
-          )}
+              {/* Group By — only for list/compact */}
+              {viewMode !== 'grid' && (
+                <>
+                  <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Group</span>
+                    <select
+                      value={groupMode}
+                      onChange={e => setGroupMode(e.target.value as GroupMode)}
+                      className="text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm"
+                    >
+                      <option value="none">No Grouping</option>
+                      <option value="urgency">Deadline Urgency</option>
+                      <option value="deadline_month">Deadline Month</option>
+                      <option value="department">Agency / Department</option>
+                      <option value="setaside">Set-Aside Type</option>
+                      <option value="naics">NAICS Code (4-digit)</option>
+                      <option value="state">Place of Performance</option>
+                    </select>
+                  </div>
+                  <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:inline">Rows</span>
+                    <select
+                      value={listPageSize}
+                      onChange={e => setListPageSize(Number(e.target.value))}
+                      className="text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm"
+                    >
+                      <option value={10}>10 / page</option>
+                      <option value={20}>20 / page</option>
+                      <option value={30}>30 / page</option>
+                      <option value={50}>50 / page</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* EXPANDED URGENCY LEGEND - Positioned immediately above results */}
-        <div className="mb-2 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-3">
-              <Timer className="w-6 h-6 text-emerald-600" />
-              <h3 className="text-base font-black text-slate-900 tracking-wide">Submission Deadline</h3>
-              <span className="px-3 py-1 bg-slate-100 rounded-full text-sm font-bold text-amber-700">
+        {/* Collapsible deadline urgency controls */}
+        <div className="mb-1 p-2.5 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Timer className="w-5 h-5 text-emerald-600" />
+              <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-wide">Submission Deadline</h3>
+              <span className="px-2.5 py-1 bg-slate-100 rounded-full text-xs sm:text-sm font-bold text-amber-700">
                 Business Days Remaining
               </span>
+              <button
+                onClick={() => setShowUrgencyLegend(v => !v)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                {showUrgencyLegend ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                {showUrgencyLegend ? 'Hide Deadline Filters' : 'Show Deadline Filters'}
+              </button>
             </div>
             <div className="flex items-center gap-2">
               {/* Show All toggle */}
@@ -2610,60 +2817,81 @@ Provide analysis in JSON format with:
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
-            {([
-              { label: 'CRITICAL',    range: '≤3 days',    hdr: '#dc2626', dark: '#7f1d1d', glow: 'rgba(220,38,38,0.7)'   },
-              { label: 'URGENT',      range: '4-5 days',   hdr: '#ea580c', dark: '#7c2d12', glow: 'rgba(234,88,12,0.7)'   },
-              { label: 'HIGH',        range: '6-7 days',   hdr: '#d97706', dark: '#78350f', glow: 'rgba(217,119,6,0.7)'   },
-              { label: 'ACT SOON',    range: '8-10 days',  hdr: '#ca8a04', dark: '#713f12', glow: 'rgba(202,138,4,0.7)'   },
-              { label: 'NORMAL',      range: '11-14 days', hdr: '#65a30d', dark: '#365314', glow: 'rgba(101,163,13,0.7)'  },
-              { label: 'COMFORTABLE', range: '15-21 days', hdr: '#16a34a', dark: '#14532d', glow: 'rgba(22,163,74,0.7)'   },
-              { label: 'AMPLE',       range: '22-30 days', hdr: '#059669', dark: '#064e3b', glow: 'rgba(5,150,105,0.7)'   },
-              { label: 'PLENTY',      range: '31+ days',   hdr: '#0d9488', dark: '#134e4a', glow: 'rgba(13,148,136,0.7)'  },
-            ] as Array<{label:string;range:string;hdr:string;dark:string;glow:string}>).map((item) => {
-              const isActive = selectedUrgencyFilters.has(item.label);
-              const palette: Record<string, string> = {
-                CRITICAL: 'bg-rose-600 text-white border-rose-700',
-                URGENT: 'bg-amber-600 text-white border-amber-700',
-                HIGH: 'bg-orange-500 text-white border-orange-600',
-                'ACT SOON': 'bg-lime-600 text-white border-lime-700',
-                NORMAL: 'bg-emerald-600 text-white border-emerald-700',
-                COMFORTABLE: 'bg-green-600 text-white border-green-700',
-                AMPLE: 'bg-teal-600 text-white border-teal-700',
-                PLENTY: 'bg-sky-600 text-white border-sky-700',
-              };
-              const base = palette[item.label] || 'bg-slate-800 text-white border-slate-900';
-              return (
-                <button
-                  key={item.label}
-                  onClick={() => setSelectedUrgencyFilters(prev => {
-                    const next = new Set(prev);
-                    if (next.has(item.label)) { next.delete(item.label); } else { next.add(item.label); }
-                    return next;
-                  })}
-                  className={`w-full rounded-lg px-3 py-3 text-sm font-black uppercase tracking-wide border shadow-sm transition-transform ${base} ${
-                    isActive ? 'ring-2 ring-offset-1 ring-white/70 scale-[1.03]' : 'hover:scale-[1.01]'
-                  }`}
-                  style={{ letterSpacing: '0.05em' }}
-                >
-                  <div className="text-xs font-extrabold leading-none">{item.label}</div>
-                  <div className="text-xs font-semibold leading-none mt-1 text-white">{item.range}</div>
-                  {isActive && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/25 text-white text-[11px] font-bold">
-                      <span className="w-2 h-2 rounded-full bg-white" />
-                      Filtering
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          {showUrgencyLegend ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
+                {([
+                  { label: 'CRITICAL',    range: '≤3 days',    hdr: '#dc2626', dark: '#7f1d1d', glow: 'rgba(220,38,38,0.7)'   },
+                  { label: 'URGENT',      range: '4-5 days',   hdr: '#ea580c', dark: '#7c2d12', glow: 'rgba(234,88,12,0.7)'   },
+                  { label: 'HIGH',        range: '6-7 days',   hdr: '#d97706', dark: '#78350f', glow: 'rgba(217,119,6,0.7)'   },
+                  { label: 'ACT SOON',    range: '8-10 days',  hdr: '#ca8a04', dark: '#713f12', glow: 'rgba(202,138,4,0.7)'   },
+                  { label: 'NORMAL',      range: '11-14 days', hdr: '#65a30d', dark: '#365314', glow: 'rgba(101,163,13,0.7)'  },
+                  { label: 'COMFORTABLE', range: '15-21 days', hdr: '#16a34a', dark: '#14532d', glow: 'rgba(22,163,74,0.7)'   },
+                  { label: 'AMPLE',       range: '22-30 days', hdr: '#059669', dark: '#064e3b', glow: 'rgba(5,150,105,0.7)'   },
+                  { label: 'PLENTY',      range: '31+ days',   hdr: '#0d9488', dark: '#134e4a', glow: 'rgba(13,148,136,0.7)'  },
+                ] as Array<{label:string;range:string;hdr:string;dark:string;glow:string}>).map((item) => {
+                  const isActive = selectedUrgencyFilters.has(item.label);
+                  const palette: Record<string, string> = {
+                    CRITICAL: 'bg-rose-600 text-white border-rose-700',
+                    URGENT: 'bg-amber-600 text-white border-amber-700',
+                    HIGH: 'bg-orange-500 text-white border-orange-600',
+                    'ACT SOON': 'bg-lime-600 text-white border-lime-700',
+                    NORMAL: 'bg-emerald-600 text-white border-emerald-700',
+                    COMFORTABLE: 'bg-green-600 text-white border-green-700',
+                    AMPLE: 'bg-teal-600 text-white border-teal-700',
+                    PLENTY: 'bg-sky-600 text-white border-sky-700',
+                  };
+                  const base = palette[item.label] || 'bg-slate-800 text-white border-slate-900';
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => setSelectedUrgencyFilters(prev => {
+                        const next = new Set(prev);
+                        if (next.has(item.label)) { next.delete(item.label); } else { next.add(item.label); }
+                        return next;
+                      })}
+                      className={`w-full rounded-lg px-3 py-3 text-sm font-black uppercase tracking-wide border shadow-sm transition-transform ${base} ${
+                        isActive ? 'ring-2 ring-offset-1 ring-white/70 scale-[1.03]' : 'hover:scale-[1.01]'
+                      }`}
+                      style={{ letterSpacing: '0.05em' }}
+                    >
+                      <div className="text-xs font-extrabold leading-none">{item.label}</div>
+                      <div className="text-xs font-semibold leading-none mt-1 text-white">{item.range}</div>
+                      {isActive && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/25 text-white text-[11px] font-bold">
+                          <span className="w-2 h-2 rounded-full bg-white" />
+                          Filtering
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-          <p className="mt-4 text-sm text-slate-600 text-center">
-            {selectedUrgencyFilters.size > 0
-              ? `Γ£ô Active filters: ${Array.from(selectedUrgencyFilters).join(' ┬╖ ')} ΓÇö click to deselect`
-              : 'Click one or more deadline categories to filter. Multi-select supported.'}
-          </p>
+              <p className="mt-2.5 text-xs sm:text-sm text-slate-600 text-center">
+                {selectedUrgencyFilters.size > 0
+                  ? `Active filters: ${Array.from(selectedUrgencyFilters).join(' | ')} - click to deselect`
+                  : 'Click one or more deadline categories to filter. Multi-select supported.'}
+              </p>
+            </>
+          ) : (
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-2 px-1">
+              <p className="text-xs sm:text-sm text-slate-600">
+                {selectedUrgencyFilters.size > 0
+                  ? `Active deadline filters: ${Array.from(selectedUrgencyFilters).join(' | ')}`
+                  : 'Deadline filters are hidden to keep more opportunities visible.'}
+              </p>
+              {selectedUrgencyFilters.size > 0 && (
+                <button
+                  onClick={() => setSelectedUrgencyFilters(new Set())}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Clear Deadline Filters
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
 
@@ -2991,7 +3219,7 @@ Provide analysis in JSON format with:
                     const isSaved = savedOpportunities.has(opp.noticeId);
                     const isViewed = viewedOpportunities.has(opp.noticeId);
                     const hasRealDeadline = !!opp.responseDeadLine;
-                    const compactIndex = (currentPage - 1) * PAGE_SIZE + oppIndex + 1;
+                    const compactIndex = (currentPage - 1) * listPageSize + oppIndex + 1;
 
                     const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getNoDeadlineGradient();
                     const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : getNoDeadlineTextColor();
@@ -3107,7 +3335,7 @@ Provide analysis in JSON format with:
 
               {/* LIST VIEW */}
               {viewMode === 'list' && (
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   {sortedOpportunities.map((opp, oppIndex) => {
                     const isPlaceholder = opp.noticeId.startsWith('placeholder');
                     const deadline = isPlaceholder ? null : getEffectiveDeadline(opp);
@@ -3119,7 +3347,7 @@ Provide analysis in JSON format with:
                     const hasAnalysis = opp.aiAnalysis !== undefined;
                     const isAnalyzing = analyzingOpps.has(opp.noticeId);
                     const hasRealDeadline = !!opp.responseDeadLine;
-                    const globalIndex = (currentPage - 1) * PAGE_SIZE + oppIndex + 1;
+                    const globalIndex = (currentPage - 1) * listPageSize + oppIndex + 1;
 
                     const urgencyGradient = businessDays !== null ? getUrgencyGradient(businessDays) : getNoDeadlineGradient();
                     const urgencyTextColor = businessDays !== null ? getUrgencyTextColor(businessDays) : getNoDeadlineTextColor();
@@ -3148,28 +3376,28 @@ Provide analysis in JSON format with:
                             businessDays <= 30 ? '#a7f3d0' : '#99f6e4',
                           opacity: isViewed ? 0.7 : 1
                         }}
-                        className={`group p-3 rounded-xl hover:shadow-md transition-all border border-slate-100 ${
+                        className={`group p-2.5 rounded-lg hover:shadow-md transition-all border border-slate-100 ${
                           isPlaceholder ? 'animate-pulse' : ''
                         } ${isViewed ? 'opacity-75' : ''}`}
                       >
-                        <div className="flex items-start justify-between gap-3 sm:gap-6">
+                        <div className="flex items-start justify-between gap-2.5 sm:gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                            <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
                               {!isPlaceholder && isSaved && (
-                                <div className="px-2 py-1 bg-rose-50 rounded-lg flex items-center gap-1.5 border border-rose-200">
+                                <div className="px-2 py-0.5 bg-rose-50 rounded-md flex items-center gap-1.5 border border-rose-200">
                                   <Bookmark className="w-3.5 h-3.5 text-rose-500" fill="currentColor" />
                                   <span className="text-xs font-bold text-rose-600">Saved</span>
                                 </div>
                               )}
                               {!isPlaceholder && hasAnalysis && (
-                                <div className="px-2 sm:px-3 py-1 bg-purple-500/20 rounded-lg flex items-center gap-1.5 border border-purple-500/40">
+                                <div className="px-2 sm:px-2.5 py-0.5 bg-purple-500/20 rounded-md flex items-center gap-1.5 border border-purple-500/40">
                                   <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                                   <span className="text-xs font-bold text-purple-400">AI Analyzed</span>
                                 </div>
                               )}
                             </div>
 
-                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
                               <span style={{background:'#f1f5f9',color:'#475569',fontSize:11,fontWeight:800,padding:'2px 7px',borderRadius:4,flexShrink:0,border:'1px solid #e2e8f0'}}>#{globalIndex}</span>
                               {businessDays !== null && (
                                 <span style={{background:businessDays<=3?'#dc2626':businessDays<=5?'#ea580c':businessDays<=7?'#d97706':businessDays<=10?'#ca8a04':businessDays<=14?'#65a30d':businessDays<=21?'#16a34a':businessDays<=30?'#059669':'#0d9488',color:'#fff',fontSize:10,fontWeight:800,padding:'2px 7px',borderRadius:4,whiteSpace:'nowrap'}}>
@@ -3177,7 +3405,7 @@ Provide analysis in JSON format with:
                                 </span>
                               )}
                             </div>
-                            <h3 className="text-sm font-bold text-slate-900 mb-1 leading-tight" style={{color:'#0f172a'}}>
+                            <h3 className="text-[13px] sm:text-sm font-bold text-slate-900 mb-0.5 leading-tight line-clamp-2" style={{color:'#0f172a'}}>
                               {isPlaceholder ? (
                                 <>
                                   <span className="inline-block h-6 w-full max-w-2xl bg-slate-700 rounded mb-2"></span>
@@ -3188,8 +3416,8 @@ Provide analysis in JSON format with:
                               )}
                             </h3>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-slate-300">
-                              <span className="flex items-center gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-0.5 text-[11px] text-slate-300">
+                              <span className="flex items-center gap-1.5">
                                 <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                                 {isPlaceholder ? (
                                   <span className="inline-block h-4 w-48 bg-slate-700 rounded"></span>
@@ -3198,14 +3426,14 @@ Provide analysis in JSON format with:
                                 )}
                               </span>
                               {!isPlaceholder && opp.typeOfSetAsideDescription && opp.typeOfSetAsideDescription !== 'None' && (
-                                <span className="flex items-center gap-2">
+                                <span className="flex items-center gap-1.5">
                                   <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-semibold">
+                                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px] font-semibold">
                                     {opp.typeOfSetAsideDescription}
                                   </span>
                                 </span>
                               )}
-                              <span className="flex items-center gap-2">
+                              <span className="flex items-center gap-1.5">
                                 <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                                 {isPlaceholder ? (
                                   <span className="inline-block h-4 w-24 bg-slate-700 rounded"></span>
@@ -3213,7 +3441,7 @@ Provide analysis in JSON format with:
                                   `NAICS: ${opp.naicsCode || 'N/A'}`
                                 )}
                               </span>
-                              <span className="flex items-center gap-2">
+                              <span className="flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                                 {isPlaceholder ? (
                                   <span className="inline-block h-4 w-32 bg-slate-700 rounded"></span>
@@ -3230,16 +3458,16 @@ Provide analysis in JSON format with:
                           </div>
 
                           {!isPlaceholder && (
-                            <div className="text-right flex-shrink-0 min-w-[90px]">
+                            <div className="text-right flex-shrink-0 min-w-[86px]">
                               {businessDays !== null ? (
-                                <div className={`text-lg font-black ${urgencyTextColor}`}>{businessDays}d left</div>
+                                <div className={`text-base font-black ${urgencyTextColor}`}>{businessDays}d left</div>
                               ) : (
-                                <div className="text-xs text-slate-400">No deadline</div>
+                                <div className="text-[11px] text-slate-400">No deadline</div>
                               )}
                               <div style={{fontSize:11,fontWeight:700,color:'#374151',marginTop:2}}>
                                 Due: {deadline ? formatDate(deadline) : '—'}
                               </div>
-                              <div style={{fontSize:11,color:'#6b7280',marginTop:1}}>
+                              <div style={{fontSize:10,color:'#6b7280',marginTop:1}}>
                                 Posted: {formatDate(postedDate)}
                               </div>
                             </div>
@@ -3268,7 +3496,7 @@ Provide analysis in JSON format with:
                           </div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 mt-1">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 pt-0.5 mt-0.5">
                           <div className="flex items-center gap-2">
                             {!isPlaceholder ? (
                               <a
@@ -3276,7 +3504,7 @@ Provide analysis in JSON format with:
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => handleViewOpportunity(opp.noticeId)}
-                                style={{background:'#ea580c',color:'#fff',fontWeight:700,fontSize:12,padding:'6px 14px',borderRadius:8,display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',whiteSpace:'nowrap'}}
+                                style={{background:'#ea580c',color:'#fff',fontWeight:700,fontSize:11,padding:'5px 12px',borderRadius:8,display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',whiteSpace:'nowrap'}}
                               >
                                 View on SAM.gov
                                 <ExternalLink className="w-4 h-4" />
@@ -3289,7 +3517,7 @@ Provide analysis in JSON format with:
                             {!isPlaceholder && (
                               <button
                                 onClick={() => handleSaveOpportunity(opp.noticeId)}
-                                className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                                className="p-2 rounded-lg bg-slate-700/50 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
                               >
                                 <Bookmark className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} />
                               </button>
@@ -3305,7 +3533,7 @@ Provide analysis in JSON format with:
                                   }
                                 }}
                                 disabled={isAnalyzing}
-                                className="p-2.5 rounded-xl bg-slate-700/50 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
+                                className="p-2 rounded-lg bg-slate-700/50 hover:bg-purple-500/20 text-slate-400 hover:text-purple-400 transition-colors disabled:opacity-50"
                                 title="Analyze with AI"
                               >
                                 {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}

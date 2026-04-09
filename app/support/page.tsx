@@ -31,7 +31,9 @@ import {
 export const dynamic = 'force-dynamic'
 
 const CALENDLY_URL = 'https://calendly.com/precisegovcon/30min'
-const CALENDLY_EMBED_URL = `${CALENDLY_URL}?hide_gdpr_banner=1&hide_landing_page_details=1&hide_event_type_details=0&primary_color=3f7f61`
+const CALENDLY_EMBED_URL =
+  `${CALENDLY_URL}?embed_type=Inline&hide_gdpr_banner=1&hide_landing_page_details=1` +
+  `&hide_event_type_details=0&primary_color=3f7f61&background_color=ffffff&text_color=0f172a`
 const SUPPORT_EMAIL = 'support@precisegovcon.com'
 const SUPPORT_TEL = '804-404-6005'
 
@@ -309,10 +311,10 @@ function SupportContactModal({
                   />
                 </div>
                 <div>
-                  <h3 className="text-3xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                  <h3 className="text-3xl sm:text-4xl font-black tracking-tight text-[var(--color-text-primary)]">
                     Contact Support
                   </h3>
-                  <p className="mt-3 text-base sm:text-lg text-white/70 max-w-2xl">
+                  <p className="mt-3 text-base sm:text-lg text-[var(--color-text-secondary)] max-w-2xl">
                     Choose a category below or contact us directly via phone, email, or schedule a meeting.
                   </p>
                 </div>
@@ -320,7 +322,7 @@ function SupportContactModal({
 
               {/* Support Categories Grid - 2 columns */}
               <div className="mb-10">
-                <h4 className="text-base font-bold text-white/90 mb-5 uppercase tracking-wider flex items-center gap-2">
+                <h4 className="text-base font-bold text-[var(--color-text-primary)] mb-5 uppercase tracking-wider flex items-center gap-2">
                   <span className="w-1.5 h-5 bg-gradient-to-b from-emerald-400 to-cyan-400 rounded-full" />
                   Select Support Type:
                 </h4>
@@ -357,13 +359,13 @@ function SupportContactModal({
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <div className="font-bold text-xl text-white mb-1.5">{category.label}</div>
+                              <div className="font-bold text-xl text-[var(--color-text-primary)] mb-1.5">{category.label}</div>
                               <ArrowRight 
                                 className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-0 group-hover:translate-x-1" 
                                 style={{ color: colors.light }} 
                               />
                             </div>
-                            <p className="text-white/70 text-base leading-snug">{category.description}</p>
+                            <p className="text-[var(--color-text-secondary)] text-base leading-snug">{category.description}</p>
                           </div>
                         </div>
                       </button>
@@ -374,39 +376,39 @@ function SupportContactModal({
 
               {/* Direct Contact Options */}
               <div className="border-t border-white/10 pt-8">
-                <h4 className="text-base font-bold text-white/90 mb-5 uppercase tracking-wider flex items-center gap-2">
+                <h4 className="text-base font-bold text-[var(--color-text-primary)] mb-5 uppercase tracking-wider flex items-center gap-2">
                   <span className="w-1.5 h-5 bg-gradient-to-b from-orange-400 to-orange-500 rounded-full" />
                   Or Contact Directly:
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <a
                     href={`mailto:${SUPPORT_EMAIL}`}
-                    className="group relative overflow-hidden rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 p-5 text-left hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden rounded-xl border border-cyan-300 bg-gradient-to-br from-cyan-100 to-cyan-50 p-5 text-left hover:shadow-lg transition-all"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative flex items-center gap-4">
-                      <span className="rounded-xl border border-cyan-400/30 bg-cyan-500/20 p-3.5 group-hover:scale-110 transition-transform">
-                        <Mail className="h-5 w-5 text-cyan-200" />
+                      <span className="rounded-xl border border-cyan-300 bg-cyan-200 p-3.5 group-hover:scale-110 transition-transform">
+                        <Mail className="h-5 w-5 text-cyan-800" />
                       </span>
                       <div>
-                        <div className="font-bold text-lg text-white">Email us</div>
-                        <div className="text-sm text-white/65 break-all">{SUPPORT_EMAIL}</div>
+                        <div className="font-bold text-lg text-[var(--color-text-primary)]">Email us</div>
+                        <div className="text-sm text-[var(--color-text-secondary)] break-all">{SUPPORT_EMAIL}</div>
                       </div>
                     </div>
                   </a>
 
                   <a
                     href={`tel:${SUPPORT_TEL.replace(/[^0-9+]/g, '')}`}
-                    className="group relative overflow-hidden rounded-xl border border-emerald-400/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-5 text-left hover:shadow-lg transition-all"
+                    className="group relative overflow-hidden rounded-xl border border-emerald-300 bg-gradient-to-br from-emerald-100 to-emerald-50 p-5 text-left hover:shadow-lg transition-all"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative flex items-center gap-4">
-                      <span className="rounded-xl border border-emerald-400/30 bg-emerald-500/20 p-3.5 group-hover:scale-110 transition-transform">
-                        <Phone className="h-5 w-5 text-emerald-200" />
+                      <span className="rounded-xl border border-emerald-300 bg-emerald-200 p-3.5 group-hover:scale-110 transition-transform">
+                        <Phone className="h-5 w-5 text-emerald-800" />
                       </span>
                       <div>
-                        <div className="font-bold text-lg text-white">Call support</div>
-                        <div className="text-sm text-white/65">{SUPPORT_TEL}</div>
+                        <div className="font-bold text-lg text-[var(--color-text-primary)]">Call support</div>
+                        <div className="text-sm text-[var(--color-text-secondary)]">{SUPPORT_TEL}</div>
                       </div>
                     </div>
                   </a>
@@ -415,24 +417,24 @@ function SupportContactModal({
                     href={CALENDLY_URL}
                     target="_blank"
                     rel="noreferrer"
-                    className="group relative overflow-hidden rounded-xl border border-white/20 bg-gradient-to-br from-white/10 to-white/5 p-5 text-left hover:bg-white/15 transition-all hover:shadow-lg"
+                    className="group relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-left hover:bg-[var(--color-surface)] transition-all hover:shadow-lg"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative flex items-center gap-4">
-                      <span className="rounded-xl border border-white/25 bg-white/15 p-3.5 group-hover:scale-110 transition-transform">
-                        <CalendarClock className="h-5 w-5 text-white/90" />
+                      <span className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 group-hover:scale-110 transition-transform">
+                        <CalendarClock className="h-5 w-5 text-[var(--color-text-primary)]" />
                       </span>
                       <div>
-                        <div className="font-bold text-lg text-white">Book a meeting</div>
-                        <div className="text-sm text-white/65">30-min consultation</div>
+                        <div className="font-bold text-lg text-[var(--color-text-primary)]">Book a meeting</div>
+                        <div className="text-sm text-[var(--color-text-secondary)]">30-min consultation</div>
                       </div>
                     </div>
                   </a>
                 </div>
               </div>
 
-              <div className="mt-8 rounded-xl border border-white/15 bg-black/30 p-5 text-base text-white/80 backdrop-blur-sm">
-                <span className="font-black text-white mr-2">💡 Tip:</span> 
+              <div className="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5 text-base text-[var(--color-text-secondary)]">
+                <span className="font-black text-[var(--color-text-primary)] mr-2">💡 Tip:</span> 
                 For bugs, include the page URL + steps to reproduce. For billing, include your account email.
               </div>
             </>
@@ -807,7 +809,7 @@ export default function SupportPage() {
               book time, use the form and we&apos;ll respond within 1 business day.
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
               <a
                 href="#book"
                 className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-emerald-700 px-5 py-3.5 text-base font-extrabold text-white shadow-lg transition-all hover:bg-emerald-800"
@@ -824,17 +826,17 @@ export default function SupportPage() {
                 <Send className="h-5 w-5 text-white" />
                 Send Us a message
               </button>
+
+              <div className="inline-flex items-center justify-center rounded-xl border border-emerald-700 bg-emerald-700 px-4 py-3.5 text-sm sm:text-base font-bold text-white shadow-sm">
+                Typical response: <span className="ml-1.5 font-black text-white">1 business day</span>
+              </div>
+
+              <div className="inline-flex items-center justify-center rounded-xl border border-orange-700 bg-orange-600 px-4 py-3.5 text-sm sm:text-base font-bold text-white shadow-sm">
+                Best for complex issues: <span className="ml-1.5 font-black text-white">meeting</span>
+              </div>
             </div>
 
             <div className="mt-4 space-y-2">
-              <div className="flex flex-wrap gap-3 text-sm sm:text-base">
-                <span className="rounded-full border border-emerald-700 bg-emerald-700 px-4 py-2 text-white shadow-sm">
-                  Typical response: <span className="font-bold text-white">1 business day</span>
-                </span>
-                <span className="rounded-full border border-orange-700 bg-orange-600 px-4 py-2 text-white shadow-sm">
-                  Best for complex issues: <span className="font-bold text-white">meeting</span>
-                </span>
-              </div>
               
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] backdrop-blur-sm p-4 sm:p-5 mx-auto text-center">
                 <p className="text-sm sm:text-base lg:text-lg font-bold text-[var(--color-text-primary)] leading-relaxed">
@@ -929,7 +931,7 @@ export default function SupportPage() {
                 <button
                   type="button"
                   onClick={() => setSupportModalOpen(true)}
-                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-orange-700 bg-orange-600 px-4 py-3 text-sm sm:text-base font-black text-white shadow-lg hover:bg-orange-700 transition-all hover:shadow-xl"
+                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-xl border border-emerald-700 bg-emerald-700 px-4 py-3 text-sm sm:text-base font-black text-white shadow-lg hover:bg-emerald-800 transition-all hover:shadow-xl"
                 >
                   <Send className="h-5 w-5 text-white" />
                   Open contact options

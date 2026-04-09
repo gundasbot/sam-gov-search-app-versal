@@ -211,7 +211,7 @@ export default function SaveSearchSuccessModal({
             Help Center
           </Link>
           {' '}or{' '}
-          <Link href="/contact" className="text-blue-600 hover:underline font-semibold">
+          <Link href="/support?openContact=1" className="text-blue-600 hover:underline font-semibold">
             Contact Support
           </Link>
         </p>

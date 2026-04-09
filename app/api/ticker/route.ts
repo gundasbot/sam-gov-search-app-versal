@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -7,7 +8,7 @@ export const maxDuration = 60 // Maximum execution time
 // ✅ Simple in-memory cache to prevent hammering SAM.gov
 let lastFetchAt = 0
 let lastPayload: any = null
-const MIN_INTERVAL_MS = 30_000 // 30 seconds
+const MIN_INTERVAL_MS = 5 * 60_000 // 5 minutes
 const FETCH_TIMEOUT_MS = 50_000 // 50 second timeout
 
 // Utility: Fetch with timeout and retry
@@ -124,19 +125,41 @@ export async function GET(request: NextRequest) {
     url.searchParams.set('order', 'desc')
     url.searchParams.set('ptype', 'o') // opportunities
 
-    // Use fetch with timeout and retry logic
-    const response = await fetchWithTimeout(url.toString(), {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'SAM-Gov-Search-App/1.0'
-      },
-      cache: 'no-store',
+    const liveResult = await coalesceInFlight<
+      { ok: true; payload: any } | { ok: false; status: number }
+    >(`sam:ticker:${postedFrom}:${postedTo}`, async () => {
+      const response = await fetchWithTimeout(url.toString(), {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SAM-Gov-Search-App/1.0'
+        },
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        console.error('❌ SAM.gov API error:', response.status, response.statusText)
+        return { ok: false as const, status: response.status }
+      }
+
+      const data = await response.json()
+      const opportunities = Array.isArray(data?.opportunitiesData)
+        ? data.opportunitiesData
+        : []
+
+      console.log('✅ Ticker data fetched:', opportunities.length, 'new opportunities')
+
+      const payload = {
+        success: true,
+        count: data.totalRecords || opportunities.length || 0,
+        opportunities: opportunities.slice(0, 30),
+        lastUpdated: new Date().toISOString(),
+      }
+      lastFetchAt = Date.now()
+      lastPayload = payload
+      return { ok: true as const, payload }
     })
 
-    if (!response.ok) {
-      console.error('❌ SAM.gov API error:', response.status, response.statusText)
-      
-      // Return last cached data if available on error
+    if (!liveResult.ok) {
       if (lastPayload) {
         console.log('📦 Returning stale cached data due to API error')
         return NextResponse.json({
@@ -144,33 +167,13 @@ export async function GET(request: NextRequest) {
           warning: 'Using cached data due to API issues'
         })
       }
-      
       return NextResponse.json(
         { error: 'Failed to fetch from SAM.gov' },
-        { status: response.status }
+        { status: liveResult.status }
       )
     }
 
-    const data = await response.json()
-
-    const opportunities = Array.isArray(data?.opportunitiesData)
-      ? data.opportunitiesData
-      : []
-
-    console.log('✅ Ticker data fetched:', opportunities.length, 'new opportunities')
-
-    const payload = {
-      success: true,
-      count: data.totalRecords || opportunities.length || 0,
-      opportunities: opportunities.slice(0, 30), // Return max 30 for ticker
-      lastUpdated: new Date().toISOString(),
-    }
-
-    // ✅ update cache
-    lastFetchAt = now
-    lastPayload = payload
-
-    return NextResponse.json(payload)
+    return NextResponse.json(liveResult.payload)
   } catch (error: any) {
     console.error('❌ Ticker API error:', error)
     

@@ -9,6 +9,7 @@
 //   ?refresh=1           → bust cache
 //
 import { NextRequest, NextResponse } from 'next/server'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 export const dynamic = 'force-dynamic'
 
@@ -250,7 +251,7 @@ export async function GET(req: NextRequest) {
 
   // ── Fetch fresh taxonomy from SAM.gov ─────────────────────────────────────
   try {
-    const fresh = await buildTaxonomy()
+    const fresh = await coalesceInFlight<TaxonomyCache>('sam:codes:taxonomy', async () => buildTaxonomy())
     taxonomyCache = fresh
     return NextResponse.json(buildResponse(fresh, type, q, limit, 'live'))
   } catch (err: any) {

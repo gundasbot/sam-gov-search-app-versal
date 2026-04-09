@@ -386,8 +386,6 @@ export async function POST(request: NextRequest) {
       ? buildICS(name, email, preferredDate, preferredTime, inquiryLabel)
       : null
 
-    console.log(`=== Contact: ${name} <${email}> — ${inquiryLabel} ===`)
-
     if (process.env.RESEND_API_KEY) {
       // 1. Team notification
       await resend.emails.send({
@@ -408,8 +406,6 @@ export async function POST(request: NextRequest) {
           ...(icsBuffer ? [{ filename: 'meeting.ics', content: icsBuffer }] : []),
         ],
       })
-      console.log('✅ Team email sent')
-
       // 2. Customer confirmation
       await resend.emails.send({
         from: FROM,
@@ -425,7 +421,6 @@ export async function POST(request: NextRequest) {
           ...(icsBuffer ? [{ filename: 'consultation.ics', content: icsBuffer }] : []),
         ],
       })
-      console.log('✅ Customer confirmation sent to', email)
     } else {
       console.warn('⚠️  RESEND_API_KEY not set — emails not sent')
     }

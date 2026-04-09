@@ -5,16 +5,16 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import crypto from 'crypto'
+import { resolvePublicAppUrl } from '@/lib/url-safety'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 function getAppUrl() {
-  // Prefer public URL for links
-  return (
-    process.env.APP_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXTAUTH_URL ||
-    'https://www.precisegovcon.com'
+  // Outbound email links should always be public and never localhost.
+  return resolvePublicAppUrl(
+    process.env.APP_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXTAUTH_URL
   )
 }
 

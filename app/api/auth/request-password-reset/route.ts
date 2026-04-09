@@ -5,15 +5,12 @@ import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 import { brandedEmail } from "@/lib/email/template"
 import { sendEmail } from "@/lib/email/send"
+import { resolvePublicAppUrl } from "@/lib/url-safety"
 
 export const runtime = "nodejs"
 
 function sha256(s: string) {
   return crypto.createHash("sha256").update(s).digest("hex")
-}
-
-function getAppUrl() {
-  return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://www.precisegovcon.com").replace(/\/$/, "")
 }
 
 export async function POST(req: Request) {
@@ -50,7 +47,12 @@ export async function POST(req: Request) {
       },
     })
 
-    const resetUrl = `${getAppUrl()}/reset-password?token=${raw}`
+    const appUrl = resolvePublicAppUrl(
+      process.env.APP_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      process.env.NEXTAUTH_URL
+    )
+    const resetUrl = `${appUrl}/reset-password?token=${raw}`
 
     const { html, text } = brandedEmail({
       title: "Reset your Precise GovCon password",

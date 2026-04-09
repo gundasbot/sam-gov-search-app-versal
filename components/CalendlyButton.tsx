@@ -14,7 +14,7 @@ export default function CalendlyButton({
   className = '',
   size = 'xl'
 }: CalendlyButtonProps) {
-  const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || '/contact'
+  const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || '/support#book'
   
   const sizeClasses = {
     sm: 'px-4 py-2 text-sm',

@@ -152,7 +152,7 @@ export default function Footer() {
               <h4 className="text-[0.95rem] font-black tracking-wide mb-3" style={{ color: '#f97316' }}>Get started</h4>
               <ul className="space-y-2">
                 <li><Link href="/support#book" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Book a meeting</Link></li>
-                <li><Link href="/support" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Contact us</Link></li>
+                <li><Link href="/support?openContact=1" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Contact us</Link></li>
                 <li><Link href="/signup" className="text-[0.92rem] font-semibold text-slate-700 hover:text-slate-900 transition-colors">Start free trial</Link></li>
               </ul>
             </div>

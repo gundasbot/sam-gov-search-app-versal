@@ -1,10 +1,24 @@
-const CACHE_NAME = 'precisegovcon-cache-v2';
-const APP_SHELL_URLS = ['/', '/dashboard'];
+const CACHE_NAME = 'precisegovcon-cache-v5';
+const APP_SHELL_URLS = ['/'];
+
+const AUTH_BYPASS_PREFIXES = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+  '/auth/',
+  '/api/auth/',
+];
+
+function isAuthBypassPath(pathname) {
+  return AUTH_BYPASS_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL_URLS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL_URLS).catch(() => {}))
   );
 });
 
@@ -13,11 +27,7 @@ self.addEventListener('activate', (event) => {
     Promise.all([
       self.clients.claim(),
       caches.keys().then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
       ),
     ])
   );
@@ -25,50 +35,57 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  const url = new URL(req.url);
 
-  // Only handle safe, same-origin GET requests.
-  if (req.method !== 'GET' || url.origin !== self.location.origin) {
+  if (req.method !== 'GET') return;
+
+  let url;
+  try {
+    url = new URL(req.url);
+  } catch {
     return;
   }
 
-  // Never cache Next.js build assets/chunks to avoid stale ChunkLoadError after deploys.
-  if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(fetch(req, { cache: 'no-store' }));
-    return;
-  }
+  // Only handle same-origin GET requests.
+  if (url.origin !== self.location.origin) return;
 
-  // API routes should always be network fresh.
+  // Never intercept Next.js build assets/chunks to avoid stale MIME/content issues.
+  if (url.pathname.startsWith('/_next/')) return;
+
+  // Never intercept auth routes/callbacks.
+  if (isAuthBypassPath(url.pathname)) return;
+
+  // API routes should always be network-fresh with a JSON fallback.
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(req));
-    return;
-  }
-
-  // Navigation/doc requests: network-first with cache fallback.
-  const isDocument = req.mode === 'navigate' || req.destination === 'document';
-  if (isDocument) {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match('/')))
+      fetch(req).catch(() =>
+        new Response(
+          JSON.stringify({ ok: false, error: 'offline', message: 'Network unavailable' }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        )
+      )
     );
     return;
   }
 
-  // Other static assets: cache-first, then backfill cache.
+  const isDocument = req.mode === 'navigate' || req.destination === 'document';
+  if (isDocument) {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' })
+        .then((res) => res)
+        .catch(() => caches.match('/').then((cached) => cached || Response.error()))
+    );
+    return;
+  }
+
+  // Other same-origin assets: network-first with cache fallback.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
+    fetch(req)
+      .then((res) => {
         if (!res || res.status !== 200) return res;
         const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
         return res;
-      });
-    })
+      })
+      .catch(() => caches.match(req).then((cached) => cached || Response.error()))
   );
 });

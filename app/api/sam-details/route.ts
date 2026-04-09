@@ -1,12 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+
+const DETAILS_CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
+const DETAILS_CACHE_LIMIT = 400
+const DETAILS_CACHE = new Map<string, { payload: any; expiresAt: number }>()
+
+function getDetailsCache(noticeId: string) {
+  const hit = DETAILS_CACHE.get(noticeId)
+  if (!hit) return null
+  if (Date.now() > hit.expiresAt) {
+    DETAILS_CACHE.delete(noticeId)
+    return null
+  }
+  return hit.payload
+}
+
+function setDetailsCache(noticeId: string, payload: any) {
+  if (DETAILS_CACHE.size >= DETAILS_CACHE_LIMIT) {
+    const oldest = DETAILS_CACHE.keys().next().value
+    if (oldest) DETAILS_CACHE.delete(oldest)
+  }
+  DETAILS_CACHE.set(noticeId, { payload, expiresAt: Date.now() + DETAILS_CACHE_TTL_MS })
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const noticeId = searchParams.get('noticeid')
+    const refresh = ['1', 'true', 'yes'].includes((searchParams.get('refresh') || '').toLowerCase())
 
     if (!noticeId) {
       return NextResponse.json({ error: 'Notice ID is required' }, { status: 400 })
+    }
+
+    if (!refresh) {
+      const cached = getDetailsCache(noticeId)
+      if (cached) return NextResponse.json({ ...cached, cached: true, source: 'cache' })
     }
 
     const apiKey = process.env.SAM_GOV_API_KEY
@@ -18,23 +47,33 @@ export async function GET(request: NextRequest) {
     // Fetch opportunity details from SAM.gov
     const url = `https://api.sam.gov/opportunities/v1/noticedesc?noticeid=${noticeId}&api_key=${apiKey}`
     
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    })
+    const upstream = await coalesceInFlight<{ ok: boolean; status: number; data?: any }>(
+      `sam:notice-details:${noticeId}`,
+      async () => {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('SAM.gov API error:', response.status, errorText)
+          return { ok: false, status: response.status }
+        }
+        const data = await response.json()
+        return { ok: true, status: 200, data }
+      }
+    )
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('SAM.gov API error:', response.status, errorText)
+    if (!upstream.ok || !upstream.data) {
       return NextResponse.json(
         { error: 'Failed to fetch opportunity details from SAM.gov' },
-        { status: response.status }
+        { status: upstream.status || 500 }
       )
     }
 
-    const data = await response.json()
+    const data = upstream.data
 
     // Extract relevant data
     const result = {
@@ -49,7 +88,8 @@ export async function GET(request: NextRequest) {
       postedDate: data.postedDate,
     }
 
-    return NextResponse.json(result)
+    setDetailsCache(noticeId, result)
+    return NextResponse.json({ ...result, cached: false, source: 'live' })
   } catch (error: any) {
     console.error('Error fetching opportunity details:', error)
     return NextResponse.json(

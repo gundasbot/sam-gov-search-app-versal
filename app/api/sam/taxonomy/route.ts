@@ -1,5 +1,6 @@
 // app/api/sam/taxonomy/route.ts (or wherever this lives)
 import { NextRequest, NextResponse } from 'next/server'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,72 +92,80 @@ export async function GET(req: NextRequest) {
     status: 'active',
   })
 
-  lastFetchAt = Date.now()
-  const url = `${SAM_BASE_URL}?${params.toString()}`
-  console.log('📡 Taxonomy fetch from SAM.gov (limit=%d)', limit)
+  const liveOutcome = await coalesceInFlight<
+    | { kind: 'success'; payload: any }
+    | { kind: 'rate_limited'; nextAccessTime?: string }
+    | { kind: 'upstream_error'; status: number; details: string }
+  >(`sam:taxonomy:${limit}`, async () => {
+    lastFetchAt = Date.now()
+    const url = `${SAM_BASE_URL}?${params.toString()}`
+    console.log('📡 Taxonomy fetch from SAM.gov (limit=%d)', limit)
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+
+    if (response.status === 429) {
+      const errorData = await response.json().catch(() => ({}))
+      console.warn('🚫 Taxonomy: SAM.gov rate limit hit')
+      lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
+      return { kind: 'rate_limited' as const, nextAccessTime: errorData?.nextAccessTime }
+    }
+
+    if (!response.ok) {
+      const text = await response.text()
+      return { kind: 'upstream_error' as const, status: response.status, details: text.slice(0, 240) }
+    }
+
+    const data = await response.json()
+    const opportunities = Array.isArray(data?.opportunitiesData) ? data.opportunitiesData : []
+    const naicsCounts = new Map<string, number>()
+    const keywordCounts = new Map<string, number>()
+
+    for (const opp of opportunities) {
+      const code = String(opp?.naicsCode ?? opp?.naics ?? '').trim()
+      if (code) naicsCounts.set(code, (naicsCounts.get(code) || 0) + 1)
+      const title = String(opp?.title || '')
+      const desc = String(opp?.description || '')
+      keywordCountsFromText(`${title} ${desc}`, keywordCounts)
+    }
+
+    const naics = Array.from(naicsCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 120)
+      .map(([code, count]) => ({ value: code, label: `${code} - SAM trending (${count})` }))
+
+    const keywords = Array.from(keywordCounts.entries())
+      .filter(([kw]) => kw.length >= 4)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 80)
+      .map(([kw]) => kw)
+
+    const payload = {
+      ok: true,
+      source: 'sam.gov',
+      generatedAt: new Date().toISOString(),
+      naics,
+      keywords,
+    }
+    cache = { payload, expiresAt: Date.now() + CACHE_TTL_MS }
+    return { kind: 'success' as const, payload }
   })
 
-  if (response.status === 429) {
-    const errorData = await response.json().catch(() => ({}))
-    console.warn('🚫 Taxonomy: SAM.gov rate limit hit')
-    // Push lastFetchAt forward so we respect the 429 backoff
-    lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
-    // Return stale cache if we have it
+  if (liveOutcome.kind === 'success') {
+    return NextResponse.json({ ...liveOutcome.payload, cached: false }, { headers: NO_STORE })
+  }
+  if (liveOutcome.kind === 'rate_limited') {
     if (cache) return NextResponse.json({ ...cache.payload, cached: true, rateLimited: true }, { headers: NO_STORE })
     return NextResponse.json(
-      { ok: false, error: 'rate_limited', message: 'SAM.gov quota exceeded', nextAccessTime: errorData.nextAccessTime },
+      { ok: false, error: 'rate_limited', message: 'SAM.gov quota exceeded', nextAccessTime: liveOutcome.nextAccessTime },
       { status: 200, headers: NO_STORE }
     )
   }
-
-  if (!response.ok) {
-    const text = await response.text()
-    return NextResponse.json(
-      { ok: false, error: 'SAM taxonomy fetch failed', details: text.slice(0, 240) },
-      { status: response.status }
-    )
-  }
-
-  const data = await response.json()
-  const opportunities = Array.isArray(data?.opportunitiesData) ? data.opportunitiesData : []
-
-  const naicsCounts = new Map<string, number>()
-  const keywordCounts = new Map<string, number>()
-
-  for (const opp of opportunities) {
-    const code = String(opp?.naicsCode ?? opp?.naics ?? '').trim()
-    if (code) naicsCounts.set(code, (naicsCounts.get(code) || 0) + 1)
-
-    const title = String(opp?.title || '')
-    const desc = String(opp?.description || '')
-    keywordCountsFromText(`${title} ${desc}`, keywordCounts)
-  }
-
-  const naics = Array.from(naicsCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 120)
-    .map(([code, count]) => ({ value: code, label: `${code} - SAM trending (${count})` }))
-
-  const keywords = Array.from(keywordCounts.entries())
-    .filter(([kw]) => kw.length >= 4)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 80)
-    .map(([kw]) => kw)
-
-  const payload = {
-    ok: true,
-    source: 'sam.gov',
-    generatedAt: new Date().toISOString(),
-    naics,
-    keywords,
-  }
-
-  cache = { payload, expiresAt: Date.now() + CACHE_TTL_MS }
-
-  return NextResponse.json({ ...payload, cached: false }, { headers: NO_STORE })
+  return NextResponse.json(
+    { ok: false, error: 'SAM taxonomy fetch failed', details: liveOutcome.details },
+    { status: liveOutcome.status }
+  )
 }

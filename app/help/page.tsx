@@ -242,14 +242,14 @@ export default function HelpStatusPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a
-                  href="mailto:support@precisegovcon.com"
+                <Link
+                  href="/support?openContact=1"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-bold rounded-xl transition-all hover:scale-105"
                 >
                   <Mail className="w-5 h-5" />
-                  Email Support
-                </a>
-                
+                  Open Support Center
+                </Link>
+
                 <div className="flex items-center gap-2 text-sm text-slate-400">
                   <Clock className="w-4 h-4" />
                   <span>Mon–Fri • 9am–5pm ET</span>

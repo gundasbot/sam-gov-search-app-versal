@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import Anthropic from '@anthropic-ai/sdk'
+import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 
 // ✅ FIX: Dynamic import with fallback — prevents crash if prisma singleton isn't ready
 let prismaClient: any = null
@@ -73,6 +74,59 @@ export interface PersonalizedFeed {
     expiringIn48h: number
     avgMatchScore: number
   }
+}
+
+type FeedCachePreferences = {
+  setAsides?: string[]
+  naicsCodes?: string[]
+  pscCodes?: string[]
+  keywords?: string[]
+  states?: string[]
+  contractSizeMin?: number
+  contractSizeMax?: number
+}
+
+const FEED_CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const FEED_CACHE_LIMIT = 120
+const FEED_CACHE = new Map<string, { payload: PersonalizedFeed; expiresAt: number }>()
+
+function stableJoin(values?: string[]) {
+  return (values || [])
+    .map((v) => String(v || '').trim())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b))
+    .join(',')
+}
+
+function buildFeedCacheKey(email: string, prefs: FeedCachePreferences) {
+  return [
+    email.toLowerCase().trim(),
+    stableJoin(prefs.setAsides),
+    stableJoin(prefs.naicsCodes),
+    stableJoin(prefs.pscCodes),
+    stableJoin(prefs.keywords),
+    stableJoin(prefs.states),
+    prefs.contractSizeMin ?? '',
+    prefs.contractSizeMax ?? '',
+  ].join('|')
+}
+
+function getCachedFeed(cacheKey: string): PersonalizedFeed | null {
+  const hit = FEED_CACHE.get(cacheKey)
+  if (!hit) return null
+  if (Date.now() > hit.expiresAt) {
+    FEED_CACHE.delete(cacheKey)
+    return null
+  }
+  return hit.payload
+}
+
+function setCachedFeed(cacheKey: string, payload: PersonalizedFeed) {
+  if (FEED_CACHE.size >= FEED_CACHE_LIMIT) {
+    const oldest = FEED_CACHE.keys().next().value
+    if (oldest) FEED_CACHE.delete(oldest)
+  }
+  FEED_CACHE.set(cacheKey, { payload, expiresAt: Date.now() + FEED_CACHE_TTL_MS })
 }
 
 // ─── Helper: Load user preferences (Prisma → API fallback) ───────────────────
@@ -156,13 +210,16 @@ async function fetchSAMOpportunities(prefs: {
   })
 
   try {
-    const res = await fetch(
-      `https://api.sam.gov/opportunities/v2/search?${params}`,
-      { headers: { 'Accept': 'application/json' }, cache: 'no-store' }
-    )
-    if (!res.ok) throw new Error(`SAM.gov ${res.status}`)
-    const data = await res.json()
-    return data.opportunitiesData || []
+    const requestKey = `sam:personalized-feed:${params.toString().replace(/api_key=[^&]+/, 'api_key=KEY')}`
+    return await coalesceInFlight<any[]>(requestKey, async () => {
+      const res = await fetch(
+        `https://api.sam.gov/opportunities/v2/search?${params}`,
+        { headers: { 'Accept': 'application/json' }, cache: 'no-store' }
+      )
+      if (!res.ok) throw new Error(`SAM.gov ${res.status}`)
+      const data = await res.json()
+      return data.opportunitiesData || []
+    })
   } catch (err) {
     console.error('[personalized-feed] SAM.gov fetch error:', err)
     return []
@@ -397,8 +454,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const refreshRequested = req.method !== 'GET' || ['1', 'true', 'yes'].includes(
+      (req.nextUrl.searchParams.get('refresh') || '').toLowerCase()
+    )
+
     // ✅ FIX: Guarded preference loading — won't crash if Prisma is undefined
     const prefs = await loadUserPreferences(session.user.email)
+    const cacheKey = buildFeedCacheKey(session.user.email, prefs)
+
+    if (!refreshRequested) {
+      const cached = getCachedFeed(cacheKey)
+      if (cached) {
+        return NextResponse.json(
+          { ...cached, cached: true, source: 'cache' },
+          { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=60' } }
+        )
+      }
+    }
 
     const rawOpps = await fetchSAMOpportunities(prefs)
     const filtered = preFilterOpportunities(rawOpps, prefs)
@@ -427,7 +499,9 @@ export async function GET(req: NextRequest) {
       stats: buildStats(scored),
     }
 
-    return NextResponse.json(feed, {
+    setCachedFeed(cacheKey, feed)
+
+    return NextResponse.json({ ...feed, cached: false, source: 'live' }, {
       headers: {
         'Cache-Control': 'private, max-age=300, stale-while-revalidate=60',
       }

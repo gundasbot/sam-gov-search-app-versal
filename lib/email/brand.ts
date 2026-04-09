@@ -1,12 +1,14 @@
 // lib/email/brand.ts
 
+import { resolvePublicAppUrl } from '@/lib/url-safety'
+
 export function getBrand() {
-  const appUrl = (
-    process.env.APP_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXTAUTH_URL ||
-    'https://www.precisegovcon.com'
-  ).replace(/\/$/, '')
+  // Outbound emails should always point to a public URL, never localhost.
+  const appUrl = resolvePublicAppUrl(
+    process.env.APP_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXTAUTH_URL
+  )
 
   // Logo must be absolute for email clients.
   // BRAND_LOGO_URL env var overrides. Fallback uses the confirmed live filename.
