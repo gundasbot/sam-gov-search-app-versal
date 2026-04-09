@@ -17,8 +17,64 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 const TRIAL_DAYS = 7
 
+type ResolvedOfferCode = {
+  id: string
+  code: string
+  type: string
+  trialDays: number
+}
+
 function jsonError(message: string, status = 500, extra?: Record<string, any>) {
   return NextResponse.json({ error: message, ...(extra || {}) }, { status })
+}
+
+function normalizeOfferCode(raw: any): string | null {
+  const value = String(raw || '').toUpperCase().trim()
+  return value || null
+}
+
+function normalizeTrialDays(value: number | null | undefined, fallback = TRIAL_DAYS): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback
+  return Math.min(365, Math.max(1, Math.round(value)))
+}
+
+function extractTrialDaysFromText(value: string | null | undefined, fallback = TRIAL_DAYS): number {
+  if (!value) return fallback
+  const match = String(value).match(/(\d{1,3})/)
+  if (!match) return fallback
+  return normalizeTrialDays(parseInt(match[1], 10), fallback)
+}
+
+async function resolveOfferCode(code: string): Promise<ResolvedOfferCode | null> {
+  const offer = await prisma.offer_codes.findFirst({
+    where: { code, active: true },
+    select: {
+      id: true,
+      code: true,
+      type: true,
+      discount: true,
+      description: true,
+      max_usage: true,
+      usage_count: true,
+      expires_at: true,
+    },
+  })
+
+  if (!offer) return null
+  if (offer.expires_at && new Date(offer.expires_at) < new Date()) return null
+  if (offer.max_usage && offer.usage_count >= offer.max_usage) return null
+
+  const trialDays =
+    String(offer.type || '').toLowerCase() === 'trial'
+      ? extractTrialDaysFromText(offer.discount || offer.description || '', TRIAL_DAYS)
+      : TRIAL_DAYS
+
+  return {
+    id: offer.id,
+    code: offer.code,
+    type: offer.type || 'trial',
+    trialDays,
+  }
 }
 
 type BillingInterval = 'monthly' | 'annual' // ✅ FIXED: Correct type name
@@ -137,6 +193,10 @@ export async function POST(req: NextRequest) {
     const requestedBilling = normalizeBilling(body?.billing ?? body?.interval) || 'monthly'
     const explicitPriceId = String(body?.priceId || '').trim() || null
     const selectedPaymentMethodId = String(body?.selectedPaymentMethodId || '').trim() || null
+    const requestedOfferCode =
+      normalizeOfferCode(body?.offerCode) ||
+      normalizeOfferCode(body?.offer_code) ||
+      normalizeOfferCode(body?.code)
 
     console.log('📋 Plan:', requestedPlan, 'Billing:', requestedBilling)
 
@@ -166,9 +226,25 @@ export async function POST(req: NextRequest) {
     const user = email
       ? await prisma.users.findUnique({
           where: { email },
-          select: { id: true, stripe_customer_id: true, stripe_subscription_id: true },
+          select: {
+            id: true,
+            stripe_customer_id: true,
+            stripe_subscription_id: true,
+            offer_code_id: true,
+            offer_code: true,
+          },
         })
       : null
+
+    const fallbackUserOfferCode = !isGuestCheckout ? normalizeOfferCode(user?.offer_code) : null
+    const checkoutOfferCode = requestedOfferCode || fallbackUserOfferCode
+
+    const resolvedOffer = checkoutOfferCode ? await resolveOfferCode(checkoutOfferCode) : null
+    if (requestedOfferCode && !resolvedOffer) {
+      return jsonError('Invalid or expired offer code.', 400, { code: requestedOfferCode })
+    }
+    const trialDays = resolvedOffer?.trialDays ?? TRIAL_DAYS
+    const appliedOfferCode = resolvedOffer?.code ?? null
 
     let customerId: string | null = null
     if (user?.stripe_customer_id || email) {
@@ -187,6 +263,22 @@ export async function POST(req: NextRequest) {
         data: { stripe_customer_id: customerId },
       }).catch((err) => {
         console.error('Failed to save customer ID:', err)
+      })
+    }
+
+    if (
+      user &&
+      resolvedOffer &&
+      (user.offer_code !== resolvedOffer.code || user.offer_code_id !== resolvedOffer.id)
+    ) {
+      await prisma.users.update({
+        where: { id: user.id },
+        data: {
+          offer_code: resolvedOffer.code,
+          offer_code_id: resolvedOffer.id,
+        },
+      }).catch((err) => {
+        console.error('Failed to persist offer code on user before checkout:', err)
       })
     }
 
@@ -267,18 +359,27 @@ export async function POST(req: NextRequest) {
         checkout_type: isGuestCheckout ? 'guest' : 'authenticated',
         plan: requestedPlan || 'unknown',
         billing: requestedBilling,
+        trial_days: String(trialDays),
+        offer_code: appliedOfferCode || '',
+        offer_code_id: resolvedOffer?.id || '',
         created_at: new Date().toISOString(),
         source: String(body?.source || 'pricing_page'),
       },
       subscription_data: {
-        trial_period_days: TRIAL_DAYS,
+        trial_period_days: trialDays,
         ...(verifiedPaymentMethodId ? { default_payment_method: verifiedPaymentMethodId } : {}),
         trial_settings: {
           end_behavior: {
             missing_payment_method: 'cancel', // Cancel if no card added by end of trial
           },
         },
-        metadata: { user_id: user?.id || 'guest', email: email || '' },
+        metadata: {
+          user_id: user?.id || 'guest',
+          email: email || '',
+          trial_days: String(trialDays),
+          offer_code: appliedOfferCode || '',
+          offer_code_id: resolvedOffer?.id || '',
+        },
       },
     })
 

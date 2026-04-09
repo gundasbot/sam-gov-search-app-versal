@@ -66,6 +66,11 @@ export async function POST(req: NextRequest) {
 type Tier = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' | 'FREE'
 type BillingInterval = 'monthly' | 'annual'
 
+function unixToDate(value: number | null | undefined): Date | null {
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null
+  return new Date(value * 1000)
+}
+
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (session.mode !== 'subscription') return
 
@@ -84,19 +89,37 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return
   }
 
+  let subscription: Stripe.Subscription | null = null
   let tier: Tier | undefined
   let interval: BillingInterval | undefined
 
   if (subscriptionId) {
-    const sub = await stripe.subscriptions.retrieve(subscriptionId)
-    const priceId = sub.items.data[0]?.price?.id
+    subscription = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items.data.price'] })
+    const priceId = subscription.items.data[0]?.price?.id
     tier = priceId ? getTierFromPriceId(priceId) : undefined
-    const subAny = sub as any
-    const recurringInterval = subAny?.items?.data?.[0]?.price?.recurring?.interval
+    const recurringInterval = subscription.items.data[0]?.price?.recurring?.interval
     interval = recurringInterval === 'year' ? 'annual' : 'monthly'
   }
 
-  const planTier = tier || 'PROFESSIONAL' // ✅ FIXED: Use consistent naming
+  const now = new Date()
+  const planTier = tier || 'PROFESSIONAL'
+  const subscriptionStatus = subscription?.status || 'active'
+  const planStatus = mapStripeStatus(subscriptionStatus)
+  const stripePriceId = subscription?.items?.data?.[0]?.price?.id || null
+  const trialStartsAt = unixToDate((subscription as any)?.trial_start)
+  const trialEndsAt = unixToDate((subscription as any)?.trial_end)
+  const currentPeriodEnd = unixToDate((subscription as any)?.current_period_end)
+  const trialActive =
+    subscriptionStatus === 'trialing' &&
+    (!trialEndsAt || trialEndsAt > now)
+  const metadataOfferCode = String(session.metadata?.offer_code || '').toUpperCase().trim() || null
+  const metadataOfferCodeId = String(session.metadata?.offer_code_id || '').trim() || null
+  const codeFields = metadataOfferCode
+    ? {
+        offer_code: metadataOfferCode,
+        offer_code_id: metadataOfferCodeId || undefined,
+      }
+    : {}
   const planName = planTierToDisplay(planTier)
 
   const user = await prisma.users.upsert({
@@ -104,11 +127,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     update: {
       stripe_customer_id: customerId || undefined,
       stripe_subscription_id: subscriptionId || undefined,
+      stripe_price_id: stripePriceId || undefined,
       plan_tier: planTier,
-      plan_status: 'ACTIVE',
+      plan_status: planStatus,
+      subscription_status: subscriptionStatus,
+      billing_interval: interval ? interval.toUpperCase() : undefined,
       plan: planName,
-      trial_active: false,
-      trial_expires_at: null,
+      trial_active: trialActive,
+      trial_started_at: trialStartsAt,
+      trial_expires_at: trialEndsAt,
+      trial_ends_at: trialEndsAt,
+      current_period_end: currentPeriodEnd,
+      stripe_current_period_end: currentPeriodEnd,
+      ...codeFields,
     },
     create: {
       id: crypto.randomUUID(),
@@ -117,15 +148,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       name: customerName,
       stripe_customer_id: customerId || undefined,
       stripe_subscription_id: subscriptionId || undefined,
+      stripe_price_id: stripePriceId || undefined,
       plan_tier: planTier,
-      plan_status: 'ACTIVE',
+      plan_status: planStatus,
+      subscription_status: subscriptionStatus,
+      billing_interval: interval ? interval.toUpperCase() : undefined,
       plan: planName,
-      trial_active: false,
-      trial_expires_at: null,
+      trial_active: trialActive,
+      trial_started_at: trialStartsAt,
+      trial_expires_at: trialEndsAt,
+      trial_ends_at: trialEndsAt,
+      current_period_end: currentPeriodEnd,
+      stripe_current_period_end: currentPeriodEnd,
+      ...codeFields,
     },
   })
 
-  console.log(`✅ Checkout completed for ${user.email}: ${planTier} (${interval || 'monthly'})`)
+  console.log(`✅ Checkout completed for ${user.email}: ${planTier} (${subscriptionStatus})`)
   await sendSubscriptionEmail(user.email, 'welcome', planTier, undefined, user.name || customerName)
 }
 
@@ -137,6 +176,12 @@ async function handleSubscriptionUpsert(subscription: Stripe.Subscription) {
   const tier = priceId ? getTierFromPriceId(priceId) : 'PROFESSIONAL'
   const planName = planTierToDisplay(tier)
   const planStatus = mapStripeStatus(subscription.status) // ✅ FIXED: Use consistent naming
+  const recurringInterval = subscription.items.data[0]?.price?.recurring?.interval
+  const billingInterval = recurringInterval === 'year' ? 'ANNUAL' : recurringInterval === 'month' ? 'MONTHLY' : null
+  const trialStartsAt = unixToDate((subscription as any)?.trial_start)
+  const trialEndsAt = unixToDate((subscription as any)?.trial_end)
+  const currentPeriodEnd = unixToDate((subscription as any)?.current_period_end)
+  const trialActive = subscription.status === 'trialing' && (!trialEndsAt || trialEndsAt > new Date())
 
   const user = await prisma.users.findFirst({
     where: {
@@ -156,10 +201,18 @@ async function handleSubscriptionUpsert(subscription: Stripe.Subscription) {
     data: {
       stripe_customer_id: customerId || undefined,
       stripe_subscription_id: subscriptionId || undefined,
+      stripe_price_id: priceId || undefined,
       plan_tier: tier,
       plan_status: planStatus, // ✅ FIXED: Use correct variable name
+      subscription_status: subscription.status,
+      billing_interval: billingInterval,
       plan: planName,
-      trial_active: subscription.status === 'trialing',
+      trial_active: trialActive,
+      trial_started_at: trialStartsAt,
+      trial_expires_at: trialEndsAt,
+      trial_ends_at: trialEndsAt,
+      current_period_end: currentPeriodEnd,
+      stripe_current_period_end: currentPeriodEnd,
     },
   })
 
@@ -190,10 +243,14 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     data: {
       plan_tier: 'FREE',
       plan_status: 'CANCELED',
+      subscription_status: 'canceled',
       plan: 'Free',
       stripe_subscription_id: null,
+      stripe_price_id: null,
       trial_active: false,
       trial_expires_at: null,
+      trial_started_at: null,
+      trial_ends_at: null,
     },
   })
 

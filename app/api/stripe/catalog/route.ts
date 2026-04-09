@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
+const DEFAULT_TRIAL_DAYS = 7
 
 // Lazy initialization to avoid build-time errors
 function getStripe() {
@@ -46,10 +47,11 @@ export async function GET() {
           interval: p.recurring!.interval,
           productName: product?.name ?? 'Plan',
           productDescription: product?.description ?? '',
+          trialDays: DEFAULT_TRIAL_DAYS,
         }
       })
 
-    return NextResponse.json({ prices: normalized })
+    return NextResponse.json({ prices: normalized, defaultTrialDays: DEFAULT_TRIAL_DAYS })
   } catch (error: any) {
     console.error('Stripe catalog error:', error)
     return NextResponse.json(

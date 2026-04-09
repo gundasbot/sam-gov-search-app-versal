@@ -14,6 +14,26 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 type PlanTier = 'NONE' | 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
 type BillingInterval = 'MONTHLY' | 'YEARLY'
 
+function mapStripeStatus(status: string | null | undefined): string {
+  const value = String(status || '').toLowerCase()
+  const statusMap: Record<string, string> = {
+    active: 'ACTIVE',
+    trialing: 'TRIALING',
+    past_due: 'PAST_DUE',
+    canceled: 'CANCELED',
+    unpaid: 'UNPAID',
+    incomplete: 'INACTIVE',
+    incomplete_expired: 'INACTIVE',
+    paused: 'PAUSED',
+  }
+  return statusMap[value] || 'INACTIVE'
+}
+
+function unixToDate(value: number | null | undefined): Date | null {
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) return null
+  return new Date(value * 1000)
+}
+
 function tierFromPrice(priceId?: string | null): PlanTier {
   if (!priceId) return 'NONE'
 
@@ -26,7 +46,9 @@ function tierFromPrice(priceId?: string | null): PlanTier {
 
   if (
     priceId === process.env.STRIPE_PRICE_PRO_MONTHLY ||
-    priceId === process.env.STRIPE_PRICE_PRO_ANNUAL
+    priceId === process.env.STRIPE_PRICE_PRO_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY ||
+    priceId === process.env.STRIPE_PRICE_PROFESSIONAL_ANNUAL
   ) {
     return 'PROFESSIONAL'
   }
@@ -80,11 +102,18 @@ export async function POST(_req: NextRequest) {
         where: { id: user.id },
         data: {
           plan_tier: 'NONE',
+          plan_status: 'INACTIVE',
           billing_interval: null,
           stripe_subscription_id: null,
+          stripe_price_id: null,
           subscription_status: 'inactive',
           cancel_at_period_end: false,
           current_period_end: null,
+          stripe_current_period_end: null,
+          trial_active: false,
+          trial_started_at: null,
+          trial_expires_at: null,
+          trial_ends_at: null,
         },
       })
 
@@ -118,20 +147,31 @@ export async function POST(_req: NextRequest) {
               : null
 
     const currentPeriodEnd =
-      typeof (subscription as any).current_period_end === 'number'
-        ? new Date((subscription as any).current_period_end * 1000)
-        : null
+      unixToDate((subscription as any).current_period_end)
+    const trialEndsAt = unixToDate((subscription as any).trial_end)
+    const trialStartsAt = unixToDate((subscription as any).trial_start)
+    const trialActive =
+      subscription.status === 'trialing' &&
+      (!trialEndsAt || trialEndsAt > new Date())
+    const planStatus = mapStripeStatus(subscription.status)
 
     /* ═══════════════════════ UPDATE DB ═══════════════════════ */
     await prisma.users.update({
       where: { id: user.id },
       data: {
         plan_tier: tier,
+        plan_status: planStatus,
         billing_interval: billingInterval, // ✅ FIXED: Use correct variable name
         stripe_subscription_id: subscription.id,
+        stripe_price_id: price?.id || null,
         subscription_status: subscription.status,
         cancel_at_period_end: subscription.cancel_at_period_end ?? false,
         current_period_end: currentPeriodEnd, // ✅ FIXED: Use correct variable name
+        stripe_current_period_end: currentPeriodEnd,
+        trial_active: trialActive,
+        trial_started_at: trialStartsAt,
+        trial_expires_at: trialEndsAt,
+        trial_ends_at: trialEndsAt,
       },
     })
 
@@ -143,9 +183,13 @@ export async function POST(_req: NextRequest) {
         tier,
         billingInterval,
         status: subscription.status,
+        plan_status: planStatus,
         stripe_subscription_id: subscription.id,
         cancel_at_period_end: subscription.cancel_at_period_end ?? false,
         current_period_end: currentPeriodEnd?.toISOString() ?? null,
+        trial_active: trialActive,
+        trial_expires_at: trialEndsAt?.toISOString() ?? null,
+        trial_ends_at: trialEndsAt?.toISOString() ?? null,
         hasSubscription:
           subscription.status === 'active' ||
           subscription.status === 'trialing',

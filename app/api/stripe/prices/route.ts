@@ -16,6 +16,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
+const DEFAULT_TRIAL_DAYS = 7
 
 type TierId = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
 type IntervalKey = 'monthly' | 'annual'
@@ -26,6 +27,7 @@ export interface PriceEntry {
   unitAmount: number // cents
   currency: string
   priceId: string
+  trialDays: number
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -85,6 +87,7 @@ export async function GET() {
         unitAmount: price.unit_amount,
         currency:   price.currency,
         priceId:    price.id,
+        trialDays:  DEFAULT_TRIAL_DAYS,
       })
     }
 

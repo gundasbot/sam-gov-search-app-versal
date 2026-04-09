@@ -19,7 +19,7 @@ import { sendSignupWelcomeEmailOnce } from '@/lib/email/signup-welcome'
 
 export const dynamic = 'force-dynamic'
 
-const TRIAL_DAYS = 7
+const DEFAULT_TRIAL_DAYS = 7
 
 function endOfDay(d: Date) {
   const x = new Date(d)
@@ -27,10 +27,46 @@ function endOfDay(d: Date) {
   return x
 }
 
+function normalizeTrialDays(value: number | null | undefined, fallback = DEFAULT_TRIAL_DAYS): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback
+  return Math.min(365, Math.max(1, Math.round(value)))
+}
+
+function extractTrialDaysFromText(value: string | null | undefined, fallback = DEFAULT_TRIAL_DAYS): number {
+  if (!value) return fallback
+  const match = String(value).match(/(\d{1,3})/)
+  if (!match) return fallback
+  return normalizeTrialDays(parseInt(match[1], 10), fallback)
+}
+
+async function resolveTrialDaysForUserOfferCode(offerCode: string | null | undefined): Promise<number> {
+  const code = String(offerCode || '').toUpperCase().trim()
+  if (!code) return DEFAULT_TRIAL_DAYS
+
+  const offer = await prisma.offer_codes.findFirst({
+    where: { code, active: true },
+    select: {
+      type: true,
+      discount: true,
+      description: true,
+      expires_at: true,
+      max_usage: true,
+      usage_count: true,
+    },
+  })
+
+  if (!offer) return DEFAULT_TRIAL_DAYS
+  if (offer.expires_at && new Date(offer.expires_at) < new Date()) return DEFAULT_TRIAL_DAYS
+  if (offer.max_usage && offer.usage_count >= offer.max_usage) return DEFAULT_TRIAL_DAYS
+  if (String(offer.type || '').toLowerCase() !== 'trial') return DEFAULT_TRIAL_DAYS
+
+  return extractTrialDaysFromText(offer.discount || offer.description || '', DEFAULT_TRIAL_DAYS)
+}
+
 // ─── core verification logic ──────────────────────────────────────────────────
 
 async function verifyAndActivate(rawToken: string): Promise<
-  | { ok: true;  user: { id: string; email: string; name: string | null }; planTier: string }
+  | { ok: true;  user: { id: string; email: string; name: string | null }; planTier: string; trialDays: number }
   | { ok: false; error: string; alreadyVerified?: boolean }
 > {
   const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
@@ -54,7 +90,7 @@ async function verifyAndActivate(rawToken: string): Promise<
     where: { id: tokenRow.user_id },
     select: {
       id: true, email: true, name: true, first_name: true, last_name: true,
-      email_verified: true, plan_tier: true,
+      email_verified: true, plan_tier: true, offer_code: true,
     },
   })
 
@@ -69,11 +105,17 @@ async function verifyAndActivate(rawToken: string): Promise<
       data: { last_login_at: now, updated_at: now },
     }).catch(() => {})
     await prisma.email_verification_tokens.delete({ where: { token_hash: tokenHash } }).catch(() => {})
-    return { ok: true, user: { id: user.id, email: user.email, name: user.name }, planTier: user.plan_tier || 'BASIC' }
+    return {
+      ok: true,
+      user: { id: user.id, email: user.email, name: user.name },
+      planTier: user.plan_tier || 'BASIC',
+      trialDays: DEFAULT_TRIAL_DAYS,
+    }
   }
 
   // ── Activate the account ──────────────────────────────────────────────────
-  const trialEndsAt = endOfDay(new Date(now.getTime() + TRIAL_DAYS * 86400000))
+  const trialDays = await resolveTrialDaysForUserOfferCode(user.offer_code)
+  const trialEndsAt = endOfDay(new Date(now.getTime() + trialDays * 86400000))
 
   await prisma.users.update({
     where: { id: user.id },
@@ -109,6 +151,7 @@ async function verifyAndActivate(rawToken: string): Promise<
       name:  user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || null,
     },
     planTier: user.plan_tier || 'BASIC',
+    trialDays,
   }
 }
 
@@ -166,7 +209,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL(`/login?error=${msg}`, req.url))
   }
 
-  const { user, planTier } = result
+  const { user, planTier, trialDays } = result
   const isSecure = req.url.startsWith('https')
   const { cookieName, cookieValue } = await mintSessionCookie(
     user.id, user.email, user.name, planTier, isSecure
@@ -185,7 +228,7 @@ export async function GET(req: NextRequest) {
   })
 
   // Welcome banner cookie — readable by JS, expires in 60s
-  response.cookies.set('pgc_welcome', JSON.stringify({ firstName, planTier: 'BASIC' }), {
+  response.cookies.set('pgc_welcome', JSON.stringify({ firstName, planTier: 'BASIC', trialDays }), {
     httpOnly: false,
     sameSite: 'lax',
     secure:   isSecure,
@@ -213,7 +256,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Email verified! Your 7-day trial is now active.',
+      message: `Email verified! Your ${result.trialDays}-day trial is now active.`,
       user:    result.user,
     })
   } catch (err: any) {
