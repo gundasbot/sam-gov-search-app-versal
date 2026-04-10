@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/send'
 import { buildBrandEmailHtml, buildBrandEmailText } from '@/lib/email/brandTemplate'
+import { sendAdminCreatedUserActivationEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -121,6 +122,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       }
     : {}
   const planName = planTierToDisplay(planTier)
+  const isGuestCheckout = String(session.metadata?.checkout_type || '').toLowerCase() === 'guest'
+  const trialDays = Math.max(
+    1,
+    Math.min(365, Number.parseInt(String(session.metadata?.trial_days || '7'), 10) || 7)
+  )
 
   const user = await prisma.users.upsert({
     where: { email },
@@ -165,6 +171,27 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   })
 
   console.log(`✅ Checkout completed for ${user.email}: ${planTier} (${subscriptionStatus})`)
+
+  const missingPasswordSetup = !user.password_hash
+  if (isGuestCheckout && missingPasswordSetup) {
+    const sent = await sendGuestCheckoutActivationEmail({
+      userId: user.id,
+      email: user.email,
+      firstName: firstNameFromUser(user),
+      company: user.company || undefined,
+      planTier,
+      trialDays,
+      offerCode: metadataOfferCode || undefined,
+    })
+
+    if (sent) {
+      console.log(`✅ Sent guest checkout activation email to ${user.email}`)
+      return
+    }
+
+    console.warn(`⚠️ Failed to send guest checkout activation email for ${user.email}; falling back to welcome email`)
+  }
+
   await sendSubscriptionEmail(user.email, 'welcome', planTier, undefined, user.name || customerName)
 }
 
@@ -352,6 +379,86 @@ function mapStripeStatus(status: string): string {
     paused: 'PAUSED',
   }
   return statusMap[status] || 'INACTIVE'
+}
+
+function firstNameFromUser(user: {
+  first_name?: string | null
+  firstName?: string | null
+  name?: string | null
+  email: string
+}) {
+  const explicit = String(user.first_name || user.firstName || '').trim()
+  if (explicit) return explicit
+
+  const fromName = String(user.name || '').trim()
+  if (fromName) return fromName.split(/\s+/)[0]
+
+  const localPart = String(user.email || '').split('@')[0] || 'there'
+  return localPart.replace(/[._-]+/g, ' ').trim().split(/\s+/)[0] || 'there'
+}
+
+async function sendGuestCheckoutActivationEmail({
+  userId,
+  email,
+  firstName,
+  company,
+  planTier,
+  trialDays,
+  offerCode,
+}: {
+  userId: string
+  email: string
+  firstName: string
+  company?: string
+  planTier: string
+  trialDays: number
+  offerCode?: string
+}) {
+  try {
+    await prisma.email_verification_tokens.deleteMany({ where: { user_id: userId } })
+
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000)
+
+    await prisma.email_verification_tokens.create({
+      data: {
+        id: crypto.randomUUID(),
+        user_id: userId,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        created_at: new Date(),
+      },
+    })
+
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXTAUTH_URL ||
+      process.env.APP_URL ||
+      'https://www.precisegovcon.com'
+
+    const activationUrl = new URL('/activate', appUrl)
+    activationUrl.searchParams.set('token', rawToken)
+    activationUrl.searchParams.set('email', email)
+    activationUrl.searchParams.set('firstName', firstName)
+    activationUrl.searchParams.set('trialDays', String(trialDays))
+    activationUrl.searchParams.set('next', '/account?tab=profile')
+    if (offerCode) activationUrl.searchParams.set('code', offerCode)
+
+    return await sendAdminCreatedUserActivationEmail({
+      to: email,
+      firstName,
+      company,
+      activationUrl: activationUrl.toString(),
+      planTier,
+      activationCode: offerCode,
+      trialDays,
+      expiresIn: '72 hours',
+    })
+  } catch (err) {
+    console.error('sendGuestCheckoutActivationEmail failed:', err)
+    return false
+  }
 }
 
 async function sendSubscriptionEmail(

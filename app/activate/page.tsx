@@ -59,6 +59,7 @@ function ActivateContent() {
   const code      = params.get('code')      ?? '';
   const firstName = params.get('firstName') ?? '';
   const trialDays = parseInt(params.get('trialDays') ?? '7', 10);
+  const nextPath  = params.get('next')      ?? '/search';
 
   const [password,    setPassword]    = useState('');
   const [confirm,     setConfirm]     = useState('');
@@ -155,10 +156,10 @@ function ActivateContent() {
                 </div>
               ))}
               <button
-                onClick={() => router.push('/search')}
+                onClick={() => router.push(nextPath)}
                 className="w-full py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-lg font-black flex items-center justify-center gap-3 transition-colors shadow-lg shadow-orange-500/25 mt-2"
               >
-                Start Searching Contracts <ArrowRight className="w-5 h-5" />
+                {nextPath.includes('/account') ? 'Complete Your Profile' : 'Start Searching Contracts'} <ArrowRight className="w-5 h-5" />
               </button>
               <p className="text-center text-sm text-slate-400 font-medium">You're signed in and ready to go</p>
             </div>
