@@ -500,6 +500,17 @@ export default function Header() {
 
                 {!isAuthed && (
                   <Link
+                    href="/signup"
+                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
+                  >
+                    <Sparkles className="w-4 h-4 flex-shrink-0" />
+                    <span>Sign Up</span>
+                  </Link>
+                )}
+
+                {!isAuthed && (
+                  <Link
                     href="/login"
                     className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02] ml-1"
                     style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
@@ -581,14 +592,24 @@ export default function Header() {
                   </button>
                 </>
               ) : (
-                <Link
-                  href="/login"
-                  className="inline-flex lg:hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
-                  style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
-                >
-                  <LogIn className="w-4 h-4 flex-shrink-0" />
-                  <span>Login</span>
-                </Link>
+                <>
+                  <Link
+                    href="/signup"
+                    className="inline-flex lg:hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
+                  >
+                    <Sparkles className="w-4 h-4 flex-shrink-0" />
+                    <span>Sign Up</span>
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="inline-flex lg:hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
+                    style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
+                  >
+                    <LogIn className="w-4 h-4 flex-shrink-0" />
+                    <span>Login</span>
+                  </Link>
+                </>
               )}
 
               {/* Hamburger — visible below lg */}
@@ -725,7 +746,15 @@ export default function Header() {
               <button type="button" onClick={() => { setMobileMenuOpen(false); signOut({ callbackUrl: '/' }) }} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 transition-colors text-white font-black text-sm border-none"><LogOut className="w-4 h-4" />Logout</button>
             </div>
           ) : (
-            <div className="border-t border-slate-200 pt-4">
+            <div className="border-t border-slate-200 pt-4 space-y-2">
+              <Link
+                href="/signup"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 text-white rounded-xl font-bold transition-all shadow-md"
+                style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
+              >
+                <Sparkles className="w-5 h-5" />Sign Up
+              </Link>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false)
