@@ -102,16 +102,16 @@ function priceFromEnv(plan: 'basic' | 'professional' | 'enterprise', billing: Bi
 
   const fallback: Record<string, Record<BillingInterval, string>> = {
     basic: {
-      monthly: 'price_1SrWKwL0qhATKGOJo4ginD8u',
-      annual:  'price_1SrWE8L0qhATKGOJovDYe1T4',
+      monthly: 'price_1SrX4iPBeHrQUcEBcCNR77ti',
+      annual:  'price_1SrX5JPBeHrQUcEBp36HLtHq',
     },
     professional: {
-      monthly: 'price_1SpfzWL0qhATKGOJGIiLnkhU',
-      annual:  'price_1Spg08L0qhATKGOJlgQeSrUW',
+      monthly: 'price_1SpKkkPBeHrQUcEBikiRqBhP',
+      annual:  'price_1SpKu0PBeHrQUcEBLqvi496k',
     },
     enterprise: {
-      monthly: 'price_1Spg0aL0qhATKGOJZcXETI7D',
-      annual:  'price_1Spg1CL0qhATKGOJG9iRaIhq',
+      monthly: 'price_1SpKx6PBeHrQUcEB8KezJ9dx',
+      annual:  'price_1SpKxuPBeHrQUcEB9Ytzoo2N',
     },
   }
   return fallback[plan]?.[billing] || null

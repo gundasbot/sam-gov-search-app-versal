@@ -388,13 +388,15 @@ function PricingContent() {
                     {/* Price */}
                     <div className="flex items-end gap-2">
                       <span className="text-5xl font-black text-white leading-none">
-                        ${interval === 'annual' ? Math.round(plan.annualPerMonth) : plan.monthlyPrice}
+                        ${interval === 'annual' ? plan.annualPrice : plan.monthlyPrice}
                       </span>
                       <div className="mb-2">
-                        <span className="text-white/60 text-lg font-bold">/mo</span>
+                        <span className="text-white/60 text-lg font-bold">
+                          {interval === 'annual' ? '/yr' : '/mo'}
+                        </span>
                         {interval === 'annual' && (
                           <p className="text-sm font-bold mt-0.5" style={{ color: plan.accentColor }}>
-                            ${plan.annualPrice}/yr
+                            ${plan.annualPerMonth.toFixed(2)}/mo billed annually
                           </p>
                         )}
                       </div>
