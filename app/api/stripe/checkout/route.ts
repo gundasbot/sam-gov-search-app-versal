@@ -78,8 +78,9 @@ async function resolveOfferCode(code: string): Promise<ResolvedOfferCode | null>
 }
 
 type BillingInterval = 'monthly' | 'annual' // ✅ FIXED: Correct type name
+type PlanKey = 'basic' | 'professional' | 'enterprise'
 
-const STATIC_PRICE_FALLBACKS: Record<string, Record<BillingInterval, string>> = {
+const STATIC_PRICE_FALLBACKS: Record<PlanKey, Record<BillingInterval, string>> = {
   basic: {
     monthly: 'price_1SrX4iPBeHrQUcEBcCNR77ti',
     annual:  'price_1SrX5JPBeHrQUcEBp36HLtHq',
@@ -98,6 +99,7 @@ function normalizePlan(raw: any): 'basic' | 'professional' | 'enterprise' | null
   const v = String(raw || '').toLowerCase().trim()
   if (!v) return null
   if (v === 'pro') return 'professional'
+  if (v === 'ent') return 'enterprise'
   if (v === 'basic' || v === 'professional' || v === 'enterprise') return v
   return null
 }
@@ -145,10 +147,143 @@ function staticFallbackPrice(plan: 'basic' | 'professional' | 'enterprise', bill
 }
 
 function priceFromEnv(plan: 'basic' | 'professional' | 'enterprise', billing: BillingInterval): string | null { // ✅ FIXED: Use correct type
-  const envKey = `STRIPE_PRICE_${plan.toUpperCase()}_${billing === 'annual' ? 'ANNUAL' : 'MONTHLY'}`
-  const envVal = process.env[envKey]
-  if (envVal) return String(envVal)
+  const period = billing === 'annual' ? 'ANNUAL' : 'MONTHLY'
+  const planUpper = plan.toUpperCase()
+  const aliases: Record<PlanKey, string[]> = {
+    basic: ['BASIC'],
+    professional: ['PROFESSIONAL', 'PRO'],
+    enterprise: ['ENTERPRISE', 'ENT'],
+  }
+
+  for (const keyPlan of aliases[plan]) {
+    const envKey = `STRIPE_PRICE_${keyPlan}_${period}`
+    const envVal = process.env[envKey]
+    if (envVal) return String(envVal)
+  }
+
+  const canonicalEnvKey = `STRIPE_PRICE_${planUpper}_${period}`
+  const canonical = process.env[canonicalEnvKey]
+  if (canonical) return String(canonical)
+
   return staticFallbackPrice(plan, billing)
+}
+
+function toStripeRecurringInterval(billing: BillingInterval): 'month' | 'year' {
+  return billing === 'annual' ? 'year' : 'month'
+}
+
+function checkoutLookupKeys(plan: PlanKey, billing: BillingInterval): string[] {
+  const annualOrMonthly = billing === 'annual' ? 'annual' : 'monthly'
+  return Array.from(
+    new Set([
+      `${plan}_${annualOrMonthly}`,
+      `${plan}-${annualOrMonthly}`,
+      `${plan}_${toStripeRecurringInterval(billing)}`,
+      `${plan}-${toStripeRecurringInterval(billing)}`,
+      `plan_${plan}_${annualOrMonthly}`,
+    ])
+  )
+}
+
+function getExpandedProduct(product: Stripe.Price['product']): Stripe.Product | null {
+  if (!product || typeof product === 'string') return null
+  if ('deleted' in product && product.deleted) return null
+  return product
+}
+
+function extractSearchText(price: Stripe.Price): string {
+  const product = getExpandedProduct(price.product)
+  const productMetadata = product?.metadata ? Object.values(product.metadata) : []
+  const metadata = price.metadata ? Object.values(price.metadata) : []
+
+  return [
+    price.lookup_key || '',
+    price.nickname || '',
+    ...metadata,
+    product?.name || '',
+    product?.description || '',
+    ...productMetadata,
+  ]
+    .join(' ')
+    .toLowerCase()
+}
+
+function scorePriceCandidate(price: Stripe.Price, plan: PlanKey, billing: BillingInterval): number {
+  const product = getExpandedProduct(price.product)
+  const text = extractSearchText(price)
+  const desiredLookup = `${plan}_${billing}`
+  const desiredInterval = toStripeRecurringInterval(billing)
+  const planTerms: Record<PlanKey, string[]> = {
+    basic: ['basic', 'starter'],
+    professional: ['professional'],
+    enterprise: ['enterprise'],
+  }
+  const billingTerms = billing === 'annual' ? ['annual', 'year', 'yearly'] : ['month', 'monthly']
+
+  let score = 0
+
+  if (price.lookup_key === desiredLookup) score += 200
+  if (price.lookup_key?.includes(plan)) score += 35
+  if (price.lookup_key?.includes(billing === 'annual' ? 'annual' : 'month')) score += 20
+  if (price.metadata?.tier?.toLowerCase() === plan) score += 120
+  if (price.metadata?.plan?.toLowerCase() === plan) score += 120
+  if (price.metadata?.billing?.toLowerCase() === billing) score += 60
+  if (price.metadata?.interval?.toLowerCase() === desiredInterval) score += 60
+  if (product?.metadata?.tier?.toLowerCase() === plan) score += 100
+  if (product?.metadata?.plan?.toLowerCase() === plan) score += 100
+
+  if (planTerms[plan].some((term) => text.includes(term))) score += 40
+  if (billingTerms.some((term) => text.includes(term))) score += 25
+
+  return score
+}
+
+async function discoverLivePriceId(plan: PlanKey, billing: BillingInterval): Promise<string | null> {
+  const desiredInterval = toStripeRecurringInterval(billing)
+
+  try {
+    const lookupMatches = await stripe.prices.list({
+      lookup_keys: checkoutLookupKeys(plan, billing),
+      active: true,
+      limit: 20,
+      expand: ['data.product'],
+    })
+
+    const lookupPrice = lookupMatches.data.find(
+      (p) => p.type === 'recurring' && p.recurring?.interval === desiredInterval
+    )
+    if (lookupPrice) return lookupPrice.id
+  } catch (err) {
+    console.warn('Lookup-key price discovery failed:', err)
+  }
+
+  try {
+    const recurringPrices = await stripe.prices.list({
+      active: true,
+      type: 'recurring',
+      limit: 100,
+      expand: ['data.product'],
+    })
+
+    const candidates = recurringPrices.data
+      .filter((p) => p.recurring?.interval === desiredInterval)
+      .map((p) => ({ id: p.id, score: scorePriceCandidate(p, plan, billing) }))
+      .filter((p) => p.score > 0)
+      .sort((a, b) => b.score - a.score)
+
+    if (candidates.length === 0) return null
+    if (candidates.length === 1) return candidates[0].id
+
+    // Avoid ambiguous selection when scores are too close.
+    if (candidates[0].score - candidates[1].score >= 20) {
+      return candidates[0].id
+    }
+
+    return null
+  } catch (err) {
+    console.warn('Catalog price discovery failed:', err)
+    return null
+  }
 }
 
 async function ensureCustomerId(email: string, name: string | null, existing?: string | null) {
@@ -255,8 +390,7 @@ export async function POST(req: NextRequest) {
       console.log('❌ Price not found in Stripe:', finalPriceId)
       let recovered = false
 
-      const fallbackPriceId =
-        requestedPlan ? staticFallbackPrice(requestedPlan, requestedBilling) : null
+      const fallbackPriceId = requestedPlan ? staticFallbackPrice(requestedPlan, requestedBilling) : null
 
       if (fallbackPriceId && fallbackPriceId !== finalPriceId) {
         try {
@@ -269,9 +403,23 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      if (!recovered && requestedPlan) {
+        const discoveredPriceId = await discoverLivePriceId(requestedPlan, requestedBilling)
+        if (discoveredPriceId && discoveredPriceId !== finalPriceId) {
+          try {
+            await stripe.prices.retrieve(discoveredPriceId)
+            console.log('✅ Recovered with discovered live price ID:', discoveredPriceId)
+            finalPriceId = discoveredPriceId
+            recovered = true
+          } catch {
+            // Continue to final error response.
+          }
+        }
+      }
+
       if (!recovered) {
         return jsonError(`Price ID not found in Stripe: ${finalPriceId}`, 400, {
-          hint: 'Configured Stripe price IDs are invalid for this Stripe key. Update deployment STRIPE_PRICE_* env vars.',
+          hint: 'Configured Stripe price IDs are invalid for this Stripe key and no matching active catalog price was found. Update deployment STRIPE_PRICE_* env vars.',
         })
       }
     }

@@ -12,6 +12,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import Anthropic from '@anthropic-ai/sdk'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { withBraintrustTrace } from '@/lib/braintrust'
 
 // ✅ FIX: Dynamic import with fallback — prevents crash if prisma singleton isn't ready
 let prismaClient: any = null
@@ -448,68 +449,95 @@ function buildStats(scored: ScoredOpportunity[]): PersonalizedFeed['stats'] {
 // ─── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  return withBraintrustTrace(
+    'api.ai.personalized-feed.get',
+    async (span) => {
+      try {
+        const session = await getServerSession(authOptions)
+        if (!session?.user?.email) {
+          span?.log({ output: { status: 'unauthorized' } })
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
-    const refreshRequested = req.method !== 'GET' || ['1', 'true', 'yes'].includes(
-      (req.nextUrl.searchParams.get('refresh') || '').toLowerCase()
-    )
-
-    // ✅ FIX: Guarded preference loading — won't crash if Prisma is undefined
-    const prefs = await loadUserPreferences(session.user.email)
-    const cacheKey = buildFeedCacheKey(session.user.email, prefs)
-
-    if (!refreshRequested) {
-      const cached = getCachedFeed(cacheKey)
-      if (cached) {
-        return NextResponse.json(
-          { ...cached, cached: true, source: 'cache' },
-          { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=60' } }
+        const refreshRequested = req.method !== 'GET' || ['1', 'true', 'yes'].includes(
+          (req.nextUrl.searchParams.get('refresh') || '').toLowerCase()
         )
+
+        // ✅ FIX: Guarded preference loading — won't crash if Prisma is undefined
+        const prefs = await loadUserPreferences(session.user.email)
+        const cacheKey = buildFeedCacheKey(session.user.email, prefs)
+
+        if (!refreshRequested) {
+          const cached = getCachedFeed(cacheKey)
+          if (cached) {
+            span?.log({
+              metadata: { source: 'cache', totalMatched: cached.stats?.totalMatched || 0 },
+            })
+            return NextResponse.json(
+              { ...cached, cached: true, source: 'cache' },
+              { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=60' } }
+            )
+          }
+        }
+
+        const rawOpps = await fetchSAMOpportunities(prefs)
+        const filtered = preFilterOpportunities(rawOpps, prefs)
+
+        const { scored, insights } = await scoreWithClaude(filtered.length ? filtered : rawOpps, {
+          setAsides: prefs.setAsides || [],
+          naicsCodes: prefs.naicsCodes || [],
+          pscCodes: prefs.pscCodes || [],
+          states: prefs.states || [],
+          contractSizeMin: prefs.contractSizeMin ?? undefined,
+          contractSizeMax: prefs.contractSizeMax ?? undefined,
+        })
+
+        const feed: PersonalizedFeed = {
+          generatedAt: new Date().toISOString(),
+          userProfile: {
+            setAsides: prefs.setAsides || [],
+            naicsCodes: prefs.naicsCodes || [],
+            pscCodes: prefs.pscCodes || [],
+            states: prefs.states || [],
+            contractSizeMin: prefs.contractSizeMin ?? undefined,
+            contractSizeMax: prefs.contractSizeMax ?? undefined,
+          },
+          topMatches: scored,
+          aiInsights: insights,
+          stats: buildStats(scored),
+        }
+
+        setCachedFeed(cacheKey, feed)
+        span?.log({
+          output: { status: 'ok', totalMatched: feed.stats.totalMatched },
+          metadata: {
+            source: 'live',
+            rawCount: rawOpps.length,
+            filteredCount: filtered.length,
+          },
+        })
+
+        return NextResponse.json({ ...feed, cached: false, source: 'live' }, {
+          headers: {
+            'Cache-Control': 'private, max-age=300, stale-while-revalidate=60',
+          }
+        })
+      } catch (err) {
+        console.error('[personalized-feed] Error:', err)
+        span?.log({
+          output: { status: 'error' },
+          metadata: { error: err instanceof Error ? err.message : String(err) },
+        })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
       }
-    }
-
-    const rawOpps = await fetchSAMOpportunities(prefs)
-    const filtered = preFilterOpportunities(rawOpps, prefs)
-
-    const { scored, insights } = await scoreWithClaude(filtered.length ? filtered : rawOpps, {
-      setAsides: prefs.setAsides || [],
-      naicsCodes: prefs.naicsCodes || [],
-      pscCodes: prefs.pscCodes || [],
-      states: prefs.states || [],
-      contractSizeMin: prefs.contractSizeMin ?? undefined,
-      contractSizeMax: prefs.contractSizeMax ?? undefined,
-    })
-
-    const feed: PersonalizedFeed = {
-      generatedAt: new Date().toISOString(),
-      userProfile: {
-        setAsides: prefs.setAsides || [],
-        naicsCodes: prefs.naicsCodes || [],
-        pscCodes: prefs.pscCodes || [],
-        states: prefs.states || [],
-        contractSizeMin: prefs.contractSizeMin ?? undefined,
-        contractSizeMax: prefs.contractSizeMax ?? undefined,
+    },
+    {
+      event: {
+        metadata: { route: '/api/ai/personalized-feed', method: 'GET' },
+        tags: ['ai', 'personalized-feed'],
       },
-      topMatches: scored,
-      aiInsights: insights,
-      stats: buildStats(scored),
     }
-
-    setCachedFeed(cacheKey, feed)
-
-    return NextResponse.json({ ...feed, cached: false, source: 'live' }, {
-      headers: {
-        'Cache-Control': 'private, max-age=300, stale-while-revalidate=60',
-      }
-    })
-  } catch (err) {
-    console.error('[personalized-feed] Error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  )
 }
 
 // ─── POST — force refresh after onboarding saves ──────────────────────────────

@@ -129,7 +129,31 @@ export default function Header() {
         const res = await fetch('/api/sam/live-ticker')
         if (!res.ok) { if (mounted) { setTickerError('Live opportunities temporarily unavailable'); setTickerData(null) }; return }
         const data = await res.json()
-        if (mounted) setTickerData(data)
+        if (!mounted) return
+
+        const hasItems = Array.isArray(data?.opportunities) && data.opportunities.length > 0
+        const hasError = Boolean(data?.error) || Boolean(data?.rateLimitExceeded)
+
+        if (hasItems) {
+          setTickerError(null)
+          setTickerData(data)
+          return
+        }
+
+        if (hasError) {
+          const message =
+            typeof data?.message === 'string' && data.message.trim()
+              ? data.message
+              : typeof data?.error === 'string' && data.error.trim()
+                ? data.error
+                : 'Live opportunities temporarily unavailable'
+          setTickerError(message)
+          // Keep prior successful ticker payload if we have one.
+          setTickerData((prev) => (prev?.opportunities?.length ? prev : null))
+          return
+        }
+
+        setTickerData(data)
       } catch {
         if (mounted) { setTickerError('Live opportunities temporarily unavailable'); setTickerData(null) }
       } finally {
