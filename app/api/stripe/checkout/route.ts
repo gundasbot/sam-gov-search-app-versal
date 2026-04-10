@@ -79,6 +79,21 @@ async function resolveOfferCode(code: string): Promise<ResolvedOfferCode | null>
 
 type BillingInterval = 'monthly' | 'annual' // ✅ FIXED: Correct type name
 
+const STATIC_PRICE_FALLBACKS: Record<string, Record<BillingInterval, string>> = {
+  basic: {
+    monthly: 'price_1SrX4iPBeHrQUcEBcCNR77ti',
+    annual:  'price_1SrX5JPBeHrQUcEBp36HLtHq',
+  },
+  professional: {
+    monthly: 'price_1SpKkkPBeHrQUcEBikiRqBhP',
+    annual:  'price_1SpKu0PBeHrQUcEBLqvi496k',
+  },
+  enterprise: {
+    monthly: 'price_1SpKx6PBeHrQUcEB8KezJ9dx',
+    annual:  'price_1SpKxuPBeHrQUcEB9Ytzoo2N',
+  },
+}
+
 function normalizePlan(raw: any): 'basic' | 'professional' | 'enterprise' | null {
   const v = String(raw || '').toLowerCase().trim()
   if (!v) return null
@@ -95,26 +110,15 @@ function normalizeBilling(raw: any): BillingInterval | null { // ✅ FIXED: Use 
   return null
 }
 
+function staticFallbackPrice(plan: 'basic' | 'professional' | 'enterprise', billing: BillingInterval): string | null {
+  return STATIC_PRICE_FALLBACKS[plan]?.[billing] || null
+}
+
 function priceFromEnv(plan: 'basic' | 'professional' | 'enterprise', billing: BillingInterval): string | null { // ✅ FIXED: Use correct type
   const envKey = `STRIPE_PRICE_${plan.toUpperCase()}_${billing === 'annual' ? 'ANNUAL' : 'MONTHLY'}`
   const envVal = process.env[envKey]
   if (envVal) return String(envVal)
-
-  const fallback: Record<string, Record<BillingInterval, string>> = {
-    basic: {
-      monthly: 'price_1SrX4iPBeHrQUcEBcCNR77ti',
-      annual:  'price_1SrX5JPBeHrQUcEBp36HLtHq',
-    },
-    professional: {
-      monthly: 'price_1SpKkkPBeHrQUcEBikiRqBhP',
-      annual:  'price_1SpKu0PBeHrQUcEBLqvi496k',
-    },
-    enterprise: {
-      monthly: 'price_1SpKx6PBeHrQUcEB8KezJ9dx',
-      annual:  'price_1SpKxuPBeHrQUcEB9Ytzoo2N',
-    },
-  }
-  return fallback[plan]?.[billing] || null
+  return staticFallbackPrice(plan, billing)
 }
 
 async function ensureCustomerId(email: string, name: string | null, existing?: string | null) {
@@ -205,7 +209,7 @@ export async function POST(req: NextRequest) {
       return jsonError('Missing plan. Provide { plan, billing } or { priceId }.', 400)
     }
 
-    const finalPriceId = explicitPriceId || (requestedPlan ? priceFromEnv(requestedPlan, requestedBilling) : null)
+    let finalPriceId = explicitPriceId || (requestedPlan ? priceFromEnv(requestedPlan, requestedBilling) : null)
     console.log('💰 Price ID:', finalPriceId)
     
     if (!finalPriceId) {
@@ -213,13 +217,33 @@ export async function POST(req: NextRequest) {
       return jsonError('Could not determine Stripe price ID.', 400)
     }
 
-    // Verify price exists
+    // Verify price exists (and auto-recover if env var points to a retired price ID).
     try {
       await stripe.prices.retrieve(finalPriceId)
       console.log('✅ Price verified in Stripe')
     } catch (err: any) {
       console.log('❌ Price not found in Stripe:', finalPriceId)
-      return jsonError(`Price ID not found in Stripe: ${finalPriceId}`, 400, { hint: 'Check Stripe dashboard price IDs.' })
+      let recovered = false
+
+      const fallbackPriceId =
+        requestedPlan ? staticFallbackPrice(requestedPlan, requestedBilling) : null
+
+      if (fallbackPriceId && fallbackPriceId !== finalPriceId) {
+        try {
+          await stripe.prices.retrieve(fallbackPriceId)
+          console.log('✅ Recovered with static fallback price ID:', fallbackPriceId)
+          finalPriceId = fallbackPriceId
+          recovered = true
+        } catch {
+          // Keep original error path below with a clearer hint.
+        }
+      }
+
+      if (!recovered) {
+        return jsonError(`Price ID not found in Stripe: ${finalPriceId}`, 400, {
+          hint: 'Configured Stripe price IDs are invalid for this Stripe key. Update deployment STRIPE_PRICE_* env vars.',
+        })
+      }
     }
 
     // Load user for authenticated checkout (guest checkout is allowed without a local account)
