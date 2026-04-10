@@ -399,16 +399,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Create new subscription with Checkout
-    // Trial is 7 days free — no card required upfront.
-    // Stripe will email the customer before the trial ends to collect payment.
+    // Create new subscription with Checkout.
+    // Trial is still 7 days, but card collection is required at checkout.
     console.log('🎫 Creating checkout session...')
     const checkoutSession = await stripe.checkout.sessions.create({
       ...(customerId ? { customer: customerId } : {}),
       ...(!customerId && email ? { customer_email: email } : {}),
       mode: 'subscription',
       payment_method_types: ['card'],
-      payment_method_collection: 'if_required', // ✅ No card required during trial
+      payment_method_collection: 'always',
       ...(verifiedPaymentMethodId ? { payment_method: verifiedPaymentMethodId } : {}),
       line_items: [{ price: finalPriceId, quantity: 1 }],
       success_url: successUrl,
