@@ -30,29 +30,36 @@ function truncate(str: string, maxLength: number): string {
 
 const NO_STORE = { 'Cache-Control': 'no-store' } as const
 
-function resolveSamApiKey(): string {
-  const candidates = [
-    process.env.SAM_GOV_API_KEY,
-    process.env.SAMGOVAPIKEY,
-    process.env.SAM_API_KEY,
-    process.env.NEXT_PUBLIC_SAM_API_KEY,
+type SamApiKeyCandidate = { source: string; value: string }
+
+function resolveSamApiKeys(): SamApiKeyCandidate[] {
+  const candidates: SamApiKeyCandidate[] = []
+  const seen = new Set<string>()
+  const entries: Array<[string, string | undefined]> = [
+    ['SAM_GOV_API_KEY', process.env.SAM_GOV_API_KEY],
+    ['SAMGOVAPIKEY', process.env.SAMGOVAPIKEY],
+    ['SAM_API_KEY', process.env.SAM_API_KEY],
+    ['NEXT_PUBLIC_SAM_API_KEY', process.env.NEXT_PUBLIC_SAM_API_KEY],
   ]
 
-  for (const value of candidates) {
-    const trimmed = String(value || '').trim()
-    if (trimmed) return trimmed
+  for (const [source, raw] of entries) {
+    const value = String(raw || '').trim()
+    if (!value) continue
+    if (seen.has(value)) continue
+    seen.add(value)
+    candidates.push({ source, value })
   }
 
-  return ''
+  return candidates
 }
 
 export async function GET() {
-  const SAM_API_KEY = resolveSamApiKey()
+  const samKeyCandidates = resolveSamApiKeys()
 
   return withBraintrustTrace(
     'api.sam.live-ticker.get',
     async (span) => {
-      if (!SAM_API_KEY) {
+      if (!samKeyCandidates.length) {
         span?.log({ output: { status: 'missing_api_key' } })
         return NextResponse.json({ count: 0, opportunities: [], error: 'SAM API key not configured' }, { status: 200 });
       }
@@ -84,67 +91,84 @@ export async function GET() {
 
       try {
         const today = new Date()
-        const params = new URLSearchParams({
-          api_key: SAM_API_KEY,
-          limit: '20',
-          ptype: 'o',
-          postedFrom: daysAgo(7),
-          postedTo: formatMMDDYYYY(today),
-        });
-
         const liveOutcome = await coalesceInFlight<
           | { kind: 'success'; payload: any }
           | { kind: 'rate_limited'; nextAccessTime?: string }
           | { kind: 'upstream_error'; status: number }
         >(`sam:live-ticker`, async () => {
-          const apiUrl = `${SAM_BASE_URL}?${params.toString()}`;
-          console.log('📡 Fetching ticker from SAM.gov...');
           lastFetchAt = Date.now()
+          let lastUnauthorizedStatus: number | null = null
 
-          const response = await fetch(apiUrl, {
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            cache: 'no-store',
-          });
+          for (const candidate of samKeyCandidates) {
+            const params = new URLSearchParams({
+              api_key: candidate.value,
+              limit: '20',
+              ptype: 'o',
+              postedFrom: daysAgo(7),
+              postedTo: formatMMDDYYYY(today),
+            });
+            const apiUrl = `${SAM_BASE_URL}?${params.toString()}`;
+            console.log(`📡 Fetching ticker from SAM.gov using ${candidate.source}...`);
 
-          if (response.status === 429) {
-            const errorData = await response.json().catch(() => ({}));
-            console.warn('🚫 Ticker: SAM.gov rate limit hit. Next access:', errorData.nextAccessTime);
-            lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
-            return { kind: 'rate_limited' as const, nextAccessTime: errorData?.nextAccessTime }
+            const response = await fetch(apiUrl, {
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              cache: 'no-store',
+            });
+
+            if (response.status === 401 || response.status === 403) {
+              console.warn(`⚠️ Ticker key unauthorized via ${candidate.source} (${response.status})`)
+              lastUnauthorizedStatus = response.status
+              continue
+            }
+
+            if (response.status === 429) {
+              const errorData = await response.json().catch(() => ({}));
+              console.warn('🚫 Ticker: SAM.gov rate limit hit. Next access:', errorData.nextAccessTime);
+              lastFetchAt = Date.now() + (10 * 60 * 1000) - FETCH_COOLDOWN
+              return { kind: 'rate_limited' as const, nextAccessTime: errorData?.nextAccessTime }
+            }
+
+            if (!response.ok) {
+              console.error('❌ Ticker SAM error:', response.status);
+              return { kind: 'upstream_error' as const, status: response.status }
+            }
+
+            const data = await response.json();
+            console.log('✅ Ticker received:', data.totalRecords || 0, 'total records');
+
+            const opportunities = (data.opportunitiesData || []).map((opp: any) => ({
+              id: opp.noticeId || '',
+              title: truncate(opp.title || 'Untitled Opportunity', 60),
+              solicitationNumber: opp.solicitation_number || opp.noticeId || 'N/A',
+              agency: truncate(opp.departmentName || opp.department || opp.fullParentPathName?.split('.')[0] || 'Unknown', 40),
+              postedDate: opp.postedDate || opp.publishDate || new Date().toISOString(),
+              type: opp.type || opp.noticeType || 'Solicitation',
+              samUrl: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
+              naics: opp.naicsCode || (Array.isArray(opp.naics) ? opp.naics[0] : '') || '',
+              setAside: opp.typeOfSetAsideDescription || opp.typeOfSetAside || '',
+              responseDeadLine: opp.responseDeadLine || opp.responseDate || '',
+              state: opp.placeOfPerformance?.state?.code || opp.officeAddress?.state || '',
+            }));
+
+            console.log('✅ Transformed', opportunities.length, 'ticker items');
+            const payload = {
+              count: data.totalRecords || opportunities.length,
+              opportunities,
+              rateLimitExceeded: false,
+              error: null,
+            };
+
+            tickerCache = { data: payload, expiresAt: Date.now() + CACHE_TTL_MS }
+            span?.log({
+              metadata: {
+                samKeySource: candidate.source,
+                keyCandidatesTried: samKeyCandidates.length,
+              },
+            })
+            return { kind: 'success' as const, payload }
           }
 
-          if (!response.ok) {
-            console.error('❌ Ticker SAM error:', response.status);
-            return { kind: 'upstream_error' as const, status: response.status }
-          }
-
-          const data = await response.json();
-          console.log('✅ Ticker received:', data.totalRecords || 0, 'total records');
-
-          const opportunities = (data.opportunitiesData || []).map((opp: any) => ({
-            id: opp.noticeId || '',
-            title: truncate(opp.title || 'Untitled Opportunity', 60),
-            solicitationNumber: opp.solicitation_number || opp.noticeId || 'N/A',
-            agency: truncate(opp.departmentName || opp.department || opp.fullParentPathName?.split('.')[0] || 'Unknown', 40),
-            postedDate: opp.postedDate || opp.publishDate || new Date().toISOString(),
-            type: opp.type || opp.noticeType || 'Solicitation',
-            samUrl: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`,
-            naics: opp.naicsCode || (Array.isArray(opp.naics) ? opp.naics[0] : '') || '',
-            setAside: opp.typeOfSetAsideDescription || opp.typeOfSetAside || '',
-            responseDeadLine: opp.responseDeadLine || opp.responseDate || '',
-            state: opp.placeOfPerformance?.state?.code || opp.officeAddress?.state || '',
-          }));
-
-          console.log('✅ Transformed', opportunities.length, 'ticker items');
-          const payload = {
-            count: data.totalRecords || opportunities.length,
-            opportunities,
-            rateLimitExceeded: false,
-            error: null,
-          };
-
-          tickerCache = { data: payload, expiresAt: Date.now() + CACHE_TTL_MS }
-          return { kind: 'success' as const, payload }
+          return { kind: 'upstream_error' as const, status: lastUnauthorizedStatus || 401 }
         })
 
         if (liveOutcome.kind === 'success') {
