@@ -1,4 +1,4 @@
-const CACHE_NAME = 'precisegovcon-cache-v5';
+const CACHE_NAME = 'precisegovcon-cache-v6';
 const APP_SHELL_URLS = ['/'];
 
 const AUTH_BYPASS_PREFIXES = [
@@ -13,6 +13,16 @@ const AUTH_BYPASS_PREFIXES = [
 
 function isAuthBypassPath(pathname) {
   return AUTH_BYPASS_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+const NAVIGATION_BYPASS_PREFIXES = [
+  '/pricing',
+  '/checkout',
+  '/account',
+];
+
+function isNavigationBypassPath(pathname) {
+  return NAVIGATION_BYPASS_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 self.addEventListener('install', (event) => {
@@ -68,11 +78,15 @@ self.addEventListener('fetch', (event) => {
   }
 
   const isDocument = req.mode === 'navigate' || req.destination === 'document';
+
+  // Stripe/auth-sensitive navigations should bypass SW completely.
+  if (isDocument && isNavigationBypassPath(url.pathname)) return;
+
   if (isDocument) {
     event.respondWith(
       fetch(req, { cache: 'no-store' })
         .then((res) => res)
-        .catch(() => caches.match('/').then((cached) => cached || Response.error()))
+        .catch(() => caches.match('/').then((cached) => cached || fetch('/')))
     );
     return;
   }

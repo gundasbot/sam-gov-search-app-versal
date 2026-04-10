@@ -11,10 +11,11 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-          <div className="text-center">
-            <div className="text-lg font-semibold">Preparing checkout…</div>
-            <div className="text-slate-400 text-sm mt-2">One moment</div>
+        <main className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-900 px-6">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+            <div className="mx-auto mb-3 h-10 w-10 rounded-full border-4 border-slate-200 border-t-slate-800 animate-spin" />
+            <div className="text-lg font-semibold">Preparing checkout...</div>
+            <div className="text-slate-500 text-sm mt-2">One moment</div>
           </div>
         </main>
       }
@@ -96,27 +97,30 @@ function CheckoutPageInner() {
   }, [plan, billing, isValid])
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white px-6">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-        <h1 className="text-xl font-bold">Stripe Checkout</h1>
+    <main className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-900 px-6">
+      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h1 className="text-xl font-bold text-slate-900">Stripe Checkout</h1>
 
         {loading && (
-          <p className="mt-3 text-slate-300">
+          <div className="mt-3">
+            <div className="h-8 w-8 rounded-full border-4 border-slate-200 border-t-slate-800 animate-spin mb-3" />
+            <p className="text-slate-700">
             Redirecting you to secure checkout for{' '}
             <span className="font-semibold capitalize">{plan || 'plan'}</span> (
             {billing || 'billing'})…
-          </p>
+            </p>
+          </div>
         )}
 
         {error && (
-          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
-            <div className="font-semibold text-red-200">Checkout error</div>
-            <div className="text-sm text-red-200/90 mt-1">{error}</div>
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+            <div className="font-semibold text-red-800">Checkout error</div>
+            <div className="text-sm text-red-700 mt-1">{error}</div>
 
             <button
               type="button"
               onClick={() => router.push('/pricing')}
-              className="mt-4 inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+              className="mt-4 inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
             >
               Back to Pricing
             </button>

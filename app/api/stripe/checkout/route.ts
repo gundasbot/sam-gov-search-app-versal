@@ -110,6 +110,36 @@ function normalizeBilling(raw: any): BillingInterval | null { // ✅ FIXED: Use 
   return null
 }
 
+function ensureSessionIdPlaceholder(url: string): string {
+  if (url.includes('{CHECKOUT_SESSION_ID}')) return url
+  return `${url}${url.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`
+}
+
+function resolveCheckoutRedirectUrl(
+  rawUrl: any,
+  appUrl: string,
+  fallbackPath: string,
+  includeSessionId = false
+): string {
+  const fallbackAbsolute = new URL(fallbackPath, appUrl).toString()
+  const fallback = includeSessionId
+    ? ensureSessionIdPlaceholder(fallbackAbsolute)
+    : fallbackAbsolute
+
+  if (typeof rawUrl !== 'string' || !rawUrl.trim()) return fallback
+
+  try {
+    const base = new URL(appUrl)
+    const candidate = new URL(rawUrl, appUrl)
+    if (candidate.origin !== base.origin) return fallback
+
+    const resolved = candidate.toString()
+    return includeSessionId ? ensureSessionIdPlaceholder(resolved) : resolved
+  } catch {
+    return fallback
+  }
+}
+
 function staticFallbackPrice(plan: 'basic' | 'professional' | 'enterprise', billing: BillingInterval): string | null {
   return STATIC_PRICE_FALLBACKS[plan]?.[billing] || null
 }
@@ -337,8 +367,17 @@ export async function POST(req: NextRequest) {
 
     console.log('🌐 App URL:', appUrl)
 
-    const successUrl = `${appUrl}/pricing?success=true&session_id={CHECKOUT_SESSION_ID}`
-    const cancelUrl = `${appUrl}/pricing?canceled=true`
+    const successUrl = resolveCheckoutRedirectUrl(
+      body?.successUrl,
+      appUrl,
+      user ? '/account?success=true' : '/checkout/success',
+      true
+    )
+    const cancelUrl = resolveCheckoutRedirectUrl(
+      body?.cancelUrl,
+      appUrl,
+      '/pricing?canceled=true'
+    )
 
     // ✅ FIXED: Check for existing subscription but don't block
     // Instead, inform client that they should use change-plan API
