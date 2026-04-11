@@ -2184,6 +2184,7 @@ function SearchingFacts({ duration }: { duration: number }) {
 function SearchPageContent() {
  const router = useRouter()
  const { data: session, status } = useSession()
+ const FIRST_SIGNIN_NAV_GUIDE_KEY = 'pgc_search_signedin_nav_guide_seen_v1'
 
  // Access Control
  const {
@@ -2312,6 +2313,7 @@ function SearchPageContent() {
  const pendingActionRef = useRef<(() => void) | null>(null)
 
  const [isSignUp, setIsSignUp] = useState(true)
+ const [showSignedInNavGuide, setShowSignedInNavGuide] = useState(false)
 
  // Detail drawer
  const [selectedOpp, setSelectedOpp] = useState<Opp | null>(null)
@@ -2358,6 +2360,13 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  const [stickyPromptDismissed, setStickyPromptDismissed] = useState(false)
  const { saved, toggleSaved, setSaved } = useOpportunityManagement(showToast);
  const { saveSearchState, restoreSearchState, saveSearchResults, restoreSearchResults, clearSearchResults } = useSearchStatePersistence();
+
+ const dismissSignedInNavGuide = useCallback(() => {
+ try {
+ localStorage.setItem(FIRST_SIGNIN_NAV_GUIDE_KEY, '1')
+ } catch {}
+ setShowSignedInNavGuide(false)
+ }, [FIRST_SIGNIN_NAV_GUIDE_KEY])
 
  // Timer effect - updates search duration every second
  useEffect(() => {
@@ -2461,6 +2470,21 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  console.error('Failed to load data:', error)
  }
  }, [setRecentSearches, setSaved, restoreSearchState, restoreSearchResults, clearSearchResults])
+
+ // First-time signed-in helper: show lightweight navigation guide once per browser.
+ useEffect(() => {
+ if (status !== 'authenticated') {
+ setShowSignedInNavGuide(false)
+ return
+ }
+
+ try {
+ const seen = localStorage.getItem(FIRST_SIGNIN_NAV_GUIDE_KEY)
+ setShowSignedInNavGuide(!seen)
+ } catch {
+ setShowSignedInNavGuide(false)
+ }
+ }, [status])
 
  useEffect(() => {
  try {
@@ -4150,6 +4174,29 @@ const visibleSearchSummaryParts = useMemo(
 
  <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
 
+ {showSignedInNavGuide && (
+ <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-sm">
+ <div className="flex items-start justify-between gap-4">
+ <div>
+ <p className="text-sm font-black uppercase tracking-wide text-emerald-700">Quick Start Tips</p>
+ <h2 className="mt-1 text-xl font-black text-emerald-900">First-time navigation guide</h2>
+ <ul className="mt-2 list-disc pl-5 text-sm font-semibold text-emerald-800 space-y-1">
+ <li>Use <span className="font-black">Refine Filters</span> to narrow results by agency, set-aside, state, and status.</li>
+ <li>Use <span className="font-black">Toggle View</span> to switch between List and Card layouts.</li>
+ <li>Use <span className="font-black">Save Search</span> and <span className="font-black">Create Alert</span> so you do not repeat manual searches.</li>
+ </ul>
+ </div>
+ <button
+ type="button"
+ onClick={dismissSignedInNavGuide}
+ className="inline-flex items-center rounded-lg bg-emerald-700 px-3 py-2 text-sm font-black text-white hover:bg-emerald-800 transition-colors"
+ >
+ Got it
+ </button>
+ </div>
+ </div>
+ )}
+
  {/* ── HOW TO USE GUIDE ─────────────────────────────────────────── */}
  <div className="rounded-2xl overflow-hidden shadow-sm"style={{ border: '1px solid #bbf0d0' }}>
  <div className="px-5 py-4 flex items-center gap-3"style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
@@ -4564,7 +4611,15 @@ const visibleSearchSummaryParts = useMemo(
  <option value="posted-asc">Posted (Oldest first)</option>
  </select>
  </div>
- <div className="sm:ml-auto inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5">
+ <div className="relative sm:ml-auto">
+ {showSignedInNavGuide && hasSearched && filteredResults.length > 0 && (
+ <div className="absolute -top-12 right-0 rounded-md bg-emerald-900 px-3 py-1.5 text-xs font-bold text-white shadow-lg whitespace-nowrap">
+ Toggle View: switch List/Card layouts
+ </div>
+ )}
+ <div className={`inline-flex items-center rounded-lg border border-gray-300 bg-white p-0.5 ${
+ showSignedInNavGuide && hasSearched && filteredResults.length > 0 ? 'ring-2 ring-emerald-400 ring-offset-2' : ''
+ }`}>
  <button
  onClick={() => setViewMode('list')}
  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-black transition-colors ${
@@ -4585,6 +4640,7 @@ const visibleSearchSummaryParts = useMemo(
  <Grid className="h-3.5 w-3.5" />
  Card view
  </button>
+ </div>
  </div>
  </div>
  </div>

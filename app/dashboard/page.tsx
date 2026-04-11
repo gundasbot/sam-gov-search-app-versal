@@ -69,7 +69,14 @@ type DashboardData = {
 }
 
 type ActivityLog = { id: string; type: 'search'|'alert'|'save'|'share'|'ai'; title: string; timestamp: string }
-type TrendData = { month: string; opportunities: number; matches: number }
+type LiveTickerOpportunity = {
+ id: string
+ agency: string
+ setAside: string
+ naics: string
+ state: string
+ responseDeadLine: string
+}
 type DrawerKey = 'activeSearches'|'savedOpps'|'matchInfo'|'notifications'|'settings'|'goalSetup'|'recentMatches'|'deadlines'|null
 
 // ─── Survey Config ────────────────────────────────────────────────────────────
@@ -639,9 +646,9 @@ export default function DashboardPage() {
  const [goalInput, setGoalInput] = useState('')
  const [goalSaving, setGoalSaving] = useState(false)
  const [toast, setToast] = useState<{type:'success'|'error';msg:string}|null>(null)
- const [hoveredTrend, setHoveredTrend] = useState<TrendData | null>(null)
  const [quickSavingIds, setQuickSavingIds] = useState<Set<string>>(new Set())
  const [quickSavedIds, setQuickSavedIds] = useState<Set<string>>(new Set())
+ const [tickerSnapshotRaw, setTickerSnapshotRaw] = useState<{ count: number; opportunities: LiveTickerOpportunity[]; error?: string | null }>({ count: 0, opportunities: [], error: null })
  const summaryLoadInFlightRef = useRef(false)
  const goalsCacheRef = useRef<{ goals: string[]; fetchedAt: number }>({ goals: [], fetchedAt: 0 })
  const samSummaryCacheRef = useRef<Map<string, { fetchedAt: number; opportunities: any[] }>>(new Map())
@@ -799,24 +806,136 @@ export default function DashboardPage() {
  return items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 4)
  }, [dash.activeSearches, dash.savedOpportunities, dash.notifications])
 
- // Real 7-day posting trend from live weekly data
-const trend = useMemo<TrendData[]>(() => {
-const allOpps = dash.weeklyOpportunities
-const result: TrendData[] = []
- for (let i = 6; i >= 0; i--) {
- const d = new Date()
- d.setDate(d.getDate() - i)
- const key = d.toISOString().split('T')[0]
- const label = d.toLocaleDateString('en-US', { weekday: 'short' })
- const dayOpps = allOpps.filter(o => o.posted && (o.posted.startsWith(key) || (i === 0 && (o.posted === 'Today' || o.posted === 'just now'))))
- const dayMatches = dayOpps.filter(o => (o.match ?? 0) >= 70)
- result.push({ month: label, opportunities: dayOpps.length, matches: dayMatches.length })
+ const liveFeedSnapshot = useMemo(() => {
+ const liveFeed = dash.recentOpportunities
+ const total = liveFeed.length
+ const setAsideCounts = new Map<string, number>()
+ const agencyCounts = new Map<string, number>()
+ let strongFit = 0
+ let moderateFit = 0
+ let emergingFit = 0
+ let knownDeadlineCount = 0
+ let totalDeadlineDays = 0
+
+ liveFeed.forEach((opp) => {
+ const setAsideLabel = (opp.setAside || 'Open competition').trim()
+ setAsideCounts.set(setAsideLabel, (setAsideCounts.get(setAsideLabel) || 0) + 1)
+
+ const agencyLabel = (opp.agency || 'Agency unavailable').trim()
+ agencyCounts.set(agencyLabel, (agencyCounts.get(agencyLabel) || 0) + 1)
+
+ const score = typeof opp.match === 'number' ? opp.match : null
+ if (score !== null) {
+ if (score >= 85) strongFit += 1
+ else if (score >= 70) moderateFit += 1
+ else emergingFit += 1
  }
-return result
-}, [dash.weeklyOpportunities, dash.savedOpportunities, dash.recentOpportunities])
+
+ const days = Number.parseInt(opp.deadline || '', 10)
+ if (Number.isFinite(days)) {
+ knownDeadlineCount += 1
+ totalDeadlineDays += days
+ }
+ })
+
+ const toRows = (items: Map<string, number>) =>
+ Array.from(items.entries())
+ .sort((a, b) => b[1] - a[1])
+ .slice(0, 5)
+ .map(([label, count]) => ({
+ label,
+ count,
+ share: total > 0 ? count / total : 0,
+ }))
+
+ const avgMatchScore = total > 0
+ ? Math.round(liveFeed.reduce((sum, opp) => sum + (typeof opp.match === 'number' ? opp.match : 0), 0) / total)
+ : null
+
+ return {
+ total,
+ setAsides: toRows(setAsideCounts),
+ agencies: toRows(agencyCounts),
+ strongFit,
+ moderateFit,
+ emergingFit,
+ avgMatchScore,
+ avgDeadlineDays: knownDeadlineCount > 0 ? Math.round(totalDeadlineDays / knownDeadlineCount) : null,
+ }
+ }, [dash.recentOpportunities])
+
+ const profileSnapshot = useMemo(() => {
+ const prefs = dash.userPreferences || userPrefs
+ return {
+ setAsides: (prefs?.setAsides || []).slice(0, 4),
+ naicsCodes: (prefs?.naicsCodes || []).slice(0, 4),
+ agencies: (prefs?.agencies || []).slice(0, 4),
+ goals: dash.userGoals.slice(0, 3),
+ }
+ }, [dash.userPreferences, userPrefs, dash.userGoals])
+
+ const samMarketSnapshot = useMemo(() => {
+ const totalLive = tickerSnapshotRaw.count || 0
+ const sample = tickerSnapshotRaw.opportunities || []
+ const setAsideCounts = new Map<string, number>()
+ const agencyCounts = new Map<string, number>()
+
+ sample.forEach((opp) => {
+ const setAsideLabel = (opp.setAside || 'Open competition').trim()
+ setAsideCounts.set(setAsideLabel, (setAsideCounts.get(setAsideLabel) || 0) + 1)
+
+ const agencyLabel = (opp.agency || 'Agency unavailable').trim()
+ agencyCounts.set(agencyLabel, (agencyCounts.get(agencyLabel) || 0) + 1)
+ })
+
+ const toRows = (items: Map<string, number>) =>
+ Array.from(items.entries())
+ .sort((a, b) => b[1] - a[1])
+ .slice(0, 5)
+ .map(([label, count]) => ({
+ label,
+ count,
+ share: sample.length > 0 ? count / sample.length : 0,
+ }))
+
+ return {
+ totalLive,
+ sampleSize: sample.length,
+ agencyTotal: agencyCounts.size,
+ setAsideTotal: setAsideCounts.size,
+ setAsides: toRows(setAsideCounts),
+ agencies: toRows(agencyCounts),
+ }
+ }, [tickerSnapshotRaw])
+
+ const useMarketSnapshot = liveFeedSnapshot.total < 4 && samMarketSnapshot.sampleSize > 0
+
+ useEffect(() => {
+ if (sessionStatus === 'loading') return
+ let cancelled = false
+
+ const loadTicker = async () => {
+ try {
+ const res = await fetch('/api/sam/live-ticker', { cache: 'no-store' })
+ const payload = res.ok ? await res.json() : { count: 0, opportunities: [] }
+ if (cancelled) return
+ setTickerSnapshotRaw({
+ count: Number(payload?.count || 0),
+ opportunities: Array.isArray(payload?.opportunities) ? payload.opportunities : [],
+ error: typeof payload?.error === 'string' ? payload.error : null,
+ })
+ } catch {
+ if (cancelled) return
+ setTickerSnapshotRaw({ count: 0, opportunities: [], error: 'Failed to load live SAM snapshot.' })
+ }
+ }
+
+ void loadTicker()
+ return () => { cancelled = true }
+ }, [sessionStatus, dashboardApi.lastRefreshed])
 
  const railSignals = useMemo(() => {
- const agencyCounts = new Map<string, number>()
+  const agencyCounts = new Map<string, number>()
  ;[...dash.recentOpportunities, ...dash.savedOpportunities].forEach((opp) => {
  const key = (opp.agency || '').trim()
  if (!key) return
@@ -2008,31 +2127,7 @@ return result
  </div>
  </section>
 
- {/* ── Visitor info strip ──────────────────────────────────────────── */}
- {!isAuth && !dash.loading && (
- <div className="mb-4 rounded-2xl flex flex-wrap items-center gap-3 px-5 py-4 shadow-lg"
- style={{ background: 'linear-gradient(135deg, #10b981, #0ea5e9)', color: 'white' }}>
- <CheckCircle style={{ color: 'white', width: 22, height: 22, flexShrink: 0 }} />
- <p style={{ color: 'white', fontSize: '16px', fontWeight: 700, flex: 1, lineHeight: 1.5 }}>
- <strong style={{ color: 'white', fontWeight: 900 }}>Log in to see your personalized dashboard.</strong>
- {' '}Access your saved searches, AI match scores, deadline alerts, and tailored recommendations.
- </p>
- <div className="flex gap-2 flex-wrap">
- <Link href="/login"
- style={{ background: 'white', color: '#0f172a', fontWeight: 900, fontSize: '14px', padding: '9px 18px', borderRadius: '10px', textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}
- className="hover:bg-slate-100 transition-colors">
- Sign In
- </Link>
- <Link href="/register"
- style={{ border: '2px solid rgba(255,255,255,0.7)', color: 'white', fontWeight: 800, fontSize: '14px', padding: '9px 18px', borderRadius: '10px', textDecoration: 'none', whiteSpace: 'nowrap' }}
- className="hover:bg-white/10 transition-colors">
- Create Free Account
- </Link>
- </div>
- </div>
- )}
-
- {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
+  {/* ── Stat Cards ─────────────────────────────────────────────────────── */}
  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
  {stats.map(({ label, value, sub, detail, src, bg, onClick }) => (
  <button
@@ -2322,76 +2417,346 @@ return result
  </div>
  )}
 
- {/* Pipeline Trend */}
+ {/* Live Match Snapshot */}
  <div className="rounded-2xl border border-slate-200 bg-white p-5 flex-1 flex flex-col">
- <div className="flex items-center justify-between mb-5">
+ <div className="flex items-center justify-between mb-5 gap-3">
+ <div>
  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
  <TrendingUp className="w-4 h-4 text-emerald-500" />
- <span className="text-emerald-600 ">Posting</span>
- <span className="text-orange-500">Activity</span>
- <span className="text-xs font-normal text-slate-400 ml-1">Last 7 days · live data</span>
+ <span className="text-emerald-600">{useMarketSnapshot ? 'SAM Market' : 'Live Match'}</span>
+ <span className="text-orange-500">Snapshot</span>
  </h3>
- <div className="flex gap-4">
- {[['bg-orange-400','Total Opportunities'],['bg-emerald-500','Your Matches']].map(([c,l]) => (
- <div key={l} className="flex items-center gap-1.5 text-xs text-slate-500 ">
- <div className={`w-3 h-3 rounded-sm ${c}`} />{l}
+ <p className="mt-1 text-xs font-medium text-slate-500">
+ {useMarketSnapshot
+ ? 'Newest live SAM.gov sample used when the personalized feed is still sparse.'
+ : 'Current SAM.gov opportunities already aligned to this user&apos;s live feed.'}
+ </p>
  </div>
- ))}
+ <Link
+ href={useMarketSnapshot ? '/opportunities' : '/opportunities?sort=match&view=list'}
+ className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-500 transition-colors"
+ >
+ {useMarketSnapshot ? 'Browse live market' : 'Open live matches'}
+ </Link>
  </div>
+
+ {!isAuth && (
+ <div className="mb-5 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 via-white to-emerald-50 px-5 py-4 shadow-sm">
+ <div className="min-w-0">
+ <div className="mb-2 flex flex-wrap items-center gap-2">
+ <span className="inline-flex items-center gap-1 rounded-md bg-slate-700 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-white shadow-sm">
+ Sign-In Required
+ </span>
+ <span className="text-xs font-semibold text-slate-700">
+ Sample live SAM.gov view shown below
+ </span>
  </div>
- <div className="flex items-end gap-3 h-56 mb-4 flex-1">
- {trend.map(p => (
- <div key={p.month}
- onMouseEnter={() => setHoveredTrend(p)}
- onMouseLeave={() => setHoveredTrend(prev => prev?.month===p.month ? null : prev)}
- className="flex-1 flex flex-col justify-end items-center gap-1 h-full relative cursor-pointer group">
- {hoveredTrend?.month === p.month && (
- <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none w-48 rounded-2xl border border-slate-200 bg-white shadow-2xl p-4">
- <p className="text-xs font-black text-slate-800 mb-2 border-b border-slate-100 pb-2">{p.month} Details</p>
- <div className="flex flex-col gap-1.5">
- <div className="flex items-center justify-between">
- <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" />Total</span>
- <strong className="text-xs text-orange-500">{p.opportunities.toLocaleString()}</strong>
- </div>
- <div className="flex items-center justify-between">
- <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />Matches</span>
- <strong className="text-xs text-emerald-500">{p.matches.toLocaleString()}</strong>
- </div>
- <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 mt-0.5">
- <span className="text-xs text-slate-500">Hit Rate</span>
- <strong className="text-xs text-amber-500">{((p.matches/p.opportunities)*100).toFixed(1)}%</strong>
- </div>
+ <h4 className="text-base font-extrabold leading-tight text-slate-900">
+ Personalized live snapshots are available after sign-in.
+ </h4>
+ <p className="mt-1 text-sm leading-snug text-slate-700">
+ Sign in to unlock a dashboard filtered by your <strong>NAICS codes</strong>, <strong>set-asides</strong>, and <strong>agency preferences</strong> with AI match scoring and deadline-aware prioritization.
+ </p>
+ <p className="mt-2 text-xs font-semibold text-slate-500">
+ Use the sign-in buttons in the hero above to unlock your personalized snapshot.
+ </p>
  </div>
  </div>
  )}
- <div className="w-full flex items-end gap-1 h-full">
- <div className="flex-1 rounded-t-lg transition-all duration-200 shadow-sm group-hover:opacity-90"
- style={{height:`${Math.max(8, (p.opportunities / Math.max(1, ...trend.map(t=>t.opportunities)))*100)}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #ea580c, #fb923c)' : 'linear-gradient(to top, #c2410c, #f97316)'}} />
- <div className="flex-1 rounded-t-lg transition-all duration-200 shadow-sm group-hover:opacity-90"
- style={{height:`${Math.max(8, (p.matches / Math.max(1, ...trend.map(t=>t.opportunities)))*100)}%`, minHeight:8, background: hoveredTrend?.month===p.month ? 'linear-gradient(to top, #16a34a, #4ade80)' : 'linear-gradient(to top, #15803d, #22c55e)'}} />
+
+ {useMarketSnapshot ? (
+ <>
+ <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-5 flex-1">
+ <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+ <div className="flex items-center justify-between gap-2 mb-4">
+ <p className="text-xs font-black uppercase tracking-widest text-emerald-800">Set-Aside Mix</p>
+ <span className="text-xs font-bold text-emerald-700">{samMarketSnapshot.sampleSize} sampled live postings</span>
  </div>
- <p className="text-xs font-bold text-slate-500 group-hover:text-slate-800 transition-colors">{p.month}</p>
+ <div className="flex flex-col gap-3">
+ {samMarketSnapshot.setAsides.map((entry) => (
+ <div key={entry.label}>
+ <div className="mb-1.5 flex items-center justify-between gap-3">
+ <p className="truncate text-sm font-bold text-slate-800">{entry.label}</p>
+ <p className="shrink-0 text-xs font-black text-emerald-800">{entry.count} · {Math.round(entry.share * 100)}%</p>
  </div>
- ))}
+ <div className="h-3 rounded-full bg-white/90 border border-emerald-100 overflow-hidden">
+ <div
+ className="h-full rounded-full bg-linear-to-r from-emerald-600 to-teal-400"
+ style={{ width: `${Math.max(12, entry.share * 100)}%` }}
+ />
  </div>
- {/* Summary stats strip below chart */}
- <div className="grid grid-cols-3 gap-3 pt-4 border-t border-slate-100 ">
- {[
- {label:'Avg Opportunities/Month', value: Math.round(trend.reduce((s,p)=>s+p.opportunities,0)/trend.length).toLocaleString(), color:'text-orange-500'},
- {label:'Avg Matches', value: Math.round(trend.reduce((s,p)=>s+p.matches,0)/trend.length).toLocaleString(), color:'text-emerald-500'},
- {label:'Avg Hit Rate', value: `${((trend.reduce((s,p)=>s+(p.matches/p.opportunities),0)/trend.length)*100).toFixed(1)}%`, color:'text-amber-500'},
- ].map(({label,value,color}) => (
- <div key={label} className="text-center">
- <p className={`text-lg font-black ${color}`}>{value}</p>
- <p className="text-xs text-slate-400 font-medium">{label}</p>
  </div>
  ))}
  </div>
  </div>
 
+ <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+ <div className="flex items-center justify-between gap-2 mb-4">
+ <p className="text-xs font-black uppercase tracking-widest text-sky-800">Top Agencies In Live Sample</p>
+ <span className="text-xs font-bold text-sky-700">{samMarketSnapshot.totalLive.toLocaleString()} posted in 7d</span>
+ </div>
+ <div className="flex flex-col gap-3">
+ {samMarketSnapshot.agencies.map((entry) => (
+ <div key={entry.label}>
+ <div className="mb-1.5 flex items-center justify-between gap-3">
+ <p className="truncate text-sm font-bold text-slate-800">{entry.label}</p>
+ <p className="shrink-0 text-xs font-black text-sky-800">{entry.count} · {Math.round(entry.share * 100)}%</p>
+ </div>
+ <div className="h-3 rounded-full bg-white/90 border border-sky-100 overflow-hidden">
+ <div
+ className="h-full rounded-full bg-linear-to-r from-sky-600 to-cyan-400"
+ style={{ width: `${Math.max(12, entry.share * 100)}%` }}
+ />
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
  </div>
 
- {/* Right sidebar */}
+ <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
+ <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Live Posted 7d</p>
+ <p className="mt-1 text-2xl font-black text-emerald-900">{samMarketSnapshot.totalLive.toLocaleString()}</p>
+ <p className="text-xs font-semibold text-emerald-700">Across the live SAM ticker</p>
+ </div>
+ <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-sky-700">Sample Size</p>
+ <p className="mt-1 text-2xl font-black text-sky-900">{samMarketSnapshot.sampleSize}</p>
+ <p className="text-xs font-semibold text-sky-700">Newest postings analyzed here</p>
+ </div>
+ <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-violet-700">Agencies</p>
+ <p className="mt-1 text-2xl font-black text-violet-900">{samMarketSnapshot.agencyTotal}</p>
+ <p className="text-xs font-semibold text-violet-700">Represented in the live sample</p>
+ </div>
+ <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-amber-700">Set-Asides</p>
+ <p className="mt-1 text-2xl font-black text-amber-900">{samMarketSnapshot.setAsideTotal}</p>
+ <p className="text-xs font-semibold text-amber-700">Visible in current postings</p>
+ </div>
+ </div>
+ </>
+ ) : liveFeedSnapshot.total === 0 ? (
+ <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-8 py-12 text-center">
+ <p className="text-lg font-black text-slate-900">No live matches in the current feed yet.</p>
+ <p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-slate-600">
+ Refresh the dashboard or tighten your profile so the live SAM.gov feed can build a usable personalized snapshot.
+ </p>
+ <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+ <button
+ type="button"
+ onClick={() => router.push('/dashboard/onboarding?next=/dashboard')}
+ className="rounded-xl bg-orange-600 px-4 py-3 text-sm font-black text-white hover:bg-orange-500 transition-colors"
+ >
+ Update profile
+ </button>
+ <Link
+ href="/search"
+ className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-100 transition-colors"
+ >
+ Run a search
+ </Link>
+ </div>
+ </div>
+ ) : (
+ <>
+ <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-5 flex-1">
+ <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+ <div className="flex items-center justify-between gap-2 mb-4">
+ <p className="text-xs font-black uppercase tracking-widest text-emerald-800">Set-Aside Mix</p>
+ <span className="text-xs font-bold text-emerald-700">{liveFeedSnapshot.total} live matches</span>
+ </div>
+ <div className="flex flex-col gap-3">
+ {liveFeedSnapshot.setAsides.map((entry) => (
+ <div key={entry.label}>
+ <div className="mb-1.5 flex items-center justify-between gap-3">
+ <p className="truncate text-sm font-bold text-slate-800">{entry.label}</p>
+ <p className="shrink-0 text-xs font-black text-emerald-800">{entry.count} · {Math.round(entry.share * 100)}%</p>
+ </div>
+ <div className="h-3 rounded-full bg-white/90 border border-emerald-100 overflow-hidden">
+ <div
+ className="h-full rounded-full bg-linear-to-r from-emerald-600 to-teal-400"
+ style={{ width: `${Math.max(12, entry.share * 100)}%` }}
+ />
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+
+ <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+ <div className="flex items-center justify-between gap-2 mb-4">
+ <p className="text-xs font-black uppercase tracking-widest text-sky-800">Top Agencies In Feed</p>
+ <span className="text-xs font-bold text-sky-700">Live SAM.gov mix</span>
+ </div>
+ <div className="flex flex-col gap-3">
+ {liveFeedSnapshot.agencies.map((entry) => (
+ <div key={entry.label}>
+ <div className="mb-1.5 flex items-center justify-between gap-3">
+ <p className="truncate text-sm font-bold text-slate-800">{entry.label}</p>
+ <p className="shrink-0 text-xs font-black text-sky-800">{entry.count} · {Math.round(entry.share * 100)}%</p>
+ </div>
+ <div className="h-3 rounded-full bg-white/90 border border-sky-100 overflow-hidden">
+ <div
+ className="h-full rounded-full bg-linear-to-r from-sky-600 to-cyan-400"
+ style={{ width: `${Math.max(12, entry.share * 100)}%` }}
+ />
+ </div>
+ </div>
+ ))}
+ </div>
+ </div>
+ </div>
+
+ <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
+ <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Strong Fit</p>
+ <p className="mt-1 text-2xl font-black text-emerald-900">{liveFeedSnapshot.strongFit}</p>
+ <p className="text-xs font-semibold text-emerald-700">85%+ match score</p>
+ </div>
+ <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-sky-700">Moderate Fit</p>
+ <p className="mt-1 text-2xl font-black text-sky-900">{liveFeedSnapshot.moderateFit}</p>
+ <p className="text-xs font-semibold text-sky-700">70–84% match score</p>
+ </div>
+ <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-violet-700">Avg Match</p>
+ <p className="mt-1 text-2xl font-black text-violet-900">{liveFeedSnapshot.avgMatchScore ?? '—'}</p>
+ <p className="text-xs font-semibold text-violet-700">Across current live matches</p>
+ </div>
+ <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+ <p className="text-[11px] font-black uppercase tracking-widest text-amber-700">Avg Deadline</p>
+ <p className="mt-1 text-2xl font-black text-amber-900">{liveFeedSnapshot.avgDeadlineDays ?? '—'}</p>
+ <p className="text-xs font-semibold text-amber-700">{liveFeedSnapshot.avgDeadlineDays !== null ? 'days until close' : 'deadline data pending'}</p>
+ </div>
+ </div>
+ </>
+ )}
+ </div>
+
+  <div className="rounded-2xl overflow-hidden border border-sky-200 bg-white shadow-sm">
+  <div className="flex items-center justify-between px-5 py-3 bg-linear-to-r from-sky-600 to-cyan-500">
+  <h3 className="text-sm font-black text-white flex items-center gap-2">
+  <Target className="w-4 h-4" />
+  Pipeline Focus
+  </h3>
+  <button
+  type="button"
+  onClick={() => setDrawer('goalSetup')}
+  className="inline-flex items-center gap-1 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-black text-sky-700 hover:bg-white transition-colors"
+  >
+  Edit goals
+  </button>
+  </div>
+
+  <div className="p-5 flex flex-col gap-5">
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+  <p className="text-[11px] font-black uppercase tracking-widest text-sky-700">Saved Searches</p>
+  <p className="mt-1 text-2xl font-black text-sky-900">{dash.activeSearchesCount}</p>
+  <p className="text-xs font-semibold text-sky-700">Searches shaping your feed</p>
+  </div>
+  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+  <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">High-Fit 80+</p>
+  <p className="mt-1 text-2xl font-black text-emerald-900">{dash.highFitCount}</p>
+  <p className="text-xs font-semibold text-emerald-700">Strong-fit opportunities now</p>
+  </div>
+  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+  <p className="text-[11px] font-black uppercase tracking-widest text-amber-700">Deadlines ≤7d</p>
+  <p className="mt-1 text-2xl font-black text-amber-900">{railSignals.critical + railSignals.soon}</p>
+  <p className="text-xs font-semibold text-amber-700">Pursuits needing quick review</p>
+  </div>
+  </div>
+
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+  <div className="flex items-center gap-2 mb-3">
+  <FileText className="w-4 h-4 text-violet-600" />
+  <p className="text-xs font-black uppercase tracking-widest text-slate-600">Business Goals</p>
+  </div>
+  {profileSnapshot.goals.length > 0 ? (
+  <div className="flex flex-col gap-2">
+  {profileSnapshot.goals.map((goal) => (
+  <div key={goal} className="rounded-lg border border-violet-200 bg-white px-3 py-2.5">
+  <p className="text-sm font-semibold text-slate-800 leading-relaxed">{goal}</p>
+  </div>
+  ))}
+  </div>
+  ) : (
+  <div className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4">
+  <p className="text-sm font-semibold text-slate-700">Add 2–3 capture goals so match scoring and AI analysis stay aligned with the work you actually want.</p>
+  </div>
+  )}
+  </div>
+
+  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+  <div className="flex items-center gap-2 mb-3">
+  <Award className="w-4 h-4 text-emerald-600" />
+  <p className="text-xs font-black uppercase tracking-widest text-slate-600">Target Profile</p>
+  </div>
+  <div className="flex flex-col gap-3">
+  <div>
+  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">Certifications</p>
+  <div className="flex flex-wrap gap-2">
+  {profileSnapshot.setAsides.length > 0 ? profileSnapshot.setAsides.map((item) => (
+  <span key={item} className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-800 border border-emerald-200">{item}</span>
+  )) : <span className="text-sm font-semibold text-slate-500">No certifications added yet.</span>}
+  </div>
+  </div>
+
+  <div>
+  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">NAICS</p>
+  <div className="flex flex-wrap gap-2">
+  {profileSnapshot.naicsCodes.length > 0 ? profileSnapshot.naicsCodes.map((item) => (
+  <span key={item} className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-black text-sky-800 border border-sky-200 font-mono">{item}</span>
+  )) : <span className="text-sm font-semibold text-slate-500">Add NAICS codes to sharpen matching.</span>}
+  </div>
+  </div>
+
+  <div>
+  <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">Preferred Agencies</p>
+  <div className="flex flex-wrap gap-2">
+  {profileSnapshot.agencies.length > 0 ? profileSnapshot.agencies.map((item) => (
+  <span key={item} className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-800 border border-amber-200">{item}</span>
+  )) : <span className="text-sm font-semibold text-slate-500">No agency preferences saved yet.</span>}
+  </div>
+  </div>
+  </div>
+  </div>
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  <button
+  type="button"
+  onClick={() => setDrawer('goalSetup')}
+  className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white hover:bg-violet-500 transition-colors"
+  >
+  <FileText className="w-4 h-4" />
+  Update Goals
+  </button>
+  <button
+  type="button"
+  onClick={() => router.push('/dashboard/onboarding?next=/dashboard')}
+  className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-sm font-black text-white hover:bg-orange-500 transition-colors"
+  >
+  <Settings className="w-4 h-4" />
+  Update Profile
+  </button>
+  <Link
+  href="/opportunities?sort=match&view=list"
+  className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white hover:bg-emerald-500 transition-colors"
+  >
+  <ArrowRight className="w-4 h-4" />
+  Review Matches
+  </Link>
+  </div>
+  </div>
+  </div>
+
+  </div>
+
+  {/* Right sidebar */}
  <div className="flex flex-col gap-5 h-full">
 
 {/* Deadlines */}

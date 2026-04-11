@@ -986,13 +986,13 @@ export default function SupportPage() {
               <ul className="mt-5 space-y-2 text-sm text-white/65">
                 {t.bullets.map((b) => (
                   <li key={b} className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-300/70 flex-shrink-0" />
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-600 flex-shrink-0" />
                     <span>{b}</span>
                   </li>
                 ))}
               </ul>
 
-              <div className="mt-5 text-sm sm:text-base font-black text-emerald-200 group-hover:text-emerald-100 group-hover:translate-x-1 transition-all">
+              <div className="mt-5 text-sm sm:text-base font-black text-emerald-700 group-hover:text-emerald-800 group-hover:translate-x-1 transition-all">
                 {t.cta}
               </div>
             </Link>

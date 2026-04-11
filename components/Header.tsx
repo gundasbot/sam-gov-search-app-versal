@@ -307,7 +307,7 @@ export default function Header() {
         className="fixed inset-x-0 top-[44px] sm:top-[52px] z-40 transition-all duration-300 w-full"
         style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', boxShadow: scrolled ? '0 4px 12px rgba(0,0,0,0.08)' : 'none' }}
       >
-        <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8">
+        <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-7 2xl:px-8">
           <div className="flex items-center gap-2 py-3 lg:gap-4 lg:py-2 xl:gap-5">
 
             {/* ── Logo Section: Logo + Name + tagline ── */}
@@ -340,8 +340,8 @@ export default function Header() {
             </div>
 
             {/* ── Desktop Nav ── */}
-            <div className="hidden min-w-0 px-2 lg:flex lg:flex-1 xl:px-3">
-              <nav className="header-nav-scroll flex flex-nowrap items-center justify-end gap-1 px-1 py-1.5 xl:gap-2 xl:px-1.5">
+            <div className="hidden min-w-0 pl-2 pr-0 lg:flex lg:flex-1 xl:pl-3">
+              <nav className="header-nav-scroll flex flex-nowrap items-center justify-end gap-1.5 px-1 py-1.5 xl:gap-2 xl:px-1.5">
                 {[
                   { href: '/search', label: 'Search', icon: <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
@@ -501,7 +501,7 @@ export default function Header() {
                 {!isAuthed && (
                   <Link
                     href="/signup"
-                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
+                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02] ml-1.5"
                     style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
                   >
                     <Sparkles className="w-4 h-4 flex-shrink-0" />
@@ -512,7 +512,7 @@ export default function Header() {
                 {!isAuthed && (
                   <Link
                     href="/login"
-                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02] ml-1"
+                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02] ml-2"
                     style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
                   >
                     <LogIn className="w-4 h-4 flex-shrink-0" />
@@ -523,7 +523,7 @@ export default function Header() {
             </div>
 
             {/* ── Auth + Hamburger ── */}
-            <div className="mr-1 sm:mr-2 flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2 xl:-mr-2 2xl:-mr-1">
               <div className="block flex-shrink-0">
                 <ThemeToggle />
               </div>

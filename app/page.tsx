@@ -156,12 +156,6 @@ function HeroSlider() {
   const oppTitleFg = isDark ? '#f1f5f9' : '#0f172a'
   const oppAgencyFg = isDark ? '#cbd5e1' : '#334155'
   const oppValFg = isDark ? '#e2e8f0' : '#1e293b'
-  const HERO_W: React.CSSProperties = {
-    maxWidth: 1920,
-    margin: '0 auto',
-    padding: '0 clamp(6px, 1vw, 16px)',
-  }
-
   const [cur, setCur]         = useState(0)
   const [phase, setPhase]     = useState<'idle' | 'out' | 'in'>('idle')
   const [playing, setPlaying] = useState(true)
@@ -204,12 +198,12 @@ function HeroSlider() {
 
   return (
     <div style={{ width: '100%' }}>
-      <div style={HERO_W}>
+      <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-7 2xl:px-8">
         <div style={{ background: isDark ? '#0f172a' : s.bg, transition: 'background 0.5s ease', position: 'relative', overflow: 'hidden', borderRadius: 18 }}>
 
           {/* ── Animated slide content ── */}
           <div style={anim}>
-            <div style={{ padding: '10px clamp(8px, 1.3vw, 18px) 18px' }}>
+            <div style={{ padding: '10px clamp(6px, 1vw, 16px) 18px 0' }}>
               <div
                 className="hero-grid"
                 style={{
