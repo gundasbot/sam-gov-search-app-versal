@@ -574,7 +574,7 @@ function AccessControlModal({ isOpen, onClose, featureName }: {
 
  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
  {/* Primary CTA — green background, white text */}
- <Link href="/sign-up"onClick={onClose}>
+ <Link href="/signup" onClick={onClose}>
  <button style={{
  width: '100%', padding: '12px 0', borderRadius: '12px',
  background: '#166534', color: '#ffffff', fontWeight: 900,
@@ -759,7 +759,7 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
 
  {/* CTAs */}
  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
- <Link href="/sign-up">
+ <Link href="/signup">
  <button style={{
  width: '100%', padding: '18px 0', borderRadius: '14px',
  background: 'linear-gradient(135deg, #16a34a, #166534)',
