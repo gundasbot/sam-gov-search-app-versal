@@ -22,7 +22,7 @@ function resolveMetadataBase(): URL {
     }
   }
 
-  return new URL(process.env.NODE_ENV === 'production' ? 'https://www.precisegovcon.com' : 'http://localhost:3000')
+  return new URL('https://www.precisegovcon.com')
 }
 
 const METADATA_BASE = resolveMetadataBase()

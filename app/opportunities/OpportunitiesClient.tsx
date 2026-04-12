@@ -2165,7 +2165,7 @@ Provide analysis in JSON format with:
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-slate-50 to-blue-50">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin mx-auto mb-6 text-cyan-400" />
-          <h2 className="text-2xl font-bold text-white mb-2">Loading Federal Opportunities</h2>
+          <p className="text-2xl font-bold text-white mb-2">Loading Federal Opportunities</p>
           <p className="text-slate-300">Fetching live data from SAM.gov...</p>
         </div>
       </div>
@@ -2182,9 +2182,9 @@ Provide analysis in JSON format with:
           <div className="rounded-2xl border border-cyan-200/90 bg-white p-3 shadow-[0_10px_30px_-18px_rgba(14,116,144,0.65)]">
             <div className="mb-2 px-1 relative">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
-                <h2 className="text-[17px] sm:text-[19px] leading-tight font-black text-slate-900">
-                  Welcome to Smart Opportunity Search. Find the right federal bids faster.
-                </h2>
+                <h1 className="text-[17px] sm:text-[19px] leading-tight font-black text-slate-900">
+                  Federal Contract Opportunities
+                </h1>
                 <div className="inline-flex flex-col rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-900 px-4 py-2.5 shadow-lg self-start lg:self-auto lg:justify-self-end">
                   <span className="mt-0.5 text-[13px] sm:text-[14px] font-black leading-tight whitespace-nowrap">
                     <span className="uppercase tracking-[0.12em] text-[10px] sm:text-[11px] text-cyan-200 mr-1.5">Powered by</span>
@@ -2494,9 +2494,9 @@ Provide analysis in JSON format with:
                       </span>
                     )}
                   </div>
-                  <h1 className="text-base sm:text-xl font-extrabold text-slate-900 leading-snug">
+                  <p className="text-base sm:text-xl font-extrabold text-slate-900 leading-snug">
                     Personalized live opportunities are available after sign-in.
-                  </h1>
+                  </p>
                   <p className="text-sm text-slate-700 mt-1 leading-snug">
                     Sign in to unlock a feed filtered by your <strong>NAICS codes</strong>, <strong>PSC codes</strong>, certifications, and agency preferences — powered by <span className="text-[#ff7a18] font-extrabold">PreciseGovCon<sup className="text-[10px]"> ®</sup></span> Opportunity Intelligence.
                   </p>
