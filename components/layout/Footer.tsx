@@ -39,7 +39,7 @@ const InstagramIcon = () => (
 )
 
 const social = [
-  { label: 'LinkedIn',  href: 'https://linkedin.com/company/precise-analytics',  icon: <LinkedInIcon />,  color: '#0A66C2' },
+  { label: 'LinkedIn',  href: 'https://www.linkedin.com/company/precise-analytics-llc/',  icon: <LinkedInIcon />,  color: '#0A66C2' },
   { label: 'X / Twitter', href: 'https://x.com/preciseanalytics',               icon: <TwitterXIcon />, color: '#111827' },
   { label: 'Facebook', href: 'https://facebook.com/preciseanalytics',            icon: <FacebookIcon />, color: '#1877F2' },
   { label: 'YouTube',  href: 'https://youtube.com/@preciseanalytics',            icon: <YouTubeIcon />,  color: '#FF0000' },
