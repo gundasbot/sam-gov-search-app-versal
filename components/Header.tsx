@@ -713,7 +713,7 @@ export default function Header() {
 
           {/* Services section */}
           <div className="mb-6">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-4">Services</h3>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-4">Services</p>
             <div className="space-y-1">
               {serviceItems.map((service) => (
                 <Link key={service.href} href={service.href} prefetch={false} onClick={() => setMobileMenuOpen(false)}

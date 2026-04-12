@@ -2087,7 +2087,7 @@ export default function DashboardPage() {
  <p style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1.5, marginBottom: '16px' }}>
  Join thousands of small businesses winning government contracts with AI-powered intelligence.
  </p>
- <Link href="/register"
+ <Link href="/signup"
  style={{
  display: 'block',
  textAlign: 'center',

@@ -34,7 +34,7 @@ const SLIDES = [
     heading: 'Find & Win Government',
     accent1: 'Contracts Faster',
     body: 'PreciseGovCon surfaces the right SAM.gov opportunities for your certifications, NAICS codes, and target agencies — AI-scored before you even open them.',
-    cta: { label: 'Start Free Trial', href: '/register' },
+    cta: { label: 'Start Free Trial', href: '/signup' },
     ctaAlt: { label: 'Explore Search', href: '/search' },
     stats: [{ v: '1,300+', l: 'Live opps' }, { v: '83%', l: 'Avg match' }, { v: '<24h', l: 'Alert time' }],
     accent: '#0f766e', aLight: '#ccfbf1', aMid: '#0d9488',
@@ -46,7 +46,7 @@ const SLIDES = [
     heading: 'SDVOSB · VOSB · 8(a)',
     accent1: 'Certifications That Pay Off',
     body: "Every opportunity is filtered and scored against your exact small business certifications. Stop scrolling through contracts that don't apply to you.",
-    cta: { label: 'Set Up My Profile', href: '/register' },
+    cta: { label: 'Set Up My Profile', href: '/signup' },
     ctaAlt: { label: 'How It Works', href: '/services' },
     stats: [{ v: '18+', l: 'Set-aside types' }, { v: '60%', l: 'Coverage' }, { v: '500+', l: 'Contractors' }],
     accent: '#c2410c', aLight: '#ffedd5', aMid: '#ea580c',
@@ -58,7 +58,7 @@ const SLIDES = [
     heading: 'Real-Time Alerts &',
     accent1: 'Deadline Intelligence',
     body: 'Get instant notifications the moment matching contracts post. Track deadlines across your pipeline with urgency scoring — Critical, High, Act Soon.',
-    cta: { label: 'Set Up Alerts', href: '/register' },
+    cta: { label: 'Set Up Alerts', href: '/signup' },
     ctaAlt: { label: 'View Pricing', href: '/pricing' },
     stats: [{ v: '76+', l: 'Agencies' }, { v: '5', l: 'Posted today' }, { v: '29', l: 'Expiring ≤7d' }],
     accent: '#6d28d9', aLight: '#ede9fe', aMid: '#7c3aed',
@@ -71,7 +71,7 @@ const SLIDES = [
     accent1: 'Analyzed & Prioritized',
     body: 'Beyond search — the Insights Dashboard shows top agencies, set-aside mix, market trends, and AI priority scores so you know exactly where to focus.',
     cta: { label: 'Open Insights', href: '/insights' },
-    ctaAlt: { label: 'View Demo', href: '/register' },
+    ctaAlt: { label: 'View Demo', href: '/signup' },
     stats: [{ v: '34%', l: 'AI/ML growth' }, { v: '$2.3B', l: 'Contracts won' }, { v: '100', l: 'Curated opps' }],
     accent: '#0369a1', aLight: '#e0f2fe', aMid: '#0ea5e9',
     bg: '#f0f9ff', Icon: BarChart3, badge: '📊 Live analytics', tab: 'Insights',
@@ -92,7 +92,7 @@ const FEATURES = [
   { Icon: Search,    title: 'Smart Contract Search',   desc: 'Search all SAM.gov with NAICS, set-aside type, agency, deadline urgency, and contract value filters.',       color: '#0d9488', bg: '#f0fdfa', href: '/search'   },
   { Icon: Bell,      title: 'Instant Deadline Alerts', desc: 'Saved searches notify you the moment matching contracts post — track critical deadlines before competitors.', color: '#c2410c', bg: '#fff7ed', href: '/alerts'   },
   { Icon: BarChart3, title: 'Intelligence Dashboard',  desc: 'Agency trends, set-aside mix, urgency scoring, and AI priority briefs curated daily for your sectors.',       color: '#6d28d9', bg: '#f5f3ff', href: '/insights' },
-  { Icon: Shield,    title: 'Certification Filtering', desc: 'Filter by SDVOSB, VOSB, 8(a), WOSB, HUBZone and more — your certifications as a built-in search lever.',    color: '#0369a1', bg: '#f0f9ff', href: '/register' },
+  { Icon: Shield,    title: 'Certification Filtering', desc: 'Filter by SDVOSB, VOSB, 8(a), WOSB, HUBZone and more — your certifications as a built-in search lever.',    color: '#0369a1', bg: '#f0f9ff', href: '/signup' },
 ]
 
 const STEPS = [
@@ -529,7 +529,7 @@ export default function LandingPage() {
 
             <div style={{ textAlign: 'center' }}>
               <Link
-                href="/register"
+                href="/signup"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '13px 32px', borderRadius: 10, background: '#0f766e', color: '#fff', fontSize: 16, fontWeight: 700, boxShadow: '0 3px 14px rgba(15,118,110,0.28)', textDecoration: 'none', fontFamily: F }}
               >
                 Get Started Free <ArrowRight style={{ width: 14, height: 14 }} />
@@ -577,7 +577,7 @@ export default function LandingPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
               <Link
-                href="/register"
+                href="/signup"
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '14px 34px', borderRadius: 10, background: '#0f766e', color: '#fff', fontSize: 16, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 3px 16px rgba(15,118,110,0.3)', textDecoration: 'none', fontFamily: F }}
               >
                 Get Started Free <ArrowRight style={{ width: 14, height: 14 }} />
