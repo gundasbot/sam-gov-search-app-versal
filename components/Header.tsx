@@ -309,7 +309,7 @@ export default function Header() {
         style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', boxShadow: scrolled ? '0 4px 12px rgba(0,0,0,0.08)' : 'none' }}
       >
         <div className="mx-auto w-full max-w-480 px-3 sm:px-5 lg:px-6">
-          <div className="flex items-center gap-2 py-3 lg:gap-4 lg:py-2 xl:gap-5">
+          <div className="flex items-center py-3 lg:py-2">
 
             {/* ── Logo Section: Logo + Name + tagline ── */}
             <div className="flex flex-col justify-center gap-0.5 flex-shrink-0 w-max">
@@ -340,9 +340,9 @@ export default function Header() {
               </p>
             </div>
 
-            {/* ── Desktop Nav ── */}
-            <div className="hidden min-w-0 pl-2 pr-0 lg:flex lg:flex-1 xl:pl-3">
-              <nav className="header-nav-scroll flex flex-nowrap items-center justify-end gap-1.5 px-1 py-1.5 xl:gap-2 xl:px-1.5">
+            {/* ── Desktop Nav + Auth (flex-1 so items fill the space after logo) ── */}
+            <div className="hidden lg:flex flex-1 items-center pl-3 xl:pl-5">
+              <nav className="header-nav-scroll flex flex-1 flex-nowrap items-center justify-between py-1.5 pr-4">
                 {[
                   { href: '/search', label: 'Search', icon: <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
                   { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> },
@@ -500,33 +500,31 @@ export default function Header() {
                 ))}
 
               </nav>
-            </div>
 
-            {/* ── Auth + Hamburger ── */}
-            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
-              <div className="block flex-shrink-0">
-                <ThemeToggle />
-              </div>
+              {/* ── Desktop Auth ── */}
+              <div className="flex items-center gap-3 flex-shrink-0">
               {!isAuthed && (
                 <>
                   <Link
                     href="/signup"
-                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
+                    className="inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-base font-black shadow-md transition-all hover:scale-[1.02] hover:shadow-lg"
+                    style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', color: '#ffffff' }}
                   >
-                    <Sparkles className="w-4 h-4 flex-shrink-0" />
-                    <span>Sign Up</span>
+                    <span>Sign Up Free</span>
                   </Link>
                   <Link
                     href="/login"
-                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
+                    className="inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-base font-black shadow-md transition-all hover:scale-[1.02] hover:shadow-lg"
+                    style={{ background: 'linear-gradient(135deg,#10b981,#047857)', color: '#ffffff' }}
                   >
                     <LogIn className="w-4 h-4 flex-shrink-0" />
                     <span>Login</span>
                   </Link>
                 </>
               )}
+              <div className="block flex-shrink-0">
+                <ThemeToggle />
+              </div>
               {isAuthed ? (
                 <>
                   <div className="relative" ref={userMenuRef}>
@@ -598,7 +596,6 @@ export default function Header() {
                     className="inline-flex lg:hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
                     style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
                   >
-                    <Sparkles className="w-4 h-4 flex-shrink-0" />
                     <span>Sign Up</span>
                   </Link>
                   <Link
@@ -611,17 +608,18 @@ export default function Header() {
                   </Link>
                 </>
               )}
+              </div>{/* end desktop auth */}
+            </div>{/* end flex-1 nav+auth */}
 
-              {/* Hamburger — visible below lg */}
-              <button type="button"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setServicesOpen(false) }}
-                className="lg:hidden p-2 rounded-xl flex-shrink-0 transition-colors" style={{ color: 'var(--color-text-primary)' }}
-                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-                aria-expanded={mobileMenuOpen}
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
+            {/* Hamburger — visible below lg */}
+            <button type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setServicesOpen(false) }}
+              className="lg:hidden p-2 rounded-xl flex-shrink-0 transition-colors" style={{ color: 'var(--color-text-primary)' }}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
       </header>
