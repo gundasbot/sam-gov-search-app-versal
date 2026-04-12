@@ -4,8 +4,9 @@ import { CheckCircle, FileText, Award, Zap, Users, TrendingUp, ArrowRight, Calen
 
 export const metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/capability-statements' },
-  title: 'Capability Statements for Gov Contractors | PreciseGovCon',
+  title: 'Capability Statements for Gov Contractors',
   description: 'Modern, buyer-friendly one-page capability statements that win meetings and open doors. Tailored to your target agencies and NAICS codes.',
+  openGraph: { url: 'https://www.precisegovcon.com/services/capability-statements' },
 }
 
 export default function CapabilityStatementsPage() {

@@ -4,8 +4,9 @@ import { CheckCircle, Zap, Target, Clock, Calendar, BarChart3, ArrowRight, Users
 
 export const metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/bid-no-bid-review' },
-  title: 'Bid/No-Bid Analysis Tool | PreciseGovCon',
+  title: 'Bid/No-Bid Analysis Tool',
   description: "Make smarter bid decisions with AI-powered analysis. Stop wasting resources on opportunities you can't win.",
+  openGraph: { url: 'https://www.precisegovcon.com/services/bid-no-bid-review' },
 }
 
 export default function BidNoBidPage() {

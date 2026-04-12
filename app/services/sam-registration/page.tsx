@@ -9,8 +9,9 @@ import {
 
 export const metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/sam-registration' },
-  title: 'SAM.gov Registration Services | PreciseGovCon',
+  title: 'SAM.gov Registration Services',
   description: 'Expert SAM.gov registration and renewal services. Get registered quickly and stay compliant with our complete support.',
+  openGraph: { url: 'https://www.precisegovcon.com/services/sam-registration' },
 }
 
 export default function SAMRegistrationPage() {

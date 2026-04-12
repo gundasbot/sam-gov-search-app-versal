@@ -4,8 +4,9 @@ import { CheckCircle, FileText, Sparkles, Clock, Calendar, Target, ArrowRight, U
 
 export const metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/proposal-writing' },
-  title: 'AI Proposal Writing Services | PreciseGovCon',
+  title: 'AI Proposal Writing Services',
   description: 'Win more federal contracts with professional proposal writing. AI-powered drafting combined with expert review.',
+  openGraph: { url: 'https://www.precisegovcon.com/services/proposal-writing' },
 }
 
 export default function ProposalWritingPage() {

@@ -16,8 +16,9 @@ import {
 
 export const metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/bid-search' },
-  title: 'Federal Bid Search Tools | PreciseGovCon',
+  title: 'Federal Bid Search Tools',
   description: 'Search SAM.gov more efficiently with filters, saved searches, alerts, and a cleaner opportunity review workflow built for government contractors.',
+  openGraph: { url: 'https://www.precisegovcon.com/services/bid-search' },
 }
 
 export default function BidSearchPage() {

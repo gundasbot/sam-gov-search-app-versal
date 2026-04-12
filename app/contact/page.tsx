@@ -34,6 +34,18 @@ const serviceConfigs: Record<string, {
       'Entity monitoring',
     ],
   },
+  'bid-search': {
+    title: 'Get Started with Bid Search Support',
+    subtitle: 'Search SAM.gov more efficiently with filters, saved searches, and a cleaner review workflow',
+    icon: <SearchIcon className="w-12 h-12" />,
+    color: 'emerald',
+    benefits: [
+      'Live opportunity search support',
+      'NAICS and set-aside filtering',
+      'Saved searches and alerts',
+      'Practical review workflow',
+    ],
+  },
   'proposal-writing': {
     title: 'Win More with Professional Proposals',
     subtitle: 'AI-powered proposal writing that gets results',
@@ -353,6 +365,7 @@ function ContactPageContent() {
                 >
                   <option value="general">General Inquiry</option>
                   <option value="sam-registration">SAM Registration</option>
+                  <option value="bid-search">Bid Search</option>
                   <option value="proposal-writing">Proposal Writing</option>
                   <option value="bid-no-bid">Bid/No-Bid Analysis</option>
                   <option value="certifications">Set-Aside Certifications</option>

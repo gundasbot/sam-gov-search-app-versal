@@ -3766,6 +3766,7 @@ function SupportTab({ profile, plan }: any) {
           <div className="space-y-1">
             {[
               { label: 'SAM.gov Registration Guide',  href: '/services/sam-registration' },
+              { label: 'Bid Search Workflow',         href: '/services/bid-search' },
               { label: 'Set-Aside Certifications',    href: '/services/set-aside-certifications' },
               { label: 'Proposal Writing Help',       href: '/services/proposal-writing' },
               { label: 'Bid/No-Bid Review',           href: '/services/bid-no-bid-review' },

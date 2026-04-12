@@ -18,8 +18,9 @@ import {
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/compliance' },
-  title: 'Federal Compliance Services | PreciseGovCon',
+  title: 'Federal Compliance Services',
   description: 'Stay compliant with federal contracting requirements through monitoring, alerts, and expert guidance. SAM registration, certifications, and regulatory updates.',
+  openGraph: { url: 'https://www.precisegovcon.com/services/compliance' },
 }
 
 export default function CompliancePage() {
