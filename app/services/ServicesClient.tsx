@@ -36,6 +36,7 @@ export default function ServicesClient() {
       theme: {
         hover: 'hover:border-emerald-300',
         active: 'border-emerald-400 ring-2 ring-emerald-300',
+        heading: 'text-emerald-700',
         title: 'group-hover:text-emerald-700',
         label: 'border-emerald-200 bg-emerald-50/90 text-emerald-700',
         icon: 'text-emerald-500',
@@ -56,6 +57,7 @@ export default function ServicesClient() {
       theme: {
         hover: 'hover:border-blue-300',
         active: 'border-blue-400 ring-2 ring-blue-300',
+        heading: 'text-blue-700',
         title: 'group-hover:text-blue-700',
         label: 'border-blue-200 bg-blue-50/90 text-blue-700',
         icon: 'text-blue-500',
@@ -76,6 +78,7 @@ export default function ServicesClient() {
       theme: {
         hover: 'hover:border-orange-300',
         active: 'border-orange-400 ring-2 ring-orange-300',
+        heading: 'text-orange-700',
         title: 'group-hover:text-orange-700',
         label: 'border-orange-200 bg-orange-50/90 text-orange-700',
         icon: 'text-orange-500',
@@ -96,6 +99,7 @@ export default function ServicesClient() {
       theme: {
         hover: 'hover:border-indigo-300',
         active: 'border-indigo-400 ring-2 ring-indigo-300',
+        heading: 'text-indigo-700',
         title: 'group-hover:text-indigo-700',
         label: 'border-indigo-200 bg-indigo-50/90 text-indigo-700',
         icon: 'text-indigo-500',
@@ -116,6 +120,7 @@ export default function ServicesClient() {
       theme: {
         hover: 'hover:border-teal-300',
         active: 'border-teal-400 ring-2 ring-teal-300',
+        heading: 'text-teal-700',
         title: 'group-hover:text-teal-700',
         label: 'border-teal-200 bg-teal-50/90 text-teal-700',
         icon: 'text-teal-500',
@@ -136,6 +141,7 @@ export default function ServicesClient() {
       theme: {
         hover: 'hover:border-blue-300',
         active: 'border-blue-400 ring-2 ring-blue-300',
+        heading: 'text-blue-700',
         title: 'group-hover:text-blue-700',
         label: 'border-blue-200 bg-blue-50/90 text-blue-700',
         icon: 'text-blue-500',
@@ -148,49 +154,78 @@ export default function ServicesClient() {
 
   return (
     <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="w-full px-3 py-4 sm:px-5 lg:px-6">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-4xl">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-50 px-3 py-1.5">
-                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700">
-                  Federal Contracting Support
-                </span>
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-slate-50 to-cyan-50 opacity-90" />
+        <div className="w-full px-3 py-8 sm:px-5 lg:px-6 lg:py-10">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-start">
+            <div className="lg:pr-6">
+              <div className="mb-3 text-4xl font-black tracking-tight text-emerald-700 md:text-5xl">
+                Every Bottleneck Has a Fix.
               </div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-5 py-2.5 text-base font-bold text-emerald-700 shadow-sm">
+                <Zap className="w-5 h-5" />
+                <span>6 Specialized Federal Contracting Services</span>
+              </div>
+
+              <h1 className="mb-5 text-5xl font-black leading-tight text-slate-900 md:text-6xl">
                 Choose the service that matches your next bottleneck
               </h1>
-              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600 sm:text-base">
-                Registrations, certifications, bid search, proposal support, and positioning materials in one place.
+
+              <p className="mb-4 text-2xl font-semibold leading-relaxed text-slate-700">
+                Registrations, certifications, bid search, proposal support, and positioning materials — all in one place.
               </p>
+
+              <p className="mb-7 max-w-4xl text-lg leading-8 text-slate-600 md:text-xl">
+                Whether you&apos;re getting into federal contracting for the first time or scaling an existing pipeline, we have focused support for the stage you&apos;re in.
+              </p>
+
+              <div className="mb-7 flex flex-wrap gap-3">
+                <Link
+                  href="/support"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-7 py-3.5 text-lg font-bold text-white shadow-xl transition-all hover:scale-105 hover:bg-emerald-700"
+                >
+                  <Phone className="w-5 h-5" />
+                  Talk With Our Team
+                </Link>
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    const anchor = e.target.value
+                    if (!anchor) return
+                    const el = document.getElementById(anchor)
+                    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+                    e.currentTarget.value = ''
+                  }}
+                  className="rounded-xl border border-emerald-200 bg-white px-5 py-3.5 text-base font-bold text-slate-800 shadow-sm outline-none transition focus:border-emerald-500 hover:bg-emerald-50 cursor-pointer"
+                >
+                  <option value="">Jump to a service...</option>
+                  {services.map((service) => (
+                    <option key={service.anchor} value={service.anchor}>
+                      {service.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-5 text-slate-700">
+                <div className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-600" /><span className="font-semibold text-base">SAM registration & renewals</span></div>
+                <div className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-600" /><span className="font-semibold text-base">Proposal support</span></div>
+                <div className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-600" /><span className="font-semibold text-base">Set-aside certifications</span></div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  const anchor = e.target.value
-                  if (!anchor) return
-                  const el = document.getElementById(anchor)
-                  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
-                  e.currentTarget.value = ''
-                }}
-                className="min-w-52 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition focus:border-emerald-500"
-              >
-                <option value="">Jump to a service...</option>
-                {services.map((service) => (
-                  <option key={service.anchor} value={service.anchor}>
-                    {service.title}
-                  </option>
-                ))}
-              </select>
-              <Link
-                href="/support"
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-sm font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50"
-              >
-                Talk With Our Team
-              </Link>
+            <div className="space-y-4">
+              <div className="bg-white border border-emerald-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4"><Search className="w-12 h-12 text-emerald-500" /><div><div className="text-2xl font-black text-slate-900">Find opportunities</div></div></div>
+                <p className="text-sm text-slate-700">Bid search, saved searches, and NAICS filters so your team reviews fewer irrelevant results.</p>
+              </div>
+              <div className="bg-white border border-emerald-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4"><FileText className="w-12 h-12 text-orange-500" /><div><div className="text-2xl font-black text-slate-900">Respond & compete</div></div></div>
+                <p className="text-sm text-slate-700">Proposal writing, bid/no-bid analysis, and capability statements for a stronger pursuit process.</p>
+              </div>
+              <div className="bg-white border border-emerald-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4"><ShieldCheck className="w-12 h-12 text-blue-500" /><div><div className="text-2xl font-black text-slate-900">Stay registered & compliant</div><div className="text-sm font-semibold text-slate-600 mt-1">SAM registration, renewals, certifications, and compliance monitoring.</div></div></div>
+              </div>
             </div>
           </div>
         </div>
@@ -246,7 +281,7 @@ export default function ServicesClient() {
               </div>
 
               <div className="flex flex-1 flex-col p-4">
-                <h3 className={["text-base font-black text-slate-900 transition-colors", service.theme.title].join(" ")}>
+                <h3 className={["text-base font-black transition-colors", service.theme.heading, service.theme.title].join(" ")}>
                   {service.title}
                 </h3>
                 <p className="mt-2 text-sm leading-5 text-slate-600">
