@@ -3,10 +3,10 @@ import Link from 'next/link'
 import { CheckCircle, FileText, Sparkles, Clock, Calendar, Target, ArrowRight, Users, Star, Phone, Award, BarChart3, Zap } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://www.precisegovcon.com/services/proposal-writing' },
+  alternates: { canonical: '/services/proposal-writing' },
   title: 'AI Proposal Writing Services',
   description: 'Win more federal contracts with professional proposal writing. AI-powered drafting combined with expert review.',
-  openGraph: { url: 'https://www.precisegovcon.com/services/proposal-writing' },
+  openGraph: { url: '/services/proposal-writing' },
 }
 
 export default function ProposalWritingPage() {
@@ -18,7 +18,7 @@ export default function ProposalWritingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:items-start">
             <div className="lg:pr-6">
               <div className="mb-3 text-4xl font-black tracking-tight text-orange-700 md:text-5xl">
-                Respond Faster. Win More.
+                Proposal Writing and Compliance Review
               </div>
               <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-orange-200 rounded-full text-orange-700 text-base font-bold mb-5 shadow-sm">
                 <Sparkles className="w-5 h-5" /><span>AI-Powered + Expert Review</span>

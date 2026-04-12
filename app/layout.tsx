@@ -5,6 +5,28 @@ import ClientLayout from './client-layout'
 import './globals.css'
 import { Manrope, Sora, Inter } from 'next/font/google'
 
+function resolveMetadataBase(): URL {
+  const candidates: Array<string | undefined> = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.SITE_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  ]
+
+  for (const raw of candidates) {
+    if (!raw) continue
+    try {
+      return new URL(raw)
+    } catch {
+      // ignore invalid values
+    }
+  }
+
+  return new URL(process.env.NODE_ENV === 'production' ? 'https://www.precisegovcon.com' : 'http://localhost:3000')
+}
+
+const METADATA_BASE = resolveMetadataBase()
+
 const manrope = Manrope({
   subsets: ['latin'],
   display: 'swap',
@@ -24,7 +46,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.precisegovcon.com'),
+  metadataBase: METADATA_BASE,
   title: {
     default: 'Government Contract Search | PreciseGovCon',
     template: '%s | PreciseGovCon'

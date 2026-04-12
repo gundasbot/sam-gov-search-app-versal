@@ -3,10 +3,10 @@ import Link from 'next/link'
 import { CheckCircle, Zap, Target, Clock, Calendar, BarChart3, ArrowRight, Users, Star, Phone, TrendingUp, AlertTriangle, ThumbsUp } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://www.precisegovcon.com/services/bid-no-bid-review' },
+  alternates: { canonical: '/services/bid-no-bid-review' },
   title: 'Bid/No-Bid Analysis Tool',
   description: "Make smarter bid decisions with AI-powered analysis. Stop wasting resources on opportunities you can't win.",
-  openGraph: { url: 'https://www.precisegovcon.com/services/bid-no-bid-review' },
+  openGraph: { url: '/services/bid-no-bid-review' },
 }
 
 export default function BidNoBidPage() {
@@ -18,7 +18,7 @@ export default function BidNoBidPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:items-start">
             <div className="lg:pr-6">
               <div className="mb-3 text-4xl font-black tracking-tight text-indigo-700 md:text-5xl">
-                Stop Guessing. Start Deciding.
+                Pursuit Decision Support (Bid/No-Bid)
               </div>
               <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-indigo-200 rounded-full text-indigo-700 text-base font-bold mb-5 shadow-sm">
                 <Zap className="w-5 h-5" /><span>AI-Powered Strategic Analysis</span>

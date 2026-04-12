@@ -3,10 +3,10 @@ import Link from 'next/link'
 import { CheckCircle, FileText, Award, Zap, Users, TrendingUp, ArrowRight, Calendar, Target, Star, Sparkles, Download, BarChart3, Eye, Palette, MessageSquare, Clock, Phone } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://www.precisegovcon.com/services/capability-statements' },
+  alternates: { canonical: '/services/capability-statements' },
   title: 'Capability Statements for Gov Contractors',
   description: 'Modern, buyer-friendly one-page capability statements that win meetings and open doors. Tailored to your target agencies and NAICS codes.',
-  openGraph: { url: 'https://www.precisegovcon.com/services/capability-statements' },
+  openGraph: { url: '/services/capability-statements' },
 }
 
 export default function CapabilityStatementsPage() {
@@ -18,7 +18,7 @@ export default function CapabilityStatementsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:items-start">
             <div className="lg:pr-6">
               <div className="mb-3 text-4xl font-black tracking-tight text-blue-700 md:text-5xl">
-                First Impressions Win Contracts.
+                Strategic Capability Statement Development
               </div>
               <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-blue-200 rounded-full text-blue-700 text-base font-bold mb-5 shadow-sm">
                 <Palette className="w-5 h-5" /><span>Professional Design + Strategic Positioning</span>

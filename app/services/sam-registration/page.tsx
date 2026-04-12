@@ -8,10 +8,10 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://www.precisegovcon.com/services/sam-registration' },
+  alternates: { canonical: '/services/sam-registration' },
   title: 'SAM.gov Registration Services',
   description: 'Expert SAM.gov registration and renewal services. Get registered quickly and stay compliant with our complete support.',
-  openGraph: { url: 'https://www.precisegovcon.com/services/sam-registration' },
+  openGraph: { url: '/services/sam-registration' },
 }
 
 export default function SAMRegistrationPage() {
@@ -26,7 +26,7 @@ export default function SAMRegistrationPage() {
             {/* Left: Content */}
             <div className="lg:pr-6">
               <div className="mb-3 text-4xl font-black tracking-tight text-blue-700 md:text-5xl">
-                Get In. Stay In. Stay Ready.
+                SAM Registration and Entity Record Support
               </div>
               <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-blue-200 rounded-full text-blue-700 text-base font-bold mb-5 shadow-sm">
                 <ShieldCheck className="w-5 h-5" />
@@ -330,4 +330,3 @@ export default function SAMRegistrationPage() {
     </div>
   )
 }
-

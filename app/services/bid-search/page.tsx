@@ -15,10 +15,10 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  alternates: { canonical: 'https://www.precisegovcon.com/services/bid-search' },
+  alternates: { canonical: '/services/bid-search' },
   title: 'Federal Bid Search Tools',
   description: 'Search SAM.gov more efficiently with filters, saved searches, alerts, and a cleaner opportunity review workflow built for government contractors.',
-  openGraph: { url: 'https://www.precisegovcon.com/services/bid-search' },
+  openGraph: { url: '/services/bid-search' },
 }
 
 export default function BidSearchPage() {
@@ -31,7 +31,7 @@ export default function BidSearchPage() {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-start">
             <div className="lg:pr-6">
               <div className="mb-3 text-4xl font-black tracking-tight text-emerald-700 md:text-5xl">
-                Search Smarter. Pursue Better.
+                Federal Bid Search and Qualification
               </div>
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-5 py-2.5 text-base font-bold text-emerald-700 shadow-sm">
                 <Search className="w-5 h-5" />

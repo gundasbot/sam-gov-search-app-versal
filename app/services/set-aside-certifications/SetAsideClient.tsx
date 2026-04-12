@@ -158,7 +158,7 @@ export default function SetAsideCertificationsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-10 lg:items-start">
             <div className="lg:pr-6">
               <div className="mb-3 text-4xl font-black tracking-tight text-emerald-700 md:text-5xl">
-                Your Competitive Edge in Federal Markets.
+                Set-Aside Certification Planning and Guidance
               </div>
               <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-emerald-200 rounded-full text-emerald-700 text-base font-bold mb-6 shadow-sm">
                 <Award className="w-5 h-5" />

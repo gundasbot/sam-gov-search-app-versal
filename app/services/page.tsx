@@ -4,7 +4,7 @@ import ServicesClient from './ServicesClient'
 export const metadata: Metadata = {
   title: 'Federal Contracting Services | PreciseGovCon',
   description: 'Explore PreciseGovCon services: SAM registration, proposal writing, compliance monitoring, capability statements, and bid analysis.',
-  alternates: { canonical: 'https://www.precisegovcon.com/services' },
+  alternates: { canonical: '/services' },
 }
 
 export default function ServicesPage() {
