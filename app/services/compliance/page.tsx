@@ -1,109 +1,182 @@
 // app/services/compliance/page.tsx
 import { Metadata } from 'next'
+import Link from 'next/link'
+import {
+  ShieldCheck,
+  Bell,
+  FileCheck,
+  BarChart3,
+  BookOpen,
+  Clock,
+  ArrowRight,
+  Calendar,
+  Phone,
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react'
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/compliance' },
   title: 'Federal Compliance Services | PreciseGovCon',
-  description: 'Comprehensive compliance monitoring and reporting services for government contractors',
+  description: 'Stay compliant with federal contracting requirements through monitoring, alerts, and expert guidance. SAM registration, certifications, and regulatory updates.',
 }
 
 export default function CompliancePage() {
   return (
-    <div className="mx-auto w-full max-w-480 min-h-screen bg-gray-50">
-      <div className="w-full px-3 sm:px-5 lg:px-6 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Compliance Services
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Stay compliant with federal contracting requirements through automated monitoring and reporting
+    <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-white via-gray-50 to-teal-50 text-slate-900">
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 opacity-90" />
+
+        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-8 lg:py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:items-start">
+            <div className="lg:pr-6">
+              <div className="mb-3 text-4xl font-black tracking-tight text-teal-700 md:text-5xl">
+                Stay Compliant. Stay Competitive.
+              </div>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-teal-200 rounded-full text-teal-700 text-base font-bold mb-5 shadow-sm">
+                <ShieldCheck className="w-5 h-5" /><span>Monitoring, Alerts & Compliance Guidance</span>
+              </div>
+
+              <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-5 leading-tight">
+                Federal compliance support that keeps you off the debarment radar
+              </h1>
+
+              <p className="text-2xl text-slate-700 font-semibold mb-4 leading-relaxed">
+                Missed renewals, lapsed certifications, and overlooked FAR changes can cost you contracts. We help you stay ahead of the requirements.
+              </p>
+
+              <p className="text-lg md:text-xl text-slate-600 mb-7 leading-8">
+                We monitor your SAM registration, track certification deadlines, surface regulatory updates, and flag compliance gaps before they become disqualifying problems.
+              </p>
+
+              <div className="flex flex-wrap gap-3 mb-7">
+                <Link
+                  href="/contact?service=compliance"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-teal-600 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+                >
+                  <Calendar className="w-5 h-5" />
+                  Get Started
+                </Link>
+                <Link
+                  href="/services"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 border border-teal-200 rounded-xl font-bold text-lg shadow-sm hover:bg-teal-50 transition-all"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                  View All Services
+                </Link>
+                <a
+                  href="tel:804-404-6005"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 border border-teal-200 rounded-xl font-bold text-lg shadow-sm hover:bg-teal-50 transition-all"
+                >
+                  <Phone className="w-5 h-5" />(804) 404-6005
+                </a>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-5 text-slate-700">
+                <div className="flex items-center gap-2"><Bell className="w-5 h-5 text-teal-600" /><span className="font-semibold text-base">Proactive alerts</span></div>
+                <div className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-teal-600" /><span className="font-semibold text-base">SAM & cert monitoring</span></div>
+                <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-teal-600" /><span className="font-semibold text-base">Deadline tracking</span></div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-white border border-teal-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4">
+                  <ShieldCheck className="w-12 h-12 text-teal-500" />
+                  <div><div className="text-2xl font-black text-slate-900">Registration monitoring</div></div>
+                </div>
+                <p className="text-sm text-slate-700">Track your SAM.gov active status and get notified before renewals lapse and lock you out of bidding.</p>
+              </div>
+              <div className="bg-white border border-teal-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-4">
+                  <AlertTriangle className="w-12 h-12 text-amber-500" />
+                  <div><div className="text-2xl font-black text-slate-900">Compliance alerts</div></div>
+                </div>
+                <p className="text-sm text-slate-700">Real-time flags on certification gaps, FAR updates, and deadline pressure before they become disqualifying issues.</p>
+              </div>
+              <div className="bg-white border border-teal-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <RefreshCw className="w-12 h-12 text-cyan-500" />
+                  <div>
+                    <div className="text-2xl font-black text-slate-900">Ongoing support</div>
+                    <div className="text-sm font-semibold text-slate-600 mt-1">We help you respond to issues, not just find them.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 bg-amber-50 border-y-2 border-amber-200">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-6 text-center">What Compliance Gaps Actually Cost You</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 text-center">
+              <div className="text-4xl font-black text-red-600 mb-2">Disqualified</div>
+              <p className="text-slate-700 text-sm">An expired SAM registration removes you from consideration on active opportunities automatically.</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 text-center">
+              <div className="text-4xl font-black text-orange-600 mb-2">Delayed</div>
+              <p className="text-slate-700 text-sm">Certification lapses or outdated reps & certs slow down awards and trigger additional agency review.</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 text-center">
+              <div className="text-4xl font-black text-amber-600 mb-2">Exposed</div>
+              <p className="text-slate-700 text-sm">Missed FAR/DFARS changes can mean non-compliant clauses in active contracts — a risk during audits.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-14 bg-white">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-3 text-center">What We Cover</h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto text-center mb-10">Compliance monitoring across the requirements that matter most to federal contractors.</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: ShieldCheck, color: 'teal', title: 'Registration Monitoring', desc: 'Track SAM.gov registration status and receive alerts before expiration.' },
+              { icon: FileCheck, color: 'green', title: 'Certification Tracking', desc: 'Monitor and manage required certifications and reps & certs.' },
+              { icon: BookOpen, color: 'purple', title: 'Regulatory Updates', desc: 'Stay informed about FAR, DFARS, and acquisition regulation changes.' },
+              { icon: Bell, color: 'red', title: 'Compliance Alerts', desc: 'Real-time notifications on compliance issues, deadlines, and gaps.' },
+              { icon: BarChart3, color: 'yellow', title: 'Audit Support', desc: 'Generate compliance reports and documentation for audits and reviews.' },
+              { icon: BookOpen, color: 'indigo', title: 'Guidance Resources', desc: 'Access practical guidance on compliance requirements for your contract type.' },
+            ].map(({ icon: Icon, color, title, desc }) => (
+              <div key={title} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mb-4`}>
+                  <Icon className={`w-6 h-6 text-${color}-600`} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-gray-600 text-sm">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-14 bg-teal-700 text-white">
+        <div className="w-full px-3 sm:px-5 lg:px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-black mb-4">Don&apos;t let a missed deadline cost you a contract.</h2>
+          <p className="text-lg text-teal-100 mb-8 max-w-2xl mx-auto">
+            Proactive monitoring is far cheaper than losing an award over an expired registration or overlooked requirement.
           </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Registration Monitoring</h3>
-            <p className="text-gray-600">
-              Track SAM.gov registration status and receive alerts before expiration
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Certification Tracking</h3>
-            <p className="text-gray-600">
-              Monitor and manage all required certifications and representations
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Regulatory Updates</h3>
-            <p className="text-gray-600">
-              Stay informed about changes in federal acquisition regulations
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Compliance Alerts</h3>
-            <p className="text-gray-600">
-              Receive real-time notifications about compliance issues and deadlines
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Audit Support</h3>
-            <p className="text-gray-600">
-              Generate compliance reports and documentation for audits
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Training Resources</h3>
-            <p className="text-gray-600">
-              Access guides and training materials for compliance requirements
-            </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link
+              href="/contact?service=compliance"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-teal-700 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-all"
+            >
+              <Calendar className="w-5 h-5" />
+              Get Started
+            </Link>
+            <a
+              href="tel:804-404-6005"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-teal-600 border border-teal-400 text-white rounded-xl font-bold text-lg shadow-sm hover:bg-teal-500 transition-all"
+            >
+              <Phone className="w-5 h-5" />(804) 404-6005
+            </a>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-gray-600 mb-6">
-            Contact us to learn more about our compliance services and how we can help your organization stay compliant.
-          </p>
-          <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-            Contact Sales
-          </button>
-        </div>
-      </div>
+      </section>
     </div>
   )
 }

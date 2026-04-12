@@ -154,11 +154,14 @@ export default function SetAsideCertificationsPage() {
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-cyan-50 to-teal-50 opacity-90"></div>
         
-        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 rounded-full text-emerald-700 text-sm font-bold mb-6 shadow-sm">
-                <Award className="w-4 h-4" />
+        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-10 lg:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-10 lg:items-start">
+            <div className="lg:pr-6">
+              <div className="mb-3 text-4xl font-black tracking-tight text-emerald-700 md:text-5xl">
+                Your Competitive Edge in Federal Markets.
+              </div>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-emerald-200 rounded-full text-emerald-700 text-base font-bold mb-6 shadow-sm">
+                <Award className="w-5 h-5" />
                 <span>Unlock Set-Aside Opportunities</span>
               </div>
               

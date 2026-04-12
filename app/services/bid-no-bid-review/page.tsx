@@ -13,24 +13,27 @@ export default function BidNoBidPage() {
     <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-white via-gray-50 to-indigo-50 text-slate-900">
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 opacity-90" />
-        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-indigo-200 rounded-full text-indigo-700 text-sm font-bold mb-4 shadow-sm">
-                <Zap className="w-4 h-4" /><span>AI-Powered Strategic Analysis</span>
+        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-8 lg:py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:items-start">
+            <div className="lg:pr-6">
+              <div className="mb-3 text-4xl font-black tracking-tight text-indigo-700 md:text-5xl">
+                Stop Guessing. Start Deciding.
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Bid/no-bid review for opportunities that deserve a real look</h1>
-              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Use structured analysis to decide where your team has real fit, where the risk is high, and where to step back.</p>
-              <p className="text-base text-slate-600 mb-6">Not every opportunity should move forward. We help assess fit, readiness, competitive position, and effort so pursuit decisions are less reactive.</p>
-              <div className="flex flex-wrap gap-3 mb-6">
-                <Link href="/contact?service=bid-no-bid" className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
-                <Link href="/services" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl font-bold text-base shadow-sm hover:bg-indigo-50 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
-                <a href="tel:804-404-6005" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl font-bold text-base shadow-sm hover:bg-indigo-50 transition-all"><Phone className="w-5 h-5" />(804) 404-6005</a>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-indigo-200 rounded-full text-indigo-700 text-base font-bold mb-5 shadow-sm">
+                <Zap className="w-5 h-5" /><span>AI-Powered Strategic Analysis</span>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-slate-700">
-                <div className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-600" /><span className="font-semibold text-sm">Data-driven insights</span></div>
-                <div className="flex items-center gap-2"><Target className="w-4 h-4 text-indigo-600" /><span className="font-semibold text-sm">Win probability scoring</span></div>
-                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-600" /><span className="font-semibold text-sm">24-48 hour turnaround</span></div>
+              <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-5 leading-tight">Bid/no-bid review for opportunities that deserve a real look</h1>
+              <p className="text-2xl text-slate-700 font-semibold mb-4 leading-relaxed">Use structured analysis to decide where your team has real fit, where the risk is high, and where to step back.</p>
+              <p className="text-lg md:text-xl text-slate-600 mb-7 leading-8">Not every opportunity should move forward. We help assess fit, readiness, competitive position, and effort so pursuit decisions are less reactive.</p>
+              <div className="flex flex-wrap gap-3 mb-7">
+                <Link href="/contact?service=bid-no-bid" className="inline-flex items-center gap-2 px-7 py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
+                <Link href="/services" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-indigo-700 border border-indigo-200 rounded-xl font-bold text-lg shadow-sm hover:bg-indigo-50 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
+                <a href="tel:804-404-6005" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-indigo-700 border border-indigo-200 rounded-xl font-bold text-lg shadow-sm hover:bg-indigo-50 transition-all"><Phone className="w-5 h-5" />(804) 404-6005</a>
+              </div>
+              <div className="flex flex-wrap items-center gap-5 text-slate-700">
+                <div className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-indigo-600" /><span className="font-semibold text-base">Data-driven insights</span></div>
+                <div className="flex items-center gap-2"><Target className="w-5 h-5 text-indigo-600" /><span className="font-semibold text-base">Win probability scoring</span></div>
+                <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-indigo-600" /><span className="font-semibold text-base">24-48 hour turnaround</span></div>
               </div>
             </div>
             <div className="space-y-4">

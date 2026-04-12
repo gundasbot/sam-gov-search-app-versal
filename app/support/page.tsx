@@ -796,7 +796,7 @@ export default function SupportPage() {
       </div>
 
       {/* HERO SECTION */}
-      <div className="mx-auto max-w-480 px-4 sm:px-6 lg:px-8 pt-4 pb-4">
+      <div className="mx-auto max-w-480 px-3 sm:px-5 lg:px-6 pt-4 pb-4">
         {/* HERO */}
         <div className="mb-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           <div className="lg:col-span-8">

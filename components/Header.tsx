@@ -100,6 +100,7 @@ export default function Header() {
   /* ── Nav items ── */
   const serviceItems: ServiceItem[] = [
     { label: 'SAM Registration', href: '/services/sam-registration', description: 'Complete SAM.gov registration & annual renewals', icon: <FileText className="w-5 h-5" />, badge: 'Most Popular' },
+    { label: 'Bid Search', href: '/services/bid-search', description: 'Search SAM.gov with practical filters and saved searches', icon: <Search className="w-5 h-5" /> },
     { label: 'Proposal Writing', href: '/services/proposal-writing', description: 'Professional proposals that win federal contracts', icon: <Award className="w-5 h-5" /> },
     { label: 'Bid/No-Bid Analysis', href: '/services/bid-no-bid-review', description: 'AI-powered bid decision analysis & strategy', icon: <Zap className="w-5 h-5" />, badge: 'AI Powered' },
     { label: 'Set-Aside Certifications', href: '/services/set-aside-certifications', description: '8(a), SDVOSB, HUBZone, WOSB/EDWOSB certification', icon: <ShieldCheck className="w-5 h-5" />, badge: 'Gov Special' },
@@ -307,7 +308,7 @@ export default function Header() {
         className="fixed inset-x-0 top-[44px] sm:top-[52px] z-40 transition-all duration-300 w-full"
         style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', boxShadow: scrolled ? '0 4px 12px rgba(0,0,0,0.08)' : 'none' }}
       >
-        <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-7 2xl:px-8">
+        <div className="mx-auto w-full max-w-480 px-3 sm:px-5 lg:px-6">
           <div className="flex items-center gap-2 py-3 lg:gap-4 lg:py-2 xl:gap-5">
 
             {/* ── Logo Section: Logo + Name + tagline ── */}
@@ -461,7 +462,7 @@ export default function Header() {
                           : 0,
                       }}
                     >
-                      <div className="p-2 overflow-auto max-h-[60vh] rounded-2xl" onClick={e => e.stopPropagation()}>
+                      <div className="p-2 rounded-2xl" onClick={e => e.stopPropagation()}>
                         {serviceItems.map((service) => (
                           <Link key={service.href} href={service.href} prefetch={false} onClick={() => setServicesOpen(false)}
                             className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-emerald-100 focus-visible:bg-emerald-100 focus-visible:outline-none"
@@ -498,35 +499,34 @@ export default function Header() {
                   </Link>
                 ))}
 
-                {!isAuthed && (
+              </nav>
+            </div>
+
+            {/* ── Auth + Hamburger ── */}
+            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
+              <div className="block flex-shrink-0">
+                <ThemeToggle />
+              </div>
+              {!isAuthed && (
+                <>
                   <Link
                     href="/signup"
-                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02] ml-1.5"
+                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
                     style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
                   >
                     <Sparkles className="w-4 h-4 flex-shrink-0" />
                     <span>Sign Up</span>
                   </Link>
-                )}
-
-                {!isAuthed && (
                   <Link
                     href="/login"
-                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02] ml-2"
+                    className="hidden lg:inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
                     style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
                   >
                     <LogIn className="w-4 h-4 flex-shrink-0" />
                     <span>Login</span>
                   </Link>
-                )}
-              </nav>
-            </div>
-
-            {/* ── Auth + Hamburger ── */}
-            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2 xl:-mr-2 2xl:-mr-1">
-              <div className="block flex-shrink-0">
-                <ThemeToggle />
-              </div>
+                </>
+              )}
               {isAuthed ? (
                 <>
                   <div className="relative" ref={userMenuRef}>

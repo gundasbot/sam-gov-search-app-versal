@@ -1398,7 +1398,7 @@ export default function DashboardPage() {
 
  if (!mounted) {
  return (
- <div className="dashboard-page mx-auto w-full max-w-480 min-h-screen bg-linear-to-br from-white via-slate-50 to-blue-50 px-3 sm:px-4 lg:px-6 xl:px-8 pt-4 pb-8">
+ <div className="dashboard-page mx-auto w-full max-w-480 min-h-screen bg-linear-to-br from-white via-slate-50 to-blue-50 px-3 sm:px-5 lg:px-6 pt-4 pb-8">
  <div className="rounded-2xl border border-slate-200 bg-white p-5">
  <p className="text-slate-500 font-semibold">Loading dashboard...</p>
  </div>
@@ -1910,7 +1910,7 @@ export default function DashboardPage() {
  )}
 
  {/* ── Page content ─────────────────────────────────────────────────────── */}
- <div className="px-3 sm:px-4 lg:px-6 xl:px-8 pb-10">
+ <div className="px-3 sm:px-5 lg:px-6 pb-10">
 
  {sessionStatus === 'authenticated' && (
  <div className="mb-3 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">

@@ -4196,7 +4196,7 @@ const visibleSearchSummaryParts = useMemo(
  onRefineSearch={scrollToSearch}
  />
 
- <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-6 flex-1 flex flex-col gap-5">
+ <div className="mx-auto w-full max-w-480 px-3 sm:px-5 lg:px-6 py-6 flex-1 flex flex-col gap-5">
 
  {showSignedInNavGuide && (
  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-sm">

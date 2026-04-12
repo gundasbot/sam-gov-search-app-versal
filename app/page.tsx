@@ -198,7 +198,7 @@ function HeroSlider() {
 
   return (
     <div style={{ width: '100%' }}>
-      <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-7 2xl:px-8">
+      <div className="mx-auto w-full max-w-480 px-3 sm:px-5 lg:px-6">
         <div style={{ background: isDark ? '#0f172a' : s.bg, transition: 'background 0.5s ease', position: 'relative', overflow: 'hidden', borderRadius: 18 }}>
 
           {/* ── Animated slide content ── */}

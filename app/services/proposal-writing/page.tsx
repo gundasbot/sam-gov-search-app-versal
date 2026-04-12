@@ -13,24 +13,27 @@ export default function ProposalWritingPage() {
     <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-white via-gray-50 to-orange-50 text-slate-900">
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-orange-50 via-amber-50 to-rose-50 opacity-90" />
-        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 rounded-full text-orange-700 text-sm font-bold mb-4 shadow-sm">
-                <Sparkles className="w-4 h-4" /><span>AI-Powered + Expert Review</span>
+        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-8 lg:py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:items-start">
+            <div className="lg:pr-6">
+              <div className="mb-3 text-4xl font-black tracking-tight text-orange-700 md:text-5xl">
+                Respond Faster. Win More.
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Proposal support that helps your team respond with more clarity and structure</h1>
-              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Use AI-assisted drafting and human review to turn rough inputs into cleaner, more compliant proposal packages.</p>
-              <p className="text-base text-slate-600 mb-6">We combine drafting support, compliance-minded editing, and practical review so your team can move faster without losing control of the message.</p>
-              <div className="flex flex-wrap gap-3 mb-6">
-                <Link href="/contact?service=proposal-writing" className="inline-flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
-                <Link href="/services" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl font-bold text-base shadow-sm hover:bg-orange-50 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
-                <a href="tel:804-404-6005" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl font-bold text-base shadow-sm hover:bg-orange-50 transition-all"><Phone className="w-5 h-5" />(804) 404-6005</a>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-orange-200 rounded-full text-orange-700 text-base font-bold mb-5 shadow-sm">
+                <Sparkles className="w-5 h-5" /><span>AI-Powered + Expert Review</span>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-slate-700">
-                <div className="flex items-center gap-2"><Zap className="w-4 h-4 text-orange-600" /><span className="font-semibold text-sm">AI-powered drafting</span></div>
-                <div className="flex items-center gap-2"><Award className="w-4 h-4 text-orange-600" /><span className="font-semibold text-sm">Expert review</span></div>
-                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-orange-600" /><span className="font-semibold text-sm">Fast turnaround</span></div>
+              <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-5 leading-tight">Proposal support that helps your team respond with more clarity and structure</h1>
+              <p className="text-2xl text-slate-700 font-semibold mb-4 leading-relaxed">Use AI-assisted drafting and human review to turn rough inputs into cleaner, more compliant proposal packages.</p>
+              <p className="text-lg md:text-xl text-slate-600 mb-7 leading-8">We combine drafting support, compliance-minded editing, and practical review so your team can move faster without losing control of the message.</p>
+              <div className="flex flex-wrap gap-3 mb-7">
+                <Link href="/contact?service=proposal-writing" className="inline-flex items-center gap-2 px-7 py-3.5 bg-orange-600 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
+                <Link href="/services" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-orange-700 border border-orange-200 rounded-xl font-bold text-lg shadow-sm hover:bg-orange-50 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
+                <a href="tel:804-404-6005" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-orange-700 border border-orange-200 rounded-xl font-bold text-lg shadow-sm hover:bg-orange-50 transition-all"><Phone className="w-5 h-5" />(804) 404-6005</a>
+              </div>
+              <div className="flex flex-wrap items-center gap-5 text-slate-700">
+                <div className="flex items-center gap-2"><Zap className="w-5 h-5 text-orange-600" /><span className="font-semibold text-base">AI-powered drafting</span></div>
+                <div className="flex items-center gap-2"><Award className="w-5 h-5 text-orange-600" /><span className="font-semibold text-base">Expert review</span></div>
+                <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-orange-600" /><span className="font-semibold text-base">Fast turnaround</span></div>
               </div>
             </div>
             <div className="space-y-4">

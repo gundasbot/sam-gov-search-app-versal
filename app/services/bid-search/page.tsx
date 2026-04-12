@@ -1,203 +1,311 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { Shield, CheckCircle, FileCheck, AlertTriangle, Clock, Users, ArrowRight, Calendar, Star, Award, Target } from 'lucide-react'
+import {
+  Search,
+  Bell,
+  Filter,
+  Clock,
+  Bookmark,
+  Target,
+  ArrowRight,
+  Calendar,
+  CheckCircle,
+  FileText,
+  Users,
+} from 'lucide-react'
 
 export const metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services/bid-search' },
-  title: 'Find Federal Contracts | PreciseGovCon',
-  description: 'Stay compliant with federal contracting regulations. Annual renewals, FAR/DFARS compliance, and audit readiness.',
+  title: 'Federal Bid Search Tools | PreciseGovCon',
+  description: 'Search SAM.gov more efficiently with filters, saved searches, alerts, and a cleaner opportunity review workflow built for government contractors.',
 }
 
-export default function CompliancePage() {
+export default function BidSearchPage() {
   return (
-    <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-teal-800 to-emerald-900 py-20">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00djJoLTJ2LTJoMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-40" />
-        
-        <div className="relative w-full px-3 sm:px-5 lg:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full text-slate-100 text-sm font-bold mb-6 border border-emerald-500/30">
-                <Shield className="w-4 h-4" />
-                <span>Federal Compliance & Audit Readiness</span>
+    <div className="mx-auto w-full max-w-480 min-h-screen bg-gradient-to-br from-white via-gray-50 to-emerald-50 text-slate-900">
+      <section className="relative overflow-hidden bg-white">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 opacity-90" />
+
+        <div className="relative w-full px-3 py-8 sm:px-5 lg:px-6 lg:py-10">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-start">
+            <div className="lg:pr-6">
+              <div className="mb-3 text-4xl font-black tracking-tight text-emerald-700 md:text-5xl">
+                Search Smarter. Pursue Better.
               </div>
-              
-              <h1 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
-                Stay Compliant, Stay Competitive
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-5 py-2.5 text-base font-bold text-emerald-700 shadow-sm">
+                <Search className="w-5 h-5" />
+                <span>Search workflow for federal opportunities</span>
+              </div>
+
+              <h1 className="mb-5 text-5xl font-black leading-tight text-slate-900 md:text-6xl">
+                Find federal opportunities without spending your day buried in SAM.gov
               </h1>
-              
-              <p className="text-2xl text-white font-semibold mb-4 leading-relaxed">
-                Federal compliance is complex. We make it simple with automated tracking, renewal reminders, and expert guidance.
+
+              <p className="mb-4 text-2xl font-semibold leading-relaxed text-slate-700">
+                Search faster, filter more precisely, and keep the opportunities that actually deserve follow-up.
               </p>
-              
-              <p className="text-lg text-slate-100 font-medium mb-8">
-                From SAM registration renewals to FAR/DFARS compliance, we monitor deadlines, flag issues, and keep you audit-ready so you never lose contracting eligibility.
+
+              <p className="mb-7 max-w-4xl text-lg leading-8 text-slate-600 md:text-xl">
+                Our bid search workflow helps teams move from broad searching to a more repeatable process with filters,
+                saved searches, alerts, and a cleaner way to review what fits.
               </p>
-              
-              <div className="flex flex-wrap gap-4 mb-8">
+
+              <div className="mb-7 flex flex-wrap gap-3">
                 <Link
-                  href="/contact"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-emerald-600 rounded-2xl font-bold text-lg shadow-2xl hover:shadow-3xl hover:scale-105 transition-all"
+                  href="/search"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-7 py-3.5 text-lg font-bold text-white shadow-xl transition-all hover:scale-105 hover:bg-emerald-700"
                 >
-                  <Calendar className="w-6 h-6" />
-                  Get Compliance Audit
+                  <Search className="w-5 h-5" />
+                  Try Search
                 </Link>
                 <Link
-                  href="/pricing"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/50 rounded-2xl font-bold text-lg hover:bg-white/30 transition-all"
+                  href="/contact?service=bid-search"
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-7 py-3.5 text-lg font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50"
                 >
-                  View Services
-                  <ArrowRight className="w-5 h-5" />
+                  <Calendar className="w-5 h-5" />
+                  Talk With Our Team
                 </Link>
               </div>
-              
-              <div className="flex flex-wrap items-center gap-6 text-white">
+
+              <div className="flex flex-wrap items-center gap-5 text-slate-700">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-slate-200" />
-                  <span className="font-semibold">Zero compliance violations</span>
+                  <Filter className="w-5 h-5 text-emerald-600" />
+                  <span className="text-base font-semibold">NAICS and set-aside filters</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-slate-200" />
-                  <span className="font-semibold">Audit-ready docs</span>
+                  <Bell className="w-5 h-5 text-emerald-600" />
+                  <span className="text-base font-semibold">Saved searches and alerts</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Bookmark className="w-5 h-5 text-emerald-600" />
+                  <span className="text-base font-semibold">Shortlist-worthy opportunities</span>
                 </div>
               </div>
             </div>
-            
+
             <div className="relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10">
+              <div className="relative overflow-hidden rounded-3xl border-4 border-white/20 shadow-2xl">
                 <Image
-                  src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&h=600&fit=crop"
-                  alt="Federal compliance and audit documentation"
-                  width={800}
-                  height={600}
+                  src="/auth-slides/hero-contract-strategy.jpg"
+                  alt="Federal bid search workflow"
+                  width={1280}
+                  height={720}
                   className="w-full h-auto"
                   priority
                 />
               </div>
-              
-              <div className="absolute top-6 right-6 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
-                <div className="text-3xl font-black text-emerald-600">Tracked</div>
-                <div className="text-sm font-bold text-gray-700">Deadlines & Requirements</div>
+
+              <div className="absolute top-6 right-6 rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+                <div className="text-3xl font-black text-emerald-600">Live</div>
+                <div className="text-sm font-bold text-gray-700">Search, filter, review</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* What We Monitor */}
-      <section className="py-20">
+      <section className="border-y-2 border-emerald-200 bg-emerald-50 py-12">
         <div className="w-full px-3 sm:px-5 lg:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
-              Comprehensive Compliance Monitoring
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-black text-gray-900 md:text-3xl">
+              Why manual search gets messy fast
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We track every deadline and requirement so you don't have to
-            </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+          <div className="grid gap-6 md:grid-cols-3">
             {[
               {
-                icon: FileCheck,
-                title: 'Find Federal Contracts | PreciseGovCon',
-                description: 'Annual renewal tracking with 90, 60, and 30-day reminders. We handle the entire renewal process.',
-                color: 'emerald',
+                emoji: '🔎',
+                title: 'Too much noise',
+                desc: 'Broad search results bury the opportunities that actually fit your NAICS codes, agencies, and set-aside posture.',
               },
               {
-                icon: Shield,
-                title: 'Find Federal Contracts | PreciseGovCon',
-                description: '8(a), SDVOSB, HUBZone, WOSB certification renewals and ongoing compliance requirements.',
-                color: 'blue',
+                emoji: '⏰',
+                title: 'Too much rechecking',
+                desc: 'Without saved searches and alerts, teams keep rerunning the same searches and still worry they missed something important.',
               },
               {
-                icon: Award,
-                title: 'Find Federal Contracts | PreciseGovCon',
-                description: 'Track changing regulations and ensure your policies, systems, and documentation stay compliant.',
-                color: 'purple',
+                emoji: '📋',
+                title: 'Too little triage',
+                desc: 'Finding an opportunity is only the start. You still need a fast way to review fit, deadline pressure, and next steps.',
               },
-              {
-                icon: Users,
-                title: 'Find Federal Contracts | PreciseGovCon',
-                description: 'Monitor subcontracting plan requirements and small business utilization reporting.',
-                color: 'cyan',
-              },
-              {
-                icon: Clock,
-                title: 'Find Federal Contracts | PreciseGovCon',
-                description: 'Track required reports (CPARS, VETS-4212, EEO-1) and submission deadlines.',
-                color: 'amber',
-              },
-              {
-                icon: Target,
-                title: 'Find Federal Contracts | PreciseGovCon',
-                description: 'Maintain organized documentation and systems to pass DCAA and other federal audits.',
-                color: 'emerald',
-              },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-3xl p-8 border-2 border-gray-100 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1"
-              >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-${item.color}-100 to-${item.color}-200 flex items-center justify-center mb-6`}>
-                  <item.icon className={`w-8 h-8 text-${item.color}-600`} />
-                </div>
-                <h3 className="text-2xl font-black text-gray-900 mb-3">{item.title}</h3>
-                <p className="text-gray-600 leading-relaxed font-medium">{item.description}</p>
+            ].map((item) => (
+              <div key={item.title} className="rounded-xl border-2 border-emerald-200 bg-white p-5 shadow-md">
+                <div className="mb-2 text-4xl font-black text-emerald-600">{item.emoji}</div>
+                <h3 className="mb-2 text-lg font-black text-gray-900">{item.title}</h3>
+                <p className="text-sm font-medium text-gray-600">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing CTA */}
-      <section className="py-20 bg-gradient-to-br from-emerald-900 via-teal-800 to-emerald-900">
-        <div className="w-full px-3 sm:px-5 lg:px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-            Never Miss a Compliance Deadline Again
-          </h2>
-          <p className="text-2xl text-white font-semibold mb-12">
-            Get automated tracking and expert support for all federal requirements
-          </p>
-          
-          <div className="bg-white rounded-3xl p-12 shadow-2xl mb-12">
-            <div className="text-center mb-8">
-              <div className="text-6xl font-black text-emerald-600 mb-2">$495/mo</div>
-              <div className="text-xl font-semibold text-gray-600">Compliance Management</div>
-            </div>
-            
-            <ul className="space-y-4 text-left mb-8">
-              {[
-                'SAM renewal tracking & reminders',
-                'Certification maintenance alerts',
-                'FAR/DFARS compliance monitoring',
-                'Contract reporting calendar',
-                'Audit readiness support',
-                'Expert compliance guidance',
-              ].map((item, idx) => (
-                <li key={idx} className="flex items-center gap-3">
-                  <CheckCircle className="w-6 h-6 text-emerald-500 flex-shrink-0" />
-                  <span className="text-gray-700 font-semibold text-lg">{item}</span>
-                </li>
-              ))}
-            </ul>
-            
-            <Link
-              href="/contact"
-              className="inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-black text-xl shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 transition-all"
-            >
-              <Calendar className="w-7 h-7" />
-              Schedule Free Audit
-            </Link>
-            
-            <p className="text-sm text-gray-500 mt-4 font-medium">
-              Free compliance audit • No long-term commitment
+      <section className="py-12 bg-white">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-black text-gray-900 md:text-4xl">
+              What the bid search workflow includes
+            </h2>
+            <p className="mx-auto mt-3 max-w-3xl text-lg text-gray-600">
+              Built to help teams search broadly, narrow quickly, and keep their follow-up organized.
             </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                icon: Search,
+                title: 'Live opportunity search',
+                description: 'Search current SAM.gov opportunities with a more usable workflow for scanning titles, agencies, dates, and fit.',
+              },
+              {
+                icon: Filter,
+                title: 'Practical filters',
+                description: 'Narrow by NAICS, set-aside, agency, deadline timing, and other search criteria that matter during triage.',
+              },
+              {
+                icon: Bell,
+                title: 'Saved searches and alerts',
+                description: 'Turn repeat searches into reusable workflows so new matches can surface without constant manual checking.',
+              },
+              {
+                icon: Bookmark,
+                title: 'Opportunity tracking',
+                description: 'Keep the opportunities worth revisiting in view so the team is not rebuilding a shortlist from scratch.',
+              },
+              {
+                icon: Target,
+                title: 'Better pursuit focus',
+                description: 'Move from “what was posted” to “what fits us” with a cleaner review path for next-step decisions.',
+              },
+              {
+                icon: FileText,
+                title: 'Search to action handoff',
+                description: 'Use saved results and filters as the starting point for alerts, dashboard review, and downstream proposal work.',
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-6 shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100">
+                  <item.icon className="w-6 h-6 text-emerald-600" />
+                </div>
+                <h3 className="mb-2 text-lg font-black text-gray-900">{item.title}</h3>
+                <p className="text-sm leading-relaxed text-gray-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-gradient-to-br from-slate-50 to-emerald-50 py-12">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-black text-gray-900 md:text-4xl">
+              How teams usually use it
+            </h2>
+            <p className="text-lg text-gray-600">A simple rhythm for keeping search work repeatable.</p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-4">
+            {[
+              { step: '1', title: 'Define filters', desc: 'Set up the codes, agencies, geography, and set-asides that reflect your target profile.', icon: Filter },
+              { step: '2', title: 'Review results', desc: 'Scan new postings quickly and separate likely fits from noise before spending team time.', icon: Search },
+              { step: '3', title: 'Save and alert', desc: 'Turn recurring searches into saved workflows so new matches surface automatically.', icon: Bell },
+              { step: '4', title: 'Act on shortlist', desc: 'Move the better candidates into your follow-up process, dashboard, or proposal planning.', icon: CheckCircle },
+            ].map((item, idx) => (
+              <div key={item.title} className="relative">
+                <div className="rounded-2xl border-2 border-emerald-200 bg-white p-6 text-center shadow-lg">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-2xl font-black text-white shadow-md">
+                    {item.step}
+                  </div>
+                  <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+                    <item.icon className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <h3 className="mb-2 text-base font-black text-gray-900">{item.title}</h3>
+                  <p className="text-sm text-gray-600">{item.desc}</p>
+                </div>
+                {idx < 3 && (
+                  <div className="absolute top-1/2 -right-3 hidden -translate-y-1/2 transform md:block">
+                    <ArrowRight className="w-6 h-6 text-emerald-400" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-12">
+        <div className="w-full px-3 sm:px-5 lg:px-6">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-black text-gray-900">
+              Where this is most useful
+            </h2>
+            <p className="text-gray-600">A few common cases where search support helps immediately.</p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                title: 'New market coverage',
+                detail: 'Helpful when you are expanding into new agencies, new NAICS areas, or new set-aside categories and need a more disciplined search routine.',
+              },
+              {
+                title: 'Lean BD teams',
+                detail: 'Useful when one or two people are carrying business development and need a cleaner way to stay on top of posted opportunities.',
+              },
+              {
+                title: 'Search-to-pursuit workflow',
+                detail: 'Worth using when the issue is not access to listings, but a better handoff from discovery into review, alerts, and next actions.',
+              },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-lg">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+                  <Users className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div className="mb-2 font-black text-gray-900">{item.title}</div>
+                <p className="text-sm font-medium leading-relaxed text-gray-700">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-gradient-to-br from-emerald-900 via-teal-800 to-emerald-900 py-12">
+        <div className="w-full px-3 text-center sm:px-5 lg:px-6">
+          <h2 className="mb-4 text-3xl font-black text-white md:text-4xl">
+            Ready to make search more usable?
+          </h2>
+          <p className="mx-auto mb-8 max-w-2xl text-lg text-white">
+            Start with the live search experience or talk with us about the search workflow your team needs.
+          </p>
+
+          <div className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link
+              href="/search"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-lg font-bold text-emerald-700 shadow-xl transition-all hover:scale-105 hover:shadow-2xl"
+            >
+              <Search className="w-6 h-6" />
+              Open Search
+            </Link>
+            <Link
+              href="/contact?service=bid-search"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-white/50 bg-white/20 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all hover:bg-white/30"
+            >
+              <Calendar className="w-6 h-6" />
+              Contact Our Team
+            </Link>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-100">
+            <div className="flex items-center gap-2"><Filter className="w-4 h-4" />Practical filters</div>
+            <div className="flex items-center gap-2"><Bell className="w-4 h-4" />Saved searches</div>
+            <div className="flex items-center gap-2"><Clock className="w-4 h-4" />Less manual checking</div>
           </div>
         </div>
       </section>
     </div>
   )
 }
-

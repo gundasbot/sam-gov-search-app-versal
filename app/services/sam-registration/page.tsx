@@ -20,31 +20,34 @@ export default function SAMRegistrationPage() {
       <section className="relative overflow-hidden bg-white">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 opacity-90" />
         
-        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div className="relative w-full px-3 sm:px-5 lg:px-6 py-8 lg:py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.12fr_0.88fr] gap-8 lg:items-start">
             {/* Left: Content */}
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 rounded-full text-blue-700 text-sm font-bold mb-4 shadow-sm">
-                <ShieldCheck className="w-4 h-4" />
+            <div className="lg:pr-6">
+              <div className="mb-3 text-4xl font-black tracking-tight text-blue-700 md:text-5xl">
+                Get In. Stay In. Stay Ready.
+              </div>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-blue-200 rounded-full text-blue-700 text-base font-bold mb-5 shadow-sm">
+                <ShieldCheck className="w-5 h-5" />
                 <span>Registration and renewal support</span>
               </div>
               
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">
+              <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-5 leading-tight">
                 SAM registration support that keeps the process moving
               </h1>
               
-              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">
+              <p className="text-2xl text-slate-700 font-semibold mb-4 leading-relaxed">
                 We help you prepare, submit, renew, and update your SAM registration with fewer avoidable delays.
               </p>
 
-              <p className="text-base text-slate-600 mb-6">
+              <p className="text-lg md:text-xl leading-8 text-slate-600 mb-7">
                 SAM registration is required to bid on federal work, but the process can be tedious and easy to mis-handle. We focus on document readiness, cleaner submissions, and steady follow-through.
               </p>
 
-              <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex flex-wrap gap-3 mb-7">
                 <Link
                   href="/contact?service=sam-registration"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-blue-600 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
                 >
                   <Calendar className="w-5 h-5" />
                   Get Started
@@ -52,7 +55,7 @@ export default function SAMRegistrationPage() {
 
                 <Link
                   href="/services"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-emerald-700 border border-emerald-200 rounded-xl font-bold text-base shadow-sm hover:bg-emerald-50 transition-all"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-emerald-700 border border-emerald-200 rounded-xl font-bold text-lg shadow-sm hover:bg-emerald-50 transition-all"
                 >
                   <ArrowRight className="w-5 h-5" />
                   View All Services
@@ -60,25 +63,25 @@ export default function SAMRegistrationPage() {
                 
                 <a
                   href="tel:804-404-6005"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 border border-blue-200 rounded-xl font-bold text-base shadow-sm hover:bg-blue-50 transition-all"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-blue-700 border border-blue-200 rounded-xl font-bold text-lg shadow-sm hover:bg-blue-50 transition-all"
                 >
                   <Phone className="w-5 h-5" />
                   (804) 404-6005
                 </a>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-slate-700">
+              <div className="flex flex-wrap items-center gap-5 text-slate-700">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-sm">2-3 week process</span>
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-base">2-3 week process</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <FileCheck className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-sm">Structured document review</span>
+                  <FileCheck className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-base">Structured document review</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-sm">Annual renewals included</span>
+                  <RefreshCw className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-base">Annual renewals included</span>
                 </div>
               </div>
             </div>
