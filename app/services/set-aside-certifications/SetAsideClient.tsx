@@ -167,11 +167,11 @@ export default function SetAsideCertificationsPage() {
               </h1>
               
               <p className="text-2xl text-slate-700 font-semibold mb-4 leading-relaxed">
-                Billions in contracts reserved for small businesses. Are you eligible? We will help you find out and get certified.
+                Certifications can expand access to more targeted opportunities. We help you understand eligibility and prepare the next step.
               </p>
               
               <p className="text-lg text-slate-600 font-medium mb-8">
-                Set-aside certifications (8(a), SDVOSB, HUBZone, WOSB/EDWOSB) give you access to less competitive opportunities. We provide eligibility screening, application support, and ongoing compliance guidance.
+                Set-aside certifications such as 8(a), SDVOSB, HUBZone, and WOSB or EDWOSB can be worth exploring when they fit your ownership structure, location, and growth plan. We provide eligibility screening, application support, and ongoing compliance guidance.
               </p>
               
               <div className="flex flex-wrap gap-4 mb-8">
@@ -201,11 +201,11 @@ export default function SetAsideCertificationsPage() {
               <div className="flex flex-wrap items-center gap-6 text-white">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-slate-200" />
-                  <span className="font-semibold">$100B+ set aside annually</span>
+                  <span className="font-semibold">Eligibility review first</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Shield className="w-5 h-5 text-slate-200" />
-                  <span className="font-semibold">Less competition</span>
+                  <span className="font-semibold">Program-by-program guidance</span>
                 </div>
               </div>
             </div>
@@ -224,8 +224,8 @@ export default function SetAsideCertificationsPage() {
                 
                 {/* Floating badge */}
                 <div className="absolute top-6 right-6 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
-                  <div className="text-3xl font-black text-emerald-600 mb-1">$100B+</div>
-                  <div className="text-sm font-bold text-gray-700">Set Aside Annually</div>
+                  <div className="text-3xl font-black text-emerald-600 mb-1">8(a)</div>
+                  <div className="text-sm font-bold text-gray-700">SDVOSB • WOSB • HUBZone</div>
                 </div>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function SetAsideCertificationsPage() {
               Federal Set-Aside Programs We Support
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Each program opens doors to billions in less competitive opportunities
+              Each program has its own requirements, timelines, and strategic tradeoffs
             </p>
           </div>
 
@@ -458,58 +458,45 @@ export default function SetAsideCertificationsPage() {
         </div>
       </section>
 
-      {/* Success Stories */}
+      {/* Practical Scenarios */}
       <section className="py-20 bg-white">
         <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black text-gray-900 mb-4">
-              Certification Success Stories
+              Where certification guidance helps
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                quote: "Getting 8(a) certified opened up sole-source opportunities we never had access to. Our revenue doubled in the first year.",
-                author: "Marcus Johnson",
-                title: "Set-Aside Certifications | SDVOSB & 8(a) | PreciseGovCon",
-                result: "Revenue doubled",
-                certification: "8(a) Certified"
+                title: 'Sorting through program fit',
+                detail: 'Useful when a business may qualify for more than one program and needs help deciding which path is worth prioritizing first.',
+                certification: "Eligibility review"
               },
               {
-                quote: "The SDVOSB certification process seemed overwhelming until Precise GovCon walked us through every step. Approved in 45 days.",
-                author: "Sarah Martinez",
-                title: "Set-Aside Certifications | SDVOSB & 8(a) | PreciseGovCon",
-                result: "Approved in 45 days",
-                certification: "SDVOSB"
+                title: 'Preparing the application',
+                detail: 'Helpful when ownership, control, residency, or documentation requirements feel unclear and the application needs structure.',
+                certification: "Application support"
               },
               {
-                quote: "We thought we weren't eligible for HUBZone, but they helped us restructure to qualify. Now we're winning set-aside contracts.",
-                author: "David Kim",
-                title: "Set-Aside Certifications | SDVOSB & 8(a) | PreciseGovCon",
-                result: "$3M in new contracts",
-                certification: "HUBZone"
+                title: 'Maintaining the certification',
+                detail: 'Worth having when the initial approval is only the first step and the business needs help staying organized afterward.',
+                certification: "Ongoing guidance"
               }
             ].map((story, idx) => (
               <div key={idx} className="bg-gradient-to-br from-slate-50 to-emerald-50 rounded-3xl p-8 border-2 border-emerald-200 shadow-xl">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-emerald-500 text-emerald-500" />
-                  ))}
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center mb-5">
+                  <CheckCircle className="w-6 h-6 text-emerald-600" />
                 </div>
-                <p className="text-gray-700 font-semibold mb-6 leading-relaxed text-lg italic">
-                  &quot;{story.quote}&quot;
+                <div className="font-black text-gray-900 mb-3 text-xl">{story.title}</div>
+                <p className="text-gray-700 font-semibold mb-6 leading-relaxed">
+                  {story.detail}
                 </p>
                 <div className="border-t-2 border-emerald-200 pt-6">
-                  <div className="font-black text-gray-900 mb-1">{story.author}</div>
-                  <div className="text-sm text-gray-600 font-semibold mb-3">{story.title}</div>
                   <div className="space-y-2">
                     <div className="inline-block px-3 py-1 bg-emerald-500 text-white rounded-lg text-sm font-bold">
                       {story.certification}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-500" />
-                      <span className="text-sm text-emerald-700 font-bold">{story.result}</span>
                     </div>
                   </div>
                 </div>
@@ -618,7 +605,7 @@ export default function SetAsideCertificationsPage() {
               },
               {
                 q: 'Is certification worth it for small contracts?',
-                a: 'Absolutely. Set-aside certifications give you access to opportunities with less competition, even for smaller contracts. Many businesses see 50-100% revenue growth in their first certified year.'
+                a: 'It can be, depending on your target agencies, NAICS codes, and readiness to pursue the work. Certification may narrow the field and open doors, but it is most useful when paired with a realistic pursuit strategy.'
               },
               {
                 q: 'What if I am not eligible?',

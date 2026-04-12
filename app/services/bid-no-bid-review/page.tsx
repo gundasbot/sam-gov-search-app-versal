@@ -19,9 +19,9 @@ export default function BidNoBidPage() {
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-indigo-200 rounded-full text-indigo-700 text-sm font-bold mb-4 shadow-sm">
                 <Zap className="w-4 h-4" /><span>AI-Powered Strategic Analysis</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Stop Wasting Time on Opportunities You Can't Win</h1>
-              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Our AI-powered bid/no-bid analysis helps you focus on winnable opportunities and avoid costly pursuits.</p>
-              <p className="text-base text-slate-600 mb-6">Not every opportunity is worth pursuing. Our data-driven analysis evaluates win probability, competitive positioning, and resource requirements—so you can make smarter bid decisions.</p>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Bid/no-bid review for opportunities that deserve a real look</h1>
+              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Use structured analysis to decide where your team has real fit, where the risk is high, and where to step back.</p>
+              <p className="text-base text-slate-600 mb-6">Not every opportunity should move forward. We help assess fit, readiness, competitive position, and effort so pursuit decisions are less reactive.</p>
               <div className="flex flex-wrap gap-3 mb-6">
                 <Link href="/contact?service=bid-no-bid" className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
                 <Link href="/services" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl font-bold text-base shadow-sm hover:bg-indigo-50 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
@@ -35,15 +35,15 @@ export default function BidNoBidPage() {
             </div>
             <div className="space-y-4">
               <div className="bg-white border border-indigo-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-500" /><div><div className="text-4xl font-black text-slate-900">3.2x</div><div className="text-sm font-bold text-slate-600">Higher Win Rate</div></div></div>
-                <p className="text-sm text-slate-700">Our clients win 3x more often when they follow our recommendations</p>
+                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-500" /><div><div className="text-2xl font-black text-slate-900">Fit review</div></div></div>
+                <p className="text-sm text-slate-700">Useful when you need a clearer read on whether the opportunity actually matches your profile and past performance.</p>
               </div>
               <div className="bg-white border border-indigo-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4 mb-4"><BarChart3 className="w-12 h-12 text-cyan-500" /><div><div className="text-4xl font-black text-slate-900">$8.4M</div><div className="text-sm font-bold text-slate-600">Avg. Resources Saved</div></div></div>
-                <p className="text-sm text-slate-700">By avoiding unwinnable bids, our clients save millions in pursuit costs</p>
+                <div className="flex items-center gap-4 mb-4"><BarChart3 className="w-12 h-12 text-cyan-500" /><div><div className="text-2xl font-black text-slate-900">Risk review</div></div></div>
+                <p className="text-sm text-slate-700">We look at timing, compliance, staffing, and other pressure points that can make a pursuit expensive or thin.</p>
               </div>
               <div className="bg-white border border-indigo-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-yellow-500" /><div><div className="text-2xl font-black text-slate-900">Strategic Partnership</div><div className="text-sm font-semibold text-slate-600 mt-1">We help you win smarter, not just more</div></div></div>
+                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-yellow-500" /><div><div className="text-2xl font-black text-slate-900">Decision support</div><div className="text-sm font-semibold text-slate-600 mt-1">You get a clearer recommendation and the reasoning behind it.</div></div></div>
               </div>
             </div>
           </div>
@@ -124,23 +124,19 @@ export default function BidNoBidPage() {
       <section className="py-12 bg-white">
         <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-black text-gray-900 mb-2">What Our Clients Say</h2>
-            <p className="text-gray-600">Smart decisions lead to better outcomes</p>
+            <h2 className="text-3xl font-black text-gray-900 mb-2">Questions this review helps answer</h2>
+            <p className="text-gray-600">The goal is not more bidding. The goal is better pursuit choices.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { quote: "They told us not to bid on a $50M opportunity. We listened. The winner bid 40% lower than we would have. Saved us months of work.", author: "Patricia Rodriguez", title: "VP Business Development", result: "Avoided costly loss" },
-              { quote: "The analysis showed us exactly where we were weak and how to strengthen our position. We bid, we won, and it wasn't even close.", author: "James Anderson", title: "CEO, Anderson Federal Services", result: "$3.2M contract won" },
-              { quote: "We went from a 1-in-5 win rate to 3-in-5 by only bidding opportunities where we had real advantages. Game changer.", author: "Michelle Lee", title: "President, Lee Tech Solutions", result: "3x win rate improvement" },
+              { title: 'Do we really fit?', detail: 'Helpful when the team sees surface-level alignment but needs a harder look at requirements, past performance, and likely positioning.' },
+              { title: 'What could sink this bid?', detail: 'Useful for uncovering timing, staffing, pricing, or compliance issues before you commit proposal resources.' },
+              { title: 'What should happen next?', detail: 'The output is meant to support a practical go, no-go, or re-scope discussion rather than just produce another score.' },
             ].map((item, idx) => (
               <div key={idx} className="bg-gradient-to-br from-indigo-50 to-white rounded-2xl p-6 border-2 border-indigo-100 shadow-lg">
-                <div className="flex gap-1 mb-3">{[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500" />)}</div>
-                <p className="text-gray-700 font-medium mb-4 italic">"{item.quote}"</p>
-                <div className="border-t-2 border-indigo-100 pt-4">
-                  <div className="font-black text-gray-900">{item.author}</div>
-                  <div className="text-sm text-gray-600 mb-2">{item.title}</div>
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold"><CheckCircle className="w-3 h-3" />{item.result}</div>
-                </div>
+                <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center mb-4"><CheckCircle className="w-5 h-5 text-indigo-600" /></div>
+                <div className="font-black text-gray-900 mb-2">{item.title}</div>
+                <p className="text-sm text-gray-700 leading-relaxed font-medium">{item.detail}</p>
               </div>
             ))}
           </div>

@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.precisegovcon.com/services' },
 }
 
+const servicesFontFamily = "'Aptos', 'Aptos Display', 'Segoe UI Variable', 'Segoe UI', 'Inter', system-ui, sans-serif"
+
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return <div style={{ fontFamily: servicesFontFamily }}>{children}</div>
 }

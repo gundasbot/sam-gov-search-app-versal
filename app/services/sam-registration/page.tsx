@@ -26,19 +26,19 @@ export default function SAMRegistrationPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 rounded-full text-blue-700 text-sm font-bold mb-4 shadow-sm">
                 <ShieldCheck className="w-4 h-4" />
-                <span>Most Popular Service</span>
+                <span>Registration and renewal support</span>
               </div>
               
               <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">
-                SAM Registration Made Simple—We Handle Everything
+                SAM registration support that keeps the process moving
               </h1>
               
               <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">
-                Stop struggling with the complex SAM.gov registration process. Our experts handle it all—from start to finish.
+                We help you prepare, submit, renew, and update your SAM registration with fewer avoidable delays.
               </p>
 
               <p className="text-base text-slate-600 mb-6">
-                SAM registration is required to bid on federal contracts, but it's confusing and time-consuming. We make it easy with complete support, annual renewals, and compliance monitoring.
+                SAM registration is required to bid on federal work, but the process can be tedious and easy to mis-handle. We focus on document readiness, cleaner submissions, and steady follow-through.
               </p>
 
               <div className="flex flex-wrap gap-3 mb-6">
@@ -74,7 +74,7 @@ export default function SAMRegistrationPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <FileCheck className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-sm">100% accuracy guarantee</span>
+                  <span className="font-semibold text-sm">Structured document review</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 text-blue-600" />
@@ -91,11 +91,10 @@ export default function SAMRegistrationPage() {
                     <ShieldCheck className="w-12 h-12 text-emerald-400" />
                   </div>
                   <div>
-                    <div className="text-4xl font-black text-slate-900">1,200+</div>
-                    <div className="text-sm font-bold text-slate-600">Successful Registrations</div>
+                    <div className="text-2xl font-black text-slate-900">Application-ready support</div>
                   </div>
                 </div>
-                <p className="text-sm text-slate-700">We've helped over a thousand businesses get SAM registered</p>
+                <p className="text-sm text-slate-700">We help organize entity details, required identifiers, and submission steps before filing.</p>
               </div>
 
               <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
@@ -104,11 +103,10 @@ export default function SAMRegistrationPage() {
                     <Target className="w-12 h-12 text-cyan-400" />
                   </div>
                   <div>
-                    <div className="text-4xl font-black text-slate-900">100%</div>
-                    <div className="text-sm font-bold text-slate-600">Approval Rate</div>
+                    <div className="text-2xl font-black text-slate-900">Renewals and updates</div>
                   </div>
                 </div>
-                <p className="text-sm text-slate-700">Every registration we submit gets approved—no rejections</p>
+                <p className="text-sm text-slate-700">Use us for renewals, edits, and follow-through when records need attention after the initial filing.</p>
               </div>
 
               <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
@@ -117,8 +115,8 @@ export default function SAMRegistrationPage() {
                     <Users className="w-12 h-12 text-orange-400" />
                   </div>
                   <div>
-                    <div className="text-2xl font-black text-slate-900">Your Partner in Success</div>
-                    <div className="text-sm font-semibold text-slate-600 mt-1">We're with you every step of the way</div>
+                    <div className="text-2xl font-black text-slate-900">Direct guidance</div>
+                    <div className="text-sm font-semibold text-slate-600 mt-1">Questions get practical answers instead of generic instructions.</div>
                   </div>
                 </div>
               </div>
@@ -171,7 +169,7 @@ export default function SAMRegistrationPage() {
               {
                 icon: RefreshCw,
                 title: 'Annual Renewal Management',
-                description: 'We monitor your expiration date and handle renewals automatically. You\'ll never lose your SAM eligibility.',
+                description: 'We monitor your expiration date and help keep renewals moving before eligibility lapses.',
               },
               {
                 icon: ShieldCheck,
@@ -245,52 +243,37 @@ export default function SAMRegistrationPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Practical Uses */}
       <section className="py-12 bg-white">
         <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-black text-gray-900 mb-2">
-              What Our Clients Say
+              Where registration support helps most
             </h2>
-            <p className="text-gray-700 font-medium">Real feedback from real businesses</p>
+            <p className="text-gray-700 font-medium">A few common situations where another set of experienced hands is useful.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                quote: 'Tried to do it myself for 3 weeks. Hired PreciseGovCon and they had it done in 10 days. Worth every penny.',
-                author: "Sarah Chen",
-                title: 'Owner, Precision Tech LLC',
-                result: "Registered in 10 days",
+                title: 'First-time registration',
+                detail: 'Useful when you are setting up SAM for the first time and want help gathering the right entity and banking details before submission.',
               },
               {
-                quote: "They caught an error with my CAGE code that would have gotten my registration rejected. Saved me months of delays.",
-                author: "Michael Torres",
-                title: 'Founder, Torres Federal Solutions',
-                result: "Avoided rejection",
+                title: 'Renewal season',
+                detail: 'Helpful when deadlines are coming up and you want someone to keep the renewal moving before eligibility lapses.',
               },
               {
-                quote: "I was about to miss my annual renewal deadline. They handled everything and kept my SAM eligibility intact.",
-                author: "Jennifer Williams",
-                title: 'Operations Director, JW Contracting',
-                result: "Stayed compliant",
+                title: 'Record corrections',
+                detail: 'Worth considering when the registration needs updates, supporting details are inconsistent, or the process has stalled.',
               },
             ].map((item, idx) => (
               <div key={idx} className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-6 border-2 border-blue-100 shadow-lg">
-                <div className="flex gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  ))}
+                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
                 </div>
-                <p className="text-gray-800 font-medium mb-4 italic">"{item.quote}"</p>
-                <div className="border-t-2 border-blue-100 pt-4">
-                  <div className="font-black text-gray-900">{item.author}</div>
-                  <div className="text-sm text-gray-700 mb-2 font-medium">{item.title}</div>
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                    <CheckCircle className="w-3 h-3" />
-                    {item.result}
-                  </div>
-                </div>
+                <div className="font-black text-gray-900 mb-2">{item.title}</div>
+                <p className="text-sm text-gray-700 leading-relaxed font-medium">{item.detail}</p>
               </div>
             ))}
           </div>
@@ -331,7 +314,7 @@ export default function SAMRegistrationPage() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
-              100% approval rate
+              Document review included
             </div>
             <div className="flex items-center gap-2">
               <RefreshCw className="w-4 h-4" />

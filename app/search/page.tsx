@@ -710,9 +710,33 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
  {/* Body */}
  <p style={{ color: '#374151', fontSize: '1rem', marginBottom: '8px', lineHeight: 1.7 }}>
  You've had <strong>20 minutes</strong> to explore our platform.
- Start a <strong>7-day free trial</strong> to keep searching with no time limits.
- Cancel any time before the trial ends and you won't be charged.
+ You're still welcome to browse the rest of this page to get a feel for what we offer across search, dashboard, and insights.
+ Start a <strong>7-day free trial</strong> to keep searching with no time limits, save your work, and unlock the full personalized experience.
  </p>
+
+ <div style={{
+ background: '#f8fafc',
+ border: '1px solid #dbeafe',
+ borderRadius: '14px',
+ padding: '14px 16px',
+ marginBottom: '18px',
+ textAlign: 'left'
+ }}>
+ <p style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.9rem', marginBottom: '10px' }}>
+ Keep exploring while you're here:
+ </p>
+ <div style={{ display: 'grid', gap: '8px' }}>
+ <p style={{ color: '#334155', fontSize: '0.86rem', lineHeight: 1.55, margin: 0 }}>
+ <strong style={{ color: '#111827' }}>Dashboard:</strong> see how saved searches, alerts, match scoring, and pipeline tracking come together in one personalized workspace.
+ </p>
+ <p style={{ color: '#334155', fontSize: '0.86rem', lineHeight: 1.55, margin: 0 }}>
+ <strong style={{ color: '#111827' }}>Insights:</strong> preview trend signals, set-aside activity, and agency patterns that help you spot where demand is building.
+ </p>
+ <p style={{ color: '#334155', fontSize: '0.86rem', lineHeight: 1.55, margin: 0 }}>
+ <strong style={{ color: '#111827' }}>Opportunities:</strong> explore live SAM.gov results, filters, and fit-focused views built to help you find contracts faster.
+ </p>
+ </div>
+ </div>
 
  {/* Stripe security note */}
  <div style={{

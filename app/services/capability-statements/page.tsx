@@ -34,15 +34,15 @@ export default function CapabilityStatementsPage() {
             </div>
             <div className="space-y-4">
               <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4 mb-4"><Star className="w-12 h-12 text-yellow-500 fill-yellow-500" /><div><div className="text-4xl font-black text-slate-900">500+</div><div className="text-sm font-bold text-slate-600">Statements Created</div></div></div>
-                <p className="text-sm text-slate-700">Trusted by contractors nationwide to make lasting first impressions</p>
+                <div className="flex items-center gap-4 mb-4"><Star className="w-12 h-12 text-yellow-500 fill-yellow-500" /><div><div className="text-2xl font-black text-slate-900">Buyer-friendly layout</div></div></div>
+                <p className="text-sm text-slate-700">We focus on a clean, scannable format that busy contracting staff can read quickly.</p>
               </div>
               <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-500" /><div><div className="text-4xl font-black text-slate-900">3x</div><div className="text-sm font-bold text-slate-600">More Meeting Requests</div></div></div>
-                <p className="text-sm text-slate-700">Our clients report significantly more opportunities after using our statements</p>
+                <div className="flex items-center gap-4 mb-4"><Target className="w-12 h-12 text-emerald-500" /><div><div className="text-2xl font-black text-slate-900">Clearer positioning</div></div></div>
+                <p className="text-sm text-slate-700">We help shape the message around what you solve, who you serve, and what is worth highlighting.</p>
               </div>
               <div className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-cyan-500" /><div><div className="text-2xl font-black text-slate-900">Partner with Experts</div><div className="text-sm font-semibold text-slate-600 mt-1">Decades of GovCon experience on your side</div></div></div>
+                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-cyan-500" /><div><div className="text-2xl font-black text-slate-900">Revision support</div><div className="text-sm font-semibold text-slate-600 mt-1">We refine the statement with you until it sounds like your business, not a template.</div></div></div>
               </div>
             </div>
           </div>
@@ -123,23 +123,19 @@ export default function CapabilityStatementsPage() {
       <section className="py-12 bg-white">
         <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-black text-gray-900 mb-2">What Our Clients Say</h2>
-            <p className="text-gray-600">Real results from real contractors</p>
+            <h2 className="text-3xl font-black text-gray-900 mb-2">What a strong statement should accomplish</h2>
+            <p className="text-gray-600">Less chest-thumping, more clarity about what the document needs to do.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { quote: "The new one from Precise GovCon gets compliments at every networking event.", author: "David Kim", title: "CEO, Kim Federal Solutions", result: "3x meeting requests" },
-              { quote: "They completely repositioned how we talk about our services. The focus on outcomes made a huge difference.", author: "Maria Gonzalez", title: "President, Gonzalez Consulting", result: "Landed first prime contract" },
-              { quote: "Finally, a capability statement that doesn't look like everyone else's. Our team is proud to hand this out.", author: "James Wilson", title: "Owner, Wilson Tech Group", result: "5 new opportunities" },
+              { title: 'Explain fit quickly', detail: 'The document should tell a buyer who you help, what you do, and why you belong in the conversation within a few seconds.' },
+              { title: 'Support outreach', detail: 'A good statement makes teaming conversations, introductions, and follow-up emails easier to handle.' },
+              { title: 'Reflect the real business', detail: 'It should sound current, credible, and specific to your target agencies, codes, and past work.' },
             ].map((item, idx) => (
               <div key={idx} className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-6 border-2 border-blue-100 shadow-lg">
-                <div className="flex gap-1 mb-3">{[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500" />)}</div>
-                <p className="text-gray-700 font-medium mb-4 italic">"{item.quote}"</p>
-                <div className="border-t-2 border-blue-100 pt-4">
-                  <div className="font-black text-gray-900">{item.author}</div>
-                  <div className="text-sm text-gray-600 mb-2">{item.title}</div>
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold"><CheckCircle className="w-3 h-3" />{item.result}</div>
-                </div>
+                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-4"><CheckCircle className="w-5 h-5 text-blue-600" /></div>
+                <div className="font-black text-gray-900 mb-2">{item.title}</div>
+                <p className="text-sm text-gray-700 leading-relaxed font-medium">{item.detail}</p>
               </div>
             ))}
           </div>

@@ -19,9 +19,9 @@ export default function ProposalWritingPage() {
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 rounded-full text-orange-700 text-sm font-bold mb-4 shadow-sm">
                 <Sparkles className="w-4 h-4" /><span>AI-Powered + Expert Review</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Win More Contracts with Professional Proposals</h1>
-              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Stop losing to better-written proposals. Our AI-powered service creates compelling, compliant proposals that win.</p>
-              <p className="text-base text-slate-600 mb-6">We combine cutting-edge AI technology with expert federal contracting writers. The result? Proposals that stand out, meet compliance requirements, and demonstrate clear value.</p>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">Proposal support that helps your team respond with more clarity and structure</h1>
+              <p className="text-lg text-slate-700 font-semibold mb-3 leading-relaxed">Use AI-assisted drafting and human review to turn rough inputs into cleaner, more compliant proposal packages.</p>
+              <p className="text-base text-slate-600 mb-6">We combine drafting support, compliance-minded editing, and practical review so your team can move faster without losing control of the message.</p>
               <div className="flex flex-wrap gap-3 mb-6">
                 <Link href="/contact?service=proposal-writing" className="inline-flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-xl font-bold text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"><Calendar className="w-5 h-5" />Get Started</Link>
                 <Link href="/services" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl font-bold text-base shadow-sm hover:bg-orange-50 transition-all"><ArrowRight className="w-5 h-5" />View All Services</Link>
@@ -35,15 +35,15 @@ export default function ProposalWritingPage() {
             </div>
             <div className="space-y-4">
               <div className="bg-white border border-orange-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4 mb-4"><Award className="w-12 h-12 text-emerald-500" /><div><div className="text-4xl font-black text-slate-900">850+</div><div className="text-sm font-bold text-slate-600">Winning Proposals</div></div></div>
-                <p className="text-sm text-slate-700">We've helped contractors win hundreds of millions in contracts</p>
+                <div className="flex items-center gap-4 mb-4"><Award className="w-12 h-12 text-emerald-500" /><div><div className="text-2xl font-black text-slate-900">Draft acceleration</div></div></div>
+                <p className="text-sm text-slate-700">Useful when your team needs help moving from notes and source material to a workable first draft.</p>
               </div>
               <div className="bg-white border border-orange-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4 mb-4"><BarChart3 className="w-12 h-12 text-cyan-500" /><div><div className="text-4xl font-black text-slate-900">73%</div><div className="text-sm font-bold text-slate-600">Win Rate</div></div></div>
-                <p className="text-sm text-slate-700">Our proposals have a significantly higher win rate than industry average</p>
+                <div className="flex items-center gap-4 mb-4"><BarChart3 className="w-12 h-12 text-cyan-500" /><div><div className="text-2xl font-black text-slate-900">Compliance-minded review</div></div></div>
+                <p className="text-sm text-slate-700">We help tighten structure, check requirements, and reduce avoidable formatting or response gaps.</p>
               </div>
               <div className="bg-white border border-orange-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-amber-500" /><div><div className="text-2xl font-black text-slate-900">Your Partner in Winning</div><div className="text-sm font-semibold text-slate-600 mt-1">Expert writers who understand federal contracting</div></div></div>
+                <div className="flex items-center gap-4"><Users className="w-12 h-12 text-amber-500" /><div><div className="text-2xl font-black text-slate-900">Flexible support</div><div className="text-sm font-semibold text-slate-600 mt-1">Bring us in for a full draft, a review pass, or targeted help on hard sections.</div></div></div>
               </div>
             </div>
           </div>
@@ -124,23 +124,19 @@ export default function ProposalWritingPage() {
       <section className="py-12 bg-white">
         <div className="w-full px-3 sm:px-5 lg:px-6">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-black text-gray-900 mb-2">What Our Clients Say</h2>
-            <p className="text-gray-600">Real wins from real contractors</p>
+            <h2 className="text-3xl font-black text-gray-900 mb-2">Where proposal support helps most</h2>
+            <p className="text-gray-600">A few common situations where outside drafting support can make the work easier.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { quote: "The AI draft saved us 40 hours of work. The expert review made it winning quality. We got the contract.", author: "Robert Martinez", title: "CEO, Martinez Defense Solutions", result: "$2.4M contract won" },
-              { quote: "Best proposal we've ever submitted. The team understood our differentiators and positioned us perfectly.", author: "Lisa Thompson", title: "President, Thompson IT Services", result: "Beat 12 competitors" },
-              { quote: "Fast, professional, and they made us look like the obvious choice. Worth every dollar.", author: "Kevin Park", title: "Owner, Park Logistics", result: "First prime contract" },
+              { title: 'Tight deadlines', detail: 'Bring in draft support when the team has the subject matter but not enough time to shape the response cleanly.' },
+              { title: 'Hard sections', detail: 'Useful for executive summaries, management plans, past performance write-ups, and other sections that need sharper positioning.' },
+              { title: 'Final review before submission', detail: 'A second pass can help catch compliance issues, improve readability, and tighten the story before delivery.' },
             ].map((item, idx) => (
               <div key={idx} className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-6 border-2 border-orange-100 shadow-lg">
-                <div className="flex gap-1 mb-3">{[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500" />)}</div>
-                <p className="text-gray-700 font-medium mb-4 italic">"{item.quote}"</p>
-                <div className="border-t-2 border-orange-100 pt-4">
-                  <div className="font-black text-gray-900">{item.author}</div>
-                  <div className="text-sm text-gray-600 mb-2">{item.title}</div>
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold"><CheckCircle className="w-3 h-3" />{item.result}</div>
-                </div>
+                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center mb-4"><CheckCircle className="w-5 h-5 text-orange-600" /></div>
+                <div className="font-black text-gray-900 mb-2">{item.title}</div>
+                <p className="text-sm text-gray-700 leading-relaxed font-medium">{item.detail}</p>
               </div>
             ))}
           </div>
@@ -158,7 +154,7 @@ export default function ProposalWritingPage() {
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-100">
             <div className="flex items-center gap-2"><Zap className="w-4 h-4" />AI-powered drafting</div>
             <div className="flex items-center gap-2"><Users className="w-4 h-4" />Expert review</div>
-            <div className="flex items-center gap-2"><Award className="w-4 h-4" />73% win rate</div>
+            <div className="flex items-center gap-2"><Award className="w-4 h-4" />Fast turnaround</div>
           </div>
         </div>
       </section>

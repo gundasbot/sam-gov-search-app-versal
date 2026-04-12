@@ -77,8 +77,8 @@ export default function CompliancePage() {
               </div>
               
               <div className="absolute top-6 right-6 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
-                <div className="text-3xl font-black text-emerald-600">100%</div>
-                <div className="text-sm font-bold text-gray-700">Compliance Rate</div>
+                <div className="text-3xl font-black text-emerald-600">Tracked</div>
+                <div className="text-sm font-bold text-gray-700">Deadlines & Requirements</div>
               </div>
             </div>
           </div>
