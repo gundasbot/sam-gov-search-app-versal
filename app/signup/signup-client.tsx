@@ -700,7 +700,7 @@ export default function SignUpClient() {
                   <Link href="/terms" className="underline hover:text-[var(--color-text-primary)]">Terms</Link> &amp;{' '}
                   <Link href="/privacy" className="underline hover:text-[var(--color-text-primary)]">Privacy Policy</Link>.{' '}
                   
-                  <Link href="/signin" className="text-[var(--color-primary)] font-semibold hover:text-[var(--color-primary-hover)]">Sign in</Link>
+                  <Link href="/login" className="text-[var(--color-primary)] font-semibold hover:text-[var(--color-primary-hover)]">Sign in</Link>
                 </p>
               </form>
             </div>

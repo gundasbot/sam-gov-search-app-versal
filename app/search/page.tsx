@@ -586,7 +586,7 @@ function AccessControlModal({ isOpen, onClose, featureName }: {
  </Link>
 
  {/* Secondary CTA — white background, green border, green text */}
- <Link href="/sign-in"onClick={onClose}>
+ <Link href="/login"onClick={onClose}>
  <button style={{
  width: '100%', padding: '11px 0', borderRadius: '12px',
  background: '#ffffff', color: '#166534', fontWeight: 700,
@@ -771,7 +771,7 @@ function LockoutModal({ onSignUp, onClose }: { onSignUp: () => void; onClose?: (
  Start My 7-Day Free Trial
  </button>
  </Link>
- <Link href="/sign-in">
+ <Link href="/login">
  <button style={{
  width: '100%', padding: '15px 0', borderRadius: '14px',
  background: '#ffffff', color: '#166534', fontWeight: 700,

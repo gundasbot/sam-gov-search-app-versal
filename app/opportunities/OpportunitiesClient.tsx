@@ -4079,7 +4079,7 @@ Provide analysis in JSON format with:
                       Create Free Account
                     </a>
                     <a
-                      href="/auth/signin"
+                      href="/login"
                       className="w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 border border-cyan-700 text-cyan-300 hover:bg-cyan-900/30"
                       onClick={() => setShowPrefsReminder(false)}
                     >
