@@ -17,7 +17,7 @@ import ThemeToggle from './ThemeToggle'
 import { BRAND_CONFIG } from '@/lib/brand-config'
 
 type NavItem = { label: string; href: string; icon?: React.ReactNode }
-type ServiceItem = { label: string; href: string; description: string; icon: React.ReactNode; badge?: string }
+type ServiceItem = { label: string; href: string; description: string; icon: React.ReactNode; badge?: string; color: string }
 type TickerItem = {
   id: string; title: string; solicitationNumber: string; agency: string
   postedDate: string; type: string; samUrl: string
@@ -99,12 +99,12 @@ export default function Header() {
 
   /* ── Nav items ── */
   const serviceItems: ServiceItem[] = [
-    { label: 'SAM Registration', href: '/services/sam-registration', description: 'Complete SAM.gov registration & annual renewals', icon: <FileText className="w-5 h-5" />, badge: 'Most Popular' },
-    { label: 'Bid Search', href: '/services/bid-search', description: 'Search SAM.gov with practical filters and saved searches', icon: <Search className="w-5 h-5" /> },
-    { label: 'Proposal Writing', href: '/services/proposal-writing', description: 'Professional proposals that win federal contracts', icon: <Award className="w-5 h-5" /> },
-    { label: 'Bid/No-Bid Analysis', href: '/services/bid-no-bid-review', description: 'AI-powered bid decision analysis & strategy', icon: <Zap className="w-5 h-5" />, badge: 'AI Powered' },
-    { label: 'Set-Aside Certifications', href: '/services/set-aside-certifications', description: '8(a), SDVOSB, HUBZone, WOSB/EDWOSB certification', icon: <ShieldCheck className="w-5 h-5" />, badge: 'Gov Special' },
-    { label: 'Capability Statements', href: '/services/capability-statements', description: 'Professional one-pagers that showcase your strengths', icon: <TrendingUp className="w-5 h-5" /> },
+    { label: 'SAM Registration', href: '/services/sam-registration', description: 'Complete SAM.gov registration & annual renewals', icon: <FileText className="w-5 h-5" />, badge: 'Most Popular', color: 'blue' },
+    { label: 'Bid Search', href: '/services/bid-search', description: 'Search SAM.gov with practical filters and saved searches', icon: <Search className="w-5 h-5" />, color: 'emerald' },
+    { label: 'Proposal Writing', href: '/services/proposal-writing', description: 'Professional proposals that win federal contracts', icon: <Award className="w-5 h-5" />, color: 'indigo' },
+    { label: 'Bid/No-Bid Analysis', href: '/services/bid-no-bid-review', description: 'AI-powered bid decision analysis & strategy', icon: <Zap className="w-5 h-5" />, badge: 'AI Powered', color: 'indigo' },
+    { label: 'Set-Aside Certifications', href: '/services/set-aside-certifications', description: '8(a), SDVOSB, HUBZone, WOSB/EDWOSB certification', icon: <ShieldCheck className="w-5 h-5" />, badge: 'Gov Special', color: 'emerald' },
+    { label: 'Capability Statements', href: '/services/capability-statements', description: 'Professional one-pagers that showcase your strengths', icon: <TrendingUp className="w-5 h-5" />, color: 'blue' },
   ]
 
   const navItems: NavItem[] = [
@@ -463,24 +463,31 @@ export default function Header() {
                       }}
                     >
                       <div className="p-2 rounded-2xl" onClick={e => e.stopPropagation()}>
-                        {serviceItems.map((service) => (
+                        {serviceItems.map((service) => {
+                          const c = {
+                            blue:    { hover: 'hover:bg-blue-50',    icon: 'text-blue-700 bg-blue-50 group-hover:bg-blue-100',    label: 'group-hover:text-blue-700',    badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+                            emerald: { hover: 'hover:bg-emerald-50', icon: 'text-emerald-700 bg-emerald-50 group-hover:bg-emerald-100', label: 'group-hover:text-emerald-700', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                            indigo:  { hover: 'hover:bg-indigo-50',  icon: 'text-indigo-700 bg-indigo-50 group-hover:bg-indigo-100',  label: 'group-hover:text-indigo-700',  badge: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                          }[service.color] ?? { hover: 'hover:bg-slate-50', icon: 'text-slate-700 bg-slate-50 group-hover:bg-slate-100', label: 'group-hover:text-slate-700', badge: 'bg-slate-50 text-slate-700 border-slate-200' }
+                          return (
                           <Link key={service.href} href={service.href} prefetch={false} onClick={() => setServicesOpen(false)}
-                            className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-emerald-100 focus-visible:bg-emerald-100 focus-visible:outline-none"
+                            className={`group flex items-start gap-3 rounded-xl p-3 transition-colors ${c.hover} focus-visible:outline-none`}
                           >
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-emerald-700 bg-emerald-50 transition-colors group-hover:bg-emerald-200">
+                            <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${c.icon}`}>
                               {service.icon}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-slate-900 transition-colors group-hover:text-emerald-700">{service.label}</span>
+                                <span className={`font-bold text-slate-900 transition-colors ${c.label}`}>{service.label}</span>
                                 {service.badge && (
-                                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">{service.badge}</span>
+                                  <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${c.badge}`}>{service.badge}</span>
                                 )}
                               </div>
                               <p className="text-xs leading-snug text-slate-500">{service.description}</p>
                             </div>
                           </Link>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   )}
