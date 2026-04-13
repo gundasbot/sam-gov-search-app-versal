@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Contact PreciseGovCon | Government Contracting Support',
-  description: 'Contact PreciseGovCon for help with SAM registration, proposal writing, federal certifications, and government contract search. We respond within 1 business day.',
+  title: 'Contact Us | Government Contracting Support',
+  description: 'Get help with SAM registration, proposal writing, federal certifications, and contract search. We respond within 1 business day.',
   alternates: { canonical: '/contact' },
   openGraph: { url: '/contact' },
 }

@@ -789,9 +789,9 @@ export default function InsightsPage() {
                   <LineChart className="h-4 w-4 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="insights-hero-title text-2xl sm:text-3xl font-extrabold text-gray-900">
+                  <h2 className="insights-hero-title text-2xl sm:text-3xl font-extrabold text-gray-900">
                     Federal Market Intelligence
-                  </h1>
+                  </h2>
                   <p className="insights-hero-subtitle text-base text-gray-600">
                     {welcomeMessage || 'AI-powered insights · Live federal market data'}
                   </p>

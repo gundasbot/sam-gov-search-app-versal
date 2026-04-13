@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import ServicesClient from './ServicesClient'
 
 export const metadata: Metadata = {
-  title: 'Federal Contracting Services | PreciseGovCon',
+  title: 'Federal Contracting Services',
   description: 'Explore PreciseGovCon services: SAM registration, proposal writing, compliance monitoring, capability statements, and bid analysis.',
   alternates: { canonical: '/services' },
 }
