@@ -6,17 +6,21 @@ import './globals.css'
 import { Manrope, Sora, Inter } from 'next/font/google'
 
 function resolveMetadataBase(): URL {
+  // VERCEL_URL is intentionally excluded — Vercel sets it to the preview
+  // deployment subdomain (*.vercel.app) even on production, which would
+  // cause canonicals and og:url to point to the wrong domain.
   const candidates: Array<string | undefined> = [
     process.env.NEXT_PUBLIC_SITE_URL,
     process.env.SITE_URL,
     process.env.NEXTAUTH_URL,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   ]
 
   for (const raw of candidates) {
     if (!raw) continue
     try {
-      return new URL(raw)
+      const url = new URL(raw)
+      // Only use if it's the real production domain, not a vercel.app preview
+      if (!url.hostname.endsWith('.vercel.app')) return url
     } catch {
       // ignore invalid values
     }
