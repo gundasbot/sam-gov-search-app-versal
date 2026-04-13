@@ -8,5 +8,10 @@ export const metadata: Metadata = {
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <h1 className="sr-only">Gov Contracting Insights &amp; Analytics</h1>
+      {children}
+    </>
+  )
 }

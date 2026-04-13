@@ -230,11 +230,9 @@ function HeroSlider() {
               </div>
 
               {/* Heading */}
-              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: headFg, margin: '0 0 2px', letterSpacing: '-0.02em', fontFamily: F }}>
-                {s.heading}
-              </h1>
-              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, color: s.accent, margin: '0 0 14px', letterSpacing: '-0.02em', fontFamily: F }}>
-                {s.accent1}
+              <h1 style={{ fontSize: 'clamp(34px, 3.6vw, 56px)', fontWeight: 800, lineHeight: 1.04, margin: '0 0 14px', letterSpacing: '-0.02em', fontFamily: F }}>
+                <span style={{ color: headFg, display: 'block', marginBottom: 2 }}>{s.heading}</span>
+                <span style={{ color: s.accent, display: 'block' }}>{s.accent1}</span>
               </h1>
 
               {/* Body */}
