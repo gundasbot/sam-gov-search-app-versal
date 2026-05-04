@@ -1496,3 +1496,36 @@ body .search-main .text-2xl { font-size: 26px !important; }
   font-weight: 800 !important;
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14) !important;
 }
+
+/* Dark legal pages use explicit contrast because global light-mode safeguards
+   intentionally rewrite slate utility colors elsewhere. */
+.pg-legal-dark,
+.pg-legal-dark p,
+.pg-legal-dark li {
+  color: #cbd5e1 !important;
+}
+
+.pg-legal-dark h1,
+.pg-legal-dark h2,
+.pg-legal-dark .text-white {
+  color: #f8fafc !important;
+}
+
+.pg-legal-dark h3,
+.pg-legal-dark [class*="text-emerald-"] {
+  color: #34d399 !important;
+}
+
+.pg-legal-dark .text-slate-300,
+.pg-legal-dark [class*="text-slate-300"] {
+  color: #cbd5e1 !important;
+}
+
+.pg-legal-dark .text-slate-400,
+.pg-legal-dark [class*="text-slate-400"] {
+  color: #94a3b8 !important;
+}
+
+.pg-legal-dark strong {
+  color: #e2e8f0 !important;
+}
