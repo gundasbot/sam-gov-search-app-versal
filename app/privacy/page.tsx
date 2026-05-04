@@ -27,7 +27,7 @@ export default function PrivacyPage() {
             <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
               Privacy Policy
             </h1>
-            <p className="text-slate-400">Last updated: January 10, 2026</p>
+            <p className="text-slate-400">Last updated: May 4, 2026</p>
           </div>
 
           {/* Content */}
@@ -83,6 +83,19 @@ export default function PrivacyPage() {
                 <li>Improve our platform and develop new features</li>
                 <li>Send administrative information and service updates</li>
                 <li>Detect, prevent, and address technical issues or fraud</li>
+              </ul>
+            </div>
+
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
+              <h2 className="text-2xl font-bold text-white mb-4">SMS / Text Messaging</h2>
+              <p className="text-slate-300 leading-relaxed mb-4">
+                By providing your phone number and consenting to receive SMS messages from Precise Analytics LLC (d/b/a Precise GovCon), you agree to receive text messages related to the Precise GovCon platform, including service updates, free trial offers, and promotional codes.
+              </p>
+              <ul className="list-disc list-inside text-slate-300 space-y-2">
+                <li>Message and data rates may apply.</li>
+                <li>Message frequency varies.</li>
+                <li>Reply STOP to unsubscribe at any time. Reply HELP for assistance.</li>
+                <li>We will not share, sell, rent, or disclose your phone number or SMS opt-in consent data to any third party for their marketing or promotional purposes.</li>
               </ul>
             </div>
 
