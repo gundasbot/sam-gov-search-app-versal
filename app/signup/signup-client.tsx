@@ -568,6 +568,15 @@ export default function SignUpClient() {
                   {phone && !isValidPhone(phone) && (
                     <p className="mt-1.5 text-xs text-red-500 font-medium">Please enter a valid 10-digit phone number</p>
                   )}
+                  <p className="mt-1.5 text-xs text-(--color-text-subtle) leading-relaxed">
+                    By providing your phone number you consent to receive SMS messages from{' '}
+                    <strong className="text-(--color-text-secondary)">Precise Analytics</strong> about your
+                    account, federal contracting opportunities, and platform updates. Message frequency varies.
+                    Msg &amp; data rates may apply. Reply <strong>STOP</strong> to opt out,{' '}
+                    <strong>HELP</strong> for assistance. See our{' '}
+                    <Link href="/privacy" className="underline hover:text-(--color-text-primary)">Privacy Policy</Link>{' '}
+                    and <Link href="/terms" className="underline hover:text-(--color-text-primary)">Terms</Link>.
+                  </p>
                 </div>
 
                 {/* Password */}
@@ -697,9 +706,10 @@ export default function SignUpClient() {
 
                 <p className="text-center text-sm text-[var(--color-text-secondary)] leading-relaxed">
                   By signing up you agree to our{' '}
-                  <Link href="/terms" className="underline hover:text-[var(--color-text-primary)]">Terms</Link> &amp;{' '}
-                  <Link href="/privacy" className="underline hover:text-[var(--color-text-primary)]">Privacy Policy</Link>.{' '}
-                  
+                  <Link href="/terms" className="underline hover:text-[var(--color-text-primary)]">Terms</Link>,{' '}
+                  <Link href="/privacy" className="underline hover:text-[var(--color-text-primary)]">Privacy Policy</Link>,
+                  {' '}and SMS communications (if phone provided).{' '}
+                  Already have an account?{' '}
                   <Link href="/login" className="text-[var(--color-primary)] font-semibold hover:text-[var(--color-primary-hover)]">Sign in</Link>
                 </p>
               </form>
