@@ -47,6 +47,7 @@ async function resolveTrialDaysForUserOfferCode(offerCode: string | null | undef
     where: { code, active: true },
     select: {
       type: true,
+      trial_days: true,
       discount: true,
       description: true,
       expires_at: true,
@@ -60,6 +61,8 @@ async function resolveTrialDaysForUserOfferCode(offerCode: string | null | undef
   if (offer.max_usage && offer.usage_count >= offer.max_usage) return DEFAULT_TRIAL_DAYS
   if (String(offer.type || '').toLowerCase() !== 'trial') return DEFAULT_TRIAL_DAYS
 
+  // Use the explicit trial_days field first; fall back to parsing the discount/description text
+  if (offer.trial_days != null) return normalizeTrialDays(offer.trial_days)
   return extractTrialDaysFromText(offer.discount || offer.description || '', DEFAULT_TRIAL_DAYS)
 }
 
@@ -278,7 +281,7 @@ function sendWelcomeEmailSilent(userId: string, email: string, name: string) {
   })
 }
 
-function buildWelcomeEmail(name: string, appUrl: string, brandName: string): string {
+function buildWelcomeEmail(name: string, appUrl: string, brandName: string, trialDays = DEFAULT_TRIAL_DAYS): string {
   const brand = getBrand()
   return `<!DOCTYPE html>
 <html>
@@ -303,7 +306,7 @@ function buildWelcomeEmail(name: string, appUrl: string, brandName: string): str
               Welcome, ${name}! 🎉
             </p>
             <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.6;">
-              Your <strong>7-day free trial</strong> is now active. You have full access to:
+              Your <strong>${trialDays}-day free trial</strong> is now active. You have full access to:
             </p>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
               ${['900+ live government contract opportunities', 'Real-time alerts for new opportunities', 'Advanced search &amp; filtering tools', 'Export results to CSV/Excel'].map(f => `
