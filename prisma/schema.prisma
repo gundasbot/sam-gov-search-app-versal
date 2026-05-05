@@ -700,6 +700,7 @@ model offer_codes {
   description      String
   discount         String
   type             String             @default("trial")
+  trial_days       Int?               // Explicit trial duration — takes priority over parsing the discount/description text
   usage_count      Int                @default(0)
   max_usage        Int?
   expires_at       DateTime?          @db.Date
