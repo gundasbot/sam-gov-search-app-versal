@@ -157,6 +157,17 @@ export async function POST(req: Request) {
       source: 'email_signup',
     })
 
+    // Notify admin portal: stop cold outreach to this contact and mark as converted.
+    const adminUrl = process.env.ADMIN_PORTAL_URL || process.env.NEXT_PUBLIC_ADMIN_URL || ''
+    const cronSecret = process.env.CRON_SECRET || ''
+    if (adminUrl && cronSecret) {
+      fetch(`${adminUrl}/api/outreach/convert`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'x-cron-secret': cronSecret },
+        body:    JSON.stringify({ email: user.email, source: 'signup' }),
+      }).catch(() => null) // fire-and-forget, never block signup
+    }
+
     // ── Increment offer code usage if one was applied ─────────────────────────
     if (validatedCode) {
       try {
