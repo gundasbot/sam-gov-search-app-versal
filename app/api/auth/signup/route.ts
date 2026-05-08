@@ -163,7 +163,7 @@ export async function POST(req: Request) {
     if (adminUrl && cronSecret) {
       fetch(`${adminUrl}/api/outreach/convert`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'x-cron-secret': cronSecret },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cronSecret}` },
         body:    JSON.stringify({ email: user.email, source: 'signup' }),
       }).catch(() => null) // fire-and-forget, never block signup
     }
