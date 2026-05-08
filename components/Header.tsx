@@ -621,7 +621,7 @@ export default function Header() {
             {/* Hamburger — visible below lg */}
             <button type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setServicesOpen(false) }}
-              className="lg:hidden p-2 rounded-xl flex-shrink-0 transition-colors" style={{ color: 'var(--color-text-primary)' }}
+              className="lg:hidden ml-auto p-2 rounded-xl flex-shrink-0 transition-colors" style={{ color: 'var(--color-text-primary)' }}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
             >
