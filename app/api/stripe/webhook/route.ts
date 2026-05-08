@@ -172,6 +172,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log(`✅ Checkout completed for ${user.email}: ${planTier} (${subscriptionStatus})`)
 
+  // Admin notification — fire-and-forget, never block the webhook response
+  sendAdminPurchaseNotification({
+    email,
+    customerName,
+    planTier,
+    interval: interval || 'monthly',
+  }).catch((err) => console.error('⚠️ Admin purchase notification failed:', err))
+
   const missingPasswordSetup = !user.password_hash
   if (isGuestCheckout && missingPasswordSetup) {
     const sent = await sendGuestCheckoutActivationEmail({
@@ -459,6 +467,53 @@ async function sendGuestCheckoutActivationEmail({
     console.error('sendGuestCheckoutActivationEmail failed:', err)
     return false
   }
+}
+
+// ── Admin purchase notification ───────────────────────────────────────────────
+async function sendAdminPurchaseNotification({
+  email,
+  customerName,
+  planTier,
+  interval,
+}: {
+  email: string
+  customerName: string | undefined
+  planTier: string
+  interval: string
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_NOTIFICATION_EMAIL
+  if (!adminEmail) {
+    console.warn('⚠️ ADMIN_EMAIL not set — skipping admin purchase notification')
+    return
+  }
+
+  const tierLabel = planTierToDisplay(planTier)
+  const intervalLabel = interval === 'annual' ? 'Annual' : 'Monthly'
+  const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin.precisegovcon.com'
+  const subject = `💳 New ${tierLabel} Purchase — ${email}`
+
+  const html = buildBrandEmailHtml({
+    subject,
+    headline: `New ${tierLabel} ${intervalLabel} Purchase`,
+    intro: [
+      `<strong>Customer:</strong> ${customerName || email}`,
+      `<strong>Email:</strong> ${email}`,
+      `<strong>Plan:</strong> ${tierLabel} ${intervalLabel}`,
+    ].join('<br>'),
+    ctaLabel: 'View in Admin Portal →',
+    ctaUrl: `${adminUrl}/dashboard/users`,
+  })
+
+  const text = buildBrandEmailText({
+    subject,
+    headline: `New ${tierLabel} ${intervalLabel} Purchase`,
+    intro: `Customer: ${customerName || email}\nEmail: ${email}\nPlan: ${tierLabel} ${intervalLabel}`,
+    ctaLabel: 'View in Admin Portal',
+    ctaUrl: `${adminUrl}/dashboard/users`,
+  })
+
+  await sendEmail({ to: adminEmail, subject, html, text })
+  console.log(`📧 Admin purchase notification sent to ${adminEmail}`)
 }
 
 async function sendSubscriptionEmail(

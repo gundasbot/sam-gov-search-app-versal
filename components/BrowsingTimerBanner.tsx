@@ -219,7 +219,7 @@ export default function BrowsingTimerBanner() {
                 Your free preview has ended
               </h2>
               <p className="text-sm sm:text-base text-gray-700 font-medium max-w-xl mx-auto">
-                Sign up free to pick up right where you left off — no credit card required.
+                Sign up to pick up right where you left off — your progress is saved.
               </p>
             </div>
 
@@ -242,7 +242,7 @@ export default function BrowsingTimerBanner() {
                 <div className="mt-5 sm:mt-6 p-4 sm:p-5 rounded-2xl bg-green-50 border border-green-200">
                   <p className="text-base sm:text-lg font-bold text-green-800">7-day free trial included</p>
                   <p className="text-xs sm:text-sm text-green-700 mt-1">
-                    No card required • Cancel anytime
+                    7-day free trial • Cancel anytime
                   </p>
                 </div>
               </div>

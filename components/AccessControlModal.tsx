@@ -521,7 +521,7 @@ export default function AccessControlModal({
             <Image src="/logo.png" alt="Precise GovCon" width={48} height={48} className="h-12 w-auto mx-auto mb-5" />
             <div className="mb-3">
               <span className="text-sm font-black uppercase tracking-widest text-[var(--color-primary)]">
-                7-Day Free Trial Â· No Credit Card Required
+                7-Day Free Trial · Cancel Anytime
               </span>
             </div>
             <h2 className="text-4xl lg:text-5xl font-black text-[var(--color-text-primary)] mb-3">
@@ -752,7 +752,7 @@ export default function AccessControlModal({
               {/* Trust bar */}
               <div className="mt-4 flex items-center justify-center gap-4">
                 <span className="flex items-center gap-1.5 text-base font-bold text-[var(--color-text-secondary)]"><Shield className="h-4 w-4 text-[var(--color-primary)]" /> SSL Secured</span>
-                <span className="flex items-center gap-1.5 text-base font-bold text-[var(--color-text-secondary)]"><Lock className="h-4 w-4 text-[var(--color-primary)]" /> No card needed</span>
+                <span className="flex items-center gap-1.5 text-base font-bold text-[var(--color-text-secondary)]"><Lock className="h-4 w-4 text-[var(--color-primary)]" /> Cancel anytime</span>
                 <span className="flex items-center gap-1.5 text-base font-bold text-[var(--color-text-secondary)]"><Zap className="h-4 w-4 text-[var(--color-primary)]" /> Instant access</span>
               </div>
             </div>

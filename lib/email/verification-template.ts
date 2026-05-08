@@ -49,7 +49,7 @@ export function getVerificationEmailTemplate(name: string, verificationUrl: stri
             <li style="margin-bottom: 8px;">Your email will be verified</li>
             <li style="margin-bottom: 8px;">Your <strong>${planName}</strong> 7-day free trial starts</li>
             <li style="margin-bottom: 8px;">You'll be automatically signed in</li>
-            <li>No credit card required!</li>
+            <li>Cancel anytime — no lock-in</li>
           </ul>
         </div>
 
@@ -107,7 +107,7 @@ What happens next:
 • Your email will be verified
 • Your ${planName} 7-day free trial starts  
 • You'll be automatically signed in
-• No credit card required!
+• Cancel anytime — no lock-in
 
 This link will expire in 24 hours.
 

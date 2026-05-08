@@ -8,7 +8,7 @@ import { Search, X, Sparkles, ArrowRight, Zap, Trophy, Target } from "lucide-rea
 
 // Rotating CTA messages for variety
 const CTA_MESSAGES = [
-  { text: "Start Free 7-Day Trial", subtext: "No credit card required" },
+  { text: "Start Free 7-Day Trial", subtext: "Cancel anytime" },
   { text: "Try Free for 7 Days", subtext: "Search government contracts" },
   { text: "Start Winning Contracts", subtext: "1,500+ live opportunities" },
   { text: "Get Started Free", subtext: "Join 500+ contractors" },

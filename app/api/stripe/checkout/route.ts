@@ -52,6 +52,7 @@ async function resolveOfferCode(code: string): Promise<ResolvedOfferCode | null>
       id: true,
       code: true,
       type: true,
+      trial_days: true,
       discount: true,
       description: true,
       max_usage: true,
@@ -64,10 +65,15 @@ async function resolveOfferCode(code: string): Promise<ResolvedOfferCode | null>
   if (offer.expires_at && new Date(offer.expires_at) < new Date()) return null
   if (offer.max_usage && offer.usage_count >= offer.max_usage) return null
 
-  const trialDays =
-    String(offer.type || '').toLowerCase() === 'trial'
-      ? extractTrialDaysFromText(offer.discount || offer.description || '', TRIAL_DAYS)
-      : TRIAL_DAYS
+  // Priority: explicit trial_days field → discount text → description text → default
+  let trialDays = TRIAL_DAYS
+  if (String(offer.type || '').toLowerCase() === 'trial') {
+    if (typeof offer.trial_days === 'number' && offer.trial_days > 0) {
+      trialDays = Math.min(365, Math.max(1, offer.trial_days))
+    } else {
+      trialDays = extractTrialDaysFromText(offer.discount || offer.description || '', TRIAL_DAYS)
+    }
+  }
 
   return {
     id: offer.id,

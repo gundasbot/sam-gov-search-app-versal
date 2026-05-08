@@ -569,7 +569,7 @@ export default function LandingPage() {
                 Start with a 7-day free trial.
               </h2>
               <p style={{ fontSize: 17, color: '#cbd5e1', maxWidth: 540, margin: 0, lineHeight: 1.7, fontFamily: F }}>
-                Immediate access to search, alerts, and insights. No credit card required. Upgrade only when the workflow proves its value.
+                Immediate access to search, alerts, and insights. Upgrade only when the workflow proves its value.
               </p>
             </div>
 

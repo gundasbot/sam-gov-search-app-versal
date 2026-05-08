@@ -113,7 +113,7 @@ function VerifiedWelcomeBanner() {
             {[
               { Icon: CheckCircle, color: '#10b981', label: 'Account verified' },
               { Icon: Clock,       color: '#3b82f6', label: '7-day trial active' },
-              { Icon: CreditCard,  color: '#f97316', label: 'No card required' },
+              { Icon: CreditCard,  color: '#f97316', label: 'Cancel anytime' },
             ].map(({ Icon, color, label }) => (
               <div
                 key={label}

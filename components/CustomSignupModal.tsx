@@ -281,7 +281,7 @@ export default function CustomSignupModal({ isOpen, onClose, onSuccess }: Custom
                 <CheckCircle style={{ width: '20px', height: '20px', color: '#059669', flexShrink: 0 }} />
                 <div>
                   <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#065f46', margin: 0, fontFamily: font }}>{selectedPlan.name} Plan · 7-Day Free Trial</p>
-                  <p style={{ fontSize: '0.8125rem', color: '#047857', margin: 0, fontFamily: font }}>No credit card required · Cancel anytime</p>
+                  <p style={{ fontSize: '0.8125rem', color: '#047857', margin: 0, fontFamily: font }}>Cancel anytime · SOC 2 Secure</p>
                 </div>
               </div>
 
@@ -341,7 +341,7 @@ export default function CustomSignupModal({ isOpen, onClose, onSuccess }: Custom
               <h2 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#1e293b', margin: '0 0 0.25rem', fontFamily: font }}>Welcome to Precise GovCon</h2>
               <p style={{ fontSize: '1rem', color: '#475569', margin: '0 0 0.75rem', fontFamily: font }}>Create your account to get started today</p>
               <div style={{ display: 'inline-block', padding: '0.625rem 1.25rem', background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '0.75rem', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}>
-                <p style={{ fontSize: '0.9375rem', color: '#ffffff', margin: 0, fontFamily: font, fontWeight: 700 }}>🎉 Start your 7-day free trial · No credit card required</p>
+                <p style={{ fontSize: '0.9375rem', color: '#ffffff', margin: 0, fontFamily: font, fontWeight: 700 }}>🎉 Start your 7-day free trial · Cancel anytime</p>
               </div>
             </div>
 

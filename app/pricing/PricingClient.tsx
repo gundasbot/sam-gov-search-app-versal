@@ -110,7 +110,7 @@ const FAQS = [
   },
   {
     q: 'Is there a free trial?',
-    a: 'Yes — we offer a free trial so you can evaluate the platform before committing. No credit card required to start.',
+    a: 'Yes — we offer a 7-day free trial so you can evaluate the platform before committing. Cancel anytime.',
   },
   {
     q: 'Can I switch plans later?',
@@ -480,7 +480,7 @@ function PricingContent() {
               { icon: Mail,       label: 'Email alerts',         desc: 'Keyword-matched notifications',   color: '#fb923c' },
               { icon: ArrowRight, label: 'CSV exports',          desc: 'Download opportunity data',       color: '#34d399' },
               { icon: ShieldCheck,label: 'Set-aside filters',    desc: 'SDVOSB, 8(a), HUBZone & more',   color: '#f472b6' },
-              { icon: Star,       label: '7-day free trial',     desc: 'No credit card required',         color: '#facc15' },
+              { icon: Star,       label: '7-day free trial',     desc: 'Cancel anytime',                  color: '#facc15' },
             ].map(item => (
               <div key={item.label} className="flex items-start gap-4 group">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-transform group-hover:scale-110"
@@ -555,7 +555,7 @@ function PricingContent() {
         </div>
 
         <p className="text-center text-base mt-10 text-gray-400 font-bold">
-          All plans include a 7-day free trial. No credit card required to start.{' '}
+          All plans include a 7-day free trial. Cancel anytime.{' '}
           <Link href="/support" className="font-semibold hover:underline text-gray-600">
             Questions? Contact support →
           </Link>

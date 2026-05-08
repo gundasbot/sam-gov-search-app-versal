@@ -188,7 +188,7 @@ function ExitIntentPopup() {
 
             {/* Trust badge */}
             <p className="text-center text-xs text-slate-400 mt-4">
-              ✓ No credit card required · ✓ Cancel anytime · ✓ SOC 2 Compliant
+              ✓ 7-day free trial · ✓ Cancel anytime · ✓ SOC 2 Compliant
             </p>
           </div>
         </div>

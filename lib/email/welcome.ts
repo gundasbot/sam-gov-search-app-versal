@@ -82,7 +82,7 @@ function getWelcomeEmailHtml(firstName: string): string {
                 You're in, ${firstName}!
               </h1>
               <p style="margin:8px 0 0;color:#f0fdf4;font-size:18px;font-weight:700;line-height:1.4;">
-                Your 7-day free trial is now active — no credit card required.
+                Your 7-day free trial is now active — full access starts now.
               </p>
             </td>
           </tr>

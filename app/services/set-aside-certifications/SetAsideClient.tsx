@@ -31,11 +31,6 @@ import {
 } from 'lucide-react'
 
 
-export const metadata = {
-  alternates: { canonical: 'https://www.precisegovcon.com/services/set-aside-certifications' },
-  title: 'Set-Aside Certifications | SDVOSB & 8(a) | PreciseGovCon',
-  description: 'Get certified as SDVOSB, 8(a), HUBZone, or WOSB. We guide you through the entire federal set-aside certification process.',
-}
 export default function SetAsideCertificationsPage() {
   const [selectedCertifications, setSelectedCertifications] = useState<string[]>([])
   const [showModal, setShowModal] = useState(false)

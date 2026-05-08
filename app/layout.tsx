@@ -5,31 +5,9 @@ import ClientLayout from './client-layout'
 import './globals.css'
 import { Manrope, Sora, Inter } from 'next/font/google'
 
-function resolveMetadataBase(): URL {
-  // VERCEL_URL is intentionally excluded — Vercel sets it to the preview
-  // deployment subdomain (*.vercel.app) even on production, which would
-  // cause canonicals and og:url to point to the wrong domain.
-  const candidates: Array<string | undefined> = [
-    process.env.NEXT_PUBLIC_SITE_URL,
-    process.env.SITE_URL,
-    process.env.NEXTAUTH_URL,
-  ]
-
-  for (const raw of candidates) {
-    if (!raw) continue
-    try {
-      const url = new URL(raw)
-      // Only use if it's the real production domain, not a vercel.app preview
-      if (!url.hostname.endsWith('.vercel.app')) return url
-    } catch {
-      // ignore invalid values
-    }
-  }
-
-  return new URL('https://www.precisegovcon.com')
-}
-
-const METADATA_BASE = resolveMetadataBase()
+// Hardcoded to the canonical www domain — never derived from env vars,
+// which can resolve to non-www (NEXTAUTH_URL) or preview subdomains (VERCEL_URL).
+const METADATA_BASE = new URL('https://www.precisegovcon.com')
 
 const manrope = Manrope({
   subsets: ['latin'],

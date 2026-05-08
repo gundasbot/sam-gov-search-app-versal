@@ -9,4 +9,5 @@ Disallow: /checkout
 Disallow: /reset-password
 Disallow: /forgot-password
 Disallow: /verify-email
-Sitemap: https://precisegovcon.com/sitemap.xml
+Allow: /favicon.ico
+Sitemap: https://www.precisegovcon.com/sitemap.xml
