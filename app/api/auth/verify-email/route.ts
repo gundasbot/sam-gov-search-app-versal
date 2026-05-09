@@ -143,7 +143,8 @@ async function verifyAndActivate(rawToken: string): Promise<
   sendWelcomeEmailSilent(
     user.id,
     user.email,
-    user.name || user.first_name || 'there'
+    user.name || user.first_name || 'there',
+    trialDays,
   )
 
   return {
@@ -270,12 +271,13 @@ export async function POST(req: NextRequest) {
 
 // ─── non-blocking welcome email ────────────────────────────────────────────────
 
-function sendWelcomeEmailSilent(userId: string, email: string, name: string) {
+function sendWelcomeEmailSilent(userId: string, email: string, name: string, trialDays?: number) {
   void sendSignupWelcomeEmailOnce({
     userId,
     email,
     name,
     source: 'email_verification',
+    trialDays,
   }).catch((e: any) => {
     console.error('Welcome email failed (non-blocking):', e?.message || e)
   })

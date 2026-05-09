@@ -4,15 +4,15 @@ import { getBrand } from './brand'
 
 const LIVE_SITE_URL = 'https://www.precisegovcon.com'
 
-export async function sendWelcomeEmail(email: string, name: string) {
+export async function sendWelcomeEmail(email: string, name: string, trialDays = 7) {
   const brand = getBrand()
   const firstName = name.split(' ')[0] || 'there'
 
   return sendEmail({
     to: email,
     subject: `You're in, ${firstName}! Your Precise GovCon trial is active 🚀`,
-    html: getWelcomeEmailHtml(firstName),
-    text: getWelcomeEmailText(firstName),
+    html: getWelcomeEmailHtml(firstName, trialDays),
+    text: getWelcomeEmailText(firstName, trialDays),
   })
 }
 
@@ -43,7 +43,7 @@ function getDomainLabel(appUrl: string): string {
   }
 }
 
-function getWelcomeEmailHtml(firstName: string): string {
+function getWelcomeEmailHtml(firstName: string, trialDays = 7): string {
   const brand = getBrand()
   const appUrl = resolveWelcomeAppUrl(brand.appUrl)
   const domainLabel = getDomainLabel(appUrl)
@@ -82,7 +82,7 @@ function getWelcomeEmailHtml(firstName: string): string {
                 You're in, ${firstName}!
               </h1>
               <p style="margin:8px 0 0;color:#f0fdf4;font-size:18px;font-weight:700;line-height:1.4;">
-                Your 7-day free trial is now active — full access starts now.
+                Your ${trialDays}-day free trial is now active — full access starts now.
               </p>
             </td>
           </tr>
@@ -96,7 +96,7 @@ function getWelcomeEmailHtml(firstName: string): string {
               <p style="margin:0 0 24px;color:#1e293b;font-size:18px;line-height:1.65;font-weight:500;">
                 Welcome to <strong style="color:#0f172a;">Precise GovCon</strong> — your all-in-one platform for finding,
                 tracking, and winning government contract opportunities. Your email is verified and your
-                <strong style="color:#15803d;">7-day free trial</strong> is live. Start exploring now.
+                <strong style="color:#15803d;">${trialDays}-day free trial</strong> is live. Start exploring now.
               </p>
 
               <!-- CTA -->
@@ -198,7 +198,7 @@ function getWelcomeEmailHtml(firstName: string): string {
           <tr>
             <td style="padding:14px 20px;background:#dcfce7;border-top:1px solid #86efac;text-align:center;">
               <p style="margin:0;color:#14532d;font-size:15px;font-weight:700;">
-                &#9200; Your 7-day trial gives you full access — subscribe any time from account settings to keep it going.
+                &#9200; Your ${trialDays}-day trial gives you full access — subscribe any time from account settings to keep it going.
               </p>
             </td>
           </tr>
@@ -233,18 +233,18 @@ function getWelcomeEmailHtml(firstName: string): string {
 </html>`.trim()
 }
 
-function getWelcomeEmailText(firstName: string): string {
+function getWelcomeEmailText(firstName: string, trialDays = 7): string {
   const brand = getBrand()
   const appUrl = resolveWelcomeAppUrl(brand.appUrl)
 
   return `
 ${brand.name.toUpperCase()} — ${brand.tagline}
 
-You're in, ${firstName}! Your 7-day free trial is now active.
+You're in, ${firstName}! Your ${trialDays}-day free trial is now active.
 
 Hi ${firstName},
 
-Welcome to Precise GovCon — your all-in-one platform for finding, tracking, and winning government contract opportunities. Your email is verified and your 7-day free trial is live.
+Welcome to Precise GovCon — your all-in-one platform for finding, tracking, and winning government contract opportunities. Your email is verified and your ${trialDays}-day free trial is live.
 
 Start searching now: ${appUrl}/search
 
@@ -260,7 +260,7 @@ WHAT'S INCLUDED IN YOUR TRIAL:
 2. Enable email alerts — get notified the moment new matching opportunities are posted
 3. Save your first opportunity — track deadlines and submission requirements
 
-Your 7-day trial gives you full access. Subscribe any time from account settings to keep it going.
+Your ${trialDays}-day trial gives you full access. Subscribe any time from account settings to keep it going.
 
 Questions? Email us at ${brand.supportEmail} — we respond within one business day.
 

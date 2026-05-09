@@ -305,7 +305,7 @@ export default function BrowsingTimerBanner() {
                 </div>
 
                 <p className="text-center text-xs sm:text-sm text-gray-700 font-medium">
-                  Free 7-day trial • No credit card • Cancel anytime
+                  Free 7-day trial • Cancel anytime
                 </p>
               </div>
             </div>

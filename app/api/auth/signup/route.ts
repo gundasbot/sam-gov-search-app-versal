@@ -150,11 +150,13 @@ export async function POST(req: Request) {
     })
 
     // Send welcome email at signup creation (non-blocking/deduped).
+    const signupTrialDays = await resolveTrialDaysForCode(validatedCode?.code)
     await sendSignupWelcomeEmailOnce({
       userId: user.id,
       email: user.email,
       name: `${first_name} ${last_name}`.trim() || first_name,
       source: 'email_signup',
+      trialDays: signupTrialDays,
     })
 
     // Notify admin portal: stop cold outreach to this contact and mark as converted.
@@ -289,6 +291,22 @@ export async function POST(req: Request) {
 
 // ─── helper: create token + send email ────────────────────────────────────────
 
+async function resolveTrialDaysForCode(offerCode: string | null | undefined): Promise<number> {
+  const code = String(offerCode || '').toUpperCase().trim()
+  if (!code) return 7
+  const offer = await prisma.offer_codes.findFirst({
+    where: { code, active: true },
+    select: { type: true, trial_days: true, discount: true, description: true, expires_at: true, max_usage: true, usage_count: true },
+  })
+  if (!offer) return 7
+  if (offer.expires_at && new Date(offer.expires_at) < new Date()) return 7
+  if (offer.max_usage && offer.usage_count >= offer.max_usage) return 7
+  if (String(offer.type || '').toLowerCase() !== 'trial') return 7
+  if (offer.trial_days != null) return Math.min(365, Math.max(1, Math.round(offer.trial_days)))
+  const match = String(offer.discount || offer.description || '').match(/(\d{1,3})/)
+  return match ? Math.min(365, Math.max(1, parseInt(match[1], 10))) : 7
+}
+
 async function resendVerification(
   userId: string,
   email: string,
@@ -312,12 +330,19 @@ async function resendVerification(
       },
     })
 
+    // Look up offer code to show the correct trial duration in the email
+    const userRow = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { offer_code: true },
+    }).catch(() => null)
+    const trialDays = await resolveTrialDaysForCode(userRow?.offer_code)
+
     const brand      = getBrand()
     const verifyUrl  = `${brand.appUrl}/api/auth/verify-email?token=${rawToken}`
     const name       = firstName || 'there'
 
-    const html = buildVerificationEmail(name, verifyUrl)
-    const text = `Hi ${name},\n\nVerify your email and start your free trial:\n${verifyUrl}\n\nLink expires in 24 hours.`
+    const html = buildVerificationEmail(name, verifyUrl, trialDays)
+    const text = `Hi ${name},\n\nVerify your email and start your ${trialDays}-day free trial:\n${verifyUrl}\n\nLink expires in 24 hours.`
 
     await sendEmail({
       to:      email,
@@ -334,7 +359,7 @@ async function resendVerification(
   }
 }
 
-function buildVerificationEmail(name: string, verifyUrl: string): string {
+function buildVerificationEmail(name: string, verifyUrl: string, trialDays = 7): string {
   const brand = getBrand()
   return `<!DOCTYPE html>
 <html>
@@ -357,7 +382,7 @@ function buildVerificationEmail(name: string, verifyUrl: string): string {
           <td style="padding:40px;">
             <p style="margin:0 0 8px;color:#1e293b;font-size:16px;font-weight:700;">Hi ${name},</p>
             <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.6;">
-              You're one click away from activating your <strong>7-day free trial</strong>.<br>
+              You're one click away from activating your <strong>${trialDays}-day free trial</strong>.<br>
               Verify your email to get instant access.
             </p>
             <table width="100%" cellpadding="0" cellspacing="0">

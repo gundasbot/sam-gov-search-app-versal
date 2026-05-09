@@ -14,6 +14,7 @@ export async function sendSignupWelcomeEmailOnce(params: {
   email: string
   name?: string | null
   source: WelcomeSource
+  trialDays?: number
 }) {
   const email = String(params.email || '').toLowerCase().trim()
   if (!email) return { sent: false as const, reason: 'missing_email' as const }
@@ -39,7 +40,7 @@ export async function sendSignupWelcomeEmailOnce(params: {
   const safeName = String(params.name || fallbackName).trim() || fallbackName
 
   try {
-    const result = await sendWelcomeEmail(email, safeName)
+    const result = await sendWelcomeEmail(email, safeName, params.trialDays)
     const messageId = (result as any)?.data?.id
 
     await prisma.email_logs.create({

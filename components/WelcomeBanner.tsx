@@ -20,6 +20,7 @@ type Profile = {
 type VerifiedWelcomeData = {
   firstName: string
   planTier: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE'
+  trialDays?: number
 }
 
 const planLabels: Record<string, string> = {
@@ -104,7 +105,7 @@ function VerifiedWelcomeBanner() {
           </p>
           <p style={{ margin: '0 0 0.875rem', fontSize: '0.9375rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
             Your email is verified and your{' '}
-            <strong style={{ color: '#10b981' }}>{planLabel} 7-day free trial</strong> is now active.
+            <strong style={{ color: '#10b981' }}>{planLabel} {data.trialDays ?? 7}-day free trial</strong> is now active.
             Start exploring government contract opportunities below.
           </p>
 
@@ -112,7 +113,7 @@ function VerifiedWelcomeBanner() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem' }}>
             {[
               { Icon: CheckCircle, color: '#10b981', label: 'Account verified' },
-              { Icon: Clock,       color: '#3b82f6', label: '7-day trial active' },
+              { Icon: Clock,       color: '#3b82f6', label: `${data.trialDays ?? 7}-day trial active` },
               { Icon: CreditCard,  color: '#f97316', label: 'Cancel anytime' },
             ].map(({ Icon, color, label }) => (
               <div

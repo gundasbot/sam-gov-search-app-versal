@@ -2,7 +2,7 @@
 // Based on government contracting SaaS market research
 
 export const PRICING_PLANS = {
-  // Free Trial - 7 Days (No credit card required)
+  // Free Trial - 7 Days
   TRIAL: {
     name: 'Free Trial',
     duration: '7 days',
