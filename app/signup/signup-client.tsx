@@ -140,8 +140,23 @@ export default function SignUpClient() {
   const [registered,      setRegistered]      = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
   const [trialCode,       setTrialCode]       = useState(codeParam)
-  
-  const errorRef = useRef<HTMLDivElement>(null)
+  const [codeFromEmail,   setCodeFromEmail]   = useState(!!codeParam)
+  const [codeStatus,      setCodeStatus]      = useState<
+    null | 'validating' | { valid: true; trialDays?: number; type: string; discount?: string | null } | { valid: false; reason: string }
+  >(null)
+
+  const errorRef        = useRef<HTMLDivElement>(null)
+  const codeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Pre-validate offer code when it arrives via URL (email link)
+  useEffect(() => {
+    if (!codeParam) return
+    setCodeStatus('validating')
+    fetch(`/api/offer-code/validate?code=${encodeURIComponent(codeParam)}`)
+      .then(r => r.json())
+      .then(data => setCodeStatus(data))
+      .catch(() => setCodeStatus(null))
+  }, [codeParam])
 
   // Handle return from Stripe setup (setup=done or setup=skip)
   useEffect(() => {
@@ -626,27 +641,85 @@ export default function SignUpClient() {
                   <label className="block text-xs sm:text-sm font-bold text-(--color-text-secondary) mb-1.5 uppercase tracking-wide">
                     Trial Code <span className="font-normal text-(--color-text-subtle)">(optional)</span>
                   </label>
+
+                  {/* "Applied from email" pill — shown when code arrived via URL */}
+                  {codeFromEmail && codeStatus && codeStatus !== 'validating' && codeStatus.valid && (
+                    <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold w-fit">
+                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                      {(codeStatus as any).trialDays
+                        ? `${(codeStatus as any).trialDays}-day trial pre-applied from your invitation`
+                        : 'Offer code pre-applied from your invitation'}
+                    </div>
+                  )}
+
                   <div className="relative">
-                    <input 
-                      type="text" 
-                      value={trialCode} 
-                      onChange={e => setTrialCode(e.target.value.toUpperCase())} 
+                    <input
+                      type="text"
+                      value={trialCode}
+                      onChange={e => {
+                        const val = e.target.value.toUpperCase()
+                        setTrialCode(val)
+                        setCodeFromEmail(false)
+                        setCodeStatus(null)
+                        if (codeDebounceRef.current) clearTimeout(codeDebounceRef.current)
+                        if (val.length >= 4) {
+                          setCodeStatus('validating')
+                          codeDebounceRef.current = setTimeout(() => {
+                            fetch(`/api/offer-code/validate?code=${encodeURIComponent(val)}`)
+                              .then(r => r.json())
+                              .then(data => setCodeStatus(data))
+                              .catch(() => setCodeStatus(null))
+                          }, 600)
+                        }
+                      }}
                       placeholder="Enter code if you have one"
                       className={[
                         'pg-input h-12 px-4 text-base font-mono uppercase bg-(--color-surface-muted) placeholder:text-(--color-text-subtle) placeholder:normal-case placeholder:font-sans',
-                        trialCode ? 'border-(--color-primary) ring-2 ring-(--color-primary)/20' : '',
-                      ].join(' ')} 
+                        trialCode && codeStatus && codeStatus !== 'validating' && codeStatus.valid
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20'
+                          : trialCode && codeStatus && codeStatus !== 'validating' && !codeStatus.valid
+                          ? 'border-red-400 ring-2 ring-red-400/20'
+                          : trialCode
+                          ? 'border-(--color-primary) ring-2 ring-(--color-primary)/20'
+                          : '',
+                      ].join(' ')}
                     />
-                    {trialCode && (
+                    {trialCode && codeStatus === 'validating' && (
                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                        <Check className="w-4 h-4 text-(--color-primary)" />
+                        <Loader2 className="w-4 h-4 text-(--color-text-subtle) animate-spin" />
+                      </div>
+                    )}
+                    {trialCode && codeStatus && codeStatus !== 'validating' && codeStatus.valid && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <Check className="w-4 h-4 text-emerald-600" />
+                      </div>
+                    )}
+                    {trialCode && codeStatus && codeStatus !== 'validating' && !codeStatus.valid && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <XCircle className="w-4 h-4 text-red-400" />
                       </div>
                     )}
                   </div>
-                  {trialCode && (
+
+                  {/* Validation feedback */}
+                  {trialCode && codeStatus && codeStatus !== 'validating' && codeStatus.valid && (
+                    <p className="mt-1.5 text-xs text-emerald-600 font-medium flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      {(codeStatus as any).trialDays
+                        ? `Valid — ${(codeStatus as any).trialDays}-day trial will be applied`
+                        : `Valid code — discount will be applied`}
+                    </p>
+                  )}
+                  {trialCode && codeStatus && codeStatus !== 'validating' && !codeStatus.valid && (
+                    <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {(codeStatus as any).reason || 'Invalid code — you can still sign up without it'}
+                    </p>
+                  )}
+                  {trialCode && !codeStatus && (
                     <p className="mt-1.5 text-xs text-(--color-primary) font-medium flex items-center gap-1">
                       <Check className="w-3 h-3" />
-                      Code applied: {trialCode}
+                      Code entered: {trialCode}
                     </p>
                   )}
                 </div>
