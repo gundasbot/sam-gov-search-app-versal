@@ -2,7 +2,8 @@
 import { sendEmail } from './send'
 import { getBrand } from './brand'
 
-const LIVE_SITE_URL = 'https://www.precisegovcon.com'
+const PLATFORM_URL  = 'https://platform.precisegovcon.com'
+const MARKETING_URL = 'https://www.precisegovcon.com'
 
 export async function sendWelcomeEmail(email: string, name: string, trialDays = 7) {
   const brand = getBrand()
@@ -10,43 +11,14 @@ export async function sendWelcomeEmail(email: string, name: string, trialDays = 
 
   return sendEmail({
     to: email,
-    subject: `You're in, ${firstName}! Your Precise GovCon trial is active 🚀`,
+    subject: `Welcome to Precise GovCon, ${firstName} — your platform is ready`,
     html: getWelcomeEmailHtml(firstName, trialDays),
     text: getWelcomeEmailText(firstName, trialDays),
   })
 }
 
-function resolveWelcomeAppUrl(rawUrl: string): string {
-  const candidate = (rawUrl || '').trim()
-  if (!candidate) return LIVE_SITE_URL
-
-  try {
-    const parsed = new URL(candidate)
-    const host = parsed.hostname.toLowerCase()
-    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.endsWith('.local')) {
-      return LIVE_SITE_URL
-    }
-    return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, '')
-  } catch {
-    if (candidate.includes('localhost') || candidate.includes('127.0.0.1')) {
-      return LIVE_SITE_URL
-    }
-    return candidate.replace(/\/$/, '')
-  }
-}
-
-function getDomainLabel(appUrl: string): string {
-  try {
-    return new URL(appUrl).hostname
-  } catch {
-    return appUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')
-  }
-}
-
 function getWelcomeEmailHtml(firstName: string, trialDays = 7): string {
   const brand = getBrand()
-  const appUrl = resolveWelcomeAppUrl(brand.appUrl)
-  const domainLabel = getDomainLabel(appUrl)
 
   return `
 <!DOCTYPE html>
@@ -56,138 +28,238 @@ function getWelcomeEmailHtml(firstName: string, trialDays = 7): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to ${brand.name}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#eef6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef6ff;">
+<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f4f8;">
     <tr>
       <td align="center" style="padding:36px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
-               style="max-width:600px;width:100%;background:#ffffff;border-radius:22px;overflow:hidden;box-shadow:0 16px 40px rgba(15,23,42,0.18);border:1px solid #bfdbfe;">
+               style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 12px 40px rgba(15,23,42,0.14);border:1px solid #e2e8f0;">
 
           <!-- Logo header -->
           <tr>
-            <td style="padding:24px 28px 16px;background-color:#ffffff;text-align:center;border-bottom:1px solid #dbeafe;">
+            <td style="padding:28px 32px 20px;background-color:#ffffff;text-align:center;border-bottom:2px solid #e2e8f0;">
               <img src="${brand.logoUrl}" alt="${brand.name}"
-                   style="max-width:220px;height:auto;display:inline-block;border:0;margin-bottom:8px;" />
-              <div style="font-size:13px;color:#334155;font-weight:600;letter-spacing:0.2px;">${brand.tagline}</div>
+                   style="max-width:200px;height:auto;display:inline-block;border:0;margin-bottom:10px;" />
+              <div style="font-size:13px;color:#475569;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">${brand.tagline}</div>
             </td>
           </tr>
 
           <!-- Hero banner -->
           <tr>
-            <td style="background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);padding:30px 28px 26px;text-align:center;">
-              <div style="width:74px;height:74px;margin:0 auto 14px;background:#dcfce7;border-radius:18px;text-align:center;line-height:74px;font-size:34px;">
-                🚀
-              </div>
-              <h1 style="margin:0;color:#ffffff;font-size:34px;font-weight:900;letter-spacing:-0.4px;line-height:1.2;">
-                You're in, ${firstName}!
+            <td style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);padding:36px 32px 30px;text-align:center;">
+              <h1 style="margin:0 0 10px;color:#ffffff;font-size:30px;font-weight:900;letter-spacing:-0.3px;line-height:1.25;">
+                Welcome aboard, ${firstName}!
               </h1>
-              <p style="margin:8px 0 0;color:#f0fdf4;font-size:18px;font-weight:700;line-height:1.4;">
-                Your ${trialDays}-day free trial is now active — full access starts now.
+              <p style="margin:0;color:#94a3b8;font-size:17px;font-weight:500;line-height:1.5;">
+                Your ${trialDays}-day free trial is active and your platform is ready to use.
               </p>
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Platform link highlight -->
           <tr>
-            <td style="padding:30px 28px 24px;background-color:#ffffff;">
-              <p style="margin:0 0 14px;color:#0f172a;font-size:23px;font-weight:800;">
+            <td style="padding:28px 32px 0;background-color:#ffffff;">
+              <p style="margin:0 0 16px;color:#0f172a;font-size:18px;font-weight:700;line-height:1.5;">
                 Hi ${firstName},
               </p>
-              <p style="margin:0 0 24px;color:#1e293b;font-size:18px;line-height:1.65;font-weight:500;">
-                Welcome to <strong style="color:#0f172a;">Precise GovCon</strong> — your all-in-one platform for finding,
-                tracking, and winning government contract opportunities. Your email is verified and your
-                <strong style="color:#15803d;">${trialDays}-day free trial</strong> is live. Start exploring now.
+              <p style="margin:0 0 20px;color:#334155;font-size:16px;line-height:1.7;">
+                Thank you for joining <strong style="color:#0f172a;">Precise GovCon</strong> — your dedicated platform for
+                discovering, tracking, and winning government contract opportunities. We built this tool
+                specifically for small businesses navigating the federal, state, and local contracting landscape.
               </p>
 
-              <!-- CTA -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <!-- Platform access box -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:14px;margin-bottom:24px;">
                 <tr>
-                  <td align="center" style="padding:0 0 24px;">
-                    <a href="${appUrl}/search"
-                       style="display:inline-block;padding:16px 42px;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:800;font-size:20px;border-radius:12px;box-shadow:0 8px 20px rgba(22,163,74,0.25);">
-                      Start Searching Now &rarr;
+                  <td style="padding:24px 24px;text-align:center;">
+                    <p style="margin:0 0 6px;color:#94a3b8;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">
+                      Your Platform Login &amp; Bookmark
+                    </p>
+                    <p style="margin:0 0 16px;color:#ffffff;font-size:22px;font-weight:900;letter-spacing:0.5px;">
+                      platform.precisegovcon.com
+                    </p>
+                    <a href="${PLATFORM_URL}/dashboard"
+                       style="display:inline-block;padding:14px 40px;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:800;font-size:17px;border-radius:10px;letter-spacing:0.2px;">
+                      Go to Your Dashboard &rarr;
+                    </a>
+                    <p style="margin:12px 0 0;color:#64748b;font-size:12px;">
+                      Bookmark this link for quick access every time you log in.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Quick actions -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+                <tr>
+                  <td width="48%" style="padding-right:8px;">
+                    <a href="${PLATFORM_URL}/search" style="display:block;padding:14px 16px;background:#f0fdf4;border:2px solid #86efac;border-radius:10px;text-decoration:none;text-align:center;">
+                      <div style="font-size:22px;margin-bottom:6px;">&#128269;</div>
+                      <div style="color:#15803d;font-size:14px;font-weight:800;">Search Contracts</div>
+                      <div style="color:#4ade80;font-size:12px;font-weight:600;margin-top:2px;">Start exploring now</div>
+                    </a>
+                  </td>
+                  <td width="4%"></td>
+                  <td width="48%" style="padding-left:8px;">
+                    <a href="${PLATFORM_URL}/alerts" style="display:block;padding:14px 16px;background:#eff6ff;border:2px solid #93c5fd;border-radius:10px;text-decoration:none;text-align:center;">
+                      <div style="font-size:22px;margin-bottom:6px;">&#128276;</div>
+                      <div style="color:#1d4ed8;font-size:14px;font-weight:800;">Set Up Alerts</div>
+                      <div style="color:#60a5fa;font-size:12px;font-weight:600;margin-top:2px;">Never miss an opportunity</div>
                     </a>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
 
-              <!-- What's included -->
+          <!-- What's included -->
+          <tr>
+            <td style="padding:0 32px 24px;background-color:#ffffff;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background:#f0fdf4;border:2px solid #86efac;border-radius:12px;margin-bottom:24px;">
+                     style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
                 <tr>
-                  <td style="padding:18px 18px;">
-                    <p style="margin:0 0 12px;color:#14532d;font-size:20px;font-weight:800;">
-                      What's included in your trial:
+                  <td style="padding:20px 22px;">
+                    <p style="margin:0 0 14px;color:#0f172a;font-size:17px;font-weight:800;">
+                      What&#39;s included in your ${trialDays}-day trial:
                     </p>
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Unlimited opportunity searches across federal, state &amp; local</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Real-time contract alerts by NAICS code, keyword &amp; agency</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Save &amp; track opportunities through your pipeline</td></tr>
-                      <tr><td style="padding:0 0 8px;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Export results to CSV / Excel</td></tr>
-                      <tr><td style="padding:0;color:#14532d;font-size:16px;line-height:1.65;font-weight:600;">&#10003; Advanced filtering &amp; saved searches</td></tr>
+                      <tr><td style="padding:0 0 10px;">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="24" valign="top" style="color:#16a34a;font-size:16px;padding-top:1px;">&#10003;</td>
+                          <td style="color:#334155;font-size:15px;line-height:1.6;font-weight:500;">Unlimited searches across federal, state &amp; local opportunities</td>
+                        </tr></table>
+                      </td></tr>
+                      <tr><td style="padding:0 0 10px;">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="24" valign="top" style="color:#16a34a;font-size:16px;padding-top:1px;">&#10003;</td>
+                          <td style="color:#334155;font-size:15px;line-height:1.6;font-weight:500;">Real-time contract alerts by NAICS code, keyword &amp; agency</td>
+                        </tr></table>
+                      </td></tr>
+                      <tr><td style="padding:0 0 10px;">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="24" valign="top" style="color:#16a34a;font-size:16px;padding-top:1px;">&#10003;</td>
+                          <td style="color:#334155;font-size:15px;line-height:1.6;font-weight:500;">Save &amp; track opportunities — monitor deadlines in one place</td>
+                        </tr></table>
+                      </td></tr>
+                      <tr><td style="padding:0 0 10px;">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="24" valign="top" style="color:#16a34a;font-size:16px;padding-top:1px;">&#10003;</td>
+                          <td style="color:#334155;font-size:15px;line-height:1.6;font-weight:500;">AI-powered market insights &amp; trend analysis</td>
+                        </tr></table>
+                      </td></tr>
+                      <tr><td style="padding:0;">
+                        <table cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td width="24" valign="top" style="color:#16a34a;font-size:16px;padding-top:1px;">&#10003;</td>
+                          <td style="color:#334155;font-size:15px;line-height:1.6;font-weight:500;">Export results to CSV / Excel for team collaboration</td>
+                        </tr></table>
+                      </td></tr>
                     </table>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
 
-              <!-- Getting started steps -->
-              <p style="margin:0 0 10px;color:#0f172a;font-size:20px;font-weight:800;">
-                3 things to do right now:
+          <!-- Helpful tips -->
+          <tr>
+            <td style="padding:0 32px 28px;background-color:#ffffff;">
+              <p style="margin:0 0 16px;color:#0f172a;font-size:17px;font-weight:800;">
+                4 tips to get the most out of your trial:
               </p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:22px;">
-                <tr><td style="padding:0 0 12px;">
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="padding:0 0 14px;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                         style="background:#f8fafc;border-left:3px solid #16a34a;border-radius:0 8px 8px 0;padding:0;">
                     <tr>
-                      <td width="30" valign="top" style="color:#16a34a;font-size:19px;font-weight:900;padding-top:1px;">1.</td>
-                      <td style="color:#1e293b;font-size:17px;line-height:1.65;"><strong style="color:#0f172a;">Set up your NAICS code filters</strong> — focus on contracts that match your capabilities</td>
+                      <td style="padding:12px 16px;">
+                        <p style="margin:0 0 3px;color:#0f172a;font-size:15px;font-weight:700;">1. Filter by your NAICS codes first</p>
+                        <p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">
+                          Head to <a href="${PLATFORM_URL}/search" style="color:#16a34a;text-decoration:none;font-weight:600;">Search</a> and enter your NAICS codes to see contracts that match your specific capabilities. Saved searches run automatically and alert you to new matches.
+                        </p>
+                      </td>
                     </tr>
                   </table>
                 </td></tr>
-                <tr><td style="padding:0 0 12px;">
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="padding:0 0 14px;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                         style="background:#f8fafc;border-left:3px solid #1d4ed8;border-radius:0 8px 8px 0;">
                     <tr>
-                      <td width="30" valign="top" style="color:#16a34a;font-size:19px;font-weight:900;padding-top:1px;">2.</td>
-                      <td style="color:#1e293b;font-size:17px;line-height:1.65;"><strong style="color:#0f172a;">Enable email alerts</strong> — get notified the moment new matching opportunities are posted</td>
+                      <td style="padding:12px 16px;">
+                        <p style="margin:0 0 3px;color:#0f172a;font-size:15px;font-weight:700;">2. Turn on email alerts</p>
+                        <p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">
+                          Go to <a href="${PLATFORM_URL}/alerts" style="color:#1d4ed8;text-decoration:none;font-weight:600;">Alerts</a> and create keyword or agency-specific alerts. You&#39;ll receive a digest the moment matching opportunities are posted — no more manual checking.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td></tr>
+                <tr><td style="padding:0 0 14px;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                         style="background:#f8fafc;border-left:3px solid #7c3aed;border-radius:0 8px 8px 0;">
+                    <tr>
+                      <td style="padding:12px 16px;">
+                        <p style="margin:0 0 3px;color:#0f172a;font-size:15px;font-weight:700;">3. Check the Insights dashboard</p>
+                        <p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">
+                          Visit <a href="${PLATFORM_URL}/insights" style="color:#7c3aed;text-decoration:none;font-weight:600;">Insights</a> for AI-generated market trends, top agencies by spend, and set-aside breakdowns. Use this to prioritize which opportunities to pursue.
+                        </p>
+                      </td>
                     </tr>
                   </table>
                 </td></tr>
                 <tr><td style="padding:0;">
-                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                         style="background:#f8fafc;border-left:3px solid #ea580c;border-radius:0 8px 8px 0;">
                     <tr>
-                      <td width="30" valign="top" style="color:#16a34a;font-size:19px;font-weight:900;padding-top:1px;">3.</td>
-                      <td style="color:#1e293b;font-size:17px;line-height:1.65;"><strong style="color:#0f172a;">Save your first opportunity</strong> — track deadlines and submission requirements</td>
+                      <td style="padding:12px 16px;">
+                        <p style="margin:0 0 3px;color:#0f172a;font-size:15px;font-weight:700;">4. Bookmark your direct platform link</p>
+                        <p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">
+                          Save <strong>platform.precisegovcon.com</strong> to your browser bookmarks or home screen for instant access. This is your dedicated app URL — separate from the marketing site.
+                        </p>
+                      </td>
                     </tr>
                   </table>
                 </td></tr>
               </table>
+            </td>
+          </tr>
 
-              <!-- VOSB callout -->
+          <!-- VOSB callout -->
+          <tr>
+            <td style="padding:0 32px 28px;background-color:#ffffff;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #93c5fd;border-radius:12px;margin-bottom:22px;">
+                     style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:12px;">
                 <tr>
-                  <td style="padding:16px 16px;text-align:center;">
-                    <p style="margin:0 0 4px;color:#1d4ed8;font-size:18px;font-weight:800;">
-                      &#127482;&#127480; Built for businesses like yours
+                  <td style="padding:20px 22px;text-align:center;">
+                    <p style="margin:0 0 6px;color:#f8fafc;font-size:16px;font-weight:800;">
+                      &#127482;&#127480; Built for small businesses — by a small business
                     </p>
-                    <p style="margin:0;color:#1e3a8a;font-size:15px;line-height:1.65;font-weight:600;">
-                      Precise GovCon is a Minority-Owned, Veteran-Owned Small Business based in Richmond, Virginia —
-                      we understand the contracting landscape because we operate in it.
+                    <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.65;font-weight:500;">
+                      Precise GovCon is a Minority-Owned, Veteran-Owned Small Business based in Richmond, Virginia.
+                      We understand the contracting landscape because we operate in it every day.
                     </p>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
 
-              <!-- Support box -->
+          <!-- Support box -->
+          <tr>
+            <td style="padding:0 32px 28px;background-color:#ffffff;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background:#eff6ff;border:2px solid #93c5fd;border-radius:10px;">
+                     style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;">
                 <tr>
-                  <td style="padding:16px 16px;text-align:center;">
-                    <p style="margin:0 0 6px;color:#1e3a8a;font-size:16px;font-weight:700;">
-                      Questions? We typically respond within one business day.
+                  <td style="padding:16px 20px;text-align:center;">
+                    <p style="margin:0 0 4px;color:#15803d;font-size:15px;font-weight:700;">
+                      Need help getting started?
                     </p>
-                    <p style="margin:0;color:#1d4ed8;font-size:16px;font-weight:700;">
-                      <a href="mailto:${brand.supportEmail}" style="color:#1d4ed8;text-decoration:underline;">${brand.supportEmail}</a>
+                    <p style="margin:0 0 6px;color:#166534;font-size:13px;line-height:1.6;">
+                      Our team responds within one business day.
                     </p>
+                    <a href="mailto:${brand.supportEmail}" style="color:#16a34a;font-size:14px;font-weight:700;text-decoration:none;">
+                      ${brand.supportEmail}
+                    </a>
                   </td>
                 </tr>
               </table>
@@ -196,31 +268,35 @@ function getWelcomeEmailHtml(firstName: string, trialDays = 7): string {
 
           <!-- Trial reminder bar -->
           <tr>
-            <td style="padding:14px 20px;background:#dcfce7;border-top:1px solid #86efac;text-align:center;">
-              <p style="margin:0;color:#14532d;font-size:15px;font-weight:700;">
-                &#9200; Your ${trialDays}-day trial gives you full access — subscribe any time from account settings to keep it going.
+            <td style="padding:14px 24px;background:#0f172a;text-align:center;">
+              <p style="margin:0;color:#94a3b8;font-size:13px;font-weight:600;">
+                Your ${trialDays}-day trial includes full platform access — subscribe anytime from
+                <a href="${PLATFORM_URL}/account/billing" style="color:#4ade80;text-decoration:none;font-weight:700;">Account &rarr; Billing</a>
+                to keep it going.
               </p>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 20px;background-color:#f8fafc;text-align:center;border-top:1px solid #dbeafe;">
+            <td style="padding:24px 32px;background-color:#f8fafc;text-align:center;border-top:1px solid #e2e8f0;">
               <img src="${brand.logoUrl}" alt="${brand.name}"
-                   style="max-width:140px;height:auto;display:inline-block;border:0;opacity:0.9;margin-bottom:10px;" />
-              <p style="margin:0;color:#334155;font-size:13px;font-weight:700;">
-                &copy; ${new Date().getFullYear()} ${brand.name}
+                   style="max-width:130px;height:auto;display:inline-block;border:0;opacity:0.85;margin-bottom:12px;" />
+              <p style="margin:0 0 4px;color:#334155;font-size:13px;font-weight:700;">
+                &copy; ${new Date().getFullYear()} ${brand.name} &mdash; All rights reserved.
               </p>
-              <p style="margin:4px 0 0;color:#475569;font-size:12px;font-weight:600;">
+              <p style="margin:0 0 10px;color:#64748b;font-size:12px;font-weight:500;">
                 Minority-Owned &middot; Veteran-Owned Small Business &middot; Richmond, Virginia
               </p>
-              <p style="margin:8px 0 0;font-size:13px;font-weight:700;">
-                <a href="${appUrl}/privacy" style="color:#334155;text-decoration:none;">Privacy</a>
-                &nbsp;&bull;&nbsp;
-                <a href="${appUrl}/terms" style="color:#334155;text-decoration:none;">Terms</a>
+              <p style="margin:0 0 8px;font-size:12px;">
+                <a href="${MARKETING_URL}/privacy" style="color:#64748b;text-decoration:none;margin:0 6px;">Privacy Policy</a>
+                &bull;
+                <a href="${MARKETING_URL}/terms" style="color:#64748b;text-decoration:none;margin:0 6px;">Terms of Service</a>
+                &bull;
+                <a href="${MARKETING_URL}/support" style="color:#64748b;text-decoration:none;margin:0 6px;">Support</a>
               </p>
-              <p style="margin:8px 0 0;color:#64748b;font-size:12px;font-weight:600;">
-                You're receiving this because you created an account at ${domainLabel}.
+              <p style="margin:0;color:#94a3b8;font-size:11px;">
+                You&#39;re receiving this because you created an account at precisegovcon.com.
               </p>
             </td>
           </tr>
@@ -235,38 +311,69 @@ function getWelcomeEmailHtml(firstName: string, trialDays = 7): string {
 
 function getWelcomeEmailText(firstName: string, trialDays = 7): string {
   const brand = getBrand()
-  const appUrl = resolveWelcomeAppUrl(brand.appUrl)
 
   return `
 ${brand.name.toUpperCase()} — ${brand.tagline}
+${'─'.repeat(60)}
 
-You're in, ${firstName}! Your ${trialDays}-day free trial is now active.
+Welcome aboard, ${firstName}!
+Your ${trialDays}-day free trial is active and your platform is ready.
 
 Hi ${firstName},
 
-Welcome to Precise GovCon — your all-in-one platform for finding, tracking, and winning government contract opportunities. Your email is verified and your ${trialDays}-day free trial is live.
+Thank you for joining Precise GovCon — your dedicated platform for
+discovering, tracking, and winning government contract opportunities.
 
-Start searching now: ${appUrl}/search
+YOUR PLATFORM LOGIN & BOOKMARK
+────────────────────────────────
+  platform.precisegovcon.com
 
-WHAT'S INCLUDED IN YOUR TRIAL:
-- Unlimited opportunity searches across federal, state & local
-- Real-time contract alerts by NAICS code, keyword & agency
-- Save & track opportunities through your pipeline
-- Export results to CSV / Excel
-- Advanced filtering & saved searches
+  → Go to Your Dashboard:   ${PLATFORM_URL}/dashboard
+  → Search Contracts:        ${PLATFORM_URL}/search
+  → Set Up Alerts:           ${PLATFORM_URL}/alerts
+  → Market Insights:         ${PLATFORM_URL}/insights
 
-3 THINGS TO DO RIGHT NOW:
-1. Set up your NAICS code filters — focus on contracts that match your capabilities
-2. Enable email alerts — get notified the moment new matching opportunities are posted
-3. Save your first opportunity — track deadlines and submission requirements
+Save platform.precisegovcon.com to your bookmarks for quick access.
 
-Your ${trialDays}-day trial gives you full access. Subscribe any time from account settings to keep it going.
+WHAT'S INCLUDED IN YOUR ${trialDays}-DAY TRIAL:
+─────────────────────────────────────────────
+  ✓ Unlimited searches across federal, state & local opportunities
+  ✓ Real-time contract alerts by NAICS code, keyword & agency
+  ✓ Save & track opportunities — monitor deadlines in one place
+  ✓ AI-powered market insights & trend analysis
+  ✓ Export results to CSV / Excel for team collaboration
 
-Questions? Email us at ${brand.supportEmail} — we respond within one business day.
+4 TIPS TO GET THE MOST OUT OF YOUR TRIAL:
+──────────────────────────────────────────
+  1. Filter by your NAICS codes first
+     Head to Search and enter your NAICS codes to see contracts
+     that match your capabilities. Save the search to get automatic alerts.
 
----
+  2. Turn on email alerts
+     Go to Alerts and create keyword or agency-specific alerts. You'll
+     receive a digest the moment matching opportunities are posted.
+
+  3. Check the Insights dashboard
+     Visit Insights for AI-generated market trends, top agencies by
+     spend, and set-aside breakdowns to prioritize your pipeline.
+
+  4. Bookmark your direct platform link
+     Save platform.precisegovcon.com to your browser or home screen
+     for instant access every time you log in.
+
+NEED HELP?
+──────────
+  Email: ${brand.supportEmail}
+  We respond within one business day.
+
+Your ${trialDays}-day trial includes full access. Subscribe anytime from
+Account → Billing to keep it going.
+
+${'─'.repeat(60)}
 © ${new Date().getFullYear()} ${brand.name}
 Minority-Owned · Veteran-Owned Small Business · Richmond, Virginia
-${appUrl}
+
+Privacy: ${MARKETING_URL}/privacy
+Terms:   ${MARKETING_URL}/terms
   `.trim()
 }
