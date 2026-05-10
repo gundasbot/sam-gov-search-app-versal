@@ -1,13 +1,19 @@
+// app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/app/(platform)/api/auth/[...nextauth]/route'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 function isAdminRole(role?: string | null) {
   const r = (role ?? '').toLowerCase().trim()
-  return r === 'admin' || r === 'super_admin' || r === 'superadmin' || r === 'super-admin'
+  return (
+    r === 'admin' ||
+    r === 'super_admin' ||
+    r === 'superadmin' ||
+    r === 'super-admin'
+  )
 }
 
 export async function GET(req: NextRequest) {
@@ -19,7 +25,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin (from `users` table)
+    // Verify admin access
     const adminUser = await prisma.users.findUnique({
       where: { email },
       select: { role: true },
@@ -29,7 +35,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    // Get all users (exclude password_hash and other sensitive fields)
+    // Fetch users (safe fields only)
     const rows = await prisma.users.findMany({
       select: {
         id: true,
@@ -46,7 +52,6 @@ export async function GET(req: NextRequest) {
         country: true,
         postal_code: true,
 
-        // Optional: include useful admin fields (safe)
         plan_tier: true,
         plan_status: true,
         account_status: true,
@@ -61,15 +66,18 @@ export async function GET(req: NextRequest) {
       orderBy: { created_at: 'desc' },
     })
 
-    // Return camelCase to keep your frontend clean/consistent
+    // Convert to camelCase API response
     const users = rows.map((u) => ({
       id: u.id,
       email: u.email,
+
       first_name: u.first_name,
       last_name: u.last_name,
       role: u.role,
+
       created_at: u.created_at,
       updated_at: u.updated_at,
+
       phone: u.phone,
       company: u.company,
       city: u.city,
@@ -108,7 +116,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is admin (from `users` table)
+    // Verify admin access
     const adminUser = await prisma.users.findUnique({
       where: { email },
       select: { role: true },
@@ -125,7 +133,6 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Update user role
     const updated = await prisma.users.update({
       where: { id: userId },
       data: { role },
@@ -139,7 +146,8 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'User role updated', users: {
+      message: 'User role updated',
+      user: {
         id: updated.id,
         email: updated.email,
         role: updated.role,

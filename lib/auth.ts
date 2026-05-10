@@ -209,4 +209,4 @@ export async function getTrialDaysRemaining(userId: string): Promise<number> {
 }
 
 // ✅ FIXED: Re-export authOptions from route.ts (single source of truth)
-export { authOptions } from '@/app/api/auth/[...nextauth]/route'
+export { authOptions } from '@/app/(platform)/api/auth/[...nextauth]/route'

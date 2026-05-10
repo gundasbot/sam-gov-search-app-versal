@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/app/(platform)/api/auth/[...nextauth]/route'
 import { PrismaClient } from '@prisma/client'
 import Stripe from 'stripe'
 
@@ -22,10 +22,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { paymentMethodId, nickname } = await req.json()
-    const trimmedNickname = typeof nickname === 'string' ? nickname.trim() : ''
-
-    if (!paymentMethodId) {
+    const { paymentMethodId } = await req.json()
+    if (!paymentMethodId || typeof paymentMethodId !== 'string') {
       return NextResponse.json({ error: 'paymentMethodId is required' }, { status: 400 })
     }
 
@@ -38,27 +36,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No Stripe customer found' }, { status: 404 })
     }
 
+    // Verify the payment method belongs to this customer before detaching
     const pm = await stripe.paymentMethods.retrieve(paymentMethodId)
-    if (!('customer' in pm)) {
-      return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 })
+    const pmCustomerId = typeof pm.customer === 'string' ? pm.customer : pm.customer?.id
+    if (pmCustomerId !== user.stripe_customer_id) {
+      return NextResponse.json({ error: 'Payment method not found' }, { status: 404 })
     }
 
-    const customerId = typeof pm.customer === 'string' ? pm.customer : pm.customer?.id
-    if (customerId !== user.stripe_customer_id) {
-      return NextResponse.json({ error: 'Payment method does not belong to this user' }, { status: 403 })
-    }
+    await stripe.paymentMethods.detach(paymentMethodId)
 
-    await stripe.paymentMethods.update(paymentMethodId, {
-      metadata: {
-        ...(pm.metadata || {}),
-        nickname: trimmedNickname,
-      },
-    })
-
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ success: true })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to save nickname'
-    console.error('Payment method nickname update error:', err)
-    return NextResponse.json({ error: message }, { status: 500 })
+    const msg = err instanceof Error ? err.message : 'Failed to remove card'
+    console.error('[payment-methods/delete]', err)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }

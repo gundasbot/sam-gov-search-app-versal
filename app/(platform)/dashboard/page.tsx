@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import OpportunityModal from '../../components/OpportunityModal'
+import OpportunityModal from '@/components/OpportunityModal'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'

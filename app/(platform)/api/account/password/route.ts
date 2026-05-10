@@ -1,17 +1,24 @@
-///app/api/password/change/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { prisma } from '@/lib/prisma'
+import { authOptions } from '@/app/(platform)/api/auth/[...nextauth]/route'
+import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 export const runtime = 'nodejs'
+
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined
+}
+
+const prisma = global.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     const email = session?.user?.email?.toLowerCase().trim()
-    
+
     if (!email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -23,11 +30,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    if (newPassword.length < 8) {
-      return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 })
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+      return NextResponse.json(
+        { error: 'New password must be at least 8 characters' },
+        { status: 400 }
+      )
     }
 
-    // Get user with passwordHash (NOT password!)
+    // Get user with password_hash (NOT password!)
     const user = await prisma.users.findUnique({
       where: { email },
       select: {
@@ -42,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     // Verify current password
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash)
-    
+
     if (!isPasswordValid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 })
     }
@@ -50,25 +60,27 @@ export async function POST(req: NextRequest) {
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    // Update passwordHash (NOT password!)
+    // Update password_hash (NOT password!)
     await prisma.users.update({
       where: { email },
-      data: { 
+      data: {
         password_hash: hashedPassword,
         updated_at: new Date(),
       },
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Password changed successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'Password changed successfully',
     })
-
   } catch (error: any) {
     console.error('Password change error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to change password',
-      details: error.message,
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to change password',
+        details: error?.message ?? String(error),
+      },
+      { status: 500 }
+    )
   }
 }
