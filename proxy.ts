@@ -3,6 +3,28 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
+// Routes that live exclusively on platform.precisegovcon.com
+const PLATFORM_PATHS = [
+  '/search',
+  '/alerts',
+  '/alerts-searches',
+  '/dashboard',
+  '/insights',
+  '/account',
+  '/admin',
+  '/checkout',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/reset-request',
+  '/verify-email',
+  '/verify-success',
+  '/activate',
+  '/contacts',
+  '/auth',
+]
+
 const PROTECTED_PATHS = [
   '/account',
   '/dashboard',
@@ -25,6 +47,28 @@ const COOKIE_DELAYS = 'delay_count'
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const hostname = request.headers.get('host') ?? ''
+
+  // ── Subdomain routing (production only) ─────────────────────────────────────
+  if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
+    const isPlatformHost = hostname.startsWith('platform.')
+    const isPlatformPath = PLATFORM_PATHS.some(
+      p => pathname === p || pathname.startsWith(p + '/')
+    )
+
+    if (isPlatformHost && !isPlatformPath) {
+      const url = request.nextUrl.clone()
+      url.hostname = hostname.replace(/^platform\./, 'www.')
+      return NextResponse.redirect(url, { status: 301 })
+    }
+
+    if (!isPlatformHost && isPlatformPath) {
+      const url = request.nextUrl.clone()
+      const base = hostname.replace(/^www\./, '')
+      url.hostname = `platform.${base}`
+      return NextResponse.redirect(url, { status: 302 })
+    }
+  }
 
   // Skip static files and public paths
   if (
