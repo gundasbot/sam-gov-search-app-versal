@@ -906,7 +906,6 @@ function SettingsTab() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Could not update password')
       setPasswordForm({ current: '', next: '', confirm: '' })
-      setShowPasswordForm(false)
       setPasswordMsg({ type: 'success', text: 'Password updated successfully' })
     } catch (err: any) {
       setPasswordMsg({ type: 'error', text: err?.message || 'Could not update password' })
@@ -1101,14 +1100,26 @@ function SettingsTab() {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={handleUpdatePassword}
-                disabled={passwordBusy}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black disabled:opacity-60 inline-flex items-center gap-2"
-              >
-                {passwordBusy ? <><Loader2 size={14} className="animate-spin" /> Updating...</> : <><Lock size={14} /> Update Password</>}
-              </button>
+              <div className="flex gap-3 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleUpdatePassword}
+                  disabled={passwordBusy}
+                  className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-sm font-black disabled:opacity-60 inline-flex items-center justify-center gap-2 shadow-sm"
+                >
+                  {passwordBusy
+                    ? <><Loader2 size={15} className="animate-spin" /> Saving…</>
+                    : <><Lock size={15} /> Save New Password</>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPasswordForm({ current: '', next: '', confirm: '' }); setPasswordMsg(null) }}
+                  disabled={passwordBusy}
+                  className="px-5 py-3 rounded-xl border-2 border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-bold disabled:opacity-60"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
           </section>
 
