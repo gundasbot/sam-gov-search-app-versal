@@ -113,7 +113,11 @@ export default function Header() {
     alertsCloseTimer.current = setTimeout(() => setAlertsMenuOpen(false), 180)
   }
 
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href)
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+    if (href === '/dashboard') return pathname === '/dashboard' || pathname.startsWith('/dashboard/')
+    return pathname === href
+  }
   const alertsMenuActive = pathname.startsWith('/alerts') || pathname === '/dashboard/saved-opportunities'
   const activePillClasses = 'bg-[#ff7a18] text-white font-black'
   const inactivePillClasses = 'border-b-2 border-transparent hover:border-[#ff7a18]'

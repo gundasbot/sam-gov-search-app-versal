@@ -362,13 +362,12 @@ export default function DashboardOnboardingPage() {
       setSaved(true)
       setShowSuccessToast(true)
       await new Promise((resolve) => setTimeout(resolve, 900))
-      router.refresh()
-      router.push(targetPath)
     } catch {
-      setShowSuccessToast(false)
+      // Save failed — navigate anyway so Skip/Confirm always work
     } finally {
       setSaving(false)
     }
+    router.push(targetPath)
   }, [persistPrefs, prefs, router, session?.user?.email])
 
   const tog = <T,>(arr:T[],v:T)=>arr.includes(v)?arr.filter(x=>x!==v):[...arr,v]

@@ -352,23 +352,27 @@ export const authOptions: NextAuthOptions = {
 
       // Refresh from DB on every request
       if (token?.email) {
-        const dbUser = await prisma.users.findUnique({
-          where: { email: String(token.email) },
-          select: {
-            id: true, email: true, name: true, first_name: true, last_name: true,
-            role: true, plan: true, plan_tier: true, plan_status: true,
-            subscription_status: true, billing_interval: true,
-            trial_active: true, trial_ends_at: true, trial_expires_at: true,
-            stripe_subscription_id: true, stripe_customer_id: true,
-            is_suspended: true,
-          },
-        })
+        try {
+          const dbUser = await prisma.users.findUnique({
+            where: { email: String(token.email) },
+            select: {
+              id: true, email: true, name: true, first_name: true, last_name: true,
+              role: true, plan: true, plan_tier: true, plan_status: true,
+              subscription_status: true, billing_interval: true,
+              trial_active: true, trial_ends_at: true, trial_expires_at: true,
+              stripe_subscription_id: true, stripe_customer_id: true,
+              is_suspended: true,
+            },
+          })
 
-        if (dbUser) {
-          if (dbUser.is_suspended) return token // Block at middleware instead
-          token.id = dbUser.id
-          token.name = dbUser.name || `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim()
-          copyUserToToken(token, dbUser)
+          if (dbUser) {
+            if (dbUser.is_suspended) return token // Block at middleware instead
+            token.id = dbUser.id
+            token.name = dbUser.name || `${dbUser.first_name || ''} ${dbUser.last_name || ''}`.trim()
+            copyUserToToken(token, dbUser)
+          }
+        } catch {
+          // DB unavailable — return existing token to keep the session alive
         }
       }
 
