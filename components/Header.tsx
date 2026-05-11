@@ -108,11 +108,13 @@ export default function Header() {
   ]
 
   const navItems: NavItem[] = [
+    ...(isAuthed ? [{ label: 'Home', href: '/home', icon: <LayoutDashboard className="w-5 h-5" /> }] : []),
     { label: 'Search', href: '/search', icon: <Search className="w-5 h-5" /> },
     { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: 'Opportunities', href: '/opportunities', icon: <Briefcase className="w-5 h-5" /> },
     { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> },
     { label: 'Insights', href: '/insights', icon: <LineChart className="w-5 h-5" /> },
+    ...(isAuthed ? [{ label: 'Gov Resources', href: '/gov-links', icon: <ExternalLink className="w-5 h-5" /> }] : []),
     { label: 'Pricing', href: '/pricing', icon: <CreditCard className="w-5 h-5" /> },
     { label: 'Support', href: '/support', icon: <Mail className="w-5 h-5" /> },
     ...(isAuthed ? [{ label: 'Account', href: '/account', icon: <User className="w-5 h-5" /> }] : []),

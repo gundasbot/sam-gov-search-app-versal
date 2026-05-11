@@ -23,6 +23,8 @@ const PLATFORM_PATHS = [
   '/activate',
   '/contacts',
   '/auth',
+  '/home',
+  '/gov-links',
 ]
 
 const PROTECTED_PATHS = [
@@ -30,7 +32,9 @@ const PROTECTED_PATHS = [
   '/dashboard',
   '/search',
   '/opportunities',
-  '/insights'
+  '/insights',
+  '/home',
+  '/gov-links',
 ]
 
 const PUBLIC_PATHS = [

@@ -92,8 +92,11 @@ function SupportContactModal({
     phone: '',
     company: '',
     inquiryType: initialCategory,
+    subject: '',
+    priority: 'normal',
     message: defaultMessage || '',
   })
+  const [ticketRef] = useState(() => 'PGC-' + Math.random().toString(36).substring(2, 8).toUpperCase())
   const [submitting, setSubmitting] = useState(false)
   const [submitOk, setSubmitOk] = useState('')
   const [submitErr, setSubmitErr] = useState('')
@@ -136,8 +139,8 @@ function SupportContactModal({
     setSubmitOk('')
 
     // ✅ Message is now OPTIONAL - removed from validation
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.inquiryType) {
-      setSubmitErr('Please fill in all required fields (First Name, Last Name, Email, and Inquiry Type).')
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.inquiryType || !form.subject.trim()) {
+      setSubmitErr('Please fill in all required fields (First Name, Last Name, Email, Subject, and Inquiry Type).')
       return
     }
 
@@ -179,6 +182,8 @@ function SupportContactModal({
         phone: '',
         company: '',
         inquiryType: '',
+        subject: '',
+        priority: 'normal',
         message: '',
       })
       
@@ -288,14 +293,16 @@ function SupportContactModal({
         </div>
 
         <div className="relative p-6 sm:p-8 text-[var(--color-text-primary)]">
-          <button
-            onClick={onClose}
-            type="button"
-            className="absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)] transition-all z-10"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          {view === 'options' && (
+            <button
+              onClick={onClose}
+              type="button"
+              className="absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)] transition-all z-10"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
 
           {view === 'options' ? (
             <>
@@ -440,272 +447,344 @@ function SupportContactModal({
             </>
           ) : (
             <>
-              {/* Form View - Dynamic Colors */}
-              <button
-                onClick={handleBackToOptions}
-                className="mb-8 inline-flex items-center gap-2 text-white/80 hover:text-white transition text-base font-semibold group"
-              >
-                <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-                Back to options
-              </button>
-
-              {selectedCategoryData && categoryColor && (
-                <div className="flex items-start gap-6 mb-8">
-                  <div 
-                    className="rounded-2xl p-4 flex-shrink-0 shadow-xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${categoryColor.primary}30, ${categoryColor.primary}10)`,
-                      border: `1px solid ${categoryColor.border}`,
-                    }}
+              {/* Ticket Header Bar */}
+              <div className="-mx-6 sm:-mx-8 -mt-6 sm:-mt-8 mb-0 px-5 sm:px-7 py-3.5 bg-[#0f1f3d] rounded-t-3xl flex items-center justify-between gap-3 border-b border-white/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button
+                    onClick={handleBackToOptions}
+                    type="button"
+                    className="inline-flex items-center gap-1.5 text-white/70 hover:text-white transition text-sm font-semibold flex-shrink-0"
                   >
-                    <Image 
-                      src="/precise-govcon-logo.jpg" 
-                      alt="Precise GovCon" 
-                      width={56} 
-                      height={56}
-                      className="rounded-xl"
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </button>
+                  <span className="text-white/20">|</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Image
+                      src="/precise-govcon-logo.jpg"
+                      alt="Precise GovCon"
+                      width={24}
+                      height={24}
+                      className="rounded-md flex-shrink-0"
                     />
+                    <span className="text-white font-bold text-sm truncate hidden sm:block">PreciseGovCon Support</span>
                   </div>
-                  <div>
-                    <h3 
-                      className="text-3xl sm:text-4xl font-black tracking-tight"
-                      style={{ color: categoryColor.light }}
-                    >
+                  {selectedCategoryData && (
+                    <span className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/30">
                       {selectedCategoryData.label}
-                    </h3>
-                    <p className="mt-3 text-base sm:text-lg text-white/70">{selectedCategoryData.description}</p>
-                  </div>
+                    </span>
+                  )}
                 </div>
-              )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="hidden sm:inline text-white/40 text-xs font-mono">{ticketRef}</span>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    New Ticket
+                  </span>
+                  <button
+                    onClick={onClose}
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-all"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Bar */}
+              <div className="-mx-6 sm:-mx-8 px-5 sm:px-7 py-2.5 bg-[#162040] border-b border-white/10 flex items-center gap-5 flex-wrap text-xs text-white/60 mb-6">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>SLA: <span className="font-bold text-white/80">1 business day</span></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-blue-400" />
+                  <span>Hours: <span className="font-bold text-white/80">Mon–Fri 9am–5pm ET</span></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5 text-orange-400" />
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="font-bold text-white/80 hover:text-white transition">{SUPPORT_EMAIL}</a>
+                </div>
+              </div>
 
               {submitOk && submittedData ? (
-                <div 
-                  className="rounded-2xl border p-8 mb-6 text-center"
-                  style={{
-                    background: categoryColor ? `${categoryColor.primary}10` : 'color-mix(in srgb, var(--color-primary) 10%, transparent)',
-                    borderColor: categoryColor ? categoryColor.border : 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
-                  }}
-                >
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4" style={{ background: categoryColor ? `${categoryColor.primary}20` : 'color-mix(in srgb, var(--color-primary) 20%, transparent)' }}>
-                    <CheckCircle2 className="h-10 w-10" style={{ color: categoryColor?.light || BRAND.light }} />
+                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-400" />
                   </div>
-                  <div className="font-bold text-2xl text-white mb-3">Message Sent Successfully!</div>
-                  <p className="text-white/80 text-lg mb-6 max-w-xl mx-auto">{submitOk}</p>
-                  <div className="inline-block text-left p-5 rounded-xl bg-black/30 backdrop-blur-sm border border-white/10">
-                    <div className="text-sm text-white/80 space-y-1.5">
-                      <div><span className="font-semibold text-white">Name:</span> {submittedData.name}</div>
-                      <div><span className="font-semibold text-white">Email:</span> {submittedData.email}</div>
-                      <div><span className="font-semibold text-white">Category:</span> <span style={{ color: categoryColor?.light || BRAND.light }}>{submittedData.category}</span></div>
-                      <div><span className="font-semibold text-white">Submitted:</span> {submittedData.timestamp}</div>
+                  <div className="font-bold text-2xl text-white mb-2">Ticket Submitted!</div>
+                  <p className="text-white/70 text-base mb-6 max-w-md mx-auto">{submitOk}</p>
+                  <div className="inline-block text-left p-5 rounded-xl bg-black/30 border border-white/10 text-sm text-white/80 space-y-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="font-mono text-emerald-400 font-bold text-base">{ticketRef}</span>
+                      <span className="text-white/40 text-xs">— save this reference</span>
                     </div>
+                    <div><span className="font-semibold text-white">Name:</span> {submittedData.name}</div>
+                    <div><span className="font-semibold text-white">Email:</span> {submittedData.email}</div>
+                    <div><span className="font-semibold text-white">Category:</span> {submittedData.category}</div>
+                    <div><span className="font-semibold text-white">Submitted:</span> {submittedData.timestamp}</div>
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {submitErr && (
-                    <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-5 flex items-start gap-3">
-                      <AlertTriangle className="h-6 w-6 text-red-300 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <div className="font-bold text-lg text-white mb-1">Error</div>
-                        <p className="text-white/80 text-base">{submitErr}</p>
+                <form onSubmit={handleSubmit}>
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Main Form */}
+                    <div className="flex-1 min-w-0 space-y-5">
+                      {submitErr && (
+                        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-4 flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="font-bold text-white text-sm mb-0.5">Submission Error</div>
+                            <p className="text-white/80 text-sm">{submitErr}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Contact Information */}
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+                          <UserCog className="h-4 w-4 text-[var(--color-primary)]" />
+                          <h4 className="font-bold text-xs text-white/70 uppercase tracking-wider">Contact Information</h4>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-white/80 mb-1.5">
+                                First Name <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={form.firstName}
+                                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                                className="w-full rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-all bg-black/30 border border-white/15 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                                placeholder="First name"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-white/80 mb-1.5">
+                                Last Name <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={form.lastName}
+                                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                                className="w-full rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-all bg-black/30 border border-white/15 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                                placeholder="Last name"
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-white/80 mb-1.5">
+                              Email Address <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                              type="email"
+                              value={form.email}
+                              onChange={(e) => setForm({ ...form, email: e.target.value })}
+                              className="w-full rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-all bg-black/30 border border-white/15 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                              placeholder="your@email.com"
+                              required
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-white/80 mb-1.5">
+                                Phone <span className="text-white/40 font-normal text-xs">(optional)</span>
+                              </label>
+                              <input
+                                type="tel"
+                                value={form.phone}
+                                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                className="w-full rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-all bg-black/30 border border-white/15 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                                placeholder="(555) 123-4567"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-white/80 mb-1.5">
+                                Company <span className="text-white/40 font-normal text-xs">(optional)</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={form.company}
+                                onChange={(e) => setForm({ ...form, company: e.target.value })}
+                                className="w-full rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-all bg-black/30 border border-white/15 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                                placeholder="Your company"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ticket Details */}
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+                          <FileQuestion className="h-4 w-4 text-[var(--color-primary)]" />
+                          <h4 className="font-bold text-xs text-white/70 uppercase tracking-wider">Ticket Details</h4>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-semibold text-white/80 mb-1.5">
+                              Subject <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={form.subject}
+                              onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                              className="w-full rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition-all bg-black/30 border border-white/15 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                              placeholder="Brief summary of your issue"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold text-white/80 mb-2">Priority</label>
+                            <div className="grid grid-cols-4 gap-2">
+                              {([
+                                { val: 'low',    label: 'Low',    activeClass: 'bg-slate-500 text-white border-slate-400 opacity-100',   inactiveClass: 'text-slate-400 border-slate-600 bg-transparent opacity-60 hover:opacity-90' },
+                                { val: 'normal', label: 'Normal', activeClass: 'bg-blue-500 text-white border-blue-400 opacity-100',     inactiveClass: 'text-blue-400 border-blue-700 bg-transparent opacity-60 hover:opacity-90' },
+                                { val: 'high',   label: 'High',   activeClass: 'bg-orange-500 text-white border-orange-400 opacity-100', inactiveClass: 'text-orange-400 border-orange-700 bg-transparent opacity-60 hover:opacity-90' },
+                                { val: 'urgent', label: 'Urgent', activeClass: 'bg-red-500 text-white border-red-400 opacity-100',       inactiveClass: 'text-red-400 border-red-700 bg-transparent opacity-60 hover:opacity-90' },
+                              ] as const).map(({ val, label, activeClass, inactiveClass }) => (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  onClick={() => setForm({ ...form, priority: val })}
+                                  className={`rounded-lg py-2 text-xs font-bold border transition-all ${form.priority === val ? activeClass : inactiveClass}`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="block text-sm font-semibold text-white/80">Description</label>
+                              <span className="text-xs text-white/40">optional</span>
+                            </div>
+                            <textarea
+                              value={form.message}
+                              onChange={(e) => setForm({ ...form, message: e.target.value })}
+                              rows={5}
+                              className="w-full rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition-all bg-black/30 border border-white/15 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 resize-none"
+                              placeholder="Describe your issue in detail. Include steps to reproduce, error messages, or any relevant context..."
+                            />
+                            <p className="mt-1.5 text-xs text-white/40">You can submit without a description — we&apos;ll follow up by email.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full rounded-xl px-6 py-4 text-base font-black text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 shadow-lg"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            Submitting ticket...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-5 w-5" />
+                            Submit Support Ticket
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Right Sidebar */}
+                    <div className="w-full lg:w-60 xl:w-64 flex-shrink-0 space-y-4">
+                      {/* SLA Card */}
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                          <span className="font-bold text-sm text-emerald-300">SLA Commitment</span>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-white/60">Standard</span>
+                            <span className="font-bold text-white">1 business day</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-white/60">Urgent</span>
+                            <span className="font-bold text-orange-300">Same day</span>
+                          </div>
+                          <div className="border-t border-white/10 pt-2 text-xs text-white/40">
+                            Mon–Fri, 9am–5pm ET
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Direct Contact */}
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                        <div className="font-bold text-xs text-white/50 uppercase tracking-wider mb-3">Direct Contact</div>
+                        <div className="space-y-3">
+                          <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center gap-3 group">
+                            <div className="rounded-lg bg-cyan-500/15 border border-cyan-500/30 p-2 flex-shrink-0">
+                              <Mail className="h-4 w-4 text-cyan-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs text-white/40">Email</div>
+                              <div className="text-xs font-semibold text-cyan-300 group-hover:text-cyan-200 transition truncate">{SUPPORT_EMAIL}</div>
+                            </div>
+                          </a>
+                          <a href={`tel:${SUPPORT_TEL.replace(/[^0-9+]/g, '')}`} className="flex items-center gap-3 group">
+                            <div className="rounded-lg bg-emerald-500/15 border border-emerald-500/30 p-2 flex-shrink-0">
+                              <Phone className="h-4 w-4 text-emerald-400" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-white/40">Phone</div>
+                              <div className="text-xs font-semibold text-emerald-300 group-hover:text-emerald-200 transition">{SUPPORT_TEL}</div>
+                            </div>
+                          </a>
+                          <a href={CALENDLY_URL} target="_blank" rel="noreferrer" className="flex items-center gap-3 group">
+                            <div className="rounded-lg bg-purple-500/15 border border-purple-500/30 p-2 flex-shrink-0">
+                              <CalendarClock className="h-4 w-4 text-purple-400" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-white/40">Schedule</div>
+                              <div className="text-xs font-semibold text-purple-300 group-hover:text-purple-200 transition">30-min meeting</div>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Tips */}
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <HelpCircle className="h-4 w-4 text-amber-400" />
+                          <span className="font-bold text-sm text-amber-300">Tips</span>
+                        </div>
+                        <ul className="space-y-2 text-xs text-white/70">
+                          <li className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                            For bugs, include the page URL and steps to reproduce
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                            For billing issues, include your account email
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                            Screenshots speed up resolution
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                            Mark Urgent only for business-critical issues
+                          </li>
+                        </ul>
+                      </div>
+
+                      {/* Ticket Reference */}
+                      <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-center">
+                        <div className="text-xs text-white/30 mb-1">Ticket reference</div>
+                        <div className="font-mono font-bold text-white/70 text-sm">{ticketRef}</div>
                       </div>
                     </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-base font-bold text-white mb-2">
-                        First Name <span style={{ color: categoryColor?.light || BRAND.primary }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={form.firstName}
-                        onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                        className="w-full rounded-xl px-5 py-4 text-base text-white placeholder:text-white/40 outline-none transition-all bg-black/40 backdrop-blur-sm border-2 hover:bg-black/50 focus:bg-black/60 focus:shadow-xl"
-                        style={{
-                          borderColor: categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
-                          borderLeftWidth: '4px',
-                          borderLeftColor: categoryColor?.primary || BRAND.primary,
-                          boxShadow: `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`,
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = categoryColor?.primary || BRAND.primary
-                          e.target.style.boxShadow = `0 0 0 3px ${categoryColor?.primary || BRAND.primary}20, 0 8px 20px ${categoryColor?.primary || BRAND.primary}25`
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))'
-                          e.target.style.boxShadow = `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`
-                        }}
-                        placeholder="John"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-base font-bold text-white mb-2">
-                        Last Name <span style={{ color: categoryColor?.light || BRAND.primary }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={form.lastName}
-                        onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                        className="w-full rounded-xl px-5 py-4 text-base text-white placeholder:text-white/40 outline-none transition-all bg-black/40 backdrop-blur-sm border-2 hover:bg-black/50 focus:bg-black/60 focus:shadow-xl"
-                        style={{
-                          borderColor: categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
-                          borderLeftWidth: '4px',
-                          borderLeftColor: categoryColor?.primary || BRAND.primary,
-                          boxShadow: `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`,
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = categoryColor?.primary || BRAND.primary
-                          e.target.style.boxShadow = `0 0 0 3px ${categoryColor?.primary || BRAND.primary}20, 0 8px 20px ${categoryColor?.primary || BRAND.primary}25`
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))'
-                          e.target.style.boxShadow = `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`
-                        }}
-                        placeholder="Doe"
-                        required
-                      />
-                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-base font-bold text-white mb-2">
-                      Email <span style={{ color: categoryColor?.light || BRAND.primary }}>*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="w-full rounded-xl px-5 py-4 text-base text-white placeholder:text-white/40 outline-none transition-all bg-black/40 backdrop-blur-sm border-2 hover:bg-black/50 focus:bg-black/60 focus:shadow-xl"
-                      style={{
-                        borderColor: categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
-                        borderLeftWidth: '4px',
-                        borderLeftColor: categoryColor?.primary || BRAND.primary,
-                        boxShadow: `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`,
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = categoryColor?.primary || BRAND.primary
-                        e.target.style.boxShadow = `0 0 0 3px ${categoryColor?.primary || BRAND.primary}20, 0 8px 20px ${categoryColor?.primary || BRAND.primary}25`
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))'
-                        e.target.style.boxShadow = `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`
-                      }}
-                      placeholder="john.doe@company.com"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-base font-bold text-white mb-2">
-                        Phone <span className="text-white/40 text-sm font-normal ml-1">(optional)</span>
-                      </label>
-                      <input
-                        type="tel"
-                        value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        className="w-full rounded-xl px-5 py-4 text-base text-white placeholder:text-white/40 outline-none transition-all bg-black/40 backdrop-blur-sm border-2 hover:bg-black/50 focus:bg-black/60 focus:shadow-xl"
-                        style={{
-                          borderColor: categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
-                          borderLeftWidth: '4px',
-                          borderLeftColor: categoryColor?.primary || BRAND.primary,
-                          boxShadow: `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`,
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = categoryColor?.primary || BRAND.primary
-                          e.target.style.boxShadow = `0 0 0 3px ${categoryColor?.primary || BRAND.primary}20, 0 8px 20px ${categoryColor?.primary || BRAND.primary}25`
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))'
-                          e.target.style.boxShadow = `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`
-                        }}
-                        placeholder="(555) 123-4567"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-base font-bold text-white mb-2">
-                        Company <span className="text-white/40 text-sm font-normal ml-1">(optional)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={form.company}
-                        onChange={(e) => setForm({ ...form, company: e.target.value })}
-                        className="w-full rounded-xl px-5 py-4 text-base text-white placeholder:text-white/40 outline-none transition-all bg-black/40 backdrop-blur-sm border-2 hover:bg-black/50 focus:bg-black/60 focus:shadow-xl"
-                        style={{
-                          borderColor: categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
-                          borderLeftWidth: '4px',
-                          borderLeftColor: categoryColor?.primary || BRAND.primary,
-                          boxShadow: `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`,
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = categoryColor?.primary || BRAND.primary
-                          e.target.style.boxShadow = `0 0 0 3px ${categoryColor?.primary || BRAND.primary}20, 0 8px 20px ${categoryColor?.primary || BRAND.primary}25`
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))'
-                          e.target.style.boxShadow = `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`
-                        }}
-                        placeholder="Your company name"
-                      />
-                    </div>
-                  </div>
-
-                  {/* ✅ FIXED: Message field is now OPTIONAL */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <label className="block text-base font-bold text-white">Message</label>
-                      <span className="text-xs font-normal px-2 py-1 rounded-full border border-white/20 bg-white/10 text-white/70">optional</span>
-                    </div>
-                    <textarea
-                      value={form.message}
-                      onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      rows={5}
-                      className="w-full rounded-xl px-5 py-4 text-base text-white placeholder:text-white/40 outline-none transition-all bg-black/40 backdrop-blur-sm border-2 resize-none hover:bg-black/50 focus:bg-black/60 focus:shadow-xl"
-                      style={{
-                        borderColor: categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))',
-                        borderLeftWidth: '4px',
-                        borderLeftColor: categoryColor?.primary || BRAND.primary,
-                        boxShadow: `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`,
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = categoryColor?.primary || BRAND.primary
-                        e.target.style.boxShadow = `0 0 0 3px ${categoryColor?.primary || BRAND.primary}20, 0 8px 20px ${categoryColor?.primary || BRAND.primary}25`
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = categoryColor?.border || 'color-mix(in srgb, var(--color-primary) 24%, var(--color-border))'
-                        e.target.style.boxShadow = `0 4px 12px ${categoryColor?.primary || BRAND.primary}15`
-                      }}
-                      placeholder="Describe your issue or question in detail... (optional)"
-                    />
-                    <p className="mt-2 text-sm text-white/50 flex items-center gap-1.5">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/30" />
-                      You can submit without a message - we&apos;ll follow up by email
-                    </p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full rounded-xl px-6 py-5 text-lg font-black text-white hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl"
-                    style={{
-                      background: categoryColor?.gradient || `linear-gradient(135deg, ${BRAND.primary}, ${BRAND.primaryHover})`,
-                      boxShadow: `0 8px 20px ${categoryColor?.primary || BRAND.primary}40`,
-                    }}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-5 w-5" />
-                        Send Message
-                      </>
-                    )}
-                  </button>
                 </form>
               )}
             </>
