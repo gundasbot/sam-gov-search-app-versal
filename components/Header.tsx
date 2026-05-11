@@ -18,39 +18,6 @@ import { BRAND_CONFIG } from '@/lib/brand-config'
 
 type NavItem = { label: string; href: string; icon?: React.ReactNode }
 type ServiceItem = { label: string; href: string; description: string; icon: React.ReactNode; badge?: string; color: string }
-type TickerItem = {
-  id: string; title: string; solicitationNumber: string; agency: string
-  postedDate: string; type: string; samUrl: string
-  naics?: string; setAside?: string; responseDeadLine?: string; state?: string
-}
-
-function normalizeExternalUrl(raw?: string | null): string | null {
-  const s = String(raw ?? '').trim()
-  if (!s) return null
-  if (/^https?:\/\//i.test(s)) return s
-  if (s.startsWith('//')) return `https:${s}`
-  const cleanNumber = s.split('?')[0].split('#')[0]
-  if (/^[A-Za-z0-9-]+$/i.test(cleanNumber)) return `https://sam.gov/opp/${cleanNumber}/view`
-  return null
-}
-
-function getSamGovUrl(solicitationNumber: string): string {
-  if (!solicitationNumber || solicitationNumber === 'N/A') return 'https://sam.gov'
-  const cleanNum = solicitationNumber.trim().replace(/[^\w-]/g, '').replace(/\s+/g, '')
-  return cleanNum ? `https://sam.gov/opp/${cleanNum}/view` : 'https://sam.gov'
-}
-
-function formatTickerDate(dateStr?: string): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  if (Number.isNaN(d.getTime())) return ''
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    timeZone: 'UTC',
-  }).format(d)
-}
 
 export default function Header() {
   const { wordmark } = BRAND_CONFIG
@@ -60,21 +27,16 @@ export default function Header() {
   const redirectTo = pathname || '/dashboard'
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [tickerData, setTickerData] = useState<{ count: number; opportunities: TickerItem[] } | null>(null)
-  const [loadingTicker, setLoadingTicker] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
   const servicesCloseTimer = useRef<NodeJS.Timeout | null>(null)
   const [alertsMenuOpen, setAlertsMenuOpen] = useState(false)
   const alertsCloseTimer = useRef<NodeJS.Timeout | null>(null)
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [tickerPaused, setTickerPaused] = useState(false)
-  const [tickerError, setTickerError] = useState<string | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const servicesRef = useRef<HTMLDivElement>(null)
   const alertsMenuRef = useRef<HTMLDivElement>(null)
-  const tickerRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   /* ── Scroll effect ── */
@@ -120,61 +82,6 @@ export default function Header() {
     ...(isAuthed ? [{ label: 'Account', href: '/account', icon: <User className="w-5 h-5" /> }] : []),
   ]
 
-  /* ── Live ticker ── */
-  useEffect(() => {
-    let mounted = true
-    const fetchTicker = async () => {
-      if (typeof document !== 'undefined' && document.hidden) return
-      if (!mounted) return
-      setLoadingTicker(true)
-      setTickerError(null)
-      try {
-        const res = await fetch('/api/sam/live-ticker')
-        if (!res.ok) { if (mounted) { setTickerError('Live opportunities temporarily unavailable'); setTickerData(null) }; return }
-        const data = await res.json()
-        if (!mounted) return
-
-        const hasItems = Array.isArray(data?.opportunities) && data.opportunities.length > 0
-        const hasError = Boolean(data?.error) || Boolean(data?.rateLimitExceeded)
-
-        if (hasItems) {
-          setTickerError(null)
-          setTickerData(data)
-          return
-        }
-
-        if (hasError) {
-          const message =
-            typeof data?.message === 'string' && data.message.trim()
-              ? data.message
-              : typeof data?.error === 'string' && data.error.trim()
-                ? data.error
-                : 'Live opportunities temporarily unavailable'
-          setTickerError(message)
-          // Keep prior successful ticker payload if we have one.
-          setTickerData((prev) => (prev?.opportunities?.length ? prev : null))
-          return
-        }
-
-        setTickerData(data)
-      } catch {
-        if (mounted) { setTickerError('Live opportunities temporarily unavailable'); setTickerData(null) }
-      } finally {
-        if (mounted) setLoadingTicker(false)
-      }
-    }
-    fetchTicker()
-    const onVisibilityChange = () => {
-      if (!document.hidden) void fetchTicker()
-    }
-    const interval = setInterval(fetchTicker, 300000)
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      mounted = false
-      clearInterval(interval)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
-  }, [])
 
   /* ── Click outside ── */
   useEffect(() => {
@@ -226,88 +133,11 @@ export default function Header() {
         .header-nav-scroll::-webkit-scrollbar {
           display: none;
         }
-        @keyframes ticker-scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        .animate-scroll {
-          width: max-content;
-          will-change: transform;
-          animation: ticker-scroll 70s linear infinite;
-        }
-        @media (max-width: 640px) {
-          .animate-scroll {
-            animation-duration: 45s;
-          }
-        }
       `}</style>
-
-      {/* ── LIVE TICKER ── */}
-      <div ref={tickerRef} className="fixed inset-x-0 top-0 z-50" style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', color: 'var(--color-text-primary)' }}>
-        <div className="w-full px-3 sm:px-5 lg:px-6">
-          <div className="flex items-center justify-between py-2 sm:py-3 min-h-[44px]">
-            {/* Label + count */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                <div className="w-2 h-2 rounded-full bg-[#ff7a18] animate-pulse flex-shrink-0" />
-                <span className="hidden sm:inline whitespace-nowrap">LIVE OPPORTUNITIES</span>
-                <span className="sm:hidden">LIVE</span>
-              </div>
-              {tickerData && (
-                <span className="whitespace-nowrap rounded-lg px-2 py-0.5 text-xs font-bold" style={{ background: 'var(--color-surface-muted)', color: 'var(--color-text-secondary)' }}>
-                  {tickerData.count.toLocaleString()}
-                  <span className="hidden sm:inline"> Active</span>
-                </span>
-              )}
-            </div>
-
-            {/* Ticker scroll area */}
-            {loadingTicker && !tickerData ? (
-              <div className="ml-3 flex items-center gap-1.5 text-xs sm:text-sm text-slate-600">
-                <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" />
-                <span className="hidden sm:inline">Loading...</span>
-              </div>
-            ) : tickerError ? (
-              <div className="ml-3 truncate text-xs text-slate-600">{tickerError}</div>
-            ) : tickerData?.opportunities && tickerData.opportunities.length > 0 ? (
-              <div
-                className="flex-1 overflow-hidden mx-3 sm:mx-4"
-                onMouseEnter={() => setTickerPaused(true)}
-                onMouseLeave={() => setTickerPaused(false)}
-              >
-                <div className="flex gap-6 sm:gap-8 animate-scroll" style={{ animationPlayState: tickerPaused ? 'paused' : 'running' }}>
-                  {[...tickerData.opportunities, ...tickerData.opportunities].map((item, idx) => {
-                    const url = normalizeExternalUrl(item.samUrl) || getSamGovUrl(item.solicitationNumber)
-                    return (
-                      <a
-                        key={`${item.id}-${idx}`}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex flex-shrink-0 items-center gap-1.5 text-xs transition-colors sm:gap-2 sm:text-sm" style={{ color: 'var(--color-text-primary)' }}
-                      >
-                        <span className="font-semibold truncate max-w-[160px] sm:max-w-[300px]">{item.title}</span>
-                        <span className="hidden whitespace-nowrap text-xs sm:inline" style={{ color: 'var(--color-text-subtle)' }}>
-                          {formatTickerDate(item.postedDate)}
-                        </span>
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                      </a>
-                    )
-                  })}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
 
       {/* ── MAIN HEADER ── */}
       <header
-        className="fixed inset-x-0 top-[44px] sm:top-[52px] z-40 transition-all duration-300 w-full"
+        className="fixed inset-x-0 top-0 z-40 transition-all duration-300 w-full"
         style={{ backgroundColor: 'var(--color-surface)', borderBottom: 'none', boxShadow: scrolled ? '0 4px 12px rgba(0,0,0,0.08)' : 'none' }}
       >
         <div className="mx-auto w-full max-w-480 px-3 sm:px-5 lg:px-6">

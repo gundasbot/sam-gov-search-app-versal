@@ -395,7 +395,7 @@ export default function SignUpClient() {
 
         {/* Right — form panel */}
         <div className="flex-1 overflow-y-auto" style={{ background: '#ffffff' }}>
-          <div className="max-w-xl mx-auto px-8 py-10">
+          <div className="px-10 lg:px-16 py-10">
 
             {/* Mobile logo (shown only when BrandPanel is hidden) */}
             <div className="flex items-center gap-3 mb-8 lg:hidden">

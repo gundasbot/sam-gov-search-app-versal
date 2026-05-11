@@ -2,12 +2,15 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Mail, Loader2, CheckCircle2, KeyRound, ShieldCheck, Clock, Zap } from "lucide-react"
+import { Loader2, CheckCircle2, Mail, ShieldCheck, Clock, Zap } from "lucide-react"
 
 export default function ForgotPasswordClient({ initialEmail = "" }: { initialEmail?: string }) {
   const [email, setEmail] = useState(initialEmail)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
+  const [magicLinkError, setMagicLinkError] = useState("")
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -21,6 +24,29 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
       setSent(true)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleSendMagicLink() {
+    if (!email) return
+    setMagicLinkLoading(true)
+    setMagicLinkError("")
+    try {
+      const res = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      if (res.ok) {
+        setMagicLinkSent(true)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setMagicLinkError(data?.error || "Could not send sign-in link. Check your email address.")
+      }
+    } catch {
+      setMagicLinkError("Could not send sign-in link. Please try again.")
+    } finally {
+      setMagicLinkLoading(false)
     }
   }
 
@@ -98,17 +124,17 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
                   </div>
                   <button
                     onClick={() => setSent(false)}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-base font-black transition-all hover:-translate-y-0.5"
+                    className="w-full inline-flex items-center justify-center rounded-xl py-3.5 text-base font-black transition-all hover:-translate-y-0.5"
                     style={{ background: "#f97316", color: "#ffffff", boxShadow: "0 4px 14px rgba(249,115,22,0.4)" }}
                   >
-                    <Mail className="h-5 w-5" /> Resend reset link
+                    Resend Reset Link
                   </button>
                   <Link
                     href={`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-base font-black transition-all hover:-translate-y-0.5"
-                    style={{ background: "var(--color-surface-muted)", color: "var(--color-text-primary)", border: "1.5px solid var(--color-border)", textDecoration: "none" }}
+                    className="w-full inline-flex items-center justify-center rounded-xl py-3.5 text-base font-black transition-all hover:-translate-y-0.5"
+                    style={{ background: "#334155", color: "#ffffff", textDecoration: "none" }}
                   >
-                    <ArrowLeft className="h-5 w-5" /> Back to login
+                    Back to Login
                   </Link>
                 </>
               ) : (
@@ -138,7 +164,7 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-base font-black transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ background: "#f97316", color: "#ffffff", boxShadow: "0 4px 14px rgba(249,115,22,0.4)" }}
                   >
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Mail className="h-5 w-5" /> Send Reset Link</>}
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send Reset Link"}
                   </button>
 
                   <div className="flex items-center gap-3">
@@ -147,40 +173,47 @@ export default function ForgotPasswordClient({ initialEmail = "" }: { initialEma
                     <div className="h-px flex-1" style={{ background: "var(--color-border)" }} />
                   </div>
 
+                  {magicLinkSent ? (
+                    <div className="rounded-xl p-4 text-center" style={{ background: "#f0fdf4", border: "2px solid #16a34a" }}>
+                      <CheckCircle2 className="h-6 w-6 mx-auto mb-2" style={{ color: "#16a34a" }} />
+                      <p className="text-sm font-black" style={{ color: "#166534" }}>Sign-in link sent!</p>
+                      <p className="text-xs mt-1" style={{ color: "#15803d" }}>Check your inbox for a sign-in link from noreply@precisegovcon.com</p>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleSendMagicLink}
+                        disabled={magicLinkLoading || !email}
+                        className="w-full inline-flex items-center justify-center rounded-xl py-3 text-sm font-black transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                        style={{ background: "#166534", color: "#ffffff", boxShadow: "0 2px 8px rgba(22,101,52,0.3)" }}
+                      >
+                        {magicLinkLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Sign-In Link"}
+                      </button>
+                      {magicLinkError && <p className="text-xs text-red-500 text-center">{magicLinkError}</p>}
+                      <p className="text-xs font-semibold text-center" style={{ color: "var(--color-text-subtle)" }}>
+                        No password needed — we'll email you a one-click sign-in link.
+                      </p>
+                    </>
+                  )}
+
                   <div className="grid grid-cols-2 gap-3">
                     <Link
                       href={`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-black transition-all hover:-translate-y-0.5"
+                      className="inline-flex items-center justify-center rounded-xl py-3 text-sm font-black transition-all hover:-translate-y-0.5"
                       style={{ background: "var(--color-surface-muted)", color: "var(--color-text-primary)", border: "1.5px solid var(--color-border)", textDecoration: "none" }}
                     >
-                      <ArrowLeft className="h-4 w-4" /> Back to Login
+                      Back to Login
                     </Link>
                     <Link
-                      href={`/login${email ? `?email=${encodeURIComponent(email)}` : ""}`}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-black transition-all hover:-translate-y-0.5"
-                      style={{ background: "#166534", color: "#ffffff", boxShadow: "0 2px 8px rgba(22,101,52,0.3)", textDecoration: "none" }}
+                      href="/signup"
+                      className="inline-flex items-center justify-center rounded-xl py-3 text-sm font-black transition-all hover:-translate-y-0.5"
+                      style={{ background: "#0f172a", color: "#ffffff", textDecoration: "none" }}
                     >
-                      <KeyRound className="h-4 w-4" /> Sign-In Link
+                      Create Account
                     </Link>
                   </div>
 
-                  <p className="text-xs font-semibold text-center" style={{ color: "var(--color-text-subtle)" }}>
-                    No password needed — use a magic sign-in link instead.
-                  </p>
-
-                  {/* Free trial CTA */}
-                  <Link
-                    href="/signup"
-                    className="flex items-center justify-between gap-3 rounded-xl px-5 py-3.5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                    style={{ background: "#166534", boxShadow: "0 4px 16px rgba(22,101,52,0.4)", textDecoration: "none" }}
-                  >
-                    <p className="text-sm font-black" style={{ color: "#ffffff" }}>
-                      No account? <span style={{ color: "#86efac" }}>Start your 7-day free trial</span>
-                    </p>
-                    <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 flex-shrink-0" style={{ background: "#ffffff" }}>
-                      <span className="text-sm font-black" style={{ color: "#166534" }}>Start Free Trial</span>
-                    </div>
-                  </Link>
                 </form>
               )}
             </div>

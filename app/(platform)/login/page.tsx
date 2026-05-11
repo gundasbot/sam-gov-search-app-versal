@@ -540,8 +540,8 @@ function SignInContent() {
         </div>
 
         {/* ── RIGHT: Form panel ── */}
-        <div className="flex-1 flex items-center justify-center px-6 py-12" style={{ background: '#ffffff' }}>
-          <div className="w-full max-w-md">
+        <div className="flex-1 flex flex-col justify-center px-10 lg:px-16 py-12" style={{ background: '#ffffff' }}>
+          <div className="w-full">
 
           <div className="mb-7">
             <h2 className="text-2xl font-black" style={{ color: '#0f172a' }}>Sign in to your account</h2>
@@ -861,26 +861,21 @@ function SignInContent() {
             )}
 
             {/* Footer helpers */}
-            <div className="mt-6 pt-5 space-y-4" style={{ borderTop: '1px solid #e2e8f0' }}>
-              <div className="flex gap-3">
-                <Link
-                  href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all hover:bg-blue-50"
-                  style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
-                >
-                  <KeyRound className="h-3.5 w-3.5" />
-                  Reset Password
-                </Link>
-                <Link
-                  href="/support?category=Account%20%26%20Access"
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all hover:bg-gray-100"
-                  style={{ background: '#f8fafc', color: '#374151', border: '1px solid #e2e8f0' }}
-                >
-                  <Mail className="h-3.5 w-3.5" />
-                  Support
-                </Link>
-              </div>
-
+            <div className="mt-6 pt-5 flex gap-3" style={{ borderTop: '1px solid #e2e8f0' }}>
+              <Link
+                href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                className="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition-all hover:opacity-90"
+                style={{ background: '#1d4ed8', color: '#ffffff' }}
+              >
+                Reset Password
+              </Link>
+              <Link
+                href="/support?category=Account%20%26%20Access"
+                className="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition-all hover:opacity-90"
+                style={{ background: '#334155', color: '#ffffff' }}
+              >
+                Contact Support
+              </Link>
             </div>
           </div>
         </div>
