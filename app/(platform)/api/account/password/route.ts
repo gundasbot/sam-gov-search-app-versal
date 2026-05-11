@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/(platform)/api/auth/[...nextauth]/route'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { sendPasswordChangedNotification } from '@/lib/email/passwordChangeNotification'
 
 export const runtime = 'nodejs'
 
@@ -68,6 +69,11 @@ export async function POST(req: NextRequest) {
         updated_at: new Date(),
       },
     })
+
+    // Fire-and-forget confirmation email — don't fail the request if email errors
+    sendPasswordChangedNotification(email).catch(err =>
+      console.error('Failed to send password change notification:', err)
+    )
 
     return NextResponse.json({
       success: true,
