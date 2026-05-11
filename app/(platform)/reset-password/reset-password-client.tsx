@@ -69,7 +69,7 @@ export default function ResetPasswordClient() {
 
     try {
       // ✅ FIX: use your existing route (you previously used /api/reset-password)
-      const res = await fetch('/api/reset-password', {
+      const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
@@ -160,7 +160,7 @@ export default function ResetPasswordClient() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-colors"
+                className="w-full px-4 py-3 pr-12 bg-slate-700 border border-slate-500 rounded-xl text-white placeholder-slate-300 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-colors"
                 placeholder="Enter new password"
                 required
                 disabled={isSubmitting}
@@ -177,7 +177,7 @@ export default function ResetPasswordClient() {
           </div>
 
           {password && (
-            <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+            <div className="bg-slate-700 border border-slate-500 rounded-xl p-4">
               <p className="text-sm font-medium text-slate-300 mb-3">Password Requirements:</p>
               <div className="space-y-2">
                 {PASSWORD_RULES.map((rule, index) => {
@@ -201,7 +201,7 @@ export default function ResetPasswordClient() {
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-colors"
+                className="w-full px-4 py-3 pr-12 bg-slate-700 border border-slate-500 rounded-xl text-white placeholder-slate-300 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-colors"
                 placeholder="Re-enter new password"
                 required
                 disabled={isSubmitting}

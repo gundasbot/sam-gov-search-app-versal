@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const result = await pool.query<ResetTokenRow>(
       `select id, email, expires_at, used_at
        from password_reset_tokens
-       where tokenHash = $1
+       where token_hash = $1
        limit 1`,
       [tokenHash]
     )
