@@ -149,12 +149,12 @@ export default function ResetPasswordClient() {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Create New Password</h1>
-          <p className="text-slate-400">Enter a strong password for your account</p>
+          <p className="text-slate-200">Enter a strong password for your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">New Password</label>
+            <label className="block text-sm font-medium text-white mb-2">New Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -177,14 +177,14 @@ export default function ResetPasswordClient() {
           </div>
 
           {password && (
-            <div className="bg-slate-700 border border-slate-500 rounded-xl p-4">
-              <p className="text-sm font-medium text-slate-300 mb-3">Password Requirements:</p>
+            <div className="bg-slate-600 border border-slate-400 rounded-xl p-4">
+              <p className="text-sm font-medium text-white mb-3">Password Requirements:</p>
               <div className="space-y-2">
                 {PASSWORD_RULES.map((rule, index) => {
                   const passed = rule.test(password)
                   return (
                     <div key={index} className="flex items-center gap-2">
-                      <span className={`text-xs ${passed ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      <span className={`text-xs ${passed ? 'text-emerald-300' : 'text-slate-200'}`}>
                         {passed ? '✓' : '•'} {rule.label}
                       </span>
                     </div>
@@ -195,7 +195,7 @@ export default function ResetPasswordClient() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Confirm Password</label>
+            <label className="block text-sm font-medium text-white mb-2">Confirm Password</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
