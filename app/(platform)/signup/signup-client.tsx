@@ -117,13 +117,9 @@ const inpStyle = { background: '#f8fafc', color: '#0f172a', border: '1.5px solid
 function BrandPanel() {
   return (
     <div
-      className="hidden lg:flex flex-col justify-between px-10 py-10 relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #0f1f3d 0%, #162952 60%, #1e3a6e 100%)', width: '420px', flexShrink: 0 }}
+      className="hidden lg:flex flex-col justify-between px-10 xl:px-12 py-8 relative overflow-hidden"
+      style={{ background: 'linear-gradient(160deg, #0f1f3d 0%, #162952 60%, #1e3a6e 100%)', width: '44%', minWidth: 420, maxWidth: 580, flexShrink: 0 }}
     >
-      {/* Decorative circles */}
-      <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-5" style={{ background: '#f97316' }} />
-      <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full opacity-5" style={{ background: '#3b82f6' }} />
-
       {/* Logo */}
       <div>
         <div className="flex items-center gap-3 mb-10">
@@ -134,7 +130,7 @@ function BrandPanel() {
           </div>
         </div>
 
-        <div className="mb-8">
+          <div className="mb-6">
           <div className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: '#f97316' }}>Why contractors choose us</div>
           <h2 className="text-2xl font-black leading-tight text-white mb-2">
             Find and win more<br />federal contracts.
@@ -144,7 +140,7 @@ function BrandPanel() {
           </p>
         </div>
 
-        <div className="space-y-3.5 mb-10">
+        <div className="space-y-3 mb-7">
           {BRAND_FEATURES.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-start gap-3">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.25)' }}>
@@ -171,7 +167,7 @@ function BrandPanel() {
       </div>
 
       {/* Bottom trust */}
-      <div className="flex items-center gap-2 pt-8">
+      <div className="flex items-center gap-2 pt-6">
         <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} />
         <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Bank-grade security · SOC 2 compliant · Encrypted end-to-end</span>
       </div>
@@ -306,12 +302,22 @@ export default function SignUpClient() {
           trialCode: trialCode.trim() || undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { setError(data?.error || data?.message || 'Registration failed.'); setLoading(false); return }
+      const raw = await res.text()
+      let data: any = {}
+      try {
+        data = raw ? JSON.parse(raw) : {}
+      } catch {
+        data = { error: raw }
+      }
+      if (!res.ok) {
+        setError(data?.error || data?.message || 'Registration failed. Please try again.')
+        setLoading(false)
+        return
+      }
       if (data.setupUrl) { window.location.href = data.setupUrl; return }
       setRegisteredEmail(email); setRegistered(true)
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (err: any) {
+      setError(err?.message || 'Something went wrong. Please try again.')
       setLoading(false)
     }
   }
@@ -390,13 +396,14 @@ export default function SignUpClient() {
   // ══════════════════════════════════════════════════════════════════════════════
   if (step === 1) {
     return (
-      <div style={{ minHeight: 'calc(100vh - 160px)', background: '#eef2f7', display: 'flex', alignItems: 'flex-start', padding: '2rem 1.5rem' }}>
-        <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', overflow: 'hidden', display: 'flex' }}>
+      <div style={{ background: '#eef2f7' }}>
+        <div className="mx-auto w-full max-w-480 px-3 py-4 sm:px-5 lg:px-6">
+        <div className="w-full flex flex-col lg:flex-row border-x border-slate-200 overflow-hidden rounded-xl bg-white shadow-lg">
         <BrandPanel />
 
         {/* Right — form panel */}
         <div className="flex-1 overflow-y-auto" style={{ background: '#ffffff' }}>
-          <div className="max-w-xl mx-auto w-full px-8 py-10">
+          <div className="max-w-2xl mx-auto w-full px-6 sm:px-10 py-8">
 
             {/* Mobile logo (shown only when BrandPanel is hidden) */}
             <div className="flex items-center gap-3 mb-8 lg:hidden">
@@ -587,6 +594,7 @@ export default function SignUpClient() {
               </p>
             </form>
           </div>
+        </div>
         </div>
         </div>
       </div>

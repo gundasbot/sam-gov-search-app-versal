@@ -52,6 +52,7 @@ export default function Footer() {
   const { status } = useSession()
   const pathname = usePathname()
   const isOpportunitiesRoute = pathname?.startsWith('/opportunities')
+  const isAuthRoute = pathname === '/login' || pathname === '/signup'
   const isAuthed = status === 'authenticated'
   const { contact, tagline, wordmark } = BRAND_CONFIG
   const formattedTagline = tagline
@@ -73,7 +74,7 @@ export default function Footer() {
 
   return (
     <>
-      <footer className={isOpportunitiesRoute ? 'mt-0 bg-white' : 'mt-16 bg-white'}>
+      <footer className={isOpportunitiesRoute || isAuthRoute ? 'mt-0 bg-white' : 'mt-16 bg-white'}>
         <div className="max-w-480 mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
           {/* Single row: Logo col + 5 nav columns — all equal, no divider */}

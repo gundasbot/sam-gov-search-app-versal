@@ -849,6 +849,88 @@ select:focus-visible {
   font-size: 0.98rem !important;
 }
 
+/* Support ticket modal: the form is a light surface with a dark utility header. */
+.pg-support-modern .pg-support-ticket-modal {
+  color: #0f172a !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal [class*="text-white/"],
+.pg-support-modern .pg-support-ticket-modal [class*="text-white"] {
+  color: #0f172a !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal [class*="bg-white/5"],
+.pg-support-modern .pg-support-ticket-modal [class*="bg-white/10"],
+.pg-support-modern .pg-support-ticket-modal [class*="bg-black/20"],
+.pg-support-modern .pg-support-ticket-modal [class*="bg-black/30"] {
+  background-color: #ffffff !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal [class*="border-white/10"],
+.pg-support-modern .pg-support-ticket-modal [class*="border-white/15"],
+.pg-support-modern .pg-support-ticket-modal [class*="border-white/20"] {
+  border-color: #cbd5e1 !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal input,
+.pg-support-modern .pg-support-ticket-modal textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal input::placeholder,
+.pg-support-modern .pg-support-ticket-modal textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#0f1f3d\],
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#0f1f3d\] *,
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#162040\],
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#162040\] * {
+  color: #ffffff !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#0f1f3d\] [class*="text-emerald"],
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#162040\] [class*="text-emerald"] {
+  color: #34d399 !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#162040\] [class*="text-blue"] {
+  color: #60a5fa !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal .bg-\[\#162040\] [class*="text-orange"] {
+  color: #fb923c !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal button.bg-emerald-600,
+.pg-support-modern .pg-support-ticket-modal button.bg-emerald-600 *,
+.pg-support-modern .pg-support-ticket-modal button.bg-emerald-700,
+.pg-support-modern .pg-support-ticket-modal button.bg-emerald-700 *,
+.pg-support-modern .pg-support-ticket-modal button.bg-blue-500,
+.pg-support-modern .pg-support-ticket-modal button.bg-blue-500 *,
+.pg-support-modern .pg-support-ticket-modal button.bg-orange-500,
+.pg-support-modern .pg-support-ticket-modal button.bg-orange-500 *,
+.pg-support-modern .pg-support-ticket-modal button.bg-red-500,
+.pg-support-modern .pg-support-ticket-modal button.bg-red-500 *,
+.pg-support-modern .pg-support-ticket-modal button.bg-slate-500,
+.pg-support-modern .pg-support-ticket-modal button.bg-slate-500 * {
+  color: #ffffff !important;
+}
+
+.pg-support-modern .pg-support-ticket-modal [class*="text-cyan"],
+.pg-support-modern .pg-support-ticket-modal [class*="text-emerald"],
+.pg-support-modern .pg-support-ticket-modal [class*="text-purple"],
+.pg-support-modern .pg-support-ticket-modal [class*="text-amber"],
+.pg-support-modern .pg-support-ticket-modal [class*="text-orange"],
+.pg-support-modern .pg-support-ticket-modal [class*="text-red"],
+.pg-support-modern .pg-support-ticket-modal [class*="text-blue"] {
+  filter: saturate(1.1);
+}
+
 .pg-search-modern .text-xl {
   font-size: 1.1rem !important;
 }

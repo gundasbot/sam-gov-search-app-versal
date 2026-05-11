@@ -1,6 +1,10 @@
-const LIVE_SITE_URL = 'https://www.precisegovcon.com'
+const LIVE_SITE_URL = 'https://platform.precisegovcon.com'
 const DEV_FALLBACK_URL = 'http://localhost:3000'
-const PROD_ALLOWED_HOSTS = new Set(['www.precisegovcon.com', 'precisegovcon.com'])
+const PROD_ALLOWED_HOSTS = new Set([
+  'platform.precisegovcon.com',
+  'www.precisegovcon.com',
+  'precisegovcon.com',
+])
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '')
@@ -108,4 +112,3 @@ export function resolveAuthBaseUrl(
 
   return safePublic
 }
-

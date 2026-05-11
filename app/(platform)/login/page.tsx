@@ -43,6 +43,13 @@ function parseError(error: string): ErrorState {
       suggestion: 'Check your inbox for a verification email, or request a new one below.',
     }
   }
+  if (e.includes('password_login_not_enabled') || e.includes('password login not enabled')) {
+    return {
+      type: 'GENERIC',
+      message: 'Password login is not enabled for this account.',
+      suggestion: 'Use the Code / Magic Link tab to sign in, or reset your password to enable password login.',
+    }
+  }
   if (e.includes('two_factor_required') || e.includes('2fa required') || e.includes('two factor required')) {
     return {
       type: 'TWO_FACTOR_REQUIRED',
@@ -291,6 +298,22 @@ function SignInContent() {
     setErrorState(null)
     setResendSent(false)
 
+    try {
+      const check = await fetch('/api/auth/pre-login-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!check.ok) {
+        const data = await check.json().catch(() => ({}))
+        setErrorState(parseError(data?.code || 'GENERIC'))
+        setLoading(false)
+        return
+      }
+    } catch {
+      // Fail open so NextAuth remains the source of truth.
+    }
+
     let result: Awaited<ReturnType<typeof signIn>>
     try {
       result = await signIn('credentials', {
@@ -474,15 +497,16 @@ function SignInContent() {
   }, [otpSent, otpTimeRemaining])
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 160px)', background: '#eef2f7', display: 'flex', alignItems: 'center', padding: '2rem 1.5rem' }}>
+    <div style={{ background: '#eef2f7' }}>
       {status === 'authenticated' ? (
         <div className="flex w-full items-center justify-center" style={{ minHeight: '400px' }}>
           <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
         </div>
       ) : (
-      <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', overflow: 'hidden', display: 'flex', minHeight: '560px' }}>
+      <div className="mx-auto w-full max-w-480 px-3 py-4 sm:px-5 lg:px-6">
+      <div className="w-full flex flex-col lg:flex-row border-x border-slate-200 overflow-hidden rounded-xl bg-white shadow-lg">
         {/* ── LEFT: Welcome panel ── */}
-        <div className="hidden lg:flex flex-col justify-center px-12 py-12 relative overflow-hidden" style={{ width: '420px', flexShrink: 0, background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
+        <div className="hidden lg:flex flex-col justify-center px-10 xl:px-12 py-8 relative overflow-hidden" style={{ width: '44%', minWidth: 420, maxWidth: 580, flexShrink: 0, background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
           {/* Subtle decorative accent */}
           <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'linear-gradient(180deg, #f97316, #f59e0b)' }} />
 
@@ -496,12 +520,12 @@ function SignInContent() {
             Welcome back.<br />
             <span style={{ color: '#f97316' }}>Your pipeline awaits.</span>
           </h1>
-          <p className="text-base leading-relaxed mb-8" style={{ color: '#475569' }}>
+          <p className="text-base leading-relaxed mb-6" style={{ color: '#475569' }}>
             Sign in to access live SAM.gov opportunities, your saved searches, deadline tracker, and automated alerts — all in one place.
           </p>
 
           {/* Stats row */}
-          <div className="flex gap-6 mb-10">
+          <div className="flex gap-6 mb-7">
             {[
               { value: '900+', label: 'Live opportunities daily' },
               { value: '7-day', label: 'Free trial included' },
@@ -515,7 +539,7 @@ function SignInContent() {
           </div>
 
           {/* Feature bullets */}
-          <div className="space-y-3.5 mb-10">
+          <div className="space-y-3 mb-7">
             {[
               'Search and filter all active federal solicitations',
               'NAICS code matching and set-aside opportunity filters',
@@ -540,7 +564,7 @@ function SignInContent() {
         </div>
 
         {/* ── RIGHT: Form panel ── */}
-        <div className="flex-1 flex flex-col items-center justify-center px-8 py-10" style={{ background: '#ffffff' }}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-10 py-8" style={{ background: '#ffffff' }}>
           <div className="w-full max-w-md">
 
           <div className="mb-7">
@@ -880,6 +904,7 @@ function SignInContent() {
           </div>
         </div>
         </div>
+      </div>
       </div>
       )}
     </div>

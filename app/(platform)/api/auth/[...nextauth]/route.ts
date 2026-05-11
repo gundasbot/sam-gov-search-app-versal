@@ -10,10 +10,12 @@ import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import { sendSignupWelcomeEmailOnce } from '@/lib/email/signup-welcome'
+import { sendEmail } from '@/lib/email/send'
 import crypto from 'crypto'
 import { resolveAuthBaseUrl } from '@/lib/url-safety'
 
 const TRIAL_DAYS = 7
+const LOGIN_ERROR_ALERT_EMAIL = process.env.LOGIN_ERROR_ALERT_EMAIL || 'admin@precisegovcon.com'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -40,6 +42,59 @@ function splitName(full?: string | null) {
 
 function sha256Hex(input: string) {
   return crypto.createHash('sha256').update(input).digest('hex')
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+async function alertLoginError(params: {
+  stage: string
+  email?: string
+  userId?: string
+  provider?: string
+  error?: unknown
+}) {
+  try {
+    const anyErr = params.error as any
+    const errorMessage = String(anyErr?.message || params.error || params.stage)
+    const stack = String(anyErr?.stack || '').slice(0, 5000)
+    const subject = `[Precise GovCon] Login error: ${params.stage}`
+    const rows = [
+      ['Stage', params.stage],
+      ['Email', params.email || 'unknown'],
+      ['User ID', params.userId || 'unknown'],
+      ['Provider', params.provider || 'credentials'],
+      ['Error', errorMessage],
+    ]
+    const htmlRows = rows.map(([label, value]) => (
+      `<tr><td style="padding:8px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;">${escapeHtml(label)}</td><td style="padding:8px 10px;border:1px solid #e5e7eb;">${escapeHtml(value)}</td></tr>`
+    )).join('')
+
+    await sendEmail({
+      to: LOGIN_ERROR_ALERT_EMAIL,
+      subject,
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#0f172a;">
+          <h2 style="margin:0 0 12px;">Login Error Alert</h2>
+          <table style="border-collapse:collapse;width:100%;max-width:760px;">${htmlRows}</table>
+          ${stack ? `<h3 style="margin:20px 0 8px;">Stack</h3><pre style="white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:14px;border-radius:8px;overflow:auto;">${escapeHtml(stack)}</pre>` : ''}
+        </div>
+      `,
+      text: [
+        'Login Error Alert',
+        ...rows.map(([label, value]) => `${label}: ${value}`),
+        stack ? `Stack:\n${stack}` : '',
+      ].filter(Boolean).join('\n'),
+    })
+  } catch (alertErr) {
+    console.error('❌ Failed to send login admin alert:', alertErr)
+  }
 }
 
 // Called during Google sign-in to upsert the user row.
@@ -188,15 +243,30 @@ export const authOptions: NextAuthOptions = {
           },
         })
 
-        if (!user) throw new Error('Account not found')
-        if (!user.email_verified) throw new Error('Email not verified. Please check your inbox.')
-        if (!user.password_hash) throw new Error('Password login not enabled for this account')
-        if (user.is_suspended) throw new Error('Your account has been suspended. Contact support@precisegovcon.com.')
+        if (!user) {
+          await alertLoginError({ stage: 'account_not_found', email })
+          throw new Error('Account not found')
+        }
+        if (!user.email_verified) {
+          await alertLoginError({ stage: 'email_not_verified', email, userId: user.id })
+          throw new Error('Email not verified. Please check your inbox.')
+        }
+        if (!user.password_hash) {
+          await alertLoginError({ stage: 'password_login_not_enabled', email, userId: user.id })
+          throw new Error('Password login not enabled for this account')
+        }
+        if (user.is_suspended) {
+          await alertLoginError({ stage: 'account_suspended', email, userId: user.id })
+          throw new Error('Your account has been suspended. Contact support@precisegovcon.com.')
+        }
 
         // Verify password
         const bcrypt = await import('bcryptjs')
         const ok = await bcrypt.compare(password, user.password_hash)
-        if (!ok) throw new Error('Invalid password')
+        if (!ok) {
+          await alertLoginError({ stage: 'invalid_password', email, userId: user.id })
+          throw new Error('Invalid password')
+        }
 
         return buildUserPayload(user) as any
       },
@@ -239,12 +309,23 @@ export const authOptions: NextAuthOptions = {
 
       // Send welcome email
       if (resolvedUserId) {
-        await sendSignupWelcomeEmailOnce({
-          userId: resolvedUserId,
-          email: normalizedEmail,
-          name: resolvedName || normalizedEmail.split('@')[0],
-          source: account?.provider === 'google' ? 'google_signin' : 'credentials_signin',
-        })
+        try {
+          await sendSignupWelcomeEmailOnce({
+            userId: resolvedUserId,
+            email: normalizedEmail,
+            name: resolvedName || normalizedEmail.split('@')[0],
+            source: account?.provider === 'google' ? 'google_signin' : 'credentials_signin',
+          })
+        } catch (welcomeErr) {
+          console.warn('⚠️ Welcome email failed during sign-in:', welcomeErr)
+          await alertLoginError({
+            stage: 'signin_welcome_email_failed',
+            email: normalizedEmail,
+            userId: resolvedUserId,
+            provider: account?.provider,
+            error: welcomeErr,
+          })
+        }
       }
 
       return true

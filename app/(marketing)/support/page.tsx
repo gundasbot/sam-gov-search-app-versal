@@ -255,7 +255,7 @@ function SupportContactModal({
   const categoryColor = selectedCategory ? CATEGORY_COLORS[selectedCategory as keyof typeof CATEGORY_COLORS] : null
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+    <div className="pg-support-ticket-modal fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <button
         aria-label="Close support modal"

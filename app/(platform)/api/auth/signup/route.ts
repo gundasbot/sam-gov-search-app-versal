@@ -21,7 +21,77 @@ import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const SIGNUP_ERROR_ALERT_EMAIL = process.env.SIGNUP_ERROR_ALERT_EMAIL || 'admin@precisegovcon.com'
+
+function getStripeClient(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) return null
+  return new Stripe(key)
+}
+
+function formatError(err: unknown) {
+  const anyErr = err as any
+  return {
+    name: String(anyErr?.name || 'Error'),
+    message: String(anyErr?.message || err || 'Unknown error'),
+    stack: String(anyErr?.stack || '').slice(0, 5000),
+  }
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+async function alertSignupError(params: {
+  stage: string
+  email?: string
+  userId?: string
+  plan?: string
+  billing?: string
+  error: unknown
+  requestUrl?: string
+}) {
+  try {
+    const formatted = formatError(params.error)
+    const subject = `[Precise GovCon] Signup error: ${params.stage}`
+    const rows = [
+      ['Stage', params.stage],
+      ['Email', params.email || 'unknown'],
+      ['User ID', params.userId || 'not created/unknown'],
+      ['Plan', params.plan || 'unknown'],
+      ['Billing', params.billing || 'unknown'],
+      ['Request URL', params.requestUrl || 'unknown'],
+      ['Error', `${formatted.name}: ${formatted.message}`],
+    ]
+    const htmlRows = rows.map(([label, value]) => (
+      `<tr><td style="padding:8px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;">${escapeHtml(label)}</td><td style="padding:8px 10px;border:1px solid #e5e7eb;">${escapeHtml(value)}</td></tr>`
+    )).join('')
+
+    await sendEmail({
+      to: SIGNUP_ERROR_ALERT_EMAIL,
+      subject,
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#0f172a;">
+          <h2 style="margin:0 0 12px;">Signup Error Alert</h2>
+          <table style="border-collapse:collapse;width:100%;max-width:760px;">${htmlRows}</table>
+          ${formatted.stack ? `<h3 style="margin:20px 0 8px;">Stack</h3><pre style="white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:14px;border-radius:8px;overflow:auto;">${escapeHtml(formatted.stack)}</pre>` : ''}
+        </div>
+      `,
+      text: [
+        'Signup Error Alert',
+        ...rows.map(([label, value]) => `${label}: ${value}`),
+        formatted.stack ? `Stack:\n${formatted.stack}` : '',
+      ].filter(Boolean).join('\n'),
+    })
+  } catch (alertErr) {
+    console.error('❌ Failed to send signup admin alert:', alertErr)
+  }
+}
 
 function normalizeTier(raw: unknown): 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE' {
   const v = String(raw ?? '').toUpperCase().trim()
@@ -103,10 +173,21 @@ export async function POST(req: Request) {
     if (existing) {
       // If unverified, allow re-send without revealing the account exists
       if (!existing.email_verified) {
-        await resendVerification(existing.id, email, first_name)
+        const resent = await resendVerification(existing.id, email, first_name)
+        if (!resent) {
+          await alertSignupError({
+            stage: 'verification_resend_failed',
+            email,
+            userId: existing.id,
+            plan: pendingTier,
+            billing: pendingInterval,
+            requestUrl: req.url,
+            error: new Error('Verification email resend failed for existing unverified user'),
+          })
+        }
         return NextResponse.json({
           success: true,
-          emailSent: true,
+          emailSent: resent,
           message: 'Verification email resent. Please check your inbox.',
         })
       }
@@ -150,14 +231,27 @@ export async function POST(req: Request) {
     })
 
     // Send welcome email at signup creation (non-blocking/deduped).
-    const signupTrialDays = await resolveTrialDaysForCode(validatedCode?.code)
-    await sendSignupWelcomeEmailOnce({
-      userId: user.id,
-      email: user.email,
-      name: `${first_name} ${last_name}`.trim() || first_name,
-      source: 'email_signup',
-      trialDays: signupTrialDays,
-    })
+    try {
+      const signupTrialDays = await resolveTrialDaysForCode(validatedCode?.code)
+      await sendSignupWelcomeEmailOnce({
+        userId: user.id,
+        email: user.email,
+        name: `${first_name} ${last_name}`.trim() || first_name,
+        source: 'email_signup',
+        trialDays: signupTrialDays,
+      })
+    } catch (welcomeErr) {
+      console.warn('⚠️ Welcome email failed during signup:', welcomeErr)
+      await alertSignupError({
+        stage: 'welcome_email_failed',
+        email: user.email,
+        userId: user.id,
+        plan: pendingTier,
+        billing: pendingInterval,
+        requestUrl: req.url,
+        error: welcomeErr,
+      })
+    }
 
     // Notify admin portal: stop cold outreach to this contact and mark as converted.
     const adminUrl = process.env.ADMIN_PORTAL_URL || process.env.NEXT_PUBLIC_ADMIN_URL || ''
@@ -202,6 +296,17 @@ export async function POST(req: Request) {
 
     // ── Send verification email ───────────────────────────────────────────────
     const emailSent = await resendVerification(user.id, email, first_name)
+    if (!emailSent) {
+      await alertSignupError({
+        stage: 'verification_email_failed',
+        email,
+        userId: user.id,
+        plan: pendingTier,
+        billing: pendingInterval,
+        requestUrl: req.url,
+        error: new Error('Verification email failed after new signup'),
+      })
+    }
 
     // Build response with code confirmation if applicable
     const codeApplied = validatedCode ? {
@@ -214,6 +319,12 @@ export async function POST(req: Request) {
     // ── Create Stripe customer + setup session ─────────────────────────────
     let setupUrl: string | null = null
     try {
+      const stripe = getStripeClient()
+      if (!stripe) {
+        console.warn('⚠️ STRIPE_SECRET_KEY is missing; skipping signup payment setup session.')
+        throw new Error('Stripe not configured')
+      }
+
       const brand = getBrand()
       const customerName = `${first_name} ${last_name}`.trim() || undefined
 
@@ -250,6 +361,15 @@ export async function POST(req: Request) {
     } catch (stripeErr) {
       // Non-fatal — signup still succeeds, payment can be added later
       console.warn('⚠️ Stripe setup session creation failed during signup:', stripeErr)
+      await alertSignupError({
+        stage: 'stripe_setup_session_failed',
+        email,
+        userId: user.id,
+        plan: pendingTier,
+        billing: pendingInterval,
+        requestUrl: req.url,
+        error: stripeErr,
+      })
     }
 
     if (!emailSent) {
@@ -282,6 +402,11 @@ export async function POST(req: Request) {
     )
   } catch (err: any) {
     console.error('❌ Signup error:', err)
+    await alertSignupError({
+      stage: 'signup_request_failed',
+      requestUrl: req.url,
+      error: err,
+    })
     return NextResponse.json(
       { error: 'Failed to create account. Please try again.' },
       { status: 500 }
