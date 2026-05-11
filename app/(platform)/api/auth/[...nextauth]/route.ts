@@ -5,13 +5,15 @@
 // lib/auth.ts re-exports authOptions from this file.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import NextAuth, { type NextAuthOptions } from 'next-auth'
-import GoogleProvider from 'next-auth/providers/google'
-import CredentialsProvider from 'next-auth/providers/credentials'
+import type NextAuthDefault from 'next-auth'
+import type { NextAuthOptions } from 'next-auth'
+import type GoogleProviderDefault from 'next-auth/providers/google'
+import type CredentialsProviderDefault from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import { sendSignupWelcomeEmailOnce } from '@/lib/email/signup-welcome'
 import { sendEmail } from '@/lib/email/send'
 import crypto from 'crypto'
+import { createRequire } from 'module'
 import { resolveAuthBaseUrl } from '@/lib/url-safety'
 
 const TRIAL_DAYS = 7
@@ -21,6 +23,11 @@ const PLATFORM_AUTH_URL = process.env.AUTH_CANONICAL_URL || 'https://platform.pr
 if (process.env.NODE_ENV === 'production') {
   process.env.NEXTAUTH_URL = PLATFORM_AUTH_URL
 }
+
+const nodeRequire = createRequire(import.meta.url)
+const NextAuth = nodeRequire('next-auth').default as typeof NextAuthDefault
+const GoogleProvider = nodeRequire('next-auth/providers/google').default as typeof GoogleProviderDefault
+const CredentialsProvider = nodeRequire('next-auth/providers/credentials').default as typeof CredentialsProviderDefault
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
