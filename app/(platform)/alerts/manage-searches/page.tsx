@@ -730,18 +730,8 @@ function ManageSearchesContent() {
 
       <div className="max-w-480 mx-auto px-3 sm:px-6 lg:px-8 py-8">
         <section className="mb-6">
-          <WorkspaceNavRow active="saved-searches" />
+          <WorkspaceNavRow active="saved-searches" count={searches.length} />
         </section>
-
-        {/* Page heading with live count */}
-        <div className="flex items-center gap-3 mb-4">
-          <h1 className="text-3xl font-black text-slate-900">Manage Saved Searches</h1>
-          {searches.length > 0 && (
-            <span className="px-3 py-1 bg-blue-700 text-white border border-blue-900 rounded-full text-sm font-black">
-              {searches.length}
-            </span>
-          )}
-        </div>
 
         {/* Create New Saved Search action */}
         <div className="flex flex-wrap mb-6 items-center gap-3">

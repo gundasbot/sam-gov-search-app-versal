@@ -1074,6 +1074,39 @@ export default function DashboardPage() {
  mergedOpps.push(opp)
  }
  }
+
+ // When live SAM.gov calls return nothing (API down or proxy issue), fall back
+ // to the DB-cached opportunity snapshot so stat boxes are never all zero.
+ if (mergedOpps.length === 0) {
+ try {
+ const cacheRes = await fetch('/api/insights/opportunities', { cache: 'no-store' })
+ if (cacheRes.ok) {
+ const cacheData = await cacheRes.json()
+ ;(cacheData.opportunities || []).forEach((o: any) => {
+ const id = String(o.noticeId || '')
+ if (!id || seenIds.has(id)) return
+ seenIds.add(id)
+ mergedOpps.push({
+ noticeId: o.noticeId,
+ title: o.title,
+ department: o.agency,
+ agency: o.agency,
+ postedDate: o.postedDate,
+ responseDeadline: o.responseDeadline,
+ responseDeadLine: o.responseDeadline,
+ naicsCode: o.naicsCode,
+ naics: o.naicsCode,
+ setAside: o.setAside,
+ typeOfSetAside: o.setAside,
+ uiLink: o.url,
+ })
+ })
+ }
+ } catch {
+ // Keep empty — cache fetch also failed
+ }
+ }
+
  const weekly = { totalRecords: mergedOpps.length, opportunities: mergedOpps }
 
  const savedOpps: SavedOpportunity[] = dashboardApi.savedOpportunities.map((o) => {
@@ -2429,7 +2462,7 @@ export default function DashboardPage() {
  <p className="mt-1 text-xs font-medium text-slate-500">
  {useMarketSnapshot
  ? 'Newest live SAM.gov sample used when the personalized feed is still sparse.'
- : 'Current SAM.gov opportunities already aligned to this user&apos;s live feed.'}
+ : "Current SAM.gov opportunities already aligned to this user's live feed."}
  </p>
  </div>
  <Link

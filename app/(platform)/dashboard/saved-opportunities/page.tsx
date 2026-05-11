@@ -135,16 +135,9 @@ function SavedOpportunitiesContent() {
   return (
     <main className="min-h-screen bg-green-100">
       <div className="max-w-480 mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
-        <section className="pt-6 mb-4">
-          <WorkspaceNavRow active="saved-opportunities" />
+        <section className="pt-6 mb-6">
+          <WorkspaceNavRow active="saved-opportunities" count={items.length} />
         </section>
-
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <div>
-            <h1 className="text-4xl font-black text-slate-900">Saved Opportunities</h1>
-            <p className="text-base text-slate-700 mt-1">Detailed list from your saved-opportunities records.</p>
-          </div>
-        </div>
 
         {(activeNaics || activeSetAside || activeSolicitation) && (
           <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2">

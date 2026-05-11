@@ -1232,7 +1232,7 @@ function ManageAlertsContent() {
 
         {/* ── Top Action Row ───────────────────── */}
         <section className="mb-6">
-          <WorkspaceNavRow active="saved-alerts" />
+          <WorkspaceNavRow active="saved-alerts" count={visibleAlerts.length} />
         </section>
         <section className="mb-5">
           <button

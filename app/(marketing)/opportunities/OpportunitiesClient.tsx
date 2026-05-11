@@ -1659,20 +1659,68 @@ Provide analysis in JSON format with:
           errorPayload = await res.text();
         }
         const msg = getSamErrorMessage(errorPayload, 'Unable to refresh opportunities from SAM.gov.');
-        setError(msg);
         setDataLoaded(true);
         setApiStatus({
           status: res.status,
           statusText: res.statusText,
           message: typeof errorPayload === 'string' ? errorPayload : JSON.stringify(errorPayload),
         });
+        // Try DB-cached fallback before showing the error
+        try {
+          const cacheRes = await fetch('/api/insights/opportunities', { cache: 'no-store' });
+          if (cacheRes.ok) {
+            const cacheData = await cacheRes.json();
+            const cachedOpps: SamOpportunity[] = (cacheData.opportunities || []).map((o: any) => ({
+              noticeId: String(o.noticeId || ''), title: o.title || 'Untitled opportunity',
+              solicitationNumber: o.solicitationNumber || '', department: o.agency || 'Federal Agency',
+              postedDate: o.postedDate ? new Date(o.postedDate).toISOString() : new Date().toISOString(),
+              responseDeadLine: o.responseDeadline ? new Date(o.responseDeadline).toISOString() : '',
+              naicsCode: o.naicsCode || '', typeOfSetAside: o.setAside || '',
+              typeOfSetAsideDescription: o.setAside || '',
+              uiLink: o.url || `https://sam.gov/opp/${o.noticeId}/view`, active: 'Yes',
+            }));
+            if (cachedOpps.length) {
+              setAllOpportunities(cachedOpps); setFilteredOpportunities(cachedOpps);
+              setDisplayedOpportunities(cachedOpps);
+              setTotalRecords(cacheData.stats?.totalActive || cachedOpps.length);
+              setLastUpdated(getLastUpdatedLabel());
+              setToast({ type: 'success', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
+              return;
+            }
+          }
+        } catch { /* keep original error */ }
+        setError(msg);
         setToast({ type: 'error', msg });
       }
     } catch (e: any) {
       const msg = e?.message ? `Unable to refresh opportunities: ${e.message}` : 'Unable to refresh opportunities.';
-      setError(msg);
       setDataLoaded(true);
       setApiStatus({ status: null, statusText: 'Network Error', message: msg });
+      // Try DB-cached fallback before showing the error
+      try {
+        const cacheRes = await fetch('/api/insights/opportunities', { cache: 'no-store' });
+        if (cacheRes.ok) {
+          const cacheData = await cacheRes.json();
+          const cachedOpps: SamOpportunity[] = (cacheData.opportunities || []).map((o: any) => ({
+            noticeId: String(o.noticeId || ''), title: o.title || 'Untitled opportunity',
+            solicitationNumber: o.solicitationNumber || '', department: o.agency || 'Federal Agency',
+            postedDate: o.postedDate ? new Date(o.postedDate).toISOString() : new Date().toISOString(),
+            responseDeadLine: o.responseDeadline ? new Date(o.responseDeadline).toISOString() : '',
+            naicsCode: o.naicsCode || '', typeOfSetAside: o.setAside || '',
+            typeOfSetAsideDescription: o.setAside || '',
+            uiLink: o.url || `https://sam.gov/opp/${o.noticeId}/view`, active: 'Yes',
+          }));
+          if (cachedOpps.length) {
+            setAllOpportunities(cachedOpps); setFilteredOpportunities(cachedOpps);
+            setDisplayedOpportunities(cachedOpps);
+            setTotalRecords(cacheData.stats?.totalActive || cachedOpps.length);
+            setLastUpdated(getLastUpdatedLabel());
+            setToast({ type: 'success', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
+            return;
+          }
+        }
+      } catch { /* keep original error */ }
+      setError(msg);
       setToast({ type: 'error', msg });
     } finally {
       setLoadingMore(false);
@@ -1818,6 +1866,41 @@ Provide analysis in JSON format with:
     if (allOpportunities.length === 0 && !error) {
       if (liveFetchInFlightRef.current) return;
 
+      // Falls back to the DB-cached opportunity snapshot when the live SAM.gov
+      // call fails. Returns true if cached data was loaded successfully.
+      const tryLoadCachedOpportunities = async (): Promise<boolean> => {
+        try {
+          const cacheRes = await fetch('/api/insights/opportunities', { cache: 'no-store' });
+          if (!cacheRes.ok) return false;
+          const cacheData = await cacheRes.json();
+          const cachedOpps: SamOpportunity[] = (cacheData.opportunities || []).map((o: any) => ({
+            noticeId: String(o.noticeId || ''),
+            title: o.title || 'Untitled opportunity',
+            solicitationNumber: o.solicitationNumber || '',
+            department: o.agency || 'Federal Agency',
+            postedDate: o.postedDate ? new Date(o.postedDate).toISOString() : new Date().toISOString(),
+            responseDeadLine: o.responseDeadline ? new Date(o.responseDeadline).toISOString() : '',
+            naicsCode: o.naicsCode || '',
+            typeOfSetAside: o.setAside || '',
+            typeOfSetAsideDescription: o.setAside || '',
+            uiLink: o.url || `https://sam.gov/opp/${o.noticeId}/view`,
+            active: 'Yes',
+          }));
+          if (!cachedOpps.length) return false;
+          setAllOpportunities(cachedOpps);
+          setFilteredOpportunities(cachedOpps);
+          setDisplayedOpportunities(cachedOpps);
+          setTotalRecords(cacheData.stats?.totalActive || cachedOpps.length);
+          setDataSource('live');
+          setError(null);
+          setLastUpdated(getLastUpdatedLabel());
+          setToast({ type: 'success', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
       const fetchInitialOpportunities = async () => {
         liveFetchInFlightRef.current = true;
         setLoading(true);
@@ -1868,17 +1951,20 @@ Provide analysis in JSON format with:
               errorPayload = await res.text();
             }
             const msg = getSamErrorMessage(errorPayload, 'Unable to load opportunities. Please try Refresh.');
-            setError(msg);
             setApiStatus({
               status: res.status,
               statusText: res.statusText,
               message: typeof errorPayload === 'string' ? errorPayload : JSON.stringify(errorPayload),
             });
+            // Live API failed — try DB-cached fallback so the page isn't blank
+            const loadedFromCache = await tryLoadCachedOpportunities();
+            if (!loadedFromCache) setError(msg);
           }
         } catch (err: any) {
           const msg = err?.message ? `Unable to load opportunities: ${err.message}` : 'Unable to load opportunities. Please try Refresh.';
-          setError(msg);
           setApiStatus({ status: null, statusText: 'Network Error', message: err?.message || String(err) });
+          const loadedFromCache = await tryLoadCachedOpportunities();
+          if (!loadedFromCache) setError(msg);
         } finally {
           setLoading(false);
           setDataLoaded(true);

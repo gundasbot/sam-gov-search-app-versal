@@ -479,33 +479,22 @@ function ContactsContent() {
       />
 
       <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-8 bg-blue-200 rounded-2xl border border-blue-300">
-        {/* Cross-page navigation */}
+        {/* Cross-page navigation + page identity */}
         <section className="mb-6">
-          <WorkspaceNavRow active="recipients" />
+          <WorkspaceNavRow active="recipients" count={contacts.length} />
         </section>
 
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-6 rounded-2xl border border-blue-300 bg-white p-5 shadow-sm">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl sm:text-4xl font-black text-blue-900">Contacts</h1>
-              {contacts.length > 0 && (
-                <span className="px-3 py-1 bg-blue-700 text-white border border-blue-800 rounded-full text-sm font-black">{contacts.length}</span>
-              )}
-            </div>
-            <p className="text-blue-900 text-base font-bold">Universal address book — share, email, call, and send from any page.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowImportModal(true)}
-              className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-black rounded-xl flex items-center gap-2 text-sm transition-colors shadow">
-              <Upload className="w-4 h-4" /> Import
-            </button>
-            <button onClick={() => { setShowAddForm(f => !f); setEditId(null) }}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl flex items-center gap-2 text-sm transition-colors shadow-lg">
-              {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              {showAddForm ? 'Cancel' : 'Add Contact'}
-            </button>
-          </div>
+        {/* Action bar */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button onClick={() => setShowImportModal(true)}
+            className="px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-black rounded-xl flex items-center gap-2 text-sm transition-colors shadow">
+            <Upload className="w-4 h-4" /> Import
+          </button>
+          <button onClick={() => { setShowAddForm(f => !f); setEditId(null) }}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl flex items-center gap-2 text-sm transition-colors shadow-lg">
+            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {showAddForm ? 'Cancel' : 'Add Contact'}
+          </button>
         </div>
 
         {/* Contractor groups from scraped contractor table */}
