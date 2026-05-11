@@ -52,6 +52,11 @@ const COOKIE_DELAYS = 'delay_count'
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') ?? ''
+  const isApiPath = pathname === '/api' || pathname.startsWith('/api/')
+
+  if (isApiPath) {
+    return NextResponse.next()
+  }
 
   // ── Subdomain routing (production only) ─────────────────────────────────────
   if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
