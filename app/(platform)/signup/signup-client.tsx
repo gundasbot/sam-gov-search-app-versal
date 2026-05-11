@@ -99,10 +99,10 @@ function Field({ label, required, hint, error, children }: {
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold mb-1 tracking-wide uppercase" style={{ color: '#475569' }}>
+      <label className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
-        {hint && <span className="ml-1.5 normal-case font-normal text-[11px]" style={{ color: '#94a3b8' }}>{hint}</span>}
+        {hint && <span className="ml-1.5 font-normal text-xs" style={{ color: '#64748b' }}>{hint}</span>}
       </label>
       {children}
       {error && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
@@ -110,8 +110,8 @@ function Field({ label, required, hint, error, children }: {
   )
 }
 
-const inp = 'w-full h-10 rounded-lg px-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200 focus:border-orange-400'
-const inpStyle = { background: '#f8fafc', color: '#0f172a', border: '1.5px solid #e2e8f0' }
+const inp = 'w-full h-11 rounded-lg px-3.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-orange-300 focus:border-orange-500'
+const inpStyle = { background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }
 
 // ─── Left brand panel ──────────────────────────────────────────────────────────
 function BrandPanel() {

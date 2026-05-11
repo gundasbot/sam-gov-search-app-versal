@@ -644,7 +644,7 @@ function SignInContent() {
             {authMode === 'password' && (
               <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold mb-1.5" style={{ color: '#374151' }}>
+                  <label htmlFor="email" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
                     Email
                   </label>
                   <input
@@ -655,7 +655,7 @@ function SignInContent() {
                     placeholder="you@company.com"
                     required
                     className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                    style={{ background: '#f8fafc', color: '#0f172a', border: '1.5px solid #e2e8f0' }}
+                    style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
                   />
                 </div>
 
@@ -682,7 +682,7 @@ function SignInContent() {
                       placeholder="Enter your password"
                       required
                       className="h-11 w-full rounded-lg px-4 pr-11 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                      style={{ background: '#f8fafc', color: '#0f172a', border: '1.5px solid #e2e8f0' }}
+                      style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
                     />
                     <button
                       type="button"
@@ -698,7 +698,7 @@ function SignInContent() {
                 {errorState?.type === 'TWO_FACTOR_REQUIRED' && (
                   <>
                     <div>
-                      <label htmlFor="two-factor-code" className="block text-sm font-semibold mb-1.5" style={{ color: '#374151' }}>
+                      <label htmlFor="two-factor-code" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
                         Authenticator Code
                       </label>
                       <input
@@ -710,11 +710,11 @@ function SignInContent() {
                         onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="123456"
                         className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                        style={{ background: '#f8fafc', color: '#0f172a', border: '1.5px solid #e2e8f0' }}
+                        style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
                       />
                     </div>
                     <div>
-                      <label htmlFor="two-factor-backup" className="block text-sm font-semibold mb-1.5" style={{ color: '#374151' }}>
+                      <label htmlFor="two-factor-backup" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
                         Backup Code <span className="font-normal text-xs" style={{ color: '#94a3b8' }}>(optional)</span>
                       </label>
                       <input
@@ -724,7 +724,7 @@ function SignInContent() {
                         onChange={(e) => setTwoFactorBackupCode(e.target.value.replace(/\s+/g, ''))}
                         placeholder="8-digit backup code"
                         className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                        style={{ background: '#f8fafc', color: '#0f172a', border: '1.5px solid #e2e8f0' }}
+                        style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
                       />
                     </div>
                   </>
@@ -747,7 +747,7 @@ function SignInContent() {
             {authMode === 'otp' && (
               <form onSubmit={(e) => { e.preventDefault(); handleVerifyOTP() }} className="space-y-4" suppressHydrationWarning>
                 <div>
-                  <label htmlFor="otp-email" className="block text-sm font-semibold mb-1.5" style={{ color: '#374151' }}>
+                  <label htmlFor="otp-email" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
                     Email
                   </label>
                   <input
@@ -758,14 +758,14 @@ function SignInContent() {
                     placeholder="you@company.com"
                     disabled={otpSent || magicLinkSent}
                     className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200 disabled:opacity-60"
-                    style={{ background: '#f8fafc', color: '#0f172a', border: '1.5px solid #e2e8f0' }}
+                    style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
                   />
                 </div>
 
                 {magicLinkSent ? (
                   <div className="rounded-lg overflow-hidden" style={{ border: '1.5px solid #f97316' }}>
                     <div className="px-4 py-3 flex items-center gap-2" style={{ background: '#0f172a' }}>
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#f97316' }}>
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f97316' }}>
                         <CheckCircle2 className="h-3 w-3 text-white" />
                       </div>
                       <p className="font-bold text-sm" style={{ color: '#ffffff' }}>Sign-in link sent to {otpEmail}</p>
@@ -784,7 +784,7 @@ function SignInContent() {
                         <button type="button"
                           onClick={() => { setMagicLinkSent(false); setOtpSent(false); setOtpCode(''); setErrorState(null) }}
                           className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all"
-                          style={{ background: '#f1f5f9', color: '#374151', border: '1.5px solid #e2e8f0' }}>
+                          style={{ background: '#f1f5f9', color: '#1e293b', border: '2px solid #94a3b8' }}>
                           Use a different method
                         </button>
                       </div>
@@ -835,7 +835,7 @@ function SignInContent() {
                       type="button"
                       onClick={() => { setAuthMode('password'); setOtpSent(false); setOtpCode(''); setOtpTimeRemaining(0); setErrorState(null) }}
                       className="h-10 w-full inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all"
-                      style={{ background: '#f1f5f9', color: '#374151', border: '1.5px solid #e2e8f0' }}
+                      style={{ background: '#f1f5f9', color: '#1e293b', border: '2px solid #94a3b8' }}
                     >
                       <KeyRound className="h-4 w-4" /> Use password instead
                     </button>
@@ -847,7 +847,7 @@ function SignInContent() {
                       <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>Enter the 6-digit code from your inbox</p>
                     </div>
                     <div>
-                      <label htmlFor="otp-code" className="block text-sm font-semibold mb-1.5" style={{ color: '#374151' }}>
+                      <label htmlFor="otp-code" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
                         6-Digit Code
                       </label>
                       <input
@@ -875,7 +875,7 @@ function SignInContent() {
                       onClick={async () => { setOtpCode(''); setOtpTimeRemaining(0); setOtpSent(false); await handleSendOTP() }}
                       disabled={otpSending}
                       className="h-10 w-full inline-flex items-center justify-center gap-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-60"
-                      style={{ background: '#f1f5f9', color: '#374151', border: '1.5px solid #e2e8f0' }}
+                      style={{ background: '#f1f5f9', color: '#1e293b', border: '2px solid #94a3b8' }}
                     >
                       {otpSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Mail className="h-3.5 w-3.5" /> Resend code</>}
                     </button>

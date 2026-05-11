@@ -1014,130 +1014,101 @@ function SettingsTab() {
           <section className="space-y-4">
             <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><Lock size={18} /> Password & Account Security</h3>
 
-            {/* Change Password Card */}
-            <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 bg-slate-50 space-y-3">
+            {/* Change Password Card — always visible */}
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 space-y-4">
               <div>
-                <p className="text-sm font-black text-slate-900">Change Password</p>
-                <p className="text-xs font-semibold text-slate-600 mt-0.5">Update your account password. You'll need your current password to make changes.</p>
+                <p className="text-base font-black text-slate-900">Change Password</p>
+                <p className="text-sm font-semibold text-slate-600 mt-0.5">Update your account password. You'll need your current password to make changes.</p>
               </div>
-              {!showPasswordForm && (
-                <button
-                  type="button"
-                  onClick={() => { setShowPasswordForm(true); setPasswordMsg(null) }}
-                  className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-black inline-flex items-center gap-2"
-                >
-                  <Lock size={14} /> Change Password
-                </button>
-              )}
 
-              {showPasswordForm && (
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 space-y-4">
-                  {/* Current password */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">Current Password</label>
-                    <div className="relative">
-                      <input
-                        type={showCurrentPassword ? 'text' : 'password'}
-                        value={passwordForm.current}
-                        onChange={e => setPasswordForm({ ...passwordForm, current: e.target.value })}
-                        placeholder="Enter current password"
-                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400"
-                      />
-                      <button type="button" onClick={() => setShowCurrentPassword(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* New password */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={passwordForm.next}
-                        onChange={e => setPasswordForm({ ...passwordForm, next: e.target.value })}
-                        placeholder="Enter new password (min. 8 characters)"
-                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400"
-                      />
-                      <button type="button" onClick={() => setShowPassword(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                    </div>
-                    {passwordForm.next.length > 0 && (
-                      <div className="flex gap-3 mt-1 flex-wrap">
-                        {[
-                          { label: '8+ chars', ok: passwordForm.next.length >= 8 },
-                          { label: 'Uppercase', ok: /[A-Z]/.test(passwordForm.next) },
-                          { label: 'Number', ok: /[0-9]/.test(passwordForm.next) },
-                          { label: 'Special char', ok: /[^A-Za-z0-9]/.test(passwordForm.next) },
-                        ].map(r => (
-                          <span key={r.label} className={`text-xs font-semibold inline-flex items-center gap-1 ${r.ok ? 'text-emerald-600' : 'text-slate-400'}`}>
-                            {r.ok ? '✓' : '○'} {r.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Confirm password */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700">Confirm New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        value={passwordForm.confirm}
-                        onChange={e => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-                        placeholder="Re-enter new password"
-                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400"
-                      />
-                      <button type="button" onClick={() => setShowConfirmPassword(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                    </div>
-                    {passwordForm.confirm.length > 0 && (
-                      <p className={`text-xs font-semibold mt-1 ${passwordForm.next === passwordForm.confirm ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {passwordForm.next === passwordForm.confirm ? '✓ Passwords match' : '✗ Passwords do not match'}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Inline feedback */}
-                  {passwordMsg && (
-                    <div className={`rounded-lg px-3 py-2 text-sm font-semibold ${passwordMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-700'}`}>
-                      {passwordMsg.text}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={handleUpdatePassword}
-                      disabled={passwordBusy}
-                      className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-black disabled:opacity-60 inline-flex items-center gap-2"
-                    >
-                      {passwordBusy ? <><Loader2 size={14} className="animate-spin" /> Updating...</> : 'Update Password'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowPasswordForm(false); setPasswordForm({ current: '', next: '', confirm: '' }); setPasswordMsg(null) }}
-                      className="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-bold"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+              {/* Current password */}
+              <div className="space-y-1">
+                <label className="block text-sm font-bold text-slate-800">Current Password</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={passwordForm.current}
+                    onChange={e => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                    placeholder="Enter your current password"
+                    className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-slate-300 bg-white text-slate-900 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+                  <button type="button" onClick={() => setShowCurrentPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700">
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
-              )}
+              </div>
 
-              {/* Success message when form is closed */}
-              {!showPasswordForm && passwordMsg?.type === 'success' && (
-                <div className="rounded-lg px-3 py-2 text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800">
+              {/* New password */}
+              <div className="space-y-1">
+                <label className="block text-sm font-bold text-slate-800">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={passwordForm.next}
+                    onChange={e => setPasswordForm({ ...passwordForm, next: e.target.value })}
+                    placeholder="Minimum 8 characters"
+                    className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-slate-300 bg-white text-slate-900 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700">
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {passwordForm.next.length > 0 && (
+                  <div className="flex gap-3 mt-1.5 flex-wrap">
+                    {[
+                      { label: '8+ chars', ok: passwordForm.next.length >= 8 },
+                      { label: 'Uppercase', ok: /[A-Z]/.test(passwordForm.next) },
+                      { label: 'Number', ok: /[0-9]/.test(passwordForm.next) },
+                      { label: 'Special char', ok: /[^A-Za-z0-9]/.test(passwordForm.next) },
+                    ].map(r => (
+                      <span key={r.label} className={`text-xs font-semibold inline-flex items-center gap-1 ${r.ok ? 'text-emerald-600' : 'text-slate-400'}`}>
+                        {r.ok ? '✓' : '○'} {r.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm password */}
+              <div className="space-y-1">
+                <label className="block text-sm font-bold text-slate-800">Confirm New Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={passwordForm.confirm}
+                    onChange={e => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                    placeholder="Re-enter new password"
+                    className="w-full px-4 py-3 pr-12 rounded-xl border-2 border-slate-300 bg-white text-slate-900 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+                  <button type="button" onClick={() => setShowConfirmPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700">
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {passwordForm.confirm.length > 0 && (
+                  <p className={`text-xs font-semibold mt-1 ${passwordForm.next === passwordForm.confirm ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {passwordForm.next === passwordForm.confirm ? '✓ Passwords match' : '✗ Passwords do not match'}
+                  </p>
+                )}
+              </div>
+
+              {/* Inline feedback */}
+              {passwordMsg && (
+                <div className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${passwordMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-700'}`}>
                   {passwordMsg.text}
                 </div>
               )}
+
+              <button
+                type="button"
+                onClick={handleUpdatePassword}
+                disabled={passwordBusy}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black disabled:opacity-60 inline-flex items-center gap-2"
+              >
+                {passwordBusy ? <><Loader2 size={14} className="animate-spin" /> Updating...</> : <><Lock size={14} /> Update Password</>}
+              </button>
             </div>
           </section>
 
@@ -1236,10 +1207,10 @@ function SettingsTab() {
             <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><Bell size={18} /> Notification Preferences</h3>
 
             {/* Master mute toggle */}
-            <div className={`flex items-center justify-between p-4 rounded-xl border ${allNotificationsEnabled ? 'border-slate-200 bg-white' : 'border-orange-200 bg-orange-50'}`}>
+            <div className={`flex items-center justify-between p-4 rounded-xl border ${allNotificationsEnabled ? 'border-slate-200 bg-white' : 'border-slate-200 bg-white'}`}>
               <div>
-                <p className={`text-sm font-black ${allNotificationsEnabled ? 'text-slate-900' : 'text-orange-900'}`}>All Notifications</p>
-                <p className={`text-xs font-semibold ${allNotificationsEnabled ? 'text-slate-600' : 'text-orange-700'}`}>
+                <p className="text-sm font-black text-slate-900">All Notifications</p>
+                <p className={`text-xs font-semibold ${allNotificationsEnabled ? 'text-slate-600' : 'text-slate-500'}`}>
                   {allNotificationsEnabled ? 'All notifications are enabled.' : 'All notifications are turned off.'}
                 </p>
               </div>
@@ -1247,7 +1218,7 @@ function SettingsTab() {
                 type="button"
                 onClick={() => setAllNotifications(!allNotificationsEnabled)}
                 disabled={bulkPrefBusy}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${allNotificationsEnabled ? 'bg-emerald-600' : 'bg-orange-400'} ${bulkPrefBusy ? 'opacity-60' : ''}`}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${allNotificationsEnabled ? 'bg-emerald-600' : 'bg-slate-300'} ${bulkPrefBusy ? 'opacity-60' : ''}`}
               >
                 <span className={`inline-block h-6 w-6 rounded-full bg-white transition-transform ${allNotificationsEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
               </button>
@@ -1272,7 +1243,7 @@ function SettingsTab() {
               </button>
             </div>
             {loadingPrefs && <p className="text-sm font-semibold text-slate-500">Loading preferences...</p>}
-            <div className={`flex items-center justify-between p-4 rounded-xl border ${marketingOptIn ? 'border-slate-200 bg-white' : 'border-orange-200 bg-orange-50'}`}>
+            <div className={`flex items-center justify-between p-4 rounded-xl border ${marketingOptIn ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50'}`}>
               <div>
                 <p className={`text-sm font-bold ${marketingOptIn ? 'text-slate-900' : 'text-orange-900'}`}>Marketing Emails</p>
                 <p className={`text-xs font-semibold ${marketingOptIn ? 'text-slate-600' : 'text-orange-800'}`}>
@@ -1283,7 +1254,7 @@ function SettingsTab() {
                 type="button"
                 onClick={toggleMarketingOptIn}
                 disabled={marketingBusy}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${marketingOptIn ? 'bg-emerald-600' : 'bg-orange-400'} ${marketingBusy ? 'opacity-60' : ''}`}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${marketingOptIn ? 'bg-emerald-600' : 'bg-slate-300'} ${marketingBusy ? 'opacity-60' : ''}`}
               >
                 <span className={`inline-block h-6 w-6 rounded-full bg-white transition-transform ${marketingOptIn ? 'translate-x-7' : 'translate-x-1'}`} />
               </button>
@@ -1302,15 +1273,15 @@ function SettingsTab() {
               return (
                 <div key={key} className="space-y-3">
                   <div className={`flex items-center justify-between p-4 rounded-xl border ${
-                    enabled ? 'border-slate-200 bg-white' : 'border-orange-200 bg-orange-50'
+                    enabled ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50'
                   }`}>
-                    <p className={`text-sm font-bold ${enabled ? 'text-slate-900' : 'text-orange-900'}`}>{label}</p>
+                    <p className={`text-sm font-bold ${enabled ? 'text-slate-900' : 'text-slate-600'}`}>{label}</p>
                     <button
                       type="button"
                       onClick={() => toggleNotification(key as keyof typeof notifications)}
                       disabled={savingPrefKey === key}
                       className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                        enabled ? 'bg-emerald-600' : 'bg-orange-400'
+                        enabled ? 'bg-emerald-600' : 'bg-slate-300'
                       }`}
                     >
                       <span className={`inline-block h-6 w-6 rounded-full bg-white transition-transform ${
