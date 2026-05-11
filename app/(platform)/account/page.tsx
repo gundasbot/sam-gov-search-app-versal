@@ -1020,6 +1020,7 @@ function SettingsTab() {
                 <p className="text-sm font-semibold text-slate-600 mt-0.5">Update your account password. You'll need your current password to make changes.</p>
               </div>
 
+              <div className="max-w-md space-y-4">
               {/* Current password */}
               <div className="space-y-1">
                 <label className="block text-sm font-bold text-slate-800">Current Password</label>
@@ -1099,8 +1100,9 @@ function SettingsTab() {
                   {passwordMsg.text}
                 </div>
               )}
+              </div>
 
-              <div className="flex gap-3 pt-2 border-t border-slate-100">
+              <div className="max-w-md flex gap-3 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={handleUpdatePassword}
