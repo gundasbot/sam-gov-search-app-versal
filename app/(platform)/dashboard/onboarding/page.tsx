@@ -354,10 +354,6 @@ export default function DashboardOnboardingPage() {
     setSaving(true)
     try {
       await persistPrefs(prefs)
-      if (typeof window !== 'undefined') {
-        const emailKey = session?.user?.email?.toLowerCase?.() || 'anon'
-        window.localStorage.setItem(`pgc-survey-dismissed:${emailKey}`, '1')
-      }
       fetch('/api/ai/personalized-feed', { method: 'POST' }).catch(() => {})
       setSaved(true)
       setShowSuccessToast(true)
@@ -366,6 +362,11 @@ export default function DashboardOnboardingPage() {
       // Save failed — navigate anyway so Skip/Confirm always work
     } finally {
       setSaving(false)
+    }
+    // Always set the suppression flag so the dashboard doesn't redirect back to onboarding
+    if (typeof window !== 'undefined') {
+      const emailKey = session?.user?.email?.toLowerCase?.() || 'anon'
+      window.localStorage.setItem(`pgc-survey-dismissed:${emailKey}`, '1')
     }
     router.push(targetPath)
   }, [persistPrefs, prefs, router, session?.user?.email])
