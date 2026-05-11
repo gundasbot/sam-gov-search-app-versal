@@ -16,6 +16,11 @@ import { resolveAuthBaseUrl } from '@/lib/url-safety'
 
 const TRIAL_DAYS = 7
 const LOGIN_ERROR_ALERT_EMAIL = process.env.LOGIN_ERROR_ALERT_EMAIL || 'admin@precisegovcon.com'
+const PLATFORM_AUTH_URL = process.env.AUTH_CANONICAL_URL || 'https://platform.precisegovcon.com'
+
+if (process.env.NODE_ENV === 'production') {
+  process.env.NEXTAUTH_URL = PLATFORM_AUTH_URL
+}
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -475,7 +480,9 @@ function copyUserToToken(token: any, source: any) {
 // ✅ Export handler for Next.js routing
 const handler = (req: Request, ctx: any) => {
   // Safety guard: in local/dev, always bind NextAuth redirects to the current request origin.
-  process.env.NEXTAUTH_URL = resolveAuthBaseUrl(req)
+  process.env.NEXTAUTH_URL = process.env.NODE_ENV === 'production'
+    ? PLATFORM_AUTH_URL
+    : resolveAuthBaseUrl(req)
   return NextAuth(authOptions)(req, ctx)
 }
 export { handler as GET, handler as POST }
