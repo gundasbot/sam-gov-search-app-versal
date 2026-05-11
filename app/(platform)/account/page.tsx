@@ -1015,22 +1015,20 @@ function SettingsTab() {
             <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><Lock size={18} /> Password & Account Security</h3>
 
             {/* Change Password Card */}
-            <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 bg-slate-50 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-black text-slate-900">Change Password</p>
-                  <p className="text-xs font-semibold text-slate-600">Update your account password. You'll need your current password to make changes.</p>
-                </div>
-                {!showPasswordForm && (
-                  <button
-                    type="button"
-                    onClick={() => { setShowPasswordForm(true); setPasswordMsg(null) }}
-                    className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-black"
-                  >
-                    Change Password
-                  </button>
-                )}
+            <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 bg-slate-50 space-y-3">
+              <div>
+                <p className="text-sm font-black text-slate-900">Change Password</p>
+                <p className="text-xs font-semibold text-slate-600 mt-0.5">Update your account password. You'll need your current password to make changes.</p>
               </div>
+              {!showPasswordForm && (
+                <button
+                  type="button"
+                  onClick={() => { setShowPasswordForm(true); setPasswordMsg(null) }}
+                  className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-black inline-flex items-center gap-2"
+                >
+                  <Lock size={14} /> Change Password
+                </button>
+              )}
 
               {showPasswordForm && (
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 space-y-4">
@@ -1236,6 +1234,25 @@ function SettingsTab() {
 
           <section className="space-y-4">
             <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><Bell size={18} /> Notification Preferences</h3>
+
+            {/* Master mute toggle */}
+            <div className={`flex items-center justify-between p-4 rounded-xl border ${allNotificationsEnabled ? 'border-slate-200 bg-white' : 'border-orange-200 bg-orange-50'}`}>
+              <div>
+                <p className={`text-sm font-black ${allNotificationsEnabled ? 'text-slate-900' : 'text-orange-900'}`}>All Notifications</p>
+                <p className={`text-xs font-semibold ${allNotificationsEnabled ? 'text-slate-600' : 'text-orange-700'}`}>
+                  {allNotificationsEnabled ? 'All notifications are enabled.' : 'All notifications are turned off.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAllNotifications(!allNotificationsEnabled)}
+                disabled={bulkPrefBusy}
+                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${allNotificationsEnabled ? 'bg-emerald-600' : 'bg-orange-400'} ${bulkPrefBusy ? 'opacity-60' : ''}`}
+              >
+                <span className={`inline-block h-6 w-6 rounded-full bg-white transition-transform ${allNotificationsEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -1302,22 +1319,6 @@ function SettingsTab() {
                     </button>
                   </div>
 
-                  {isLast && (
-                    <div className="pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setAllNotifications(!allNotificationsEnabled)}
-                        disabled={bulkPrefBusy}
-                        className={`px-3 py-2 rounded-lg text-white text-xs font-black disabled:opacity-60 ${
-                          allNotificationsEnabled
-                            ? 'bg-orange-500 hover:bg-orange-600'
-                            : 'bg-emerald-600 hover:bg-emerald-700'
-                        }`}
-                      >
-                        {allNotificationsEnabled ? 'Disable All' : 'Enable All'}
-                      </button>
-                    </div>
-                  )}
                 </div>
               )
             })}
@@ -3013,6 +3014,22 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
 
   return (
     <div className="space-y-6">
+
+      {/* Payment security assurance */}
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 text-emerald-800">
+            <ShieldCheck size={18} className="shrink-0 text-emerald-600" />
+            <span className="text-sm font-black">Bank-grade security · SOC 2 compliant · Encrypted end-to-end</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-emerald-700">
+            <span className="inline-flex items-center gap-1"><CheckCircle2 size={13} /> PCI DSS compliant payment processing</span>
+            <span className="inline-flex items-center gap-1"><CheckCircle2 size={13} /> All card data encrypted via TLS 1.2+</span>
+            <span className="inline-flex items-center gap-1"><CheckCircle2 size={13} /> Payments powered by Stripe</span>
+            <span className="inline-flex items-center gap-1"><CheckCircle2 size={13} /> We never store raw card numbers</span>
+          </div>
+        </div>
+      </div>
 
       {/* Current plan banner */}
       {currentPlanDetails ? (
