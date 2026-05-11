@@ -118,7 +118,7 @@ function BrandPanel() {
   return (
     <div
       className="hidden lg:flex flex-col justify-between px-10 py-10 relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #0f1f3d 0%, #162952 60%, #1e3a6e 100%)', minHeight: '100vh', width: '420px', flexShrink: 0 }}
+      style={{ background: 'linear-gradient(160deg, #0f1f3d 0%, #162952 60%, #1e3a6e 100%)', width: '420px', flexShrink: 0 }}
     >
       {/* Decorative circles */}
       <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-5" style={{ background: '#f97316' }} />
@@ -390,12 +390,13 @@ export default function SignUpClient() {
   // ══════════════════════════════════════════════════════════════════════════════
   if (step === 1) {
     return (
-      <div className="flex min-h-screen">
+      <div style={{ minHeight: 'calc(100vh - 160px)', background: '#eef2f7', display: 'flex', alignItems: 'flex-start', padding: '2rem 1.5rem' }}>
+        <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', overflow: 'hidden', display: 'flex' }}>
         <BrandPanel />
 
         {/* Right — form panel */}
         <div className="flex-1 overflow-y-auto" style={{ background: '#ffffff' }}>
-          <div className="px-10 lg:px-16 py-10">
+          <div className="max-w-xl mx-auto w-full px-8 py-10">
 
             {/* Mobile logo (shown only when BrandPanel is hidden) */}
             <div className="flex items-center gap-3 mb-8 lg:hidden">
@@ -586,6 +587,7 @@ export default function SignUpClient() {
               </p>
             </form>
           </div>
+        </div>
         </div>
       </div>
     )

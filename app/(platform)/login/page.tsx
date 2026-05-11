@@ -474,15 +474,15 @@ function SignInContent() {
   }, [otpSent, otpTimeRemaining])
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#ffffff' }}>
+    <div style={{ minHeight: 'calc(100vh - 160px)', background: '#eef2f7', display: 'flex', alignItems: 'center', padding: '2rem 1.5rem' }}>
       {status === 'authenticated' ? (
-        <div className="flex min-h-screen w-full items-center justify-center">
+        <div className="flex w-full items-center justify-center" style={{ minHeight: '400px' }}>
           <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
         </div>
       ) : (
-      <>
+      <div style={{ maxWidth: '1080px', width: '100%', margin: '0 auto', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', overflow: 'hidden', display: 'flex', minHeight: '560px' }}>
         {/* ── LEFT: Welcome panel ── */}
-        <div className="hidden lg:flex flex-col justify-center px-16 py-16 relative overflow-hidden" style={{ width: '52%', background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
+        <div className="hidden lg:flex flex-col justify-center px-12 py-12 relative overflow-hidden" style={{ width: '420px', flexShrink: 0, background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
           {/* Subtle decorative accent */}
           <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'linear-gradient(180deg, #f97316, #f59e0b)' }} />
 
@@ -540,8 +540,8 @@ function SignInContent() {
         </div>
 
         {/* ── RIGHT: Form panel ── */}
-        <div className="flex-1 flex flex-col justify-center px-10 lg:px-16 py-12" style={{ background: '#ffffff' }}>
-          <div className="w-full">
+        <div className="flex-1 flex flex-col items-center justify-center px-8 py-10" style={{ background: '#ffffff' }}>
+          <div className="w-full max-w-md">
 
           <div className="mb-7">
             <h2 className="text-2xl font-black" style={{ color: '#0f172a' }}>Sign in to your account</h2>
@@ -880,7 +880,7 @@ function SignInContent() {
           </div>
         </div>
         </div>
-      </>
+      </div>
       )}
     </div>
   )
