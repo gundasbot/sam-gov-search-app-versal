@@ -57,7 +57,10 @@ export async function POST(req: Request) {
     // Always return OK to prevent account enumeration
     if (!email) return NextResponse.json({ ok: true })
 
-    const user = await prisma.users.findUnique({ where: { email } })
+    const user = await prisma.users.findUnique({
+      where: { email },
+      select: { id: true, email: true, first_name: true },
+    })
     if (!user) return NextResponse.json({ ok: true })
 
     const raw = crypto.randomBytes(32).toString("hex")
