@@ -1,24 +1,19 @@
 import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
-import { isEmailAdmin } from '@/lib/admin'
 import { authOptions } from '@/lib/auth'
 import { dbQuery } from '@/lib/db'
 import { prisma } from '@/lib/prisma'
 
-async function requireAdmin() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
   const email = session?.user?.email?.toLowerCase().trim()
-  if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const secret = new URL(req.url).searchParams.get('secret')
+  const allowedSecret = process.env.DEBUG_SECRET
 
-  const isAdmin = await isEmailAdmin(email)
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  return null
-}
-
-export async function GET() {
-  const authError = await requireAdmin()
-  if (authError) return authError
+  // Allow if: session exists OR correct debug secret provided
+  if (!email && secret !== allowedSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const results: Record<string, any> = {}
 

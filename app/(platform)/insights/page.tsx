@@ -941,20 +941,6 @@ export default function InsightsPage() {
           </div>
         )}
 
-        {isAuthenticated && feedMode === 'sample' && !error && (
-          <div className="mb-6 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 sm:px-6 sm:py-5 text-indigo-900">
-            <div className="flex items-start gap-4">
-              <AlertCircle className="h-6 w-6 mt-1 shrink-0" />
-              <div className="min-w-0">
-                <div className="font-black text-xl sm:text-2xl leading-tight">Personalized feed is syncing</div>
-                <div className="mt-1.5 break-words text-base sm:text-lg leading-relaxed">
-                  We are temporarily showing analyzed SAM.gov sample data while your personalized Insights refreshes.
-                  Click <strong>Manual Refresh</strong> to pull the latest matched opportunities.
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {!!refreshNotice && (
           <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm flex items-start gap-3 text-slate-800">
