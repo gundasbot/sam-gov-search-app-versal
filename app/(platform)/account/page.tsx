@@ -1634,6 +1634,155 @@ function OverviewTab({ profile, plan, currentPlanDetails, usage, bids, setActive
 
 // ─── PROFILE TAB ──────────────────────────────────────────────────────────────
 
+function PasswordUpdateSection() {
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' })
+  const [showPassword, setShowPassword] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const resetForm = () => {
+    setForm({ current: '', next: '', confirm: '' })
+    setShowPassword(false)
+  }
+
+  const updatePassword = async () => {
+    setMessage(null)
+
+    if (!form.current || !form.next || !form.confirm) {
+      setMessage({ type: 'error', text: 'Complete all password fields.' })
+      return
+    }
+
+    if (form.next.length < 8) {
+      setMessage({ type: 'error', text: 'New password must be at least 8 characters.' })
+      return
+    }
+
+    if (form.next !== form.confirm) {
+      setMessage({ type: 'error', text: 'New passwords do not match.' })
+      return
+    }
+
+    try {
+      setBusy(true)
+      const res = await fetch('/api/account/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: form.current, newPassword: form.next }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Could not update password')
+      resetForm()
+      setMessage({ type: 'success', text: 'Password updated successfully.' })
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Could not update password' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const inputClass = 'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10'
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: G.settings.bg }}>
+        <div className="flex items-center gap-2.5">
+          <Lock size={18} color="white" strokeWidth={2} />
+          <div>
+            <p className="font-bold text-white text-base">Password & Security</p>
+            <p className="text-xs font-semibold text-white/80">Update the password used for email sign-in.</p>
+          </div>
+        </div>
+        <Link
+          href="/forgot-password"
+          className="inline-flex items-center justify-center rounded-xl bg-white/15 px-3.5 py-2 text-xs font-black text-white ring-1 ring-white/30 transition hover:bg-white/20"
+        >
+          Forgot password?
+        </Link>
+      </div>
+
+      <div className="p-5 sm:p-6">
+        {message && (
+          <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-bold ${
+            message.type === 'success'
+              ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+              : 'border-rose-300 bg-rose-50 text-rose-800'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Field label="Current Password">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={form.current}
+              onChange={(e) => setForm({ ...form, current: e.target.value })}
+              className={inputClass}
+              placeholder="Current password"
+              autoComplete="current-password"
+            />
+          </Field>
+
+          <Field label="New Password">
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={form.next}
+                onChange={(e) => setForm({ ...form, next: e.target.value })}
+                className={`${inputClass} pr-12`}
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </Field>
+
+          <Field label="Confirm New Password">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={form.confirm}
+              onChange={(e) => setForm({ ...form, confirm: e.target.value })}
+              className={inputClass}
+              placeholder="Confirm new password"
+              autoComplete="new-password"
+            />
+          </Field>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={updatePassword}
+            disabled={busy}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {busy ? <><Loader2 size={14} className="animate-spin" /> Updating...</> : 'Update Password'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { resetForm(); setMessage(null) }}
+            disabled={busy}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          >
+            Clear
+          </button>
+          <p className="text-xs font-semibold text-slate-500 sm:ml-2">
+            Use reset password if you do not know your current password.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ProfileTab({ profile, setProfile, editMode, setEditMode, saving, saveProfile, sendEmailVerification, verificationSent }: any) {
   const inputCls = "w-full px-4 py-3 border rounded-xl text-slate-900 text-sm transition-all outline-none focus:ring-2"
   const [zipStatus, setZipStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -1955,6 +2104,8 @@ function ProfileTab({ profile, setProfile, editMode, setEditMode, saving, savePr
 
   return (
     <div className="space-y-5">
+      <PasswordUpdateSection />
+
       {sections.map(sec => {
         const isEditing = editMode === sec.id
         const hasActiveEditor = editMode !== null
