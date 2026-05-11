@@ -77,7 +77,7 @@ export default function Header() {
     { label: 'Alerts & Searches', href: '/alerts', icon: <Bell className="w-5 h-5" /> },
     { label: 'Insights', href: '/insights', icon: <LineChart className="w-5 h-5" /> },
     ...(isAuthed ? [{ label: 'Gov Resources', href: '/gov-links', icon: <ExternalLink className="w-5 h-5" /> }] : []),
-    { label: 'Pricing', href: '/pricing', icon: <CreditCard className="w-5 h-5" /> },
+    ...(!isAuthed ? [{ label: 'Pricing', href: '/pricing', icon: <CreditCard className="w-5 h-5" /> }] : []),
     { label: 'Support', href: '/support', icon: <Mail className="w-5 h-5" /> },
     ...(isAuthed ? [{ label: 'Account', href: '/account', icon: <User className="w-5 h-5" /> }] : []),
   ]
@@ -331,7 +331,7 @@ export default function Header() {
 
                 {[
                   { href: '/insights', label: 'Insights', icon: <LineChart className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, visibility: '' },
-                  { href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, visibility: 'hidden 2xl:inline-flex' },
+                  ...(!isAuthed ? [{ href: '/pricing', label: 'Pricing', icon: <CreditCard className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, visibility: 'hidden 2xl:inline-flex' }] : []),
                   { href: '/support', label: 'Support', icon: <Mail className="w-3.5 h-3.5 xl:w-4 xl:h-4" />, visibility: '' },
                 ].map(({ href, label, icon, visibility }) => (
                   <Link key={href} href={href} prefetch={false}
@@ -402,9 +402,6 @@ export default function Header() {
                           <Link href="/account?tab=billing" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group">
                             <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Plan &amp; Billing
                           </Link>
-                          <Link href="/pricing" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group xl:hidden">
-                            <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Pricing
-                          </Link>
                           <Link href="/support" prefetch={false} className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-slate-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 transition-colors group xl:hidden">
                             <Mail className="w-5 h-5 text-slate-400 group-hover:text-emerald-600 flex-shrink-0" /> Support
                           </Link>
@@ -412,7 +409,7 @@ export default function Header() {
                         <div className="border-t border-slate-100 px-2 py-2">
                           <button
                             type="button"
-                            onClick={async () => { await signOut({ redirect: false }); window.location.href = '/login' }}
+                            onClick={async () => { await signOut({ callbackUrl: '/login' }) }}
                             className="w-full flex items-center gap-3 px-4 py-3 text-base font-bold text-red-600 rounded-xl hover:bg-red-50 transition-colors"
                           >
                             <LogOut className="w-5 h-5 flex-shrink-0" /> Sign Out
@@ -423,7 +420,7 @@ export default function Header() {
                   </div>
                   <button
                     type="button"
-                    onClick={async () => { await signOut({ redirect: false }); window.location.href = '/login' }}
+                    onClick={async () => { await signOut({ callbackUrl: '/login' }) }}
                     className="inline-flex items-center gap-1.5 rounded-xl px-2.5 lg:px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
                     style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}
                     aria-label="Logout"
@@ -584,7 +581,7 @@ export default function Header() {
                 <p className="text-xs text-slate-500">Signed in as</p>
                 <p className="text-sm font-bold text-slate-900 truncate">{session?.user?.email}</p>
               </div>
-              <button type="button" onClick={async () => { setMobileMenuOpen(false); await signOut({ redirect: false }); window.location.href = '/login' }} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 transition-colors text-white font-black text-sm border-none"><LogOut className="w-4 h-4" />Logout</button>
+              <button type="button" onClick={async () => { setMobileMenuOpen(false); await signOut({ callbackUrl: '/login' }) }} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 transition-colors text-white font-black text-sm border-none"><LogOut className="w-4 h-4" />Logout</button>
             </div>
           ) : (
             <div className="border-t border-slate-200 pt-4 space-y-2">
