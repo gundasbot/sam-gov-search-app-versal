@@ -36,6 +36,7 @@ import {
   Star,
   Flag,
   ChevronRight,
+  Settings,
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -798,29 +799,23 @@ export default function InsightsPage() {
                 </div>
               </div>
 
-              {/* Personalization badges */}
+              {/* Personalization summary — compact, no tag cloud */}
               {(userPreferences?.setAsides?.length > 0 || userPreferences?.naicsCodes?.length > 0) && (
-                <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
-                  {(userPreferences.setAsides as string[]).map((sa: string) => (
-                    <button
-                      key={sa}
-                      type="button"
-                      onClick={() => routeToOpportunities({ setAside: sa, source: 'insights' })}
-                      className="inline-flex min-h-[40px] items-center rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-extrabold text-white hover:bg-orange-700 transition"
-                    >
-                      {sa}
-                    </button>
-                  ))}
-                  {(userPreferences.naicsCodes as string[] || []).slice(0, 3).map((code: string) => (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => routeToOpportunities({ naics: code, source: 'insights' })}
-                      className="inline-flex min-h-[40px] items-center rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-extrabold text-white hover:bg-indigo-700 transition"
-                    >
-                      NAICS {code}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 mt-1 mb-2">
+                  <span className="text-sm text-gray-500">
+                    {[
+                      userPreferences.setAsides?.length > 0 && `${userPreferences.setAsides.length} set-aside${userPreferences.setAsides.length > 1 ? 's' : ''}`,
+                      userPreferences.naicsCodes?.length > 0 && `${userPreferences.naicsCodes.length} NAICS code${userPreferences.naicsCodes.length > 1 ? 's' : ''}`,
+                    ].filter(Boolean).join(' · ')} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/dashboard/feed-personalization')}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <Settings className="h-3 w-3" />
+                    Update preferences
+                  </button>
                 </div>
               )}
 
@@ -879,18 +874,11 @@ export default function InsightsPage() {
                 <span>{refreshing ? 'Refreshing…' : isAuthenticated ? 'Manual Refresh' : 'Refresh'}</span>
               </button>
               <button
-                onClick={() =>
-                  routeToOpportunities({
-                    source: 'insights',
-                    from: 'update-opportunities-btn',
-                    detail: 'Manual opportunity refresh requested from Insights',
-                    update: '1',
-                  })
-                }
+                onClick={() => router.push('/dashboard/feed-personalization')}
                 className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 transition"
               >
-                <RefreshCw className="h-4 w-4" />
-                <span>Update Opportunities</span>
+                <Settings className="h-4 w-4" />
+                <span>Update Preferences</span>
               </button>
               <button
                 onClick={() => router.push('/opportunities')}
