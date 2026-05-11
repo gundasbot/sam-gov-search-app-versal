@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 const DETAILS_CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
 const DETAILS_CACHE_LIMIT = 400
@@ -45,8 +46,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch opportunity details from SAM.gov
-    const url = `https://api.sam.gov/opportunities/v1/noticedesc?noticeid=${noticeId}&api_key=${apiKey}`
-    
+    const directUrl = `https://api.sam.gov/opportunities/v1/noticedesc?noticeid=${noticeId}&api_key=${apiKey}`
+    const { url, extraHeaders: samHeaders } = resolveSamUrl(directUrl)
+
     const upstream = await coalesceInFlight<{ ok: boolean; status: number; data?: any }>(
       `sam:notice-details:${noticeId}`,
       async () => {
@@ -54,6 +56,7 @@ export async function GET(request: NextRequest) {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
+            ...samHeaders,
           },
         })
         if (!response.ok) {

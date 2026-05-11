@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 const SAM_UPSTREAM_BASE =
   process.env.SAM_UPSTREAM_BASE ||
@@ -184,9 +185,10 @@ async function fetchSAM(upstreamUrl: string) {
     url.searchParams.set('api_key', apiKey)
   }
 
-  const res = await fetch(url.toString(), {
+  const { url: proxiedUrl, extraHeaders: samHeaders } = resolveSamUrl(url.toString())
+  const res = await fetch(proxiedUrl, {
     method: 'GET',
-    headers: { accept: 'application/json' },
+    headers: { accept: 'application/json', ...samHeaders },
     cache: 'no-store',
   })
 

@@ -7,6 +7,7 @@ import { Resend } from 'resend'
 import { generateAlertEmailHTML, generateAlertEmailText } from '@/lib/email-templates'
 import { generateExcel, generateTXT } from '@/lib/export'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 import { randomBytes } from 'crypto'
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -262,14 +263,14 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     validatedParams.set('api_key', process.env.SAM_GOV_API_KEY!)
     if (!validatedParams.has('limit')) validatedParams.set('limit', '100')
 
-    const samUrl = `https://api.sam.gov/prod/opportunities/v2/search?${validatedParams.toString()}`
+    const { url: samUrl, extraHeaders: samHeaders } = resolveSamUrl(`https://api.sam.gov/prod/opportunities/v2/search?${validatedParams.toString()}`)
     console.log('📡 Calling SAM.gov API:', validatedParams.toString())
 
     const samData = await coalesceInFlight<any>(
       `sam:saved-search-run:${validatedParams.toString().replace(/api_key=[^&]+/, 'api_key=KEY')}`,
       async () => {
         const samResponse = await fetch(samUrl, {
-          headers: { Accept: 'application/json', 'User-Agent': 'PreciseGovCon/1.0' },
+          headers: { Accept: 'application/json', 'User-Agent': 'PreciseGovCon/1.0', ...samHeaders },
         })
 
         if (!samResponse.ok) {

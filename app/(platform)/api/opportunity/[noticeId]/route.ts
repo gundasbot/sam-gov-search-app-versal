@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,11 +112,13 @@ export async function GET(
 
         for (let i = 0; i < attempts.length; i++) {
           const a = attempts[i]
-          const res = await fetch(a.url, {
+          const { url: proxiedUrl, extraHeaders: samHeaders } = resolveSamUrl(a.url)
+          const res = await fetch(proxiedUrl, {
             cache: "no-store",
             headers: {
               Accept: "application/json",
               "User-Agent": "Mozilla/5.0 (compatible; NextJS-App/1.0)",
+              ...samHeaders,
             },
           })
 

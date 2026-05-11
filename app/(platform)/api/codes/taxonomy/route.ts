@@ -10,6 +10,7 @@
 //
 import { NextRequest, NextResponse } from 'next/server'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,9 +142,10 @@ async function buildTaxonomy(): Promise<TaxonomyCache> {
     status: 'active',
   })
 
-  const res = await fetch(`${SAM_BASE_URL}?${params.toString()}`, {
+  const { url: proxiedUrl, extraHeaders: samHeaders } = resolveSamUrl(`${SAM_BASE_URL}?${params.toString()}`)
+  const res = await fetch(proxiedUrl, {
     method: 'GET',
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', ...samHeaders },
     cache: 'no-store',
     signal: AbortSignal.timeout(20000),
   })

@@ -13,6 +13,7 @@ import { authOptions } from '@/lib/auth'
 import Anthropic from '@anthropic-ai/sdk'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 import { withBraintrustTrace } from '@/lib/braintrust'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 // ✅ FIX: Dynamic import with fallback — prevents crash if prisma singleton isn't ready
 let prismaClient: any = null
@@ -213,10 +214,8 @@ async function fetchSAMOpportunities(prefs: {
   try {
     const requestKey = `sam:personalized-feed:${params.toString().replace(/api_key=[^&]+/, 'api_key=KEY')}`
     return await coalesceInFlight<any[]>(requestKey, async () => {
-      const res = await fetch(
-        `https://api.sam.gov/opportunities/v2/search?${params}`,
-        { headers: { 'Accept': 'application/json' }, cache: 'no-store' }
-      )
+      const { url: samUrl, extraHeaders: samHeaders } = resolveSamUrl(`https://api.sam.gov/opportunities/v2/search?${params}`)
+      const res = await fetch(samUrl, { headers: { 'Accept': 'application/json', ...samHeaders }, cache: 'no-store' })
       if (!res.ok) throw new Error(`SAM.gov ${res.status}`)
       const data = await res.json()
       return data.opportunitiesData || []

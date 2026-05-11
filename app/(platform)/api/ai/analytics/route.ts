@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -129,11 +130,12 @@ export async function POST(req: NextRequest) {
     try {
       const postedFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       const postedTo = new Date().toISOString().split('T')[0]
-      const samUrl = `https://api.sam.gov/opportunities/v2/search?api_key=${process.env.SAM_GOV_API_KEY}&limit=100&postedFrom=${postedFrom}&postedTo=${postedTo}`
+      const directSamUrl = `https://api.sam.gov/opportunities/v2/search?api_key=${process.env.SAM_GOV_API_KEY}&limit=100&postedFrom=${postedFrom}&postedTo=${postedTo}`
+      const { url: samUrl, extraHeaders: samHeaders } = resolveSamUrl(directSamUrl)
       const samPayload = await coalesceInFlight<any>(
         `sam:ai-analytics:window:${postedFrom}:${postedTo}`,
         async () => {
-          const response = await fetch(samUrl, { headers: { 'Accept': 'application/json' } })
+          const response = await fetch(samUrl, { headers: { 'Accept': 'application/json', ...samHeaders } })
           if (!response.ok) {
             return { ok: false, status: response.status, opportunitiesData: [] }
           }

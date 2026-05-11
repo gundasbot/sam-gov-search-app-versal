@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 export const runtime = 'nodejs'
 
@@ -187,9 +188,10 @@ async function samSearch(params: {
 
   const requestKey = `sam:analytics:solicitations:${url.toString().replace(/api_key=[^&]+/, 'api_key=KEY')}`
   return coalesceInFlight<any>(requestKey, async () => {
-    const res = await fetch(url.toString(), {
+    const { url: proxiedUrl, extraHeaders: samHeaders } = resolveSamUrl(url.toString())
+    const res = await fetch(proxiedUrl, {
       method: 'GET',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...samHeaders },
       cache: 'no-store',
     })
 

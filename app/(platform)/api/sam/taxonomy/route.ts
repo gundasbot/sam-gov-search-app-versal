@@ -1,6 +1,7 @@
 // app/api/sam/taxonomy/route.ts (or wherever this lives)
 import { NextRequest, NextResponse } from 'next/server'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,12 +99,12 @@ export async function GET(req: NextRequest) {
     | { kind: 'upstream_error'; status: number; details: string }
   >(`sam:taxonomy:${limit}`, async () => {
     lastFetchAt = Date.now()
-    const url = `${SAM_BASE_URL}?${params.toString()}`
+    const { url, extraHeaders: samHeaders } = resolveSamUrl(`${SAM_BASE_URL}?${params.toString()}`)
     console.log('📡 Taxonomy fetch from SAM.gov (limit=%d)', limit)
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...samHeaders },
       cache: 'no-store',
     })
 

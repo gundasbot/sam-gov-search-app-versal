@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -128,10 +129,12 @@ export async function GET(request: NextRequest) {
     const liveResult = await coalesceInFlight<
       { ok: true; payload: any } | { ok: false; status: number }
     >(`sam:ticker:${postedFrom}:${postedTo}`, async () => {
-      const response = await fetchWithTimeout(url.toString(), {
+      const { url: proxiedUrl, extraHeaders: samHeaders } = resolveSamUrl(url.toString())
+      const response = await fetchWithTimeout(proxiedUrl, {
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'SAM-Gov-Search-App/1.0'
+          'User-Agent': 'SAM-Gov-Search-App/1.0',
+          ...samHeaders,
         },
         cache: 'no-store',
       })

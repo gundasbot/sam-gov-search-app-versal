@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import { randomBytes } from 'crypto'
 import { sendAlertEmail } from '@/lib/email'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 /* ---------------- helpers ---------------- */
 
@@ -257,16 +258,15 @@ export async function POST(
     try {
       const samQuery = searchParams.toString()
       const samKey = `sam:saved-search:${samQuery.replace(/api_key=[^&]+/, 'api_key=KEY')}`
+      const { url: proxiedSamUrl, extraHeaders: samHeaders } = resolveSamUrl(`https://api.sam.gov/prod/opportunities/v2/search?${samQuery}`)
       const data = await coalesceInFlight<any>(samKey, async () => {
-        const res = await fetch(
-          `https://api.sam.gov/prod/opportunities/v2/search?${samQuery}`,
-          {
-            headers: {
-              'X-Api-Key': process.env.SAM_GOV_API_KEY!,
-              'Content-Type': 'application/json',
-            },
-          }
-        )
+        const res = await fetch(proxiedSamUrl, {
+          headers: {
+            'X-Api-Key': process.env.SAM_GOV_API_KEY!,
+            'Content-Type': 'application/json',
+            ...samHeaders,
+          },
+        })
 
         if (!res.ok) {
           const text = await res.text()

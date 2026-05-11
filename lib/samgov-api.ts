@@ -77,12 +77,12 @@ export interface SAMSearchParams {
   sortBy?: string
   limit?: number
   offset?: number
-  ncode?: string // NAICS code
-  ccode?: string // PSC code
+  ncode?: string
+  ccode?: string
   state?: string
   deptname?: string
   subtier?: string
-  ptype?: string // procurement type
+  ptype?: string
 }
 
 export interface SAMSearchResponse {
@@ -104,14 +104,78 @@ export interface SAMStatistics {
   recentlyPosted: number
 }
 
+/**
+ * Resolves a full SAM.gov URL (including query params) through the proxy when
+ * SAM_PROXY_URL and SAM_PROXY_AUTH_SECRET are set. Use this in route handlers
+ * that build their own fetch URLs instead of going through getSAMGovAPI().
+ */
+export function resolveSamUrl(directUrl: string): {
+  url: string
+  extraHeaders: Record<string, string>
+} {
+  const proxyUrl = process.env.SAM_PROXY_URL
+  const proxySecret = process.env.SAM_PROXY_AUTH_SECRET
+
+  if (proxyUrl && proxySecret) {
+    const cleanProxy = proxyUrl.replace(/\/+$/, '')
+    const parsed = new URL(directUrl)
+    return {
+      url: `${cleanProxy}/sam${parsed.pathname}${parsed.search}`,
+      extraHeaders: { 'X-Proxy-Auth': proxySecret },
+    }
+  }
+
+  return { url: directUrl, extraHeaders: {} }
+}
+
+/**
+ * Resolves the effective base URL and request headers for SAM.gov calls.
+ * When SAM_PROXY_URL and SAM_PROXY_AUTH_SECRET are set, traffic is routed
+ * through the Oracle Cloud static-IP egress proxy. Otherwise, calls go
+ * directly to api.sam.gov (used in local dev).
+ */
+function resolveSamEndpoint(directBase: string): {
+  baseUrl: string
+  extraHeaders: Record<string, string>
+} {
+  const proxyUrl = process.env.SAM_PROXY_URL
+  const proxySecret = process.env.SAM_PROXY_AUTH_SECRET
+
+  if (proxyUrl && proxySecret) {
+    // Strip trailing slash from proxy URL
+    const cleanProxy = proxyUrl.replace(/\/+$/, '')
+
+    // Extract the path portion from the direct base URL
+    // e.g. https://api.sam.gov/opportunities/v2 -> /opportunities/v2
+    const directUrl = new URL(directBase)
+    const samPath = directUrl.pathname
+
+    // Result: http://129.80.227.131/sam/opportunities/v2
+    return {
+      baseUrl: `${cleanProxy}/sam${samPath}`,
+      extraHeaders: {
+        'X-Proxy-Auth': proxySecret,
+      },
+    }
+  }
+
+  // No proxy configured — call SAM.gov directly
+  return {
+    baseUrl: directBase,
+    extraHeaders: {},
+  }
+}
+
 export class SAMGovAPI {
   private config: SAMAPIConfig
+  private endpoint: { baseUrl: string; extraHeaders: Record<string, string> }
 
   constructor(config: SAMAPIConfig) {
     this.config = {
       ...config,
-      baseUrl: config.baseUrl || 'https://api.sam.gov/opportunities/v2'
+      baseUrl: config.baseUrl || 'https://api.sam.gov/opportunities/v2',
     }
+    this.endpoint = resolveSamEndpoint(this.config.baseUrl!)
   }
 
   /**
@@ -119,11 +183,8 @@ export class SAMGovAPI {
    */
   async searchOpportunities(params: SAMSearchParams = {}): Promise<SAMSearchResponse> {
     const queryParams = new URLSearchParams()
-    
-    // Add API key
     queryParams.append('api_key', this.config.apiKey)
-    
-    // Add search parameters
+
     if (params.keyword) queryParams.append('q', params.keyword)
     if (params.postedFrom) queryParams.append('postedFrom', params.postedFrom)
     if (params.postedTo) queryParams.append('postedTo', params.postedTo)
@@ -137,13 +198,14 @@ export class SAMGovAPI {
     if (params.subtier) queryParams.append('subtier', params.subtier)
     if (params.ptype) queryParams.append('ptype', params.ptype)
 
-    const url = `${this.config.baseUrl}/search?${queryParams.toString()}`
+    const url = `${this.endpoint.baseUrl}/search?${queryParams.toString()}`
 
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          ...this.endpoint.extraHeaders,
         },
       })
 
@@ -151,8 +213,7 @@ export class SAMGovAPI {
         throw new Error(`SAM.gov API error: ${response.status} ${response.statusText}`)
       }
 
-      const data = await response.json()
-      return data
+      return await response.json()
     } catch (error) {
       console.error('Error fetching SAM.gov data:', error)
       throw error
@@ -163,13 +224,14 @@ export class SAMGovAPI {
    * Get a specific opportunity by ID
    */
   async getOpportunity(noticeId: string): Promise<SAMOpportunity> {
-    const url = `${this.config.baseUrl}/search?api_key=${this.config.apiKey}&noticeId=${noticeId}`
+    const url = `${this.endpoint.baseUrl}/search?api_key=${this.config.apiKey}&noticeId=${noticeId}`
 
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          ...this.endpoint.extraHeaders,
         },
       })
 
@@ -185,134 +247,113 @@ export class SAMGovAPI {
     }
   }
 
-  /**
-   * Get opportunities posted today
-   */
   async getTodaysOpportunities(limit: number = 50): Promise<SAMSearchResponse> {
     const today = new Date().toISOString().split('T')[0]
     return this.searchOpportunities({
       postedFrom: today,
       postedTo: today,
       limit,
-      sortBy: '-modifiedDate'
+      sortBy: '-modifiedDate',
     })
   }
 
-  /**
-   * Get opportunities expiring soon (within next 7 days)
-   */
   async getExpiringOpportunities(limit: number = 50): Promise<SAMSearchResponse> {
     const today = new Date()
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-    
+
     const response = await this.searchOpportunities({
-      limit: 1000, // Get more to filter locally
-      sortBy: 'responseDeadLine'
+      limit: 1000,
+      sortBy: 'responseDeadLine',
     })
 
-    // Filter for opportunities expiring within 7 days
-    const filtered = response.opportunitiesData.filter(opp => {
-      if (!opp.responseDeadLine) return false
-      const deadline = new Date(opp.responseDeadLine)
-      return deadline >= today && deadline <= nextWeek
-    }).slice(0, limit)
+    const filtered = response.opportunitiesData
+      .filter((opp) => {
+        if (!opp.responseDeadLine) return false
+        const deadline = new Date(opp.responseDeadLine)
+        return deadline >= today && deadline <= nextWeek
+      })
+      .slice(0, limit)
 
     return {
       ...response,
       opportunitiesData: filtered,
-      totalRecords: filtered.length
+      totalRecords: filtered.length,
     }
   }
 
-  /**
-   * Get opportunities by NAICS code
-   */
   async getOpportunitiesByNAICS(naicsCode: string, limit: number = 50): Promise<SAMSearchResponse> {
     return this.searchOpportunities({
       ncode: naicsCode,
       limit,
-      sortBy: '-modifiedDate'
+      sortBy: '-modifiedDate',
     })
   }
 
-  /**
-   * Get opportunities by agency
-   */
   async getOpportunitiesByAgency(agencyName: string, limit: number = 50): Promise<SAMSearchResponse> {
     return this.searchOpportunities({
       deptname: agencyName,
       limit,
-      sortBy: '-modifiedDate'
+      sortBy: '-modifiedDate',
     })
   }
 
-  /**
-   * Get set-aside opportunities (8(a), SDVOSB, etc.)
-   */
   async getSetAsideOpportunities(setAsideType: string, limit: number = 50): Promise<SAMSearchResponse> {
     const response = await this.searchOpportunities({
       limit: 1000,
-      sortBy: '-modifiedDate'
+      sortBy: '-modifiedDate',
     })
 
-    const filtered = response.opportunitiesData.filter(opp => 
-      opp.typeOfSetAside === setAsideType || 
-      opp.typeOfSetAsideDescription?.toLowerCase().includes(setAsideType.toLowerCase())
-    ).slice(0, limit)
+    const filtered = response.opportunitiesData
+      .filter(
+        (opp) =>
+          opp.typeOfSetAside === setAsideType ||
+          opp.typeOfSetAsideDescription?.toLowerCase().includes(setAsideType.toLowerCase())
+      )
+      .slice(0, limit)
 
     return {
       ...response,
       opportunitiesData: filtered,
-      totalRecords: filtered.length
+      totalRecords: filtered.length,
     }
   }
 
-  /**
-   * Get comprehensive statistics from SAM.gov data
-   */
   async getStatistics(): Promise<SAMStatistics> {
-    const [recentResponse, allResponse] = await Promise.all([
+    const [recentResponse] = await Promise.all([
       this.searchOpportunities({ limit: 1000, sortBy: '-modifiedDate' }),
-      this.searchOpportunities({ limit: 100 })
+      this.searchOpportunities({ limit: 100 }),
     ])
 
     const opportunities = recentResponse.opportunitiesData
-
-    // Calculate statistics
     const now = new Date()
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
     const stats: SAMStatistics = {
       totalOpportunities: recentResponse.totalRecords,
-      activeOpportunities: opportunities.filter(o => o.active === 'Yes').length,
+      activeOpportunities: opportunities.filter((o) => o.active === 'Yes').length,
       opportunitiesByType: {},
       opportunitiesByAgency: {},
       opportunitiesByNAICS: {},
       opportunitiesBySetAside: {},
       averageContractValue: 0,
       upcomingDeadlines: 0,
-      recentlyPosted: 0
+      recentlyPosted: 0,
     }
 
-    opportunities.forEach(opp => {
-      // Type distribution
+    opportunities.forEach((opp) => {
       const type = opp.type || 'Unknown'
       stats.opportunitiesByType[type] = (stats.opportunitiesByType[type] || 0) + 1
 
-      // Agency distribution
       const agency = opp.department || 'Unknown'
       stats.opportunitiesByAgency[agency] = (stats.opportunitiesByAgency[agency] || 0) + 1
 
-      // NAICS distribution
       const naics = opp.naicsCode || 'Unknown'
       stats.opportunitiesByNAICS[naics] = (stats.opportunitiesByNAICS[naics] || 0) + 1
 
-      // Set-aside distribution
       const setAside = opp.typeOfSetAsideDescription || 'None'
       stats.opportunitiesBySetAside[setAside] = (stats.opportunitiesBySetAside[setAside] || 0) + 1
 
-      // Upcoming deadlines
       if (opp.responseDeadLine) {
         const deadline = new Date(opp.responseDeadLine)
         if (deadline <= sevenDaysFromNow && deadline >= now) {
@@ -320,7 +361,6 @@ export class SAMGovAPI {
         }
       }
 
-      // Recently posted
       if (opp.postedDate) {
         const posted = new Date(opp.postedDate)
         if (posted >= sevenDaysAgo) {
@@ -338,10 +378,11 @@ let samAPIInstance: SAMGovAPI | null = null
 
 export function getSAMGovAPI(): SAMGovAPI {
   if (!samAPIInstance) {
-    const apiKey = process.env.NEXT_PUBLIC_SAM_API_KEY || 
-                   process.env.SAM_API_KEY || 
-                   process.env.SAM_GOV_API_KEY ||
-                   process.env.SAMGOVAPIKEY
+    const apiKey =
+      process.env.NEXT_PUBLIC_SAM_API_KEY ||
+      process.env.SAM_API_KEY ||
+      process.env.SAM_GOV_API_KEY ||
+      process.env.SAMGOVAPIKEY
 
     if (!apiKey) {
       throw new Error('SAM.gov API key not configured')

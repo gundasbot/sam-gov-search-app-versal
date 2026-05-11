@@ -2,6 +2,7 @@
 // ✅ FIX: Date format normalization — accepts any format, always sends MM/DD/YYYY to SAM.gov
 import { NextResponse } from 'next/server'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -253,13 +254,13 @@ export async function GET(req: Request) {
       | { kind: 'success'; result: any }
       | { kind: 'error'; status: number; payload: any }
     >(`sam:opportunities:${cacheKey}`, async () => {
-      const apiUrl = `${SAM_BASE_URL}?${params.toString()}`
+      const { url: apiUrl, extraHeaders: samHeaders } = resolveSamUrl(`${SAM_BASE_URL}?${params.toString()}`)
       console.log('📡 SAM.gov fetch (limit=%d):', limit, apiUrl.replace(SAM_API_KEY, 'KEY'))
       markFetched(cacheKey)
 
       const response = await fetch(apiUrl, {
         cache: 'no-store',
-        headers: { Accept: 'application/json' },
+        headers: { Accept: 'application/json', ...samHeaders },
       })
 
       if (!response.ok) {

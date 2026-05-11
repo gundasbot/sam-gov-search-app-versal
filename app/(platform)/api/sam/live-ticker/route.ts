@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { coalesceInFlight } from '@/lib/in-flight-coalescer';
 import { withBraintrustTrace } from '@/lib/braintrust'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 const SAM_BASE_URL = 'https://api.sam.gov/opportunities/v2/search';
 
@@ -107,11 +108,11 @@ export async function GET() {
               postedFrom: daysAgo(7),
               postedTo: formatMMDDYYYY(today),
             });
-            const apiUrl = `${SAM_BASE_URL}?${params.toString()}`;
+            const { url: apiUrl, extraHeaders: samHeaders } = resolveSamUrl(`${SAM_BASE_URL}?${params.toString()}`)
             console.log(`📡 Fetching ticker from SAM.gov using ${candidate.source}...`);
 
             const response = await fetch(apiUrl, {
-              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...samHeaders },
               cache: 'no-store',
             });
 

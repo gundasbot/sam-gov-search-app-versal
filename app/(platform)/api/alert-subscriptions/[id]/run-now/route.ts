@@ -11,6 +11,7 @@ import { generateEnhancedCSV } from '@/lib/csv-export-enhanced'
 import { generateExcel, generateExcelBinary, generateTXT, generateXLSB } from '@/lib/export'
 import { coalesceInFlight } from '@/lib/in-flight-coalescer'
 import { randomBytes } from 'crypto'
+import { resolveSamUrl } from '@/lib/samgov-api'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const ALERT_PARAMS_MARKER = '__ALERT_PARAMS__:'
@@ -332,9 +333,10 @@ export async function POST(
       const samData = await coalesceInFlight<any>(
         `sam:alert-run-now:${samQueryKey}`,
         async () => {
-          const samResponse = await fetch(samUrl.toString(), {
+          const { url: proxiedSamUrl, extraHeaders: samHeaders } = resolveSamUrl(samUrl.toString())
+          const samResponse = await fetch(proxiedSamUrl, {
             method: 'GET',
-            headers: { Accept: 'application/json' },
+            headers: { Accept: 'application/json', ...samHeaders },
             cache: 'no-store',
             signal: AbortSignal.timeout(30000),
           })
