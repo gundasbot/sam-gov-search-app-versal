@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import crypto from 'crypto'
-import { Resend } from 'resend'
+import { sendEmail } from '@/lib/email/send'
 
 export const runtime = 'nodejs'
 
 const sql = neon(process.env.DATABASE_URL!)
-const resend = new Resend(process.env.RESEND_API_KEY!)
+const AUTH_EMAIL_ALERT_TO = process.env.AUTH_EMAIL_ALERT_TO || 'admin@precisegovcon.com'
 
 async function ensureOtpTable() {
   await sql`
@@ -30,6 +30,30 @@ function sha256(s: string) {
 
 function jsonError(message: string, status = 400, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status })
+}
+
+async function alertAuthEmailFailure(stage: string, email: string, error: unknown) {
+  try {
+    const anyErr = error as any
+    const message = String(anyErr?.message || error || stage)
+    const stack = String(anyErr?.stack || '').slice(0, 5000)
+    await sendEmail({
+      to: AUTH_EMAIL_ALERT_TO,
+      subject: `[Precise GovCon] Auth email failed: ${stage}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#0f172a;">
+          <h2>Auth Email Failure</h2>
+          <p><strong>Stage:</strong> ${stage}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Error:</strong> ${message}</p>
+          ${stack ? `<pre style="white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:14px;border-radius:8px;">${stack}</pre>` : ''}
+        </div>
+      `,
+      text: `Auth Email Failure\nStage: ${stage}\nEmail: ${email}\nError: ${message}${stack ? `\n\n${stack}` : ''}`,
+    })
+  } catch (alertErr) {
+    console.error('send-otp: Failed to alert admin:', alertErr)
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -60,12 +84,11 @@ export async function POST(req: NextRequest) {
     await sql`DELETE FROM otp_codes WHERE email = ${email} AND used_at IS NULL AND expires_at > NOW()`
     await sql`INSERT INTO otp_codes (id, email, code_hash, expires_at) VALUES (${otpId}, ${email}, ${codeHash}, ${expiresAt.toISOString()})`
 
-    const from = process.env.EMAIL_FROM || 'Precise GovCon <no-reply@precisegovcon.com>'
     const name = String(user.first_name || 'there')
     const year = new Date().getFullYear()
 
-    await resend.emails.send({
-      from,
+    try {
+      await sendEmail({
       to: email,
       subject: `Your Precise GovCon sign-in code: ${code}`,
       html: `<!DOCTYPE html>
@@ -128,9 +151,12 @@ export async function POST(req: NextRequest) {
   </div>
 </body>
 </html>`,
-    }).catch((err: any) => {
-      console.error('send-otp: Email send failed:', err)
-    })
+      })
+    } catch (emailErr) {
+      console.error('send-otp: Email send failed:', emailErr)
+      await alertAuthEmailFailure('send_otp_failed', email, emailErr)
+      return jsonError('Failed to send code. Please try again or contact support.', 500)
+    }
 
     console.log('send-otp: Success for email:', email)
     return NextResponse.json({ ok: true })

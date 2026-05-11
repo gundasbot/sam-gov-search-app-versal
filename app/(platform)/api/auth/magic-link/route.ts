@@ -4,13 +4,39 @@ import { neon } from '@neondatabase/serverless'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { resolvePublicAppUrl } from '@/lib/url-safety'
+import { sendEmail } from '@/lib/email/send'
 
 export const runtime = 'nodejs'
 
 const sql = neon(process.env.DATABASE_URL!)
+const AUTH_EMAIL_ALERT_TO = process.env.AUTH_EMAIL_ALERT_TO || 'admin@precisegovcon.com'
 
 function sha256(s: string) {
   return crypto.createHash('sha256').update(s).digest('hex')
+}
+
+async function alertAuthEmailFailure(stage: string, email: string, error: unknown) {
+  try {
+    const anyErr = error as any
+    const message = String(anyErr?.message || error || stage)
+    const stack = String(anyErr?.stack || '').slice(0, 5000)
+    await sendEmail({
+      to: AUTH_EMAIL_ALERT_TO,
+      subject: `[Precise GovCon] Auth email failed: ${stage}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#0f172a;">
+          <h2>Auth Email Failure</h2>
+          <p><strong>Stage:</strong> ${stage}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Error:</strong> ${message}</p>
+          ${stack ? `<pre style="white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:14px;border-radius:8px;">${stack}</pre>` : ''}
+        </div>
+      `,
+      text: `Auth Email Failure\nStage: ${stage}\nEmail: ${email}\nError: ${message}${stack ? `\n\n${stack}` : ''}`,
+    })
+  } catch (alertErr) {
+    console.error('magic-link: Failed to alert admin:', alertErr)
+  }
 }
 
 // POST /api/auth/magic-link — generate and send magic link
@@ -55,12 +81,8 @@ export async function POST(req: NextRequest) {
     const name = String(user.first_name || 'there')
     const year = new Date().getFullYear()
 
-    const { Resend } = await import('resend')
-    const resend = new Resend(process.env.RESEND_API_KEY!)
-    const from = process.env.EMAIL_FROM || 'Precise GovCon <no-reply@precisegovcon.com>'
-
-    await resend.emails.send({
-      from,
+    try {
+      await sendEmail({
       to: email,
       subject: 'Your sign-in link for Precise GovCon',
       html: `<!DOCTYPE html>
@@ -115,7 +137,12 @@ export async function POST(req: NextRequest) {
   </div>
 </body>
 </html>`,
-    })
+      })
+    } catch (emailErr) {
+      console.error('magic-link email error:', emailErr)
+      await alertAuthEmailFailure('magic_link_failed', email, emailErr)
+      return NextResponse.json({ error: 'Failed to send link. Please try again or contact support.' }, { status: 500 })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
