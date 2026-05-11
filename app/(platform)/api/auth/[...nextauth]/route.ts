@@ -194,6 +194,22 @@ export const authOptions: NextAuthOptions = {
     updateAge: 24 * 60 * 60,       // re-read DB every 24h
   },
 
+  // Share session cookie across all *.precisegovcon.com subdomains so that
+  // logging in on platform.precisegovcon.com also authenticates the user on
+  // www.precisegovcon.com / precisegovcon.com and vice versa.
+  cookies: process.env.NODE_ENV === 'production' ? {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax' as const,
+        path: '/',
+        secure: true,
+        domain: '.precisegovcon.com',
+      },
+    },
+  } : undefined,
+
   providers: [
     // ✅ Google OAuth - ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are in .env.local
     GoogleProvider({
@@ -490,10 +506,11 @@ function copyUserToToken(token: any, source: any) {
 
 // ✅ Export handler for Next.js routing
 const handler = (req: Request, ctx: any) => {
-  // Safety guard: in local/dev, always bind NextAuth redirects to the current request origin.
-  process.env.NEXTAUTH_URL = process.env.NODE_ENV === 'production'
-    ? PLATFORM_AUTH_URL
-    : resolveAuthBaseUrl(req)
+  // Always use the actual request origin as NEXTAUTH_URL so that:
+  //  • login on precisegovcon.com redirects back to precisegovcon.com
+  //  • login on platform.precisegovcon.com redirects back there
+  // Falls back to PLATFORM_AUTH_URL for non-allowlisted origins (Vercel previews, etc.)
+  process.env.NEXTAUTH_URL = resolveAuthBaseUrl(req) || PLATFORM_AUTH_URL
   return NextAuth(authOptions)(req, ctx)
 }
 export { handler as GET, handler as POST }
