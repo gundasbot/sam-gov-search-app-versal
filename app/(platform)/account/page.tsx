@@ -714,8 +714,11 @@ function SettingsTab() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordBusy, setPasswordBusy] = useState(false)
   const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
   const [twoFactorHasPendingSetup, setTwoFactorHasPendingSetup] = useState(false)
   const [twoFactorSetupBusy, setTwoFactorSetupBusy] = useState(false)
@@ -880,16 +883,17 @@ function SettingsTab() {
   }
 
   const handleUpdatePassword = async () => {
+    setPasswordMsg(null)
     if (!passwordForm.current || !passwordForm.next || !passwordForm.confirm) {
-      setToast({ type: 'error', text: 'Please complete all password fields' })
+      setPasswordMsg({ type: 'error', text: 'Please complete all fields' })
       return
     }
     if (passwordForm.next !== passwordForm.confirm) {
-      setToast({ type: 'error', text: 'New passwords do not match' })
+      setPasswordMsg({ type: 'error', text: 'New passwords do not match' })
       return
     }
     if (passwordForm.next.length < 8) {
-      setToast({ type: 'error', text: 'Password must be at least 8 characters' })
+      setPasswordMsg({ type: 'error', text: 'New password must be at least 8 characters' })
       return
     }
     try {
@@ -903,9 +907,9 @@ function SettingsTab() {
       if (!res.ok) throw new Error(data?.error || 'Could not update password')
       setPasswordForm({ current: '', next: '', confirm: '' })
       setShowPasswordForm(false)
-      setToast({ type: 'success', text: 'Password updated' })
+      setPasswordMsg({ type: 'success', text: 'Password updated successfully' })
     } catch (err: any) {
-      setToast({ type: 'error', text: err?.message || 'Could not update password' })
+      setPasswordMsg({ type: 'error', text: err?.message || 'Could not update password' })
     } finally {
       setPasswordBusy(false)
     }
@@ -1009,65 +1013,134 @@ function SettingsTab() {
         <div className="p-5 sm:p-6 space-y-6">
           <section className="space-y-4">
             <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><Lock size={18} /> Password & Account Security</h3>
-            {!showPasswordForm ? (
-              <button
-                type="button"
-                onClick={() => setShowPasswordForm(true)}
-                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black"
-              >
-                Change Password
-              </button>
-            ) : (
-              <div className="space-y-3 max-w-xl">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={passwordForm.current}
-                  onChange={e => setPasswordForm({ ...passwordForm, current: e.target.value })}
-                  placeholder="Current password"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-semibold"
-                />
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={passwordForm.next}
-                    onChange={e => setPasswordForm({ ...passwordForm, next: e.target.value })}
-                    placeholder="New password"
-                    className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-300 text-sm font-semibold"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+
+            {/* Change Password Card */}
+            <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 bg-slate-50 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-black text-slate-900">Change Password</p>
+                  <p className="text-xs font-semibold text-slate-600">Update your account password. You'll need your current password to make changes.</p>
                 </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={passwordForm.confirm}
-                  onChange={e => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-                  placeholder="Confirm new password"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm font-semibold"
-                />
-                <div className="flex gap-2">
+                {!showPasswordForm && (
                   <button
                     type="button"
-                    onClick={handleUpdatePassword}
-                    disabled={passwordBusy}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black disabled:opacity-60 inline-flex items-center gap-2"
+                    onClick={() => { setShowPasswordForm(true); setPasswordMsg(null) }}
+                    className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-black"
                   >
-                    {passwordBusy ? <><Loader2 size={14} className="animate-spin" /> Updating...</> : 'Update Password'}
+                    Change Password
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => { setShowPasswordForm(false); setPasswordForm({ current: '', next: '', confirm: '' }) }}
-                    className="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold"
-                  >
-                    Cancel
-                  </button>
-                </div>
+                )}
               </div>
-            )}
+
+              {showPasswordForm && (
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 space-y-4">
+                  {/* Current password */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">Current Password</label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        value={passwordForm.current}
+                        onChange={e => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                        placeholder="Enter current password"
+                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      />
+                      <button type="button" onClick={() => setShowCurrentPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New password */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={passwordForm.next}
+                        onChange={e => setPasswordForm({ ...passwordForm, next: e.target.value })}
+                        placeholder="Enter new password (min. 8 characters)"
+                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      />
+                      <button type="button" onClick={() => setShowPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                    {passwordForm.next.length > 0 && (
+                      <div className="flex gap-3 mt-1 flex-wrap">
+                        {[
+                          { label: '8+ chars', ok: passwordForm.next.length >= 8 },
+                          { label: 'Uppercase', ok: /[A-Z]/.test(passwordForm.next) },
+                          { label: 'Number', ok: /[0-9]/.test(passwordForm.next) },
+                          { label: 'Special char', ok: /[^A-Za-z0-9]/.test(passwordForm.next) },
+                        ].map(r => (
+                          <span key={r.label} className={`text-xs font-semibold inline-flex items-center gap-1 ${r.ok ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {r.ok ? '✓' : '○'} {r.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Confirm password */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">Confirm New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={passwordForm.confirm}
+                        onChange={e => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                        placeholder="Re-enter new password"
+                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-slate-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      />
+                      <button type="button" onClick={() => setShowConfirmPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                    {passwordForm.confirm.length > 0 && (
+                      <p className={`text-xs font-semibold mt-1 ${passwordForm.next === passwordForm.confirm ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {passwordForm.next === passwordForm.confirm ? '✓ Passwords match' : '✗ Passwords do not match'}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Inline feedback */}
+                  {passwordMsg && (
+                    <div className={`rounded-lg px-3 py-2 text-sm font-semibold ${passwordMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+                      {passwordMsg.text}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleUpdatePassword}
+                      disabled={passwordBusy}
+                      className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-black disabled:opacity-60 inline-flex items-center gap-2"
+                    >
+                      {passwordBusy ? <><Loader2 size={14} className="animate-spin" /> Updating...</> : 'Update Password'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowPasswordForm(false); setPasswordForm({ current: '', next: '', confirm: '' }); setPasswordMsg(null) }}
+                      className="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-bold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Success message when form is closed */}
+              {!showPasswordForm && passwordMsg?.type === 'success' && (
+                <div className="rounded-lg px-3 py-2 text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800">
+                  {passwordMsg.text}
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="space-y-3 rounded-2xl border border-slate-200 p-4 sm:p-5 bg-slate-50">
