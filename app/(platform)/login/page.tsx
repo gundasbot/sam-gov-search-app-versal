@@ -4,32 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle, Mail, KeyRound, CheckCircle2, Clock3, Sparkles } from 'lucide-react'
-
-// Aptos font stack — Microsoft's modern default, falls back to Calibri then Noto Sans
-const aptosFontStyle = ''
-
-const stats = [
-  { value: '900+', label: 'Live opportunities' },
-  { value: '98%', label: 'Client success rate' },
-  { value: '24/7', label: 'Search automation' },
-]
-
-const loginHighlights = [
-  { title: 'Saved searches sync instantly', icon: CheckCircle2 },
-  { title: 'AI-ranked opportunities by fit', icon: Sparkles },
-  { title: 'Deadline tracking updates in real time', icon: Clock3 },
-]
-
-const C = {
-  textPrimary:   'var(--color-text-primary)',
-  textSecondary: 'var(--color-text-secondary)',
-  textMuted:     'var(--color-text-subtle)',
-  border:        'var(--color-border)',
-  surface:       'var(--color-surface)',
-  surfaceMuted:  'var(--color-surface-muted)',
-}
+import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle, Mail, KeyRound, CheckCircle2 } from 'lucide-react'
 
 type ErrorType = 'EMAIL_NOT_VERIFIED' | 'ACCOUNT_NOT_FOUND' | 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'TWO_FACTOR_REQUIRED' | 'GENERIC'
 
@@ -499,26 +474,80 @@ function SignInContent() {
   }, [otpSent, otpTimeRemaining])
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: '#f1f5f9' }}>
+    <div className="min-h-screen flex" style={{ background: '#ffffff' }}>
       {status === 'authenticated' ? (
         <div className="flex min-h-screen w-full items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#f97316' }} />
         </div>
       ) : (
       <>
-        {/* Logo + brand above card */}
-        <div className="flex flex-col items-center mb-6">
-          <Image src="/precise-govcon-logo.jpg" alt="Precise GovCon" width={56} height={56} className="rounded-xl mb-3" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }} />
-          <div className="font-black text-xl" style={{ color: '#0f172a' }}>Precise GovCon</div>
-          <div className="text-sm font-medium mt-0.5" style={{ color: '#64748b' }}>Government Contracting Intelligence</div>
+        {/* ── LEFT: Welcome panel ── */}
+        <div className="hidden lg:flex flex-col justify-center px-16 py-16 relative overflow-hidden" style={{ width: '52%', background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>
+          {/* Subtle decorative accent */}
+          <div className="absolute top-0 left-0 w-1 h-full" style={{ background: 'linear-gradient(180deg, #f97316, #f59e0b)' }} />
+
+          <div className="mb-3">
+            <span className="inline-block text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full" style={{ background: 'rgba(249,115,22,0.1)', color: '#f97316', border: '1px solid rgba(249,115,22,0.2)' }}>
+              Precise GovCon Platform
+            </span>
+          </div>
+
+          <h1 className="text-4xl font-black leading-tight mb-3" style={{ color: '#0f172a' }}>
+            Welcome back.<br />
+            <span style={{ color: '#f97316' }}>Your pipeline awaits.</span>
+          </h1>
+          <p className="text-base leading-relaxed mb-8" style={{ color: '#475569' }}>
+            Sign in to access live SAM.gov opportunities, your saved searches, deadline tracker, and automated alerts — all in one place.
+          </p>
+
+          {/* Stats row */}
+          <div className="flex gap-6 mb-10">
+            {[
+              { value: '900+', label: 'Live opportunities daily' },
+              { value: '7-day', label: 'Free trial included' },
+              { value: '24 / 7', label: 'Automated alerts' },
+            ].map(s => (
+              <div key={s.label}>
+                <div className="text-2xl font-black" style={{ color: '#0f172a' }}>{s.value}</div>
+                <div className="text-xs font-semibold mt-0.5" style={{ color: '#64748b' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Feature bullets */}
+          <div className="space-y-3.5 mb-10">
+            {[
+              'Search and filter all active federal solicitations',
+              'NAICS code matching and set-aside opportunity filters',
+              'Saved searches with real-time email alerts',
+              'Deadline tracking, saved opportunities, and CSV export',
+              'Analytics, insights, and contracting intelligence',
+            ].map(f => (
+              <div key={f} className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)' }}>
+                  <CheckCircle2 className="w-3 h-3" style={{ color: '#f97316' }} />
+                </div>
+                <span className="text-sm font-medium leading-snug" style={{ color: '#374151' }}>{f}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom trust */}
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: '#16a34a' }} />
+            <span className="text-xs font-semibold" style={{ color: '#64748b' }}>Bank-grade security · SOC 2 compliant · Encrypted end-to-end</span>
+          </div>
         </div>
 
-        {/* ── FORM CARD ── */}
-        <div className="w-full max-w-md rounded-2xl px-8 py-8" style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
-          <div className="mb-6 text-center">
-            <h1 className="text-2xl font-black" style={{ color: '#0f172a' }}>Sign in to your account</h1>
-            <p className="mt-1 text-sm font-medium" style={{ color: '#64748b' }}>
-              Welcome back. Enter your details below.
+        {/* ── RIGHT: Form panel ── */}
+        <div className="flex-1 flex items-center justify-center px-6 py-12" style={{ background: '#ffffff' }}>
+          <div className="w-full max-w-md">
+
+          <div className="mb-7">
+            <h2 className="text-2xl font-black" style={{ color: '#0f172a' }}>Sign in to your account</h2>
+            <p className="mt-1 text-sm" style={{ color: '#64748b' }}>
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="font-bold hover:underline" style={{ color: '#f97316' }}>Start your free trial</Link>
             </p>
           </div>
 
@@ -852,20 +881,9 @@ function SignInContent() {
                 </Link>
               </div>
 
-              <p className="text-center text-sm" style={{ color: '#64748b' }}>
-                Don&apos;t have an account?{' '}
-                <Link href="/signup" className="font-bold transition-colors hover:text-orange-600" style={{ color: '#f97316' }}>
-                  Start free trial
-                </Link>
-              </p>
             </div>
           </div>
         </div>
-
-        {/* Trust line below card */}
-        <div className="flex items-center justify-center gap-2 mt-5">
-          <ShieldCheck className="h-3.5 w-3.5" style={{ color: '#16a34a' }} />
-          <span className="text-xs font-medium" style={{ color: '#94a3b8' }}>Bank-grade security · SOC 2 compliant · Encrypted end-to-end</span>
         </div>
       </>
       )}
