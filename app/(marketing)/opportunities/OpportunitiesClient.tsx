@@ -747,7 +747,7 @@ function normalizeOpportunity(raw: any): SamOpportunity {
 
 export default function OpportunitiesClient() {
     // Toast state
-    const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+    const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; msg: string } | null>(null);
   const searchParams = useSearchParams();
   const filterParam = searchParams?.get('filter') ?? null;
   const searchParamSnapshot = searchParams?.toString() ?? '';
@@ -1684,7 +1684,7 @@ Provide analysis in JSON format with:
               setDisplayedOpportunities(cachedOpps);
               setTotalRecords(cacheData.stats?.totalActive || cachedOpps.length);
               setLastUpdated(getLastUpdatedLabel());
-              setToast({ type: 'success', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
+              setToast({ type: 'warning', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
               return;
             }
           }

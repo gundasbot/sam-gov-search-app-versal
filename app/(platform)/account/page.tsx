@@ -1404,7 +1404,7 @@ function OverviewTab({ profile, plan, currentPlanDetails, usage, bids, setActive
     { tab: 'bids' as TabType,      icon: Gavel,          color: G.bids,      title: 'Bids & Pursuits',     desc: 'Track active bids, submitted proposals, and award history' },
     { tab: 'support' as TabType,   icon: HeadphonesIcon, color: G.support,   title: 'Customer Support',    desc: 'Submit tickets, get technical help, and contact our team' },
     { tab: 'settings' as TabType,  icon: Settings,       color: G.settings,  title: 'Login & Security',    desc: 'Change password, two-factor authentication, and notifications' },
-    { tab: 'overview' as TabType,  icon: Activity,       color: G.overview,  title: 'Usage & Plan',        desc: 'View search usage, export limits, and your current plan' },
+    { tab: 'overview' as TabType,  icon: Activity,       color: G.overview,  title: 'Usage & Plan',        desc: 'View team seats, current plan, and activity summary' },
   ]
 
   return (
@@ -1419,18 +1419,22 @@ function OverviewTab({ profile, plan, currentPlanDetails, usage, bids, setActive
               key={s.tab}
               type="button"
               onClick={() => setActiveTab(s.tab)}
-              className="group flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+              className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:shadow-md cursor-pointer"
+              style={{ '--hover-border': s.color.hex } as React.CSSProperties}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = s.color.hex)}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = '')}
             >
               <div
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all group-hover:scale-110"
                 style={{ background: s.color.soft, border: `1.5px solid ${s.color.softBorder}` }}
               >
-                <s.icon size={22} style={{ color: s.color.hex }} />
+                <s.icon size={20} style={{ color: s.color.hex }} />
               </div>
-              <div className="min-w-0 flex-1 pt-0.5">
-                <p className="text-base font-bold text-slate-900 group-hover:text-slate-700">{s.title}</p>
-                <p className="mt-0.5 text-sm leading-snug text-slate-500">{s.desc}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-slate-900" style={{ color: 'inherit' }}>{s.title}</p>
+                <p className="mt-0.5 text-xs leading-snug text-slate-500">{s.desc}</p>
               </div>
+              <ChevronRight size={16} className="shrink-0 text-slate-300 transition-all group-hover:text-slate-600 group-hover:translate-x-0.5" />
             </button>
           ))}
         </div>
@@ -1488,31 +1492,40 @@ function OverviewTab({ profile, plan, currentPlanDetails, usage, bids, setActive
         {usage?.available && (
           <div className="lg:col-span-1 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-sm">
-              <Activity size={14} color={G.overview.hex} /> Usage This Month
+              <Activity size={14} color={G.overview.hex} /> Plan Seats
             </h3>
             <div className="space-y-4">
-              {[
-                { label: 'Searches', current: usage.searches, limit: usage.limits?.searches ?? -1, color: G.overview.hex },
-                { label: 'Exports',  current: usage.exports,  limit: usage.limits?.exports ?? -1,  color: G.profile.hex },
-                { label: 'Saved',    current: usage.savedOpportunities, limit: usage.limits?.savedOpportunities ?? -1, color: G.billing.hex },
-              ].map(item => {
-                const pct = item.limit === -1 ? null : Math.min((item.current / item.limit) * 100, 100)
-                return (
-                  <div key={item.label}>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs font-semibold text-slate-500">{item.label}</span>
-                      <span className="text-xs font-bold text-slate-900">
-                        {item.current}{item.limit !== -1 ? ` / ${item.limit}` : ''}
-                      </span>
-                    </div>
-                    {pct !== null && (
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: item.color }} />
-                      </div>
-                    )}
+              {/* Seat usage */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs font-semibold text-slate-500">Team seats used</span>
+                  <span className="text-xs font-bold text-slate-900">
+                    {usage.seatsUsed ?? 1} / {usage.maxSeats ?? 1}
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(((usage.seatsUsed ?? 1) / (usage.maxSeats ?? 1)) * 100, 100)}%`,
+                      background: G.overview.hex,
+                    }}
+                  />
+                </div>
+              </div>
+              {/* Unlimited badges */}
+              <div className="space-y-2 pt-1">
+                {[
+                  { label: 'Searches', icon: '🔍' },
+                  { label: 'Exports', icon: '📥' },
+                  { label: 'Opportunities saved', icon: '🔖' },
+                ].map(item => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500">{item.icon} {item.label}</span>
+                    <span className="text-xs font-bold text-emerald-600">Unlimited</span>
                   </div>
-                )
-              })}
+                ))}
+              </div>
             </div>
           </div>
         )}

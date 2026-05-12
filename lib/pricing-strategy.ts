@@ -42,6 +42,8 @@ export const PRICING_PLANS = {
       activeAlerts: 5,
       savedOpportunities: 'unlimited',
       searches: 'unlimited',
+      exports: 'unlimited',
+      seats: 1,
     },
   },
 
@@ -68,8 +70,10 @@ export const PRICING_PLANS = {
     idealFor: 'Growing businesses and small teams',
     limits: {
       activeAlerts: 25,
-      teamMembers: 3,
+      seats: 3,
       apiCalls: 1000,
+      searches: 'unlimited',
+      exports: 'unlimited',
     },
     mostPopular: true,
   },
@@ -96,8 +100,10 @@ export const PRICING_PLANS = {
     idealFor: 'Large contractors and prime contractors',
     limits: {
       activeAlerts: 'unlimited',
-      teamMembers: 'unlimited',
+      seats: 10,
       apiCalls: 'unlimited',
+      searches: 'unlimited',
+      exports: 'unlimited',
     },
   },
 }
@@ -126,7 +132,7 @@ export const FEATURE_COMPARISON = [
     features: [
       { name: 'Save opportunities', trial: '10', basic: 'Unlimited', professional: 'Unlimited', enterprise: 'Unlimited' },
       { name: 'Deadline tracking', trial: false, basic: true, professional: true, enterprise: true },
-      { name: 'Team collaboration', trial: false, basic: false, professional: '3 users', enterprise: 'Unlimited' },
+      { name: 'Team seats', trial: false, basic: '1 seat', professional: '3 seats', enterprise: '10 seats' },
     ],
   },
   {
