@@ -79,7 +79,7 @@ export default function CookieConsent() {
     }
   }, [])
 
-  // Lock scroll when settings modal open
+  // Lock scroll when settings panel open
   useEffect(() => {
     if (!showSettings) return
     const prev = document.body.style.overflow
@@ -173,7 +173,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={() => setShowSettings(true)}
-                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:px-4 sm:text-base whitespace-nowrap"
+                  className="rounded border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:px-4 sm:text-base whitespace-nowrap"
                   style={{ borderColor: 'rgba(148,163,184,0.4)', background: 'rgba(255,255,255,0.06)', color: '#e2e8f0' }}
                 >
                   Customize Settings
@@ -182,7 +182,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={rejectAll}
-                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:px-4 sm:text-base whitespace-nowrap"
+                  className="rounded border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:px-4 sm:text-base whitespace-nowrap"
                   style={{ borderColor: 'rgba(148,163,184,0.4)', background: 'rgba(255,255,255,0.06)', color: '#e2e8f0' }}
                 >
                   Essential Only
@@ -191,7 +191,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={acceptAll}
-                  className="rounded-lg px-3 py-1.5 text-xs font-black transition-all hover:bg-emerald-700 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1 sm:px-5 sm:text-base whitespace-nowrap"
+                  className="rounded px-3 py-1.5 text-xs font-black transition-all hover:bg-emerald-700 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1 sm:px-5 sm:text-base whitespace-nowrap"
                   style={{
                     background: '#16a34a',
                     boxShadow: '0 4px 14px rgba(22,163,74,0.4)',
@@ -204,7 +204,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="rounded-lg p-1 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  className="rounded p-1 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                   style={{ color: '#64748b' }}
                   aria-label="Dismiss cookie notice"
                 >
@@ -216,42 +216,46 @@ export default function CookieConsent() {
         </div>
       </div>
 
-      {/* ── SETTINGS MODAL ── (unchanged) */}
+      {/* ── SETTINGS DRAWER ── slides in from the right */}
       {showSettings && (
-        <div
-          className="fixed inset-0 z-[1250] flex items-end justify-center p-0 sm:items-center sm:p-4"
-          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowSettings(false) }}
-        >
+        <>
+          {/* Backdrop */}
           <div
-            className="pgc-cookie-modal animate-settings-in flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border sm:rounded-2xl"
+            className="fixed inset-0 z-[1249]"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)' }}
+            onClick={() => setShowSettings(false)}
+          />
+
+          {/* Drawer panel */}
+          <div
+            className="pgc-cookie-modal animate-drawer-in fixed inset-y-0 right-0 z-[1250] flex w-full max-w-sm flex-col border-l"
             style={{
-              background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)',
-              borderColor: 'rgba(22,163,74,0.2)',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+              background: '#0f172a',
+              borderColor: 'rgba(255,255,255,0.08)',
+              boxShadow: '-12px 0 48px rgba(0,0,0,0.6)',
               color: '#ffffff',
             }}
           >
             {/* Header */}
             <div
-              className="flex items-center justify-between px-5 py-4 sm:px-6"
+              className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="rounded-lg p-2"
+                  className="rounded p-2"
                   style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid rgba(22,163,74,0.3)' }}
                 >
                   <Shield className="h-4 w-4" style={{ color: '#16a34a' }} />
                 </div>
-                <h2 className="text-base font-black sm:text-lg" style={{ color: '#ffffff' }}>
+                <h2 className="text-base font-black" style={{ color: '#ffffff' }}>
                   Cookie Settings
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setShowSettings(false)}
-                className="rounded-lg p-2 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="rounded p-2 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                 style={{ color: '#64748b' }}
                 aria-label="Close cookie settings"
               >
@@ -260,7 +264,7 @@ export default function CookieConsent() {
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="flex-1 overflow-y-auto px-5 py-5">
               <p className="mb-5 text-sm leading-relaxed" style={{ color: '#94a3b8' }}>
                 Choose which optional cookies we can use. Necessary cookies are always enabled —
                 they keep core features working.
@@ -269,7 +273,7 @@ export default function CookieConsent() {
               <div className="space-y-3">
                 {/* Necessary */}
                 <div
-                  className="rounded-xl p-4"
+                  className="p-4"
                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -285,7 +289,7 @@ export default function CookieConsent() {
 
                 {/* Analytics */}
                 <div
-                  className="rounded-xl p-4 transition-colors"
+                  className="p-4 transition-colors"
                   style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.analytics ? 'rgba(22,163,74,0.3)' : 'rgba(255,255,255,0.08)'}` }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -307,7 +311,7 @@ export default function CookieConsent() {
 
                 {/* Marketing */}
                 <div
-                  className="rounded-xl p-4 transition-colors"
+                  className="p-4 transition-colors"
                   style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.marketing ? 'rgba(22,163,74,0.3)' : 'rgba(255,255,255,0.08)'}` }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -326,7 +330,7 @@ export default function CookieConsent() {
 
                 {/* Preferences */}
                 <div
-                  className="rounded-xl p-4 transition-colors"
+                  className="p-4 transition-colors"
                   style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.preferences ? 'rgba(22,163,74,0.3)' : 'rgba(255,255,255,0.08)'}` }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -347,30 +351,13 @@ export default function CookieConsent() {
 
             {/* Footer */}
             <div
-              className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:justify-end sm:gap-2.5 sm:px-6"
+              className="flex flex-col gap-2 px-5 py-4"
               style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
             >
               <button
                 type="button"
-                onClick={() => setShowSettings(false)}
-                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:order-1" style={{ color: '#94a3b8' }}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={rejectAll}
-                className="rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:order-2" 
-                style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
-              >
-                Reject All
-              </button>
-
-              <button
-                type="button"
                 onClick={saveCustom}
-                className="rounded-lg px-5 py-2.5 text-sm font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:order-3"
+                className="w-full px-5 py-2.5 text-sm font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                 style={{
                   background: '#16a34a',
                   boxShadow: '0 4px 14px rgba(22,163,74,0.4)',
@@ -379,18 +366,38 @@ export default function CookieConsent() {
               >
                 Save Preferences
               </button>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={rejectAll}
+                  className="flex-1 border px-4 py-2.5 text-sm font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
+                >
+                  Reject All
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(false)}
+                  className="flex-1 border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  style={{ borderColor: 'rgba(148,163,184,0.2)', color: '#94a3b8' }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <style jsx>{`
-        @keyframes settingsIn {
-          from { opacity: 0; transform: translateY(20px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        @keyframes drawerIn {
+          from { transform: translateX(100%); }
+          to   { transform: translateX(0);    }
         }
-        .animate-settings-in {
-          animation: settingsIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        .animate-drawer-in {
+          animation: drawerIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         /* ── Force correct text colours — overrides any global CSS reset ── */
