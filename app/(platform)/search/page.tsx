@@ -4885,8 +4885,11 @@ const visibleSearchSummaryParts = useMemo(
  const globalIndex = (uiPage - 1) * resultsPerPage + idx
  const rawSetAside = getSetAsideLabel(opp.typeOfSetAside || opp.setAside || '') || '';
  const setAsideLabel = isMeaningful(rawSetAside) ? rawSetAside : null;
+ const setAsideCode = SET_ASIDE_CODE_BY_LABEL[rawSetAside] || opp.typeOfSetAside || opp.setAside || '';
  const place = getPlaceLabel(opp);
+ const stateCode = opp.placeOfPerformance?.state?.code?.trim() || '';
  const naics = isMeaningful(opp.naicsCode) ? opp.naicsCode : null;
+ const oppAgency = opp.department || opp.fullParentPathName || opp.office || '';
  const deadlineMeta = getDeadlineMeta(opp.responseDeadLine);
  return (
  <div key={opp.noticeId || globalIndex}
@@ -4918,9 +4921,36 @@ const visibleSearchSummaryParts = useMemo(
  {/* Highlight badges */}
  <div className="flex flex-wrap gap-2 mb-3">
  {deadlineMeta && <span className={`${BADGE_BASE} ${deadlineMeta.gradient}`} style={{ color: '#fff' }}>{deadlineMeta.label}</span>}
- {setAsideLabel && <span className={`${BADGE_BASE} bg-linear-to-r from-indigo-500 to-purple-600 text-white`} style={{ color: '#fff' }}>{setAsideLabel}</span>}
- {naics && <span className={`${BADGE_BASE} bg-linear-to-r from-sky-500 to-blue-600 text-white`} style={{ color: '#fff' }}>NAICS {naics}</span>}
- {place && <span className={`${BADGE_BASE} bg-linear-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>}
+ {setAsideLabel && (
+   <button type="button"
+     onClick={(e) => { e.stopPropagation(); setSelectedSetAsides(setAsideCode ? [setAsideCode] : []); runSearchWithOverrides({ setAside: setAsideCode }); }}
+     title={`Filter by set-aside: ${setAsideLabel}`}
+     className={`${BADGE_BASE} bg-linear-to-r from-indigo-500 to-purple-600 text-white hover:opacity-80 transition-opacity`}
+     style={{ color: '#fff' }}>
+     <Filter className="h-2.5 w-2.5 mr-1 opacity-70 inline-block" />{setAsideLabel}
+   </button>
+ )}
+ {naics && (
+   <button type="button"
+     onClick={(e) => { e.stopPropagation(); setNaics(naics); runSearchWithOverrides({ naics }); }}
+     title={`Filter by NAICS: ${naics}`}
+     className={`${BADGE_BASE} bg-linear-to-r from-sky-500 to-blue-600 text-white hover:opacity-80 transition-opacity`}
+     style={{ color: '#fff' }}>
+     <Filter className="h-2.5 w-2.5 mr-1 opacity-70 inline-block" />NAICS {naics}
+   </button>
+ )}
+ {place && stateCode && (
+   <button type="button"
+     onClick={(e) => { e.stopPropagation(); setSelectedStates([stateCode]); runSearchWithOverrides({ stateOfPerformance: stateCode }); }}
+     title={`Filter by state: ${place}`}
+     className={`${BADGE_BASE} bg-linear-to-r from-emerald-500 to-teal-500 text-white hover:opacity-80 transition-opacity`}
+     style={{ color: '#fff' }}>
+     <Filter className="h-2.5 w-2.5 mr-1 opacity-70 inline-block" />{place}
+   </button>
+ )}
+ {place && !stateCode && (
+   <span className={`${BADGE_BASE} bg-linear-to-r from-emerald-500 to-teal-500 text-white`} style={{ color: '#fff' }}>{place}</span>
+ )}
  </div>
  {/* Key fields grid */}
  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 mb-3">
@@ -4930,25 +4960,59 @@ const visibleSearchSummaryParts = useMemo(
  <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{opp.solicitationNumber}</div>
  </div>
  )}
+ {oppAgency ? (
+ <button type="button"
+   onClick={(e) => { e.stopPropagation(); setAgency(oppAgency); runSearchWithOverrides({ agency: oppAgency }); }}
+   title={`Filter by agency: ${oppAgency}`}
+   className="text-left group rounded-md px-1 -mx-1 hover:bg-green-50 transition-colors cursor-pointer">
+   <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>
+     Agency <Filter className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+   </div>
+   <div className="text-sm font-semibold text-[#166534] line-clamp-1 group-hover:underline">{oppAgency}</div>
+ </button>
+ ) : (
  <div>
- <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Agency</div>
- <div className="text-sm font-semibold text-[#166534] line-clamp-1">{opp.department || opp.fullParentPathName || opp.office || '—'}</div>
- </div>
- {setAsideLabel && (
- <div>
- <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Set-Aside</div>
- <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{setAsideLabel}</div>
+   <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Agency</div>
+   <div className="text-sm font-semibold text-gray-400">—</div>
  </div>
  )}
+ {setAsideLabel && (
+ <button type="button"
+   onClick={(e) => { e.stopPropagation(); setSelectedSetAsides(setAsideCode ? [setAsideCode] : []); runSearchWithOverrides({ setAside: setAsideCode }); }}
+   title={`Filter by set-aside: ${setAsideLabel}`}
+   className="text-left group rounded-md px-1 -mx-1 hover:bg-indigo-50 transition-colors cursor-pointer">
+   <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>
+     Set-Aside <Filter className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+   </div>
+   <div className="result-field-value font-semibold text-gray-800 group-hover:underline" style={{ fontSize: "17px" }}>{setAsideLabel}</div>
+ </button>
+ )}
+ {stateCode ? (
+ <button type="button"
+   onClick={(e) => { e.stopPropagation(); setSelectedStates([stateCode]); runSearchWithOverrides({ stateOfPerformance: stateCode }); }}
+   title={`Filter by state: ${place}`}
+   className="text-left group rounded-md px-1 -mx-1 hover:bg-emerald-50 transition-colors cursor-pointer">
+   <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>
+     Place of Performance <Filter className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+   </div>
+   <div className="result-field-value font-semibold text-gray-800 group-hover:underline" style={{ fontSize: "17px" }}>{place}</div>
+ </button>
+ ) : (
  <div>
- <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Place of Performance</div>
- <div className={`result-field-value font-semibold ${place ? 'text-gray-800' : 'text-gray-400 italic'}`} style={{ fontSize: "17px" }}>{place || 'Unknown'}</div>
+   <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Place of Performance</div>
+   <div className="result-field-value font-semibold text-gray-400 italic" style={{ fontSize: "17px" }}>Unknown</div>
  </div>
+ )}
  {naics && (
- <div>
- <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>NAICS</div>
- <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{naics}</div>
- </div>
+ <button type="button"
+   onClick={(e) => { e.stopPropagation(); setNaics(naics); runSearchWithOverrides({ naics }); }}
+   title={`Filter by NAICS: ${naics}`}
+   className="text-left group rounded-md px-1 -mx-1 hover:bg-sky-50 transition-colors cursor-pointer">
+   <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>
+     NAICS <Filter className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+   </div>
+   <div className="result-field-value font-semibold text-sky-700 group-hover:underline" style={{ fontSize: "17px" }}>{naics}</div>
+ </button>
  )}
  {opp.postedDate && (
  <div>
