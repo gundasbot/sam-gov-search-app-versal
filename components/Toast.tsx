@@ -71,9 +71,9 @@ export default function Toast({
         <div className="flex-shrink-0">
           {style.icon}
         </div>
-        <p className="flex-1 text-white font-semibold text-base leading-relaxed">
+        <span className="flex-1 font-semibold text-base leading-relaxed" style={{ color: '#fff' }}>
           {message}
-        </p>
+        </span>
         <button
           onClick={onClose}
           className="flex-shrink-0 text-white hover:text-gray-200 transition-colors"

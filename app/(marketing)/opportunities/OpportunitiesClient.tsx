@@ -1715,7 +1715,7 @@ Provide analysis in JSON format with:
             setDisplayedOpportunities(cachedOpps);
             setTotalRecords(cacheData.stats?.totalActive || cachedOpps.length);
             setLastUpdated(getLastUpdatedLabel());
-            setToast({ type: 'success', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
+            setToast({ type: 'warning', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
             return;
           }
         }
@@ -1894,7 +1894,7 @@ Provide analysis in JSON format with:
           setDataSource('live');
           setError(null);
           setLastUpdated(getLastUpdatedLabel());
-          setToast({ type: 'success', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
+          setToast({ type: 'warning', msg: 'Live SAM.gov temporarily unavailable — showing recently cached opportunities.' });
           return true;
         } catch {
           return false;
