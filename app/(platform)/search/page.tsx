@@ -3288,9 +3288,11 @@ useEffect(() => {
  }
  
  // ===== STATUS =====
- // Full status filter (NEW)
- if (opportunityStatus.trim()) {
- qs.set('status', opportunityStatus.trim())
+ // Always default to 'active' — if user dismissed the chip, restore it so it reappears on next render
+ const effectiveStatus = opportunityStatus.trim() || 'active'
+ qs.set('status', effectiveStatus)
+ if (!opportunityStatus.trim()) {
+ setOpportunityStatus('active')
  }
  // Active / Inactive status (existing)
  if (isActive && isActive !== '' && isActive !== 'undefined') {
