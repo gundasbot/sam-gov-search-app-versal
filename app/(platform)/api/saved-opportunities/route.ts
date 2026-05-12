@@ -79,48 +79,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'noticeId is required' }, { status: 400 })
     }
 
-    // Upsert — don't error if already saved
-    const saved = await prisma.saved_opportunities.upsert({
-      where: {
-        user_id_notice_id: {
-          user_id: user.id,
-          notice_id: noticeId,
-        },
-      },
-      update: {
-        title,
-        solicitation_number: solicitationNumber,
-        department,
-        posted_date: postedDate ? new Date(postedDate) : null,
-        response_deadline: responseDeadLine ? new Date(responseDeadLine) : null,
-        naics_code: naicsCode,
-        opportunity_type: type,
-        set_aside: setAside,
-        place_of_performance: normalizeJson(placeOfPerformance),
-        ui_link: uiLink,
-        organization_name: organizationName,
-        updated_at: new Date(),
-      },
-      create: {
-        user_id: user.id,
-        notice_id: noticeId,
-        title,
-        solicitation_number: solicitationNumber,
-        department,
-        posted_date: postedDate ? new Date(postedDate) : null,
-        response_deadline: responseDeadLine ? new Date(responseDeadLine) : null,
-        naics_code: naicsCode,
-        opportunity_type: type,
-        set_aside: setAside,
-        place_of_performance: normalizeJson(placeOfPerformance),
-        ui_link: uiLink,
-        organization_name: organizationName,
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
+    const fields = {
+      title,
+      solicitation_number: solicitationNumber,
+      department,
+      posted_date: postedDate ? new Date(postedDate) : null,
+      response_deadline: responseDeadLine ? new Date(responseDeadLine) : null,
+      naics_code: naicsCode,
+      opportunity_type: type,
+      set_aside: setAside,
+      place_of_performance: normalizeJson(placeOfPerformance),
+      ui_link: uiLink,
+      organization_name: organizationName,
+      updated_at: new Date(),
+    }
+
+    const existing = await prisma.saved_opportunities.findFirst({
+      where: { user_id: user.id, notice_id: noticeId },
     })
 
-    return NextResponse.json({ saved }, { status: 201 })
+    let saved
+    if (existing) {
+      saved = await prisma.saved_opportunities.update({
+        where: { id: existing.id },
+        data: fields,
+      })
+    } else {
+      saved = await prisma.saved_opportunities.create({
+        data: { user_id: user.id, notice_id: noticeId, created_at: new Date(), ...fields },
+      })
+    }
+
+    return NextResponse.json({ saved }, { status: existing ? 200 : 201 })
   } catch (error) {
     console.error('POST /api/saved-opportunities error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
