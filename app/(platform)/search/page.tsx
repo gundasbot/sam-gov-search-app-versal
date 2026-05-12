@@ -2308,7 +2308,7 @@ function SearchPageContent() {
  const [classificationCode, setClassificationCode] = useState('') // Priority 1C - PSC codes
  const [responseDeadline, setResponseDeadline] = useState(getToday())// Priority 1A - CRITICAL - Filter by specific deadline date (default: today)
  // Empty by default - no upper limit
- const [responseDeadlineAfter, setResponseDeadlineAfter] = useState('')
+ const [responseDeadlineAfter, setResponseDeadlineAfter] = useState(getToday())
  const [responseDeadlineBefore, setResponseDeadlineBefore] = useState(getToday())
 
  // Phase 2: High Value
@@ -2739,8 +2739,8 @@ const [saveModalMode, setSaveModalMode] = useState<'save' | 'alert'>('save')
  setIsActive(mappedParams.is_active);
  setSolicitationNumber(mappedParams.solicitationNumber);
  setClassificationCode(mappedParams.classificationCode);
- // Note: Currently UI only supports single deadline field, using rdl_to
  setResponseDeadline(mappedParams.responseDeadlineTo || mappedParams.responseDeadlineFrom);
+ setResponseDeadlineAfter(mappedParams.responseDeadlineFrom || '');
  setNoticeId(mappedParams.noticeId);
  setOpportunityStatus(mappedParams.opportunityStatus);
  setPlaceOfPerformanceZip(mappedParams.placeOfPerformanceZip);
@@ -3908,6 +3908,12 @@ ${filteredResults.map(opp => ` <opportunity>
  })
  }
 
+ // ── Deadline from filter (visible chip, defaults to today) ──
+ if (responseDeadlineAfter) {
+ const fromMs = new Date(responseDeadlineAfter + 'T00:00:00').getTime()
+ arr = arr.filter(o => !o.responseDeadLine || new Date(o.responseDeadLine).getTime() >= fromMs)
+ }
+
  // ── Always-on Refine Filters (instant client-side) ──
  if (agency.trim()) { const ag = agency.trim().toLowerCase(); arr = arr.filter(o => (o.organizationName||'').toLowerCase().includes(ag)||(o.fullParentPathName||'').toLowerCase().includes(ag)) }
  if (naics.trim()) { arr = arr.filter(o => (o.naicsCode||'').startsWith(naics.trim())) }
@@ -3952,7 +3958,8 @@ ${filteredResults.map(opp => ` <opportunity>
  }, [results, sortBy, activeFilter, advancedApplied, showSavedOnly, saved,
  advKeywords, advPostedAfter, advResponseDeadline,
  agency, selectedSetAsides, naics, classificationCode, selectedStates,
- procurementType, opportunityStatus, solicitationNumber, organizationCode])
+ procurementType, opportunityStatus, solicitationNumber, organizationCode,
+ responseDeadlineAfter])
 
  const totalUiPages = useMemo(
  () => Math.max(1, Math.ceil(filteredResults.length / resultsPerPage)),
