@@ -34,9 +34,9 @@ function Toggle({
       aria-disabled={disabled}
       disabled={disabled}
       onClick={onChange}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a18] focus-visible:ring-offset-2 ${
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] focus-visible:ring-offset-2 ${
         checked
-          ? 'border-[#ff7a18] bg-[#ff7a18]'
+          ? 'border-[#16a34a] bg-[#16a34a]'
           : 'border-gray-500 bg-gray-600'
       } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
     >
@@ -132,9 +132,9 @@ export default function CookieConsent() {
         <div className="pointer-events-none h-6 w-full"
           style={{ background: 'linear-gradient(to bottom, transparent, rgba(15,23,42,0.15))' }} />
 
-        {/* Main bar - full width with gradient background */}
+        {/* Main bar - full width with dark background */}
         <div
-          className="pgc-cookie-bar border-t w-full bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] shadow-[0_-8px_40px_rgba(0,0,0,0.5),0_-2px_0_rgba(255,122,24,0.3)] border-[rgba(255,122,24,0.25)]"
+          className="pgc-cookie-bar border-t w-full bg-[#0f172a] shadow-[0_-8px_40px_rgba(0,0,0,0.6)] border-[rgba(255,255,255,0.08)]"
         >
           {/* Content container - centered with max width */}
           <div className="mx-auto w-full max-w-480 px-4 sm:px-6 lg:px-8">
@@ -144,9 +144,9 @@ export default function CookieConsent() {
               <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3 sm:items-center">
                 <div
                   className="mt-0.5 flex-shrink-0 rounded-lg p-1.5 sm:p-2 sm:mt-0"
-                  style={{ background: 'rgba(255,122,24,0.15)', border: '1px solid rgba(255,122,24,0.3)' }}
+                  style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid rgba(22,163,74,0.3)' }}
                 >
-                  <Cookie className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#ff7a18' }} />
+                  <Cookie className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#16a34a' }} />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold sm:text-base md:text-lg" style={{ color: '#ffffff', marginBottom: 2 }}>
@@ -157,7 +157,7 @@ export default function CookieConsent() {
                     <Link
                       href="/cookie-policy"
                       className="font-semibold underline underline-offset-2 transition-colors hover:text-white focus:outline-none"
-                      style={{ color: '#ff7a18' }}
+                      style={{ color: '#16a34a' }}
                     >
                       Cookie Policy
                     </Link>
@@ -173,8 +173,8 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={() => setShowSettings(true)}
-                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-base whitespace-nowrap"
-                  style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
+                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:px-4 sm:text-base whitespace-nowrap"
+                  style={{ borderColor: 'rgba(148,163,184,0.4)', background: 'rgba(255,255,255,0.06)', color: '#e2e8f0' }}
                 >
                   Customize Settings
                 </button>
@@ -182,8 +182,8 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={rejectAll}
-                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:px-4 sm:text-base whitespace-nowrap"
-                  style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
+                  className="rounded-lg border px-2 py-1.5 text-xs font-semibold transition-all hover:border-slate-400 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:px-4 sm:text-base whitespace-nowrap"
+                  style={{ borderColor: 'rgba(148,163,184,0.4)', background: 'rgba(255,255,255,0.06)', color: '#e2e8f0' }}
                 >
                   Essential Only
                 </button>
@@ -191,10 +191,10 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={acceptAll}
-                  className="rounded-lg px-3 py-1.5 text-xs font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1 sm:px-5 sm:text-base whitespace-nowrap"
+                  className="rounded-lg px-3 py-1.5 text-xs font-black transition-all hover:bg-emerald-700 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1 sm:px-5 sm:text-base whitespace-nowrap"
                   style={{
-                    background: 'linear-gradient(135deg, #ff7a18, #f97316)',
-                    boxShadow: '0 4px 14px rgba(255,122,24,0.4)',
+                    background: '#16a34a',
+                    boxShadow: '0 4px 14px rgba(22,163,74,0.4)',
                     color: '#ffffff',
                   }}
                 >
@@ -204,7 +204,7 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="rounded-lg p-1 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                  className="rounded-lg p-1 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                   style={{ color: '#64748b' }}
                   aria-label="Dismiss cookie notice"
                 >
@@ -227,7 +227,7 @@ export default function CookieConsent() {
             className="pgc-cookie-modal animate-settings-in flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border sm:rounded-2xl"
             style={{
               background: 'linear-gradient(160deg, #1e293b 0%, #0f172a 100%)',
-              borderColor: 'rgba(255,122,24,0.2)',
+              borderColor: 'rgba(22,163,74,0.2)',
               boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
               color: '#ffffff',
             }}
@@ -240,9 +240,9 @@ export default function CookieConsent() {
               <div className="flex items-center gap-3">
                 <div
                   className="rounded-lg p-2"
-                  style={{ background: 'rgba(255,122,24,0.15)', border: '1px solid rgba(255,122,24,0.3)' }}
+                  style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid rgba(22,163,74,0.3)' }}
                 >
-                  <Shield className="h-4 w-4" style={{ color: '#ff7a18' }} />
+                  <Shield className="h-4 w-4" style={{ color: '#16a34a' }} />
                 </div>
                 <h2 className="text-base font-black sm:text-lg" style={{ color: '#ffffff' }}>
                   Cookie Settings
@@ -251,7 +251,7 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={() => setShowSettings(false)}
-                className="rounded-lg p-2 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                className="rounded-lg p-2 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                 style={{ color: '#64748b' }}
                 aria-label="Close cookie settings"
               >
@@ -286,12 +286,12 @@ export default function CookieConsent() {
                 {/* Analytics */}
                 <div
                   className="rounded-xl p-4 transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.analytics ? 'rgba(255,122,24,0.3)' : 'rgba(255,255,255,0.08)'}` }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.analytics ? 'rgba(22,163,74,0.3)' : 'rgba(255,255,255,0.08)'}` }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="flex items-center gap-2 text-sm font-bold" style={{ color: '#ffffff' }}>
-                        <BarChart3 className="h-3.5 w-3.5" style={{ color: '#ff7a18' }} />
+                        <BarChart3 className="h-3.5 w-3.5" style={{ color: '#16a34a' }} />
                         Analytics cookies
                       </h3>
                       <p className="mt-1 text-xs leading-relaxed" style={{ color: '#64748b' }}>
@@ -308,7 +308,7 @@ export default function CookieConsent() {
                 {/* Marketing */}
                 <div
                   className="rounded-xl p-4 transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.marketing ? 'rgba(255,122,24,0.3)' : 'rgba(255,255,255,0.08)'}` }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.marketing ? 'rgba(22,163,74,0.3)' : 'rgba(255,255,255,0.08)'}` }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -327,7 +327,7 @@ export default function CookieConsent() {
                 {/* Preferences */}
                 <div
                   className="rounded-xl p-4 transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.preferences ? 'rgba(255,122,24,0.3)' : 'rgba(255,255,255,0.08)'}` }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${preferences.preferences ? 'rgba(22,163,74,0.3)' : 'rgba(255,255,255,0.08)'}` }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -353,7 +353,7 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={() => setShowSettings(false)}
-                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:order-1" style={{ color: '#94a3b8' }}
+                className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:order-1" style={{ color: '#94a3b8' }}
               >
                 Cancel
               </button>
@@ -361,7 +361,7 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={rejectAll}
-                className="rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:order-2" 
+                className="rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all hover:border-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:order-2" 
                 style={{ borderColor: 'rgba(148,163,184,0.3)', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}
               >
                 Reject All
@@ -370,10 +370,10 @@ export default function CookieConsent() {
               <button
                 type="button"
                 onClick={saveCustom}
-                className="rounded-lg px-5 py-2.5 text-sm font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:order-3"
+                className="rounded-lg px-5 py-2.5 text-sm font-black transition-all hover:opacity-90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:order-3"
                 style={{
-                  background: 'linear-gradient(135deg, #ff7a18, #f97316)',
-                  boxShadow: '0 4px 14px rgba(255,122,24,0.35)',
+                  background: '#16a34a',
+                  boxShadow: '0 4px 14px rgba(22,163,74,0.4)',
                   color: '#ffffff',
                 }}
               >
@@ -430,12 +430,12 @@ export default function CookieConsent() {
           color: #ffffff !important;
         }
 
-        /* Orange accent */
-        .pgc-cookie-orange {
-          color: #ff7a18 !important;
+        /* Green accent */
+        .pgc-cookie-green {
+          color: #16a34a !important;
         }
 
-        /* White button text on orange bg */
+        /* White button text on green bg */
         .pgc-cookie-btn-primary,
         .pgc-cookie-btn-primary * {
           color: #ffffff !important;

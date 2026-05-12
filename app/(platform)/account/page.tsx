@@ -679,6 +679,7 @@ function AccountPageContent() {
             saving={saving} saveProfile={saveProfile}
             sendEmailVerification={sendEmailVerification}
             verificationSent={verificationSent}
+            setActiveTab={setActiveTab}
           />
         )}
         {activeTab === 'billing' && (
@@ -1010,17 +1011,27 @@ function SettingsTab() {
         </div>
 
         <div className="p-5 sm:p-6 space-y-6">
-          <section className="space-y-4">
-            <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><Lock size={18} /> Password & Account Security</h3>
-
-            {/* Change Password Card — always visible */}
-            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 space-y-4">
-              <div>
-                <p className="text-base font-black text-slate-900">Change Password</p>
-                <p className="text-sm font-semibold text-slate-600 mt-0.5">Update your account password. You'll need your current password to make changes.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-slate-900 inline-flex items-center gap-2"><Lock size={16} /> Password</h3>
+              <button type="button" onClick={() => setShowPasswordForm(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-all"
+                style={showPasswordForm
+                  ? { background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' }
+                  : { background: G.settings.bg, color: '#ffffff' }}>
+                {showPasswordForm ? <><X size={12} /> Cancel</> : <><Lock size={12} /> Change Password</>}
+              </button>
+            </div>
+            {!showPasswordForm && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-600">Keep your account secure with a strong, unique password.</p>
+                <p className="text-xs text-slate-400 mt-1">Click <span className="font-bold text-slate-500">Change Password</span> to update your credentials.</p>
               </div>
-
-              <div className="max-w-md space-y-4">
+            )}
+            {showPasswordForm && (
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 space-y-4">
+              <div className="space-y-4">
               {/* Current password */}
               <div className="space-y-1">
                 <label className="block text-sm font-bold text-slate-800">Current Password</label>
@@ -1123,10 +1134,11 @@ function SettingsTab() {
                 </button>
               </div>
             </div>
+            )}
           </section>
 
           <section className="space-y-3 rounded-2xl border border-slate-200 p-4 sm:p-5 bg-slate-50">
-            <h3 className="text-xl font-black text-slate-900">Two-Factor Authentication (2FA)</h3>
+            <h3 className="text-base font-black text-slate-900 inline-flex items-center gap-2"><ShieldCheck size={16} /> Two-Factor Authentication</h3>
             <p className="text-sm font-semibold text-slate-700">
               Secure your account with an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, 1Password, etc.).
             </p>
@@ -1215,9 +1227,10 @@ function SettingsTab() {
               )}
             </div>
           </section>
+          </div>{/* end 2-col grid */}
 
           <section className="space-y-4">
-            <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><Bell size={18} /> Notification Preferences</h3>
+            <h3 className="text-base font-black text-slate-900 inline-flex items-center gap-2"><Bell size={16} /> Notification Preferences</h3>
 
             {/* Master mute toggle */}
             <div className={`flex items-center justify-between p-4 rounded-xl border ${allNotificationsEnabled ? 'border-slate-200 bg-white' : 'border-slate-200 bg-white'}`}>
@@ -1272,6 +1285,7 @@ function SettingsTab() {
                 <span className={`inline-block h-6 w-6 rounded-full bg-white transition-transform ${marketingOptIn ? 'translate-x-7' : 'translate-x-1'}`} />
               </button>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[
               ['emailAlerts', 'Email Alerts'],
               ['smsAlerts', 'SMS Alerts'],
@@ -1279,42 +1293,38 @@ function SettingsTab() {
               ['weeklyReport', 'Weekly Report'],
               ['opportunityReminders', 'Opportunity Reminders'],
               ['systemNotifications', 'System Notifications'],
-            ].map(([key, label], idx, arr) => {
+            ].map(([key, label]) => {
               const enabled = notifications[key as keyof typeof notifications]
-              const isLast = idx === arr.length - 1
-
               return (
-                <div key={key} className="space-y-3">
-                  <div className={`flex items-center justify-between p-4 rounded-xl border ${
-                    enabled ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50'
-                  }`}>
-                    <p className={`text-sm font-bold ${enabled ? 'text-slate-900' : 'text-slate-600'}`}>{label}</p>
-                    <button
-                      type="button"
-                      onClick={() => toggleNotification(key as keyof typeof notifications)}
-                      disabled={savingPrefKey === key}
-                      className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                        enabled ? 'bg-emerald-600' : 'bg-slate-300'
-                      }`}
-                    >
-                      <span className={`inline-block h-6 w-6 rounded-full bg-white transition-transform ${
-                        enabled ? 'translate-x-7' : 'translate-x-1'
-                      }`} />
-                    </button>
-                  </div>
-
+                <div key={key} className={`flex items-center justify-between p-3.5 rounded-xl border ${
+                  enabled ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50'
+                }`}>
+                  <p className={`text-sm font-bold ${enabled ? 'text-slate-900' : 'text-slate-500'}`}>{label}</p>
+                  <button
+                    type="button"
+                    onClick={() => toggleNotification(key as keyof typeof notifications)}
+                    disabled={savingPrefKey === key}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ${
+                      enabled ? 'bg-emerald-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${
+                      enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
                 </div>
               )
             })}
+            </div>
           </section>
 
           <section className="space-y-4">
-            <h3 className="text-xl font-black text-slate-900 inline-flex items-center gap-2"><LogOut size={18} /> Session Management</h3>
+            <h3 className="text-base font-black text-slate-900 inline-flex items-center gap-2"><LogOut size={16} /> Session Management</h3>
             <p className="text-sm font-semibold text-slate-600">Sign out of this browser or all sessions.</p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: '/' })}
+                onClick={() => { window.location.href = '/api/force-signout' }}
                 className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-black inline-flex items-center gap-2"
               >
                 <LogOut size={14} /> Sign Out This Session
@@ -1841,7 +1851,7 @@ function PasswordUpdateSection() {
   )
 }
 
-function ProfileTab({ profile, setProfile, editMode, setEditMode, saving, saveProfile, sendEmailVerification, verificationSent }: any) {
+function ProfileTab({ profile, setProfile, editMode, setEditMode, saving, saveProfile, sendEmailVerification, verificationSent, setActiveTab }: any) {
   const inputCls = "w-full px-4 py-3 border rounded-xl text-slate-900 text-sm transition-all outline-none focus:ring-2"
   const [zipStatus, setZipStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [zipFeedback, setZipFeedback] = useState('')
@@ -2162,7 +2172,26 @@ function ProfileTab({ profile, setProfile, editMode, setEditMode, saving, savePr
 
   return (
     <div className="space-y-5">
-      <PasswordUpdateSection />
+      {/* Security shortcut — password management lives in Settings & Security */}
+      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center rounded-xl shrink-0" style={{ width: 36, height: 36, background: G.settings.bg }}>
+            <Lock size={15} color="white" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-slate-900">Password & Security</p>
+            <p className="text-xs font-semibold text-slate-500">Change password · Two-factor authentication</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('settings')}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold text-white shrink-0"
+          style={{ background: G.settings.bg }}
+        >
+          <Settings size={13} /> Manage Security
+        </button>
+      </div>
 
       {sections.map(sec => {
         const isEditing = editMode === sec.id
