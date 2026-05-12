@@ -4555,14 +4555,43 @@ const visibleSearchSummaryParts = useMemo(
  <div className="flex flex-wrap items-center gap-2">
  {activeSearchSummaryParts.length > 0 ? (
  <>
- {visibleSearchSummaryParts.map((part, index) => (
+ {visibleSearchSummaryParts.map((part, index) => {
+   const dismissAction: (() => void) | null = (() => {
+     if (part.startsWith('Posted on/after')) return () => setPostedAfter('')
+     if (part.startsWith('Posted on/before')) return () => setPostedBefore('')
+     if (part.startsWith('Due on/after')) return () => setResponseDeadlineAfter('')
+     if (part.startsWith('Due on/before')) return () => setResponseDeadlineBefore('')
+     if (part.startsWith('Keyword:')) return () => setKeywords('')
+     if (part.startsWith('Set-aside:')) return () => setSelectedSetAsides([])
+     if (part.startsWith('State:')) return () => setSelectedStates([])
+     if (part.startsWith('NAICS:')) return () => setNaics('')
+     if (part.startsWith('PSC:')) return () => setClassificationCode('')
+     if (part.startsWith('Agency:')) return () => setAgency('')
+     if (part.startsWith('Type:')) return () => setProcurementType('')
+     if (part.startsWith('Solicitation #:')) return () => setSolicitationNumber('')
+     if (part.startsWith('Status:')) return () => setOpportunityStatus('')
+     if (part.startsWith('ZIP:')) return () => setPlaceOfPerformanceZip('')
+     return null
+   })()
+   return (
  <span
  key={`${part}-${index}`}
- className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-bold shadow-sm ${getSummaryChipTone(part)}`}
+ className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-sm font-bold shadow-sm ${getSummaryChipTone(part)}`}
  >
  {part}
+ {dismissAction && (
+   <button
+     type="button"
+     onClick={dismissAction}
+     className="ml-0.5 rounded hover:opacity-70 transition-opacity"
+     aria-label={`Remove filter: ${part}`}
+   >
+     <X className="h-3.5 w-3.5" />
+   </button>
+ )}
  </span>
- ))}
+   )
+ })}
  </>
  ) : (
  <span className="inline-flex items-center rounded-md border border-slate-300 bg-slate-100 px-3 py-1 text-sm font-bold text-slate-800 shadow-sm">
