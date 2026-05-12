@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { Bookmark, Calendar, ExternalLink, Loader2 } from 'lucide-react'
+import { Heart, Calendar, ExternalLink, Loader2, Search } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import WorkspaceNavRow from '@/components/WorkspaceNavRow'
 
@@ -62,14 +62,20 @@ function SavedOpportunitiesContent() {
     let active = true
     setLoading(true)
     fetch('/api/saved-opportunities', { cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : { savedOpportunities: [] }))
+      .then(async r => {
+        if (!r.ok) {
+          const data = await r.json().catch(() => ({}))
+          throw new Error(data?.error || `Server error ${r.status}`)
+        }
+        return r.json()
+      })
       .then(data => {
         if (!active) return
         setItems((data.savedOpportunities ?? []) as SavedOpportunityItem[])
       })
-      .catch(() => {
+      .catch((err) => {
         if (!active) return
-        setError('Unable to load saved opportunities right now.')
+        setError(`Unable to load saved opportunities: ${err?.message || 'Unknown error'}`)
       })
       .finally(() => {
         if (!active) return
@@ -228,10 +234,19 @@ function SavedOpportunitiesContent() {
           )}
 
           {!loading && !error && sortedItems.length === 0 && (
-            <div className="p-6 text-sm text-slate-600">
-              {activeNaics || activeSetAside || activeSolicitation
-                ? 'No opportunities match your selected pills. Clear filters to view all saved opportunities.'
-                : 'No saved opportunities yet. Bookmark opportunities to track them here.'}
+            <div className="p-8 flex flex-col items-center text-center gap-3">
+              {activeNaics || activeSetAside || activeSolicitation ? (
+                <p className="text-sm text-slate-600">No opportunities match your active filters. Clear them to view all favorites.</p>
+              ) : (
+                <>
+                  <Heart className="w-10 h-10 text-rose-300" />
+                  <p className="text-base font-bold text-slate-700">No favorites yet</p>
+                  <p className="text-sm text-slate-500 max-w-sm">Click the <Heart className="inline w-3.5 h-3.5 text-rose-400" /> Favorite button on any search result to save solicitations here.</p>
+                  <a href="/search" className="mt-2 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition-all hover:opacity-90" style={{ background: '#166534' }}>
+                    <Search className="w-4 h-4" /> Browse opportunities
+                  </a>
+                </>
+              )}
             </div>
           )}
 
@@ -297,7 +312,7 @@ function SavedOpportunitiesContent() {
                         <ExternalLink className="w-3.5 h-3.5" /> View on SAM.gov
                       </a>
                       <span className="inline-flex items-center gap-1 text-sm text-slate-700">
-                        <Bookmark className="w-3.5 h-3.5" /> Saved {formatDate(item.created_at)}
+                        <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400" /> Favorited {formatDate(item.created_at)}
                       </span>
                       <span className="inline-flex items-center gap-1 text-sm text-slate-700">
                         <Calendar className="w-3.5 h-3.5" /> Notice ID: {item.notice_id}

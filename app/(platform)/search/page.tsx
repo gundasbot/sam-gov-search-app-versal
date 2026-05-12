@@ -1504,55 +1504,69 @@ const useOpportunityManagement = (showToast?: (msg: string) => void) => {
  const opportunityDataRef = React.useRef<Record<string, any>>({});
 
  const toggleSaved = useCallback((id: string, opportunityData?: any) => {
- setSaved((p) => {
- const isNowSaved = !p[id]
- const newSaved = { ...p, [id]: isNowSaved }
+ const currentlySaved = !!opportunityDataRef.current[`__saved_${id}`]
+ const isNowSaved = !currentlySaved
 
- // Show toast notification
- if (showToast) {
+ // Optimistic UI update
+ setSaved((p) => ({ ...p, [id]: isNowSaved }))
+ opportunityDataRef.current[`__saved_${id}`] = isNowSaved
+
  if (isNowSaved && opportunityData) {
- showToast(`✓ Saved: ${opportunityData.title?.slice(0, 45) || 'Opportunity'}`)
+   opportunityDataRef.current[id] = opportunityData
+   // Show optimistic toast
+   if (showToast) showToast(`✓ Saved: ${opportunityData.title?.slice(0, 45) || 'Opportunity'}`)
+
+   fetch('/api/saved-opportunities', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({
+       noticeId: id,
+       title: opportunityData.title,
+       solicitationNumber: opportunityData.solicitationNumber,
+       department: opportunityData.department || opportunityData.fullParentPathName,
+       postedDate: opportunityData.postedDate,
+       responseDeadLine: opportunityData.responseDeadLine,
+       naicsCode: opportunityData.naicsCode,
+       type: opportunityData.type,
+       setAside: opportunityData.typeOfSetAsideDescription || opportunityData.typeOfSetAside || opportunityData.setAside,
+       placeOfPerformance: opportunityData.placeOfPerformance,
+       uiLink: opportunityData.uiLink,
+       organizationName: opportunityData.organizationName,
+     }),
+   })
+   .then(async (res) => {
+     if (!res.ok) {
+       // Revert optimistic update on failure
+       setSaved((p) => ({ ...p, [id]: false }))
+       opportunityDataRef.current[`__saved_${id}`] = false
+       const data = await res.json().catch(() => ({}))
+       if (showToast) showToast(`⚠ Could not save: ${data?.error || `Server error ${res.status}`}`)
+       console.error('POST /api/saved-opportunities failed:', res.status, data)
+     }
+   })
+   .catch((err) => {
+     setSaved((p) => ({ ...p, [id]: false }))
+     opportunityDataRef.current[`__saved_${id}`] = false
+     if (showToast) showToast('⚠ Could not save — check your connection')
+     console.error('Failed to save opportunity to DB:', err)
+   })
  } else if (!isNowSaved) {
- showToast('Removed from saved opportunities')
+   if (showToast) showToast('Removed from saved opportunities')
+   fetch(`/api/saved-opportunities/${id}`, { method: 'DELETE' })
+     .then(async (res) => {
+       if (!res.ok) {
+         // Revert
+         setSaved((p) => ({ ...p, [id]: true }))
+         opportunityDataRef.current[`__saved_${id}`] = true
+         console.error('DELETE /api/saved-opportunities failed:', res.status)
+       }
+     })
+     .catch((err) => {
+       setSaved((p) => ({ ...p, [id]: true }))
+       opportunityDataRef.current[`__saved_${id}`] = true
+       console.error('Failed to delete saved opportunity from DB:', err)
+     })
  }
- }
-
- // Persist to localStorage as a fallback
- try {
- localStorage.setItem('govcon_saved_opportunities', JSON.stringify(newSaved))
- } catch (error) {
- console.error('Failed to save to localStorage:', error)
- }
-
- // Persist to DB via API
- if (isNowSaved && opportunityData) {
- opportunityDataRef.current[id] = opportunityData
- fetch('/api/saved-opportunities', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- noticeId: id,
- title: opportunityData.title,
- solicitationNumber: opportunityData.solicitationNumber,
- department: opportunityData.department || opportunityData.fullParentPathName,
- postedDate: opportunityData.postedDate,
- responseDeadLine: opportunityData.responseDeadLine,
- naicsCode: opportunityData.naicsCode,
- type: opportunityData.type,
- setAside: opportunityData.typeOfSetAsideDescription || opportunityData.typeOfSetAside || opportunityData.setAside,
- placeOfPerformance: opportunityData.placeOfPerformance,
- uiLink: opportunityData.uiLink,
- organizationName: opportunityData.organizationName,
- }),
- }).catch(err => console.error('Failed to save opportunity to DB:', err))
- } else if (!isNowSaved) {
- // Remove from DB
- fetch(`/api/saved-opportunities/${id}`, { method: 'DELETE' })
- .catch(err => console.error('Failed to delete saved opportunity from DB:', err))
- }
-
- return newSaved
- });
  }, [showToast]);
 
  return { saved, toggleSaved, setSaved };
