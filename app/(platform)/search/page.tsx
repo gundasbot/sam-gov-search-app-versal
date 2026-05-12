@@ -4366,8 +4366,15 @@ const visibleSearchSummaryParts = useMemo(
 
  {/* ── DATE FILTERS ── */}
  <div className="date-section px-6 py-5 bg-gray-50 border-b border-gray-100">
- <p className="font-black text-gray-500 uppercase mb-3" style={{ fontSize: '13px', letterSpacing: '0.1em', fontWeight: 800, margin: '0 0 12px' }}>
+ <p className="font-black text-gray-500 uppercase mb-1" style={{ fontSize: '13px', letterSpacing: '0.1em', fontWeight: 800, margin: '0 0 4px' }}>
  Step 2 — Narrow by Date
+ </p>
+ <p className="text-sm text-gray-600 mb-3 leading-snug">
+ By default, results show <strong>active solicitations</strong> posted
+ {postedAfter ? <> since <strong>{formatHumanDate(postedAfter)}</strong></> : ' within the last 6 months'}
+ {responseDeadlineBefore ? <>, with deadlines up to <strong>{formatHumanDate(responseDeadlineBefore)}</strong></> : ''}
+ {responseDeadlineAfter ? <>, and deadlines no earlier than <strong>{formatHumanDate(responseDeadlineAfter)}</strong></> : ''}.
+ {' '}Adjust the dates below or use the quick-fill buttons to change the range.
  </p>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
