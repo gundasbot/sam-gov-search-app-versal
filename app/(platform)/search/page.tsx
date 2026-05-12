@@ -83,6 +83,48 @@ const PROCUREMENT_TYPE_LABELS: Record<string, string> = {
  i: 'Intent to Bundle (DoD)',
 };
 
+// ─── Filter toggle helpers (module-level, no state needed) ──────────────────
+
+function getFilterKey(part: string): string | null {
+ if (part.startsWith('Status:')) return 'status'
+ if (part.startsWith('Due on/after')) return 'deadline-after'
+ if (part.startsWith('Due on/before')) return 'deadline-before'
+ if (part.startsWith('Posted on/after')) return 'posted-after'
+ if (part.startsWith('Posted on/before')) return 'posted-before'
+ if (part.startsWith('Keyword:')) return 'keyword'
+ if (part.startsWith('Set-aside:')) return 'set-aside'
+ if (part.startsWith('State:')) return 'state'
+ if (part.startsWith('NAICS:')) return 'naics'
+ if (part.startsWith('PSC:')) return 'psc'
+ if (part.startsWith('Agency:')) return 'agency'
+ if (part.startsWith('Type:')) return 'type'
+ if (part.startsWith('Solicitation #:')) return 'solicitation'
+ if (part.startsWith('ZIP:')) return 'zip'
+ return null
+}
+
+// Deadline filters are frontend-only — no API call needed when toggling them
+const FRONTEND_ONLY_FILTER_KEYS = new Set(['deadline-after', 'deadline-before'])
+
+// Params to pass to runSearchWithOverrides when DISABLING an API filter
+function getDisableApiOverride(key: string): Record<string, string> {
+ const m: Record<string, Record<string, string>> = {
+  status:       { opportunityStatus: '' },
+  'posted-after':  { postedAfter: '' },
+  'posted-before': { postedBefore: '' },
+  keyword:      { keywords: '' },
+  'set-aside':  { setAside: '' },
+  state:        { stateOfPerformance: '' },
+  naics:        { naics: '' },
+  psc:          { classificationCode: '' },
+  agency:       { agency: '' },
+  type:         { procurementType: '' },
+  solicitation: { solicitationNumber: '' },
+  zip:          { placeOfPerformanceZip: '' },
+ }
+ return m[key] ?? {}
+}
+
 function getSetAsideLabel(code: string): string {
  return SET_ASIDE_MAP[(code ||"").toUpperCase()] || code ||"";
 }
@@ -2314,6 +2356,7 @@ function SearchPageContent() {
  // Phase 2: High Value
  const [noticeId, setNoticeId] = useState('') // Priority 2B - Direct ID
  const [opportunityStatus, setOpportunityStatus] = useState('active') // Priority 2A - Default to Active status
+ const [disabledFilters, setDisabledFilters] = useState<Set<string>>(new Set())
 
  // Phase 3: Medium Value
  const [placeOfPerformanceZip, setPlaceOfPerformanceZip] = useState('') // Priority 3A - ZIP
@@ -3288,11 +3331,8 @@ useEffect(() => {
  }
  
  // ===== STATUS =====
- // Always default to 'active' — if user dismissed the chip, restore it so it reappears on next render
- const effectiveStatus = opportunityStatus.trim() || 'active'
- qs.set('status', effectiveStatus)
- if (!opportunityStatus.trim()) {
- setOpportunityStatus('active')
+ if (!disabledFilters.has('status')) {
+ qs.set('status', opportunityStatus.trim() || 'active')
  }
  // Active / Inactive status (existing)
  if (isActive && isActive !== '' && isActive !== 'undefined') {
@@ -3532,6 +3572,25 @@ useEffect(() => {
  runSearchWithOverrides({ responseDeadlineTo: value, responseDeadline: value })
  }, [hasSearched, runSearchWithOverrides])
 
+ // ── Chip toggle: disable/enable a filter without removing its state ──
+ const handleChipToggle = useCallback((part: string) => {
+ const key = getFilterKey(part)
+ if (!key) return
+ const isDisabled = disabledFilters.has(key)
+ setDisabledFilters(prev => {
+  const n = new Set(prev)
+  isDisabled ? n.delete(key) : n.add(key)
+  return n
+ })
+ if (!FRONTEND_ONLY_FILTER_KEYS.has(key)) {
+  if (isDisabled) {
+   runSearchWithOverrides({}) // re-enable: use current state values
+  } else {
+   runSearchWithOverrides(getDisableApiOverride(key)) // disable: clear this filter
+  }
+ }
+ }, [disabledFilters, runSearchWithOverrides])
+
  // Load more results
  const loadMoreResults = () => {
  runSearch(true)
@@ -3573,6 +3632,7 @@ useEffect(() => {
  setOrganizationCode('')
 
  // ── UI state ──
+ setDisabledFilters(new Set())
  setError(null)
  setData(null)
  setHasSearched(false)
@@ -3901,8 +3961,8 @@ ${filteredResults.map(opp => ` <opportunity>
  })
  }
 
- // ── Filter by status only when a specific non-active status is selected ──
- if (opportunityStatus.trim() && opportunityStatus.toLowerCase() !== 'active') {
+ // ── Filter by status when a specific non-active status is selected and not disabled ──
+ if (!disabledFilters.has('status') && opportunityStatus.trim() && opportunityStatus.toLowerCase() !== 'active') {
  arr = arr.filter(o => {
  const oppActive = (o.active || '').toString().toLowerCase()
  const oppStatus = (o.status || '').toLowerCase()
@@ -3910,10 +3970,14 @@ ${filteredResults.map(opp => ` <opportunity>
  })
  }
 
- // ── Deadline from filter (visible chip, defaults to today) ──
- if (responseDeadlineAfter) {
+ // ── Deadline filters (frontend-only, both toggleable) ──
+ if (!disabledFilters.has('deadline-after') && responseDeadlineAfter) {
  const fromMs = new Date(responseDeadlineAfter + 'T00:00:00').getTime()
  arr = arr.filter(o => !o.responseDeadLine || new Date(o.responseDeadLine).getTime() >= fromMs)
+ }
+ if (!disabledFilters.has('deadline-before') && responseDeadlineBefore) {
+ const toMs = new Date(responseDeadlineBefore + 'T23:59:59').getTime()
+ arr = arr.filter(o => !o.responseDeadLine || new Date(o.responseDeadLine).getTime() <= toMs)
  }
 
  // ── Always-on Refine Filters (instant client-side) ──
@@ -3961,7 +4025,7 @@ ${filteredResults.map(opp => ` <opportunity>
  advKeywords, advPostedAfter, advResponseDeadline,
  agency, selectedSetAsides, naics, classificationCode, selectedStates,
  procurementType, opportunityStatus, solicitationNumber, organizationCode,
- responseDeadlineAfter])
+ responseDeadlineAfter, responseDeadlineBefore, disabledFilters])
 
  const totalUiPages = useMemo(
  () => Math.max(1, Math.ceil(filteredResults.length / resultsPerPage)),
@@ -4576,37 +4640,28 @@ const visibleSearchSummaryParts = useMemo(
  {activeSearchSummaryParts.length > 0 ? (
  <>
  {visibleSearchSummaryParts.map((part, index) => {
-   const dismissAction: (() => void) | null = (() => {
-     if (part.startsWith('Posted on/after')) return () => { setPostedAfter(''); runSearchWithOverrides({ postedAfter: '' }) }
-     if (part.startsWith('Posted on/before')) return () => { setPostedBefore(''); runSearchWithOverrides({ postedBefore: '' }) }
-     if (part.startsWith('Due on/after')) return () => { setResponseDeadlineAfter(''); runSearchWithOverrides({ responseDeadlineFrom: '' }) }
-     if (part.startsWith('Due on/before')) return () => { setResponseDeadlineBefore(''); runSearchWithOverrides({ responseDeadlineTo: '', responseDeadline: '' }) }
-     if (part.startsWith('Keyword:')) return () => { setKeywords(''); runSearchWithOverrides({ keywords: '' }) }
-     if (part.startsWith('Set-aside:')) return () => { setSelectedSetAsides([]); runSearchWithOverrides({ setAside: '' }) }
-     if (part.startsWith('State:')) return () => { setSelectedStates([]); runSearchWithOverrides({ stateOfPerformance: '' }) }
-     if (part.startsWith('NAICS:')) return () => { setNaics(''); runSearchWithOverrides({ naics: '' }) }
-     if (part.startsWith('PSC:')) return () => { setClassificationCode(''); runSearchWithOverrides({ classificationCode: '' }) }
-     if (part.startsWith('Agency:')) return () => { setAgency(''); runSearchWithOverrides({ agency: '' }) }
-     if (part.startsWith('Type:')) return () => { setProcurementType(''); runSearchWithOverrides({ procurementType: '' }) }
-     if (part.startsWith('Solicitation #:')) return () => { setSolicitationNumber(''); runSearchWithOverrides({ solicitationNumber: '' }) }
-     if (part.startsWith('Status:')) return () => { setOpportunityStatus(''); runSearchWithOverrides({ opportunityStatus: '' }) }
-     if (part.startsWith('ZIP:')) return () => { setPlaceOfPerformanceZip(''); runSearchWithOverrides({ placeOfPerformanceZip: '' }) }
-     return null
-   })()
+   const filterKey = getFilterKey(part)
+   const isDisabled = filterKey ? disabledFilters.has(filterKey) : false
    return (
  <span
  key={`${part}-${index}`}
- className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-sm font-bold shadow-sm ${getSummaryChipTone(part)}`}
+ title={isDisabled ? 'Click ↺ to re-enable this filter' : undefined}
+ className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-sm font-bold shadow-sm transition-all ${
+   isDisabled ? 'bg-gray-100 border-gray-300 text-gray-400 line-through' : getSummaryChipTone(part)
+ }`}
  >
  {part}
- {dismissAction && (
+ {filterKey && (
    <button
      type="button"
-     onClick={dismissAction}
+     onClick={() => handleChipToggle(part)}
      className="ml-0.5 rounded hover:opacity-70 transition-opacity"
-     aria-label={`Remove filter: ${part}`}
+     aria-label={isDisabled ? `Re-enable filter: ${part}` : `Disable filter: ${part}`}
    >
-     <X className="h-3.5 w-3.5" />
+     {isDisabled
+       ? <RefreshCw className="h-3.5 w-3.5 text-gray-500" />
+       : <X className="h-3.5 w-3.5" />
+     }
    </button>
  )}
  </span>
@@ -4855,37 +4910,28 @@ const visibleSearchSummaryParts = useMemo(
  Filters
  </span>
  {visibleSearchSummaryParts.map((part, index) => {
- const dismissAction: (() => void) | null = (() => {
-   if (part.startsWith('Posted on/after')) return () => { setPostedAfter(''); runSearchWithOverrides({ postedAfter: '' }) }
-   if (part.startsWith('Posted on/before')) return () => { setPostedBefore(''); runSearchWithOverrides({ postedBefore: '' }) }
-   if (part.startsWith('Due on/after')) return () => { setResponseDeadlineAfter(''); runSearchWithOverrides({ responseDeadlineFrom: '' }) }
-   if (part.startsWith('Due on/before')) return () => { setResponseDeadlineBefore(''); runSearchWithOverrides({ responseDeadlineTo: '', responseDeadline: '' }) }
-   if (part.startsWith('Keyword:')) return () => { setKeywords(''); runSearchWithOverrides({ keywords: '' }) }
-   if (part.startsWith('Set-aside:')) return () => { setSelectedSetAsides([]); runSearchWithOverrides({ setAside: '' }) }
-   if (part.startsWith('State:')) return () => { setSelectedStates([]); runSearchWithOverrides({ stateOfPerformance: '' }) }
-   if (part.startsWith('NAICS:')) return () => { setNaics(''); runSearchWithOverrides({ naics: '' }) }
-   if (part.startsWith('PSC:')) return () => { setClassificationCode(''); runSearchWithOverrides({ classificationCode: '' }) }
-   if (part.startsWith('Agency:')) return () => { setAgency(''); runSearchWithOverrides({ agency: '' }) }
-   if (part.startsWith('Type:')) return () => { setProcurementType(''); runSearchWithOverrides({ procurementType: '' }) }
-   if (part.startsWith('Solicitation #:')) return () => { setSolicitationNumber(''); runSearchWithOverrides({ solicitationNumber: '' }) }
-   if (part.startsWith('Status:')) return () => { setOpportunityStatus(''); runSearchWithOverrides({ opportunityStatus: '' }) }
-   if (part.startsWith('ZIP:')) return () => { setPlaceOfPerformanceZip(''); runSearchWithOverrides({ placeOfPerformanceZip: '' }) }
-   return null
- })()
+ const filterKey = getFilterKey(part)
+ const isDisabled = filterKey ? disabledFilters.has(filterKey) : false
  return (
  <span
  key={`${part}-mini-${index}`}
- className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-bold shadow-sm ${getSummaryChipTone(part)}`}
+ title={isDisabled ? 'Click ↺ to re-enable this filter' : undefined}
+ className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-bold shadow-sm transition-all ${
+   isDisabled ? 'bg-gray-100 border-gray-300 text-gray-400 line-through' : getSummaryChipTone(part)
+ }`}
  >
  {part}
- {dismissAction && (
+ {filterKey && (
    <button
      type="button"
-     onClick={(e) => { e.stopPropagation(); dismissAction(); }}
+     onClick={(e) => { e.stopPropagation(); handleChipToggle(part) }}
      className="ml-0.5 rounded hover:opacity-70 transition-opacity"
-     aria-label={`Remove filter: ${part}`}
+     aria-label={isDisabled ? `Re-enable filter: ${part}` : `Disable filter: ${part}`}
    >
-     <X className="h-3 w-3" />
+     {isDisabled
+       ? <RefreshCw className="h-3 w-3 text-gray-500" />
+       : <X className="h-3 w-3" />
+     }
    </button>
  )}
  </span>
