@@ -4147,6 +4147,7 @@ const summaryStats = useMemo(() => {
  const trimmedZip = placeOfPerformanceZip.trim()
  const trimmedOrganizationCode = organizationCode.trim()
 
+ if (trimmedOpportunityStatus) parts.push(`Status: ${trimmedOpportunityStatus}`)
  if (trimmedKeywords) parts.push(`Keyword: "${trimmedKeywords}"`)
 
  if (selectedSetAsides.length > 0) {
@@ -4166,7 +4167,6 @@ const summaryStats = useMemo(() => {
  if (trimmedSolicitationNumber) parts.push(`Solicitation #: ${trimmedSolicitationNumber}`)
  if (trimmedZip) parts.push(`ZIP: ${trimmedZip}`)
  if (trimmedOrganizationCode) parts.push(`Org code: ${trimmedOrganizationCode}`)
- if (trimmedOpportunityStatus) parts.push(`Status: ${trimmedOpportunityStatus}`)
  if (postedAfter) parts.push(`Posted on/after ${formatHumanDate(postedAfter)}`)
  if (postedBefore) parts.push(`Posted on/before ${formatHumanDate(postedBefore)}`)
  if (responseDeadlineAfter) parts.push(`Due on/after ${formatHumanDate(responseDeadlineAfter)}`)
@@ -4645,9 +4645,8 @@ const visibleSearchSummaryParts = useMemo(
    return (
  <span
  key={`${part}-${index}`}
- title={isDisabled ? 'Click ↺ to re-enable this filter' : undefined}
- className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-sm font-bold shadow-sm transition-all ${
-   isDisabled ? 'bg-gray-100 border-gray-300 text-gray-400 line-through' : getSummaryChipTone(part)
+ className={`inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm font-bold shadow-sm transition-all ${
+   isDisabled ? 'bg-gray-100 border-gray-300 text-gray-400' : getSummaryChipTone(part)
  }`}
  >
  {part}
@@ -4655,13 +4654,10 @@ const visibleSearchSummaryParts = useMemo(
    <button
      type="button"
      onClick={() => handleChipToggle(part)}
-     className="ml-0.5 rounded hover:opacity-70 transition-opacity"
      aria-label={isDisabled ? `Re-enable filter: ${part}` : `Disable filter: ${part}`}
+     className={`relative inline-flex h-4 w-7 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${isDisabled ? 'bg-gray-300' : 'bg-green-500'}`}
    >
-     {isDisabled
-       ? <RefreshCw className="h-3.5 w-3.5 text-gray-500" />
-       : <X className="h-3.5 w-3.5" />
-     }
+     <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${isDisabled ? 'translate-x-0.5' : 'translate-x-3.5'}`} />
    </button>
  )}
  </span>
@@ -4915,9 +4911,8 @@ const visibleSearchSummaryParts = useMemo(
  return (
  <span
  key={`${part}-mini-${index}`}
- title={isDisabled ? 'Click ↺ to re-enable this filter' : undefined}
- className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-bold shadow-sm transition-all ${
-   isDisabled ? 'bg-gray-100 border-gray-300 text-gray-400 line-through' : getSummaryChipTone(part)
+ className={`inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-bold shadow-sm transition-all ${
+   isDisabled ? 'bg-gray-100 border-gray-300 text-gray-400' : getSummaryChipTone(part)
  }`}
  >
  {part}
@@ -4925,13 +4920,10 @@ const visibleSearchSummaryParts = useMemo(
    <button
      type="button"
      onClick={(e) => { e.stopPropagation(); handleChipToggle(part) }}
-     className="ml-0.5 rounded hover:opacity-70 transition-opacity"
      aria-label={isDisabled ? `Re-enable filter: ${part}` : `Disable filter: ${part}`}
+     className={`relative inline-flex h-3.5 w-6 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${isDisabled ? 'bg-gray-300' : 'bg-green-500'}`}
    >
-     {isDisabled
-       ? <RefreshCw className="h-3 w-3 text-gray-500" />
-       : <X className="h-3 w-3" />
-     }
+     <span className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow transition-transform ${isDisabled ? 'translate-x-0.5' : 'translate-x-3'}`} />
    </button>
  )}
  </span>

@@ -102,7 +102,6 @@ export async function POST(request: Request) {
         updated_at: new Date(),
       },
       create: {
-        id: require('crypto').randomBytes(16).toString('hex'),
         user_id: user.id,
         notice_id: noticeId,
         title,
