@@ -4805,14 +4805,43 @@ const visibleSearchSummaryParts = useMemo(
  <span className="inline-flex items-center rounded-md bg-slate-700 px-2.5 py-1 text-xs font-black text-white">
  Filters
  </span>
- {visibleSearchSummaryParts.map((part, index) => (
+ {visibleSearchSummaryParts.map((part, index) => {
+ const dismissAction: (() => void) | null = (() => {
+   if (part.startsWith('Posted on/after')) return () => setPostedAfter('')
+   if (part.startsWith('Posted on/before')) return () => setPostedBefore('')
+   if (part.startsWith('Due on/after')) return () => setResponseDeadlineAfter('')
+   if (part.startsWith('Due on/before')) return () => setResponseDeadlineBefore('')
+   if (part.startsWith('Keyword:')) return () => setKeywords('')
+   if (part.startsWith('Set-aside:')) return () => setSelectedSetAsides([])
+   if (part.startsWith('State:')) return () => setSelectedStates([])
+   if (part.startsWith('NAICS:')) return () => setNaics('')
+   if (part.startsWith('PSC:')) return () => setClassificationCode('')
+   if (part.startsWith('Agency:')) return () => setAgency('')
+   if (part.startsWith('Type:')) return () => setProcurementType('')
+   if (part.startsWith('Solicitation #:')) return () => setSolicitationNumber('')
+   if (part.startsWith('Status:')) return () => setOpportunityStatus('')
+   if (part.startsWith('ZIP:')) return () => setPlaceOfPerformanceZip('')
+   return null
+ })()
+ return (
  <span
  key={`${part}-mini-${index}`}
- className={`inline-flex items-center rounded-md border px-3 py-1 text-xs font-bold shadow-sm ${getSummaryChipTone(part)}`}
+ className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-bold shadow-sm ${getSummaryChipTone(part)}`}
  >
  {part}
+ {dismissAction && (
+   <button
+     type="button"
+     onClick={(e) => { e.stopPropagation(); dismissAction(); }}
+     className="ml-0.5 rounded hover:opacity-70 transition-opacity"
+     aria-label={`Remove filter: ${part}`}
+   >
+     <X className="h-3 w-3" />
+   </button>
+ )}
  </span>
- ))}
+ )
+ })}
  {activeSearchSummaryParts.length > 3 && (
  <button
  type="button"
@@ -4911,12 +4940,10 @@ const visibleSearchSummaryParts = useMemo(
  <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{setAsideLabel}</div>
  </div>
  )}
- {place && (
  <div>
- <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Location</div>
- <div className="result-field-value font-semibold text-gray-800" style={{ fontSize: "17px" }}>{place}</div>
+ <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>Place of Performance</div>
+ <div className={`result-field-value font-semibold ${place ? 'text-gray-800' : 'text-gray-400 italic'}`} style={{ fontSize: "17px" }}>{place || 'Unknown'}</div>
  </div>
- )}
  {naics && (
  <div>
  <div className="result-field-label font-bold text-gray-400 uppercase tracking-wide" style={{ fontSize: "14px", letterSpacing: "0.06em" }}>NAICS</div>
