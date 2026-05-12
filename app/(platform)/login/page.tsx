@@ -125,8 +125,8 @@ function parseError(error: string): ErrorState {
 
   return {
     type: 'GENERIC',
-    message: 'Something went wrong signing you in.',
-    suggestion: 'Please try again. If the problem persists, contact support.',
+    message: 'Incorrect email or password.',
+    suggestion: 'Double-check your credentials and try again, or reset your password below.',
   }
 }
 
@@ -145,41 +145,45 @@ function ErrorBlock({
   resendSent: boolean
   supportHref: string
 }) {
+  const isSevere = errorState.type === 'SUSPENDED'
+  const containerStyle = isSevere
+    ? { background: '#fff1f2', border: '1.5px solid #fca5a5' }
+    : { background: '#fffbeb', border: '1.5px solid #fcd34d' }
+  const iconColor = isSevere ? '#dc2626' : '#d97706'
+  const titleColor = isSevere ? '#7f1d1d' : '#78350f'
+  const bodyColor = isSevere ? '#9f1239' : '#92400e'
+
   return (
-    <div
-      className="mt-4 rounded-2xl p-4"
-      style={{ background: '#fff1f2', border: '2px solid #f87171' }}
-    >
+    <div className="mt-4 rounded-2xl p-4" style={containerStyle}>
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-6 w-6 shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: iconColor }} />
         <div className="flex-1 min-w-0">
-          <p className="text-lg font-black" style={{ color: '#7f1d1d' }}>
+          <p className="text-base font-black" style={{ color: titleColor }}>
             {errorState.message}
           </p>
-          <p className="mt-1 text-base leading-relaxed font-semibold" style={{ color: '#9f1239' }}>
+          <p className="mt-0.5 text-sm leading-relaxed font-medium" style={{ color: bodyColor }}>
             {errorState.suggestion}
           </p>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-
         {errorState.type === 'EMAIL_NOT_VERIFIED' && (
           <>
             <button
               type="button"
               onClick={onResendOrOTC}
               disabled={resendLoading || resendSent}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: '#dc2626', color: '#ffffff' }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: '#d97706', color: '#ffffff' }}
             >
               {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
               {resendSent ? '✓ Email sent!' : 'Resend verification email'}
             </button>
             <Link
               href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
-              style={{ background: '#7f1d1d', color: '#ffffff', border: '1px solid #7f1d1d' }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
+              style={{ background: '#ffffff', color: '#78350f', border: '1.5px solid #fcd34d' }}
             >
               <KeyRound className="h-3.5 w-3.5" />
               Reset password
@@ -187,12 +191,12 @@ function ErrorBlock({
           </>
         )}
 
-        {errorState.type === 'INVALID_CREDENTIALS' && (
+        {(errorState.type === 'INVALID_CREDENTIALS' || errorState.type === 'GENERIC') && (
           <>
             <Link
               href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
-              style={{ background: '#dc2626', color: '#ffffff' }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
+              style={{ background: '#d97706', color: '#ffffff' }}
             >
               <KeyRound className="h-3.5 w-3.5" />
               Reset password
@@ -201,11 +205,11 @@ function ErrorBlock({
               type="button"
               onClick={onResendOrOTC}
               disabled={resendLoading || resendSent}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: '#1d4ed8', color: '#ffffff', border: '1px solid #1d4ed8' }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: '#ffffff', color: '#78350f', border: '1.5px solid #fcd34d' }}
             >
               {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-              {resendSent ? '✓ Code sent!' : 'Request 6-digit code'}
+              {resendSent ? '✓ Code sent!' : 'Send a sign-in code instead'}
             </button>
           </>
         )}
@@ -213,7 +217,7 @@ function ErrorBlock({
         {errorState.type === 'ACCOUNT_NOT_FOUND' && (
           <Link
             href="/signup"
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(135deg, #f97316, #f59e0b)', color: '#ffffff' }}
           >
             <ArrowRight className="h-3.5 w-3.5" />
@@ -221,24 +225,14 @@ function ErrorBlock({
           </Link>
         )}
 
-        {(errorState.type === 'SUSPENDED' || errorState.type === 'GENERIC') && (
+        {errorState.type === 'SUSPENDED' && (
           <Link
             href={supportHref}
-            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
             style={{ background: '#dc2626', color: '#ffffff' }}
           >
             <Mail className="h-3.5 w-3.5" />
-            Open support request
-          </Link>
-        )}
-
-        {(errorState.type === 'SUSPENDED' || errorState.type === 'GENERIC' || errorState.type === 'INVALID_CREDENTIALS') && (
-          <Link
-            href="/status"
-            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-black transition-all hover:-translate-y-0.5"
-            style={{ background: '#7f1d1d', color: '#ffffff', border: '1px solid #7f1d1d' }}
-          >
-            Check system status
+            Contact support
           </Link>
         )}
       </div>
