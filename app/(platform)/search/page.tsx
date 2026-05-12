@@ -4829,7 +4829,7 @@ const visibleSearchSummaryParts = useMemo(
  <select value={procurementType} onChange={(e) => setProcurementType(e.target.value)}
  
  className="w-full px-3 rounded-lg border-2 border-gray-200 bg-white font-medium text-gray-900 focus:border-[#166534] outline-none transition-all" style={{ height: "42px", fontSize: "15px" }}>
- <option value="">All Types</option>
+ <option value="">Active bid notices</option>
  <option value="o">Solicitation</option>
  <option value="k">Combined Synopsis/Solicitation</option>
  <option value="p">Pre-Solicitation</option>

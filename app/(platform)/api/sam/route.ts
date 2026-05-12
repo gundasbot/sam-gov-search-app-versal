@@ -16,6 +16,7 @@ const SAM_UPSTREAM_BASE =
 const SAM_CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 const SAM_FETCH_COOLDOWN_MS = 20 * 1000 // 20 seconds
 const MAX_CACHE_ENTRIES = 200
+const DEFAULT_ACTIVE_BID_PTYPES = 'o,k,p,r'
 
 const SAM_QUERY_CACHE = new Map<string, { payload: any; expiresAt: number }>()
 const SAM_QUERY_LAST_FETCH = new Map<string, number>()
@@ -257,6 +258,10 @@ function mapParametersToSAMAPI(params: URLSearchParams): URLSearchParams {
   const procurementType = params.get('procurementType') || params.get('ptype')
   if (procurementType && procurementType !== 'all' && procurementType !== '') {
     samParams.set('ptype', procurementType)
+  } else {
+    // Default searches should surface bid/discovery notices, not award history.
+    // Award Notices remain available when the UI explicitly sends ptype=a.
+    samParams.set('ptype', DEFAULT_ACTIVE_BID_PTYPES)
   }
 
   // ===== IDENTIFICATION PARAMETERS =====
