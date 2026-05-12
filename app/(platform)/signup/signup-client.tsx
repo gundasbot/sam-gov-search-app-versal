@@ -74,6 +74,11 @@ const BRAND_FEATURES = [
 
 const fmt0 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 const fmt2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const AUTH_FONT = 'Aptos, "Aptos Display", Calibri, "Segoe UI", Inter, system-ui, -apple-system, sans-serif'
+const TEXT_DARK = '#0f172a'
+const TEXT_BODY = '#334155'
+const TEXT_MUTED = '#475569'
+const BUTTON_NAVY = '#0f3ea8'
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
@@ -102,7 +107,7 @@ function Field({ label, required, hint, error, children }: {
       <label className="block text-base font-bold mb-1.5" style={{ color: '#1e293b' }}>
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
-        {hint && <span className="ml-1.5 font-normal text-sm" style={{ color: '#64748b' }}>{hint}</span>}
+        {hint && <span className="ml-1.5 font-semibold text-sm" style={{ color: TEXT_MUTED }}>{hint}</span>}
       </label>
       {children}
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
@@ -110,15 +115,15 @@ function Field({ label, required, hint, error, children }: {
   )
 }
 
-const inp = 'w-full h-12 rounded-xl px-3.5 text-base font-medium outline-none transition-all focus:ring-2 focus:ring-orange-300 focus:border-orange-500'
-const inpStyle = { background: '#ffffff', color: '#0f172a', border: '2px solid #cbd5e1', fontFamily: '"Aptos", "Segoe UI", Inter, system-ui, -apple-system, sans-serif' }
+const inp = 'w-full h-12 rounded-xl px-3.5 text-base font-medium outline-none transition-all focus:ring-2 focus:ring-orange-300 focus:border-orange-500 placeholder:text-slate-500'
+const inpStyle = { background: '#ffffff', color: TEXT_DARK, border: '2px solid #cbd5e1', fontFamily: AUTH_FONT }
 
 // ─── Left brand panel ──────────────────────────────────────────────────────────
 function BrandPanel() {
   return (
     <div
       className="hidden lg:flex flex-col justify-between px-10 xl:px-12 py-8 relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #0f1f3d 0%, #162952 60%, #1e3a6e 100%)', width: '44%', minWidth: 420, maxWidth: 580, flexShrink: 0 }}
+      style={{ background: 'linear-gradient(160deg, #0f1f3d 0%, #162952 60%, #1e3a6e 100%)', width: '44%', minWidth: 420, maxWidth: 580, flexShrink: 0, fontFamily: AUTH_FONT }}
     >
       {/* Logo */}
       <div>
@@ -126,7 +131,7 @@ function BrandPanel() {
           <Image src="/precise-govcon-logo.jpg" alt="Precise GovCon" width={44} height={44} className="rounded-xl" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }} />
           <div>
             <div className="font-black text-lg leading-tight text-white">Precise GovCon</div>
-            <div className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>Government Contracting Intelligence</div>
+            <div className="text-xs font-semibold" style={{ color: '#cbd5e1' }}>Government Contracting Intelligence</div>
           </div>
         </div>
 
@@ -135,7 +140,7 @@ function BrandPanel() {
           <h2 className="text-2xl font-black leading-tight text-white mb-2">
             Find and win more<br />federal contracts.
           </h2>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <p className="text-sm font-medium leading-relaxed" style={{ color: '#dbeafe' }}>
             The all-in-one platform for searching SAM.gov opportunities, tracking deadlines, and building a winning pipeline.
           </p>
         </div>
@@ -146,7 +151,7 @@ function BrandPanel() {
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.25)' }}>
                 <Icon className="w-3.5 h-3.5" style={{ color: '#fb923c' }} />
               </div>
-              <p className="text-sm leading-snug pt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>{label}</p>
+              <p className="text-sm font-semibold leading-snug pt-0.5" style={{ color: '#e2e8f0' }}>{label}</p>
             </div>
           ))}
         </div>
@@ -160,7 +165,7 @@ function BrandPanel() {
           ].map(s => (
             <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="font-black text-lg text-white">{s.value}</div>
-              <div className="text-[10px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{s.label}</div>
+              <div className="text-[10px] font-bold mt-0.5" style={{ color: '#cbd5e1' }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -168,8 +173,8 @@ function BrandPanel() {
 
       {/* Bottom trust */}
       <div className="flex items-center gap-2 pt-6">
-        <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: 'rgba(255,255,255,0.35)' }} />
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Bank-grade security · SOC 2 compliant · Encrypted end-to-end</span>
+        <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: '#86efac' }} />
+        <span className="text-[11px] font-semibold" style={{ color: '#cbd5e1' }}>Bank-grade security · SOC 2 compliant · Encrypted end-to-end</span>
       </div>
     </div>
   )
@@ -331,7 +336,7 @@ export default function SignUpClient() {
   // ── Success ─────────────────────────────────────────────────────────────────
   if (registered) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: '#f1f5f9' }}>
+      <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: '#f1f5f9', fontFamily: AUTH_FONT }}>
         <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ boxShadow: '0 12px 48px rgba(0,0,0,0.12)', border: '1px solid #e2e8f0', background: '#fff' }}>
           <div className="px-8 py-6" style={{ background: 'linear-gradient(135deg, #f97316, #f59e0b)' }}>
             <p className="text-[11px] font-black uppercase tracking-widest text-white/70 mb-1">Account Created</p>
@@ -344,7 +349,7 @@ export default function SignUpClient() {
               </div>
             </div>
             <h2 className="text-xl font-black text-center mb-1" style={{ color: '#0f172a' }}>You&apos;re almost in, {firstName}!</h2>
-            <p className="text-sm text-center mb-6" style={{ color: '#64748b' }}>Your account has been created successfully.</p>
+            <p className="text-sm font-semibold text-center mb-6" style={{ color: TEXT_MUTED }}>Your account has been created successfully.</p>
 
             <div className="rounded-xl p-4 mb-4" style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}>
               <div className="flex items-start gap-3">
@@ -359,13 +364,13 @@ export default function SignUpClient() {
             </div>
 
             <div className="rounded-xl p-4 mb-6" style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
-              <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: '#9ca3af' }}>What happens next</p>
+              <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: TEXT_MUTED }}>What happens next</p>
               {['Open the email from noreply@precisegovcon.com', 'Click "Verify My Email & Activate Trial"', 'Sign in and access live opportunities', 'Set up alerts for your NAICS codes'].map((t, i) => (
                 <div key={t} className="flex items-center gap-3 mb-2 last:mb-0">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f97316' }}>
                     <span className="text-[10px] font-black text-white">{i + 1}</span>
                   </div>
-                  <p className="text-sm" style={{ color: '#374151' }}>{t}</p>
+                  <p className="text-sm font-semibold" style={{ color: TEXT_BODY }}>{t}</p>
                 </div>
               ))}
             </div>
@@ -385,7 +390,7 @@ export default function SignUpClient() {
 
   if (plansLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#f1f5f9' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#f1f5f9', fontFamily: AUTH_FONT }}>
         <Loader2 className="h-7 w-7 animate-spin" style={{ color: '#f97316' }} />
       </div>
     )
@@ -396,19 +401,19 @@ export default function SignUpClient() {
   // ══════════════════════════════════════════════════════════════════════════════
   if (step === 1) {
     return (
-      <div style={{ background: '#eef2f7' }}>
+      <div style={{ background: '#eef2f7', fontFamily: AUTH_FONT }}>
         <div className="mx-auto w-full max-w-480 px-3 py-4 sm:px-5 lg:px-6">
         <div className="w-full flex flex-col lg:flex-row border-x border-slate-200 overflow-hidden rounded-xl bg-white shadow-lg">
         <BrandPanel />
 
         {/* Right — form panel */}
-        <div className="flex-1 overflow-y-auto" style={{ background: '#ffffff', fontFamily: '"Aptos", "Segoe UI", Inter, system-ui, -apple-system, sans-serif' }}>
+        <div className="flex-1 overflow-y-auto" style={{ background: '#ffffff', fontFamily: AUTH_FONT }}>
           <div className="max-w-2xl mx-auto w-full px-6 sm:px-10 py-8">
 
             {/* Mobile logo (shown only when BrandPanel is hidden) */}
             <div className="flex items-center gap-3 mb-8 lg:hidden">
               <Image src="/precise-govcon-logo.jpg" alt="Precise GovCon" width={40} height={40} className="rounded-xl" />
-              <span className="font-black text-lg" style={{ color: '#0f172a' }}>Precise GovCon</span>
+              <span className="font-black text-lg" style={{ color: TEXT_DARK }}>Precise GovCon</span>
             </div>
 
             {/* Step indicator */}
@@ -419,14 +424,14 @@ export default function SignUpClient() {
               </div>
               <div className="flex-1 h-px mx-3" style={{ background: '#e2e8f0' }} />
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#f1f5f9', color: '#94a3b8', border: '1.5px solid #e2e8f0' }}>2</div>
-                <span className="text-sm font-medium" style={{ color: '#94a3b8' }}>Choose Plan</span>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#f1f5f9', color: TEXT_MUTED, border: '1.5px solid #cbd5e1' }}>2</div>
+                <span className="text-sm font-bold" style={{ color: TEXT_MUTED }}>Choose Plan</span>
               </div>
             </div>
 
             <div className="mb-7">
-              <h1 className="text-3xl font-black" style={{ color: '#0f172a' }}>Create your account</h1>
-              <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
+              <h1 className="text-3xl font-black" style={{ color: TEXT_DARK }}>Create your account</h1>
+              <p className="mt-1.5 text-sm font-semibold" style={{ color: TEXT_MUTED }}>
                 Start your 7-day free trial.
               </p>
             </div>
@@ -459,7 +464,7 @@ export default function SignUpClient() {
 
             <div className="flex items-center gap-3 mb-6">
               <div className="h-px flex-1" style={{ background: '#e2e8f0' }} />
-              <span className="text-xs font-semibold" style={{ color: '#94a3b8' }}>or register with email</span>
+              <span className="text-xs font-bold" style={{ color: TEXT_MUTED }}>or register with email</span>
               <div className="h-px flex-1" style={{ background: '#e2e8f0' }} />
             </div>
 
@@ -501,7 +506,7 @@ export default function SignUpClient() {
                   className={`${inp} ${phone && !validPhone(phone) ? 'border-red-400' : ''}`}
                   style={inpStyle} />
                 {phone && !validPhone(phone) && <p className="mt-1 text-[11px] text-red-500">Enter a valid 10-digit number</p>}
-                <p className="mt-1.5 text-[11px] leading-relaxed" style={{ color: '#9ca3af' }}>
+                <p className="mt-1.5 text-[11px] font-semibold leading-relaxed" style={{ color: TEXT_MUTED }}>
                   By providing your number you consent to SMS from Precise Analytics. Msg &amp; data rates may apply.{' '}
                   <Link href="/privacy" className="underline">Privacy</Link> · <Link href="/terms" className="underline">Terms</Link>
                 </p>
@@ -516,7 +521,7 @@ export default function SignUpClient() {
                       placeholder="Min. 8 characters" required minLength={8}
                       className={`${inp} pr-10`} style={inpStyle} />
                     <button type="button" onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }}>
+                      className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: TEXT_MUTED }}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -532,7 +537,7 @@ export default function SignUpClient() {
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                       {passwordsMatch   && <Check    className="w-3.5 h-3.5 text-emerald-500" />}
                       {passwordsMismatch && <X       className="w-3.5 h-3.5 text-red-400" />}
-                      <button type="button" onClick={() => setShowConfirm(v => !v)} style={{ color: '#9ca3af' }}>
+                      <button type="button" onClick={() => setShowConfirm(v => !v)} style={{ color: TEXT_MUTED }}>
                         {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
@@ -590,7 +595,7 @@ export default function SignUpClient() {
                 <Link
                   href="/login"
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:opacity-90 active:scale-98"
-                  style={{ background: '#f8fafc', color: '#1e293b', border: '2px solid #cbd5e1', height: '48px' }}
+                  style={{ background: BUTTON_NAVY, color: '#ffffff', height: '48px', boxShadow: '0 2px 8px rgba(15,62,168,0.25)' }}
                 >
                   <LogIn className="h-4 w-4" /> Already have an account? Sign in
                 </Link>
@@ -608,7 +613,7 @@ export default function SignUpClient() {
   // STEP 2 — Plan selection  (full-width, dark header, plan cards)
   // ══════════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen" style={{ background: '#f1f5f9' }}>
+    <div className="min-h-screen" style={{ background: '#f1f5f9', fontFamily: AUTH_FONT }}>
 
       {/* Page header bar */}
       <div className="sticky top-0 z-20 px-6 py-4 flex items-center justify-between" style={{ background: '#0f1f3d', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -617,7 +622,7 @@ export default function SignUpClient() {
             type="button"
             onClick={() => { setStep(1); setError('') }}
             className="flex items-center gap-1.5 text-sm font-semibold transition-colors hover:text-white"
-            style={{ color: 'rgba(255,255,255,0.6)' }}
+            style={{ color: '#e2e8f0' }}
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
@@ -634,7 +639,7 @@ export default function SignUpClient() {
             <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#16a34a' }}>
               <Check className="h-3.5 w-3.5 text-white" />
             </div>
-            <span className="text-xs font-semibold hidden sm:block" style={{ color: 'rgba(255,255,255,0.6)' }}>Your Details</span>
+            <span className="text-xs font-bold hidden sm:block" style={{ color: '#e2e8f0' }}>Your Details</span>
           </div>
           <div className="w-8 h-px" style={{ background: 'rgba(255,255,255,0.2)' }} />
           <div className="flex items-center gap-2">
@@ -647,12 +652,12 @@ export default function SignUpClient() {
         <div className="flex items-center rounded-xl p-1 gap-0.5" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
           <button type="button" onClick={() => setAnnual(false)}
             className="rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
-            style={{ background: !annual ? '#ffffff' : 'transparent', color: !annual ? '#0f172a' : 'rgba(255,255,255,0.5)' }}>
+            style={{ background: !annual ? '#ffffff' : '#334155', color: !annual ? TEXT_DARK : '#ffffff' }}>
             Monthly
           </button>
           <button type="button" onClick={() => setAnnual(true)}
             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all"
-            style={{ background: annual ? '#f97316' : 'transparent', color: annual ? '#ffffff' : 'rgba(255,255,255,0.5)' }}>
+            style={{ background: annual ? '#f97316' : '#334155', color: '#ffffff' }}>
             Annual
             <span className="rounded px-1.5 py-0.5 text-[9px] font-black"
               style={{ background: annual ? 'rgba(255,255,255,0.2)' : 'rgba(249,115,22,0.3)', color: annual ? '#fff' : '#fb923c' }}>
@@ -667,8 +672,8 @@ export default function SignUpClient() {
 
         <div className="text-center mb-10">
           <div className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: '#f97316' }}>Step 2 of 2</div>
-          <h1 className="text-3xl font-black" style={{ color: '#0f172a' }}>Choose your plan</h1>
-          <p className="mt-2 text-base" style={{ color: '#64748b' }}>
+          <h1 className="text-3xl font-black" style={{ color: TEXT_DARK }}>Choose your plan</h1>
+          <p className="mt-2 text-base font-semibold" style={{ color: TEXT_MUTED }}>
             All plans start with a <strong>7-day free trial</strong>. Cancel anytime, no questions asked.
           </p>
         </div>
@@ -718,8 +723,8 @@ export default function SignUpClient() {
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-black text-lg leading-tight" style={{ color: '#0f172a' }}>{plan.name}</p>
-                      <p className="text-xs" style={{ color: '#64748b' }}>{plan.tagline}</p>
+                      <p className="font-black text-lg leading-tight" style={{ color: TEXT_DARK }}>{plan.name}</p>
+                      <p className="text-xs font-semibold" style={{ color: TEXT_MUTED }}>{plan.tagline}</p>
                     </div>
                   </div>
 
@@ -729,7 +734,7 @@ export default function SignUpClient() {
                       <span className="text-4xl font-black" style={{ color: '#0f172a' }}>
                         ${annual ? fmt0.format(price) : fmt2.format(price)}
                       </span>
-                      <span className="text-sm font-medium" style={{ color: '#64748b' }}>{annual ? '/yr' : '/mo'}</span>
+                      <span className="text-sm font-bold" style={{ color: TEXT_MUTED }}>{annual ? '/yr' : '/mo'}</span>
                     </div>
                     {annual && savings > 0
                       ? <p className="text-xs font-semibold" style={{ color: '#16a34a' }}>Save ${savings}/yr · equiv. ${fmt2.format(moEquiv)}/mo</p>
@@ -741,16 +746,16 @@ export default function SignUpClient() {
                     {plan.features.map(f => (
                       <li key={f} className="flex items-start gap-2.5">
                         <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: active ? `${plan.accent}18` : '#f1f5f9' }}>
-                          <Check className="w-2.5 h-2.5" style={{ color: active ? plan.accent : '#94a3b8' }} />
+                          <Check className="w-2.5 h-2.5" style={{ color: active ? plan.accent : TEXT_MUTED }} />
                         </div>
-                        <span className="text-sm" style={{ color: active ? '#374151' : '#64748b' }}>{f}</span>
+                        <span className="text-sm font-semibold" style={{ color: active ? TEXT_BODY : TEXT_MUTED }}>{f}</span>
                       </li>
                     ))}
                   </ul>
 
                   {/* Select button */}
                   <div className="rounded-xl py-3 text-sm font-black text-center shrink-0 transition-all"
-                    style={{ background: active ? plan.accent : '#f8fafc', color: active ? '#ffffff' : '#64748b', border: active ? 'none' : '1.5px solid #e2e8f0' }}>
+                    style={{ background: active ? plan.accent : BUTTON_NAVY, color: '#ffffff' }}>
                     {active ? '✓ Selected' : 'Select this plan'}
                   </div>
                 </div>
@@ -769,7 +774,7 @@ export default function SignUpClient() {
             {['Real-time SAM.gov data', 'NAICS code matching', 'Email & portal alerts', 'CSV export', 'Cancel anytime', 'Onboarding support'].map(f => (
               <div key={f} className="flex items-center gap-2">
                 <Check className="w-4 h-4 shrink-0" style={{ color: '#16a34a' }} />
-                <span className="text-sm" style={{ color: '#475569' }}>{f}</span>
+                <span className="text-sm font-semibold" style={{ color: TEXT_BODY }}>{f}</span>
               </div>
             ))}
           </div>
@@ -783,9 +788,9 @@ export default function SignUpClient() {
               {(() => { const Icon = activePlan.icon; return <Icon className="w-6 h-6 text-white" /> })()}
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>Selected plan</p>
+              <p className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: '#cbd5e1' }}>Selected plan</p>
               <p className="font-black text-xl text-white">{activePlan.name}</p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <p className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>
                 ${annual ? fmt0.format(displayPrice) : fmt2.format(displayPrice)}{annual ? '/yr' : '/mo'} · 7-day free trial
                 {annual && annualSavings > 0 && <span className="ml-1.5 text-emerald-400 font-semibold">· Save ${annualSavings}/yr</span>}
               </p>
@@ -805,7 +810,7 @@ export default function SignUpClient() {
           </button>
         </div>
 
-        <p className="text-center text-xs mt-5" style={{ color: '#94a3b8' }}>
+        <p className="text-center text-xs font-semibold mt-5" style={{ color: TEXT_MUTED }}>
           By signing up you agree to our{' '}
           <Link href="/terms" className="underline font-medium">Terms of Service</Link> and{' '}
           <Link href="/privacy" className="underline font-medium">Privacy Policy</Link>.

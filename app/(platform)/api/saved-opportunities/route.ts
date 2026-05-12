@@ -40,14 +40,29 @@ function normalizeDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+function jsonbParam(value: unknown) {
+  if (value == null) return Prisma.sql`NULL::jsonb`
+  if (typeof value === 'string') {
+    try {
+      return Prisma.sql`${JSON.stringify(JSON.parse(value))}::jsonb`
+    } catch {
+      return Prisma.sql`${JSON.stringify(value)}::jsonb`
+    }
+  }
+  return Prisma.sql`${JSON.stringify(value)}::jsonb`
+}
+
 function errorDetails(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    return { code: error.code, meta: error.meta }
+    return { code: error.code, meta: error.meta, message: error.message }
   }
   if (error instanceof Prisma.PrismaClientValidationError) {
-    return { code: 'PRISMA_VALIDATION' }
+    return { code: 'PRISMA_VALIDATION', message: error.message }
   }
-  return { code: 'UNKNOWN' }
+  if (error instanceof Error) {
+    return { code: 'UNKNOWN', message: error.message }
+  }
+  return { code: 'UNKNOWN', message: String(error) }
 }
 
 export async function GET() {
@@ -112,39 +127,62 @@ export async function POST(request: Request) {
     }
 
     const opportunityType = normalizeText(type)
-    const fields = {
-      title: normalizeText(title),
-      solicitation_number: normalizeText(solicitationNumber),
-      department: normalizeText(department),
-      posted_date: normalizeDate(postedDate),
-      response_deadline: normalizeDate(responseDeadLine),
-      naics_code: normalizeText(naicsCode),
-      type: opportunityType,
-      opportunity_type: opportunityType,
-      set_aside: normalizeText(setAside),
-      place_of_performance: normalizeJson(placeOfPerformance),
-      ui_link: normalizeText(uiLink),
-      organization_name: normalizeText(organizationName),
-      updated_at: new Date(),
-    }
+    const savedRows = await prisma.$queryRaw<Array<Record<string, unknown>>>`
+      INSERT INTO public.saved_opportunities (
+        user_id,
+        notice_id,
+        title,
+        solicitation_number,
+        department,
+        posted_date,
+        response_deadline,
+        naics_code,
+        type,
+        opportunity_type,
+        set_aside,
+        place_of_performance,
+        ui_link,
+        organization_name,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        ${user.id},
+        ${normalizedNoticeId},
+        ${normalizeText(title)},
+        ${normalizeText(solicitationNumber)},
+        ${normalizeText(department)},
+        ${normalizeDate(postedDate)},
+        ${normalizeDate(responseDeadLine)},
+        ${normalizeText(naicsCode)},
+        ${opportunityType},
+        ${opportunityType},
+        ${normalizeText(setAside)},
+        ${jsonbParam(placeOfPerformance)},
+        ${normalizeText(uiLink)},
+        ${normalizeText(organizationName)},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (user_id, notice_id)
+      DO UPDATE SET
+        title = EXCLUDED.title,
+        solicitation_number = EXCLUDED.solicitation_number,
+        department = EXCLUDED.department,
+        posted_date = EXCLUDED.posted_date,
+        response_deadline = EXCLUDED.response_deadline,
+        naics_code = EXCLUDED.naics_code,
+        type = EXCLUDED.type,
+        opportunity_type = EXCLUDED.opportunity_type,
+        set_aside = EXCLUDED.set_aside,
+        place_of_performance = EXCLUDED.place_of_performance,
+        ui_link = EXCLUDED.ui_link,
+        organization_name = EXCLUDED.organization_name,
+        updated_at = NOW()
+      RETURNING *
+    `
 
-    const existing = await prisma.saved_opportunities.findFirst({
-      where: { user_id: user.id, notice_id: normalizedNoticeId },
-    })
-
-    let saved
-    if (existing) {
-      saved = await prisma.saved_opportunities.update({
-        where: { id: existing.id },
-        data: fields,
-      })
-    } else {
-      saved = await prisma.saved_opportunities.create({
-        data: { user_id: user.id, notice_id: normalizedNoticeId, created_at: new Date(), ...fields },
-      })
-    }
-
-    return NextResponse.json({ saved }, { status: existing ? 200 : 201 })
+    return NextResponse.json({ saved: savedRows[0] }, { status: 201 })
   } catch (error) {
     const details = errorDetails(error)
     console.error('POST /api/saved-opportunities error:', details, error)
