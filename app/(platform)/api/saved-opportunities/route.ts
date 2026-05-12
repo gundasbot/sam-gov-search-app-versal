@@ -19,6 +19,37 @@ function normalizeJson(value: unknown) {
   return value
 }
 
+function normalizeText(value: unknown) {
+  if (value == null) return null
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed.length ? trimmed : null
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  return null
+}
+
+function normalizeDate(value: unknown) {
+  const normalized = normalizeText(value)
+  if (!normalized) return null
+  if (/^(n\/a|na|none|tbd|\u2014|-|not set aside used)$/i.test(normalized)) return null
+
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function errorDetails(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return { code: error.code, meta: error.meta }
+  }
+  if (error instanceof Prisma.PrismaClientValidationError) {
+    return { code: 'PRISMA_VALIDATION' }
+  }
+  return { code: 'UNKNOWN' }
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -75,27 +106,30 @@ export async function POST(request: Request) {
       organizationName,
     } = body
 
-    if (!noticeId) {
+    const normalizedNoticeId = normalizeText(noticeId)
+    if (!normalizedNoticeId) {
       return NextResponse.json({ error: 'noticeId is required' }, { status: 400 })
     }
 
+    const opportunityType = normalizeText(type)
     const fields = {
-      title,
-      solicitation_number: solicitationNumber,
-      department,
-      posted_date: postedDate ? new Date(postedDate) : null,
-      response_deadline: responseDeadLine ? new Date(responseDeadLine) : null,
-      naics_code: naicsCode,
-      opportunity_type: type,
-      set_aside: setAside,
+      title: normalizeText(title),
+      solicitation_number: normalizeText(solicitationNumber),
+      department: normalizeText(department),
+      posted_date: normalizeDate(postedDate),
+      response_deadline: normalizeDate(responseDeadLine),
+      naics_code: normalizeText(naicsCode),
+      type: opportunityType,
+      opportunity_type: opportunityType,
+      set_aside: normalizeText(setAside),
       place_of_performance: normalizeJson(placeOfPerformance),
-      ui_link: uiLink,
-      organization_name: organizationName,
+      ui_link: normalizeText(uiLink),
+      organization_name: normalizeText(organizationName),
       updated_at: new Date(),
     }
 
     const existing = await prisma.saved_opportunities.findFirst({
-      where: { user_id: user.id, notice_id: noticeId },
+      where: { user_id: user.id, notice_id: normalizedNoticeId },
     })
 
     let saved
@@ -106,13 +140,17 @@ export async function POST(request: Request) {
       })
     } else {
       saved = await prisma.saved_opportunities.create({
-        data: { user_id: user.id, notice_id: noticeId, created_at: new Date(), ...fields },
+        data: { user_id: user.id, notice_id: normalizedNoticeId, created_at: new Date(), ...fields },
       })
     }
 
     return NextResponse.json({ saved }, { status: existing ? 200 : 201 })
   } catch (error) {
-    console.error('POST /api/saved-opportunities error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const details = errorDetails(error)
+    console.error('POST /api/saved-opportunities error:', details, error)
+    return NextResponse.json(
+      { error: 'Could not save favorite opportunity', ...details },
+      { status: 500 }
+    )
   }
 }

@@ -4,7 +4,7 @@ import {
   Bell,
   Bookmark,
   Search,
-  BookUser,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -26,49 +26,33 @@ interface PageMeta {
   label: string
   description: string
   icon: LucideIcon
-  accent: 'orange' | 'blue' | 'cyan' | 'emerald' | 'indigo'
+  accent: 'orange' | 'teal' | 'emerald' | 'cyan'
 }
 
 const ACCENT = {
   orange: {
-    iconBg: 'bg-orange-100',
-    iconColor: 'text-orange-600',
-    leftBorder: 'border-l-4 border-l-orange-500',
-    titleColor: 'text-orange-700',
-    countBg: 'bg-orange-100 text-orange-700 border border-orange-200',
-    navClasses: 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 hover:border-orange-300',
+    gradient: 'linear-gradient(135deg, #f97316, #fb923c)',
+    shadow: 'shadow-[0_16px_34px_rgba(255,122,24,0.24)]',
+    soft: 'bg-orange-50 border-orange-200 text-orange-800',
+    ring: 'ring-orange-300',
   },
-  blue: {
-    iconBg: 'bg-blue-100',
-    iconColor: 'text-blue-600',
-    leftBorder: 'border-l-4 border-l-blue-500',
-    titleColor: 'text-blue-700',
-    countBg: 'bg-blue-100 text-blue-700 border border-blue-200',
-    navClasses: 'bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300',
-  },
-  cyan: {
-    iconBg: 'bg-cyan-100',
-    iconColor: 'text-cyan-600',
-    leftBorder: 'border-l-4 border-l-cyan-500',
-    titleColor: 'text-cyan-700',
-    countBg: 'bg-cyan-100 text-cyan-700 border border-cyan-200',
-    navClasses: 'bg-cyan-50 border border-cyan-200 text-cyan-700 hover:bg-cyan-100 hover:border-cyan-300',
+  teal: {
+    gradient: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+    shadow: 'shadow-[0_16px_34px_rgba(6,95,70,0.22)]',
+    soft: 'bg-teal-50 border-teal-200 text-teal-800',
+    ring: 'ring-teal-300',
   },
   emerald: {
-    iconBg: 'bg-emerald-100',
-    iconColor: 'text-emerald-600',
-    leftBorder: 'border-l-4 border-l-emerald-500',
-    titleColor: 'text-emerald-700',
-    countBg: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
-    navClasses: 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300',
+    gradient: 'linear-gradient(135deg, #059669, #22c55e)',
+    shadow: 'shadow-[0_16px_34px_rgba(16,185,129,0.22)]',
+    soft: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    ring: 'ring-emerald-300',
   },
-  indigo: {
-    iconBg: 'bg-indigo-100',
-    iconColor: 'text-indigo-600',
-    leftBorder: 'border-l-4 border-l-indigo-500',
-    titleColor: 'text-indigo-700',
-    countBg: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
-    navClasses: 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300',
+  cyan: {
+    gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+    shadow: 'shadow-[0_16px_34px_rgba(6,182,212,0.18)]',
+    soft: 'bg-cyan-50 border-cyan-200 text-cyan-800',
+    ring: 'ring-cyan-300',
   },
 }
 
@@ -85,14 +69,14 @@ const PAGE_META: Record<WorkspaceNavKey, PageMeta> = {
     label: 'Manage Saved Alerts',
     description: 'Create and schedule automated email alerts for new matching opportunities.',
     icon: Bell,
-    accent: 'blue',
+    accent: 'teal',
   },
   'saved-searches': {
     href: '/alerts/manage-searches',
     label: 'Manage Saved Searches',
     description: 'Build and tune search filters by keywords, agencies, NAICS, set-asides, and geography.',
     icon: Bookmark,
-    accent: 'cyan',
+    accent: 'orange',
   },
   'saved-opportunities': {
     href: '/dashboard/saved-opportunities',
@@ -105,15 +89,14 @@ const PAGE_META: Record<WorkspaceNavKey, PageMeta> = {
     href: '/contacts',
     label: 'Alert Recipients',
     description: 'Centralize and manage alert recipients and contacts for your team.',
-    icon: BookUser,
-    accent: 'indigo',
+    icon: UserRound,
+    accent: 'cyan',
   },
 }
 
 const NAV_ORDER: WorkspaceNavKey[] = [
-  'alerts-hub',
-  'saved-alerts',
   'saved-searches',
+  'saved-alerts',
   'saved-opportunities',
   'recipients',
 ]
@@ -127,29 +110,29 @@ export default function WorkspaceNavRow({ active, count, className }: WorkspaceN
   const CurrentIcon = currentMeta?.icon ?? null
   const a = currentMeta ? ACCENT[currentMeta.accent] : null
 
-  const navItems = NAV_ORDER.filter((key) => key !== active).map((key) => ({
+  const navItems = NAV_ORDER.map((key) => ({
     key,
     ...PAGE_META[key],
   }))
 
   return (
     <div className={cx('space-y-3', className)}>
-      {/* ── Page identity banner ────────────────────────────────── */}
+      {/* Page identity banner */}
       {currentMeta && a && (
-        <div className={cx('rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden', a.leftBorder)}>
-          <div className="px-5 py-4">
+        <div className={cx('overflow-hidden rounded-2xl text-white', a.shadow)} style={{ background: a.gradient }}>
+          <div className="px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0">
-                <div className={cx('shrink-0 rounded-xl p-2.5', a.iconBg)}>
-                  {CurrentIcon && <CurrentIcon className={cx('w-6 h-6', a.iconColor)} />}
+                <div className="shrink-0 rounded-xl bg-white/18 p-2.5 ring-1 ring-white/25">
+                  {CurrentIcon && <CurrentIcon className="h-6 w-6 text-white" />}
                 </div>
                 <div className="min-w-0">
-                  <h1 className={cx('text-2xl font-black leading-tight', a.titleColor)}>{currentMeta.label}</h1>
-                  <p className="text-slate-500 text-sm mt-0.5 leading-snug">{currentMeta.description}</p>
+                  <h1 className="text-xl font-black leading-tight text-white sm:text-2xl">{currentMeta.label}</h1>
+                  <p className="mt-0.5 text-sm font-semibold leading-snug text-white/95">{currentMeta.description}</p>
                 </div>
               </div>
               {count !== undefined && count > 0 && (
-                <div className={cx('shrink-0 font-black text-lg px-4 py-1.5 rounded-xl', a.countBg)}>
+                <div className="shrink-0 rounded-xl bg-white/20 px-4 py-1.5 text-lg font-black text-white ring-1 ring-white/25">
                   {count}
                 </div>
               )}
@@ -158,22 +141,46 @@ export default function WorkspaceNavRow({ active, count, className }: WorkspaceN
         </div>
       )}
 
-      {/* ── Navigation buttons to sibling pages ─────────────────── */}
-      <div className="flex flex-wrap gap-2">
+      {/* Cross-page navigation */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link
+          href="/alerts"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Alerts & Searches Hub
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         {navItems.map((item) => {
           const NavIcon = item.icon
           const navA = ACCENT[item.accent]
+          const isActive = item.key === active
           return (
             <Link
               key={item.key}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               className={cx(
-                'inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm',
-                navA.navClasses
+                'group rounded-2xl px-5 py-4 text-left text-white transition-transform hover:scale-[1.01] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+                navA.shadow,
+                isActive && cx('ring-4', navA.ring)
               )}
+              style={{ background: navA.gradient }}
             >
-              <NavIcon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <NavIcon className="h-5 w-5 shrink-0 text-white" />
+                  <span className="text-base font-black leading-tight text-white">{item.label}</span>
+                </div>
+                {isActive && (
+                  <span className="shrink-0 rounded-full bg-white/22 px-2.5 py-1 text-xs font-black text-white ring-1 ring-white/25">
+                    Current
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-sm font-semibold leading-snug text-white/95">{item.description}</p>
             </Link>
           )
         })}
