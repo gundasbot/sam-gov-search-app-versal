@@ -3142,8 +3142,8 @@ useEffect(() => {
 
  // ── STEP 5: In runSearch(), after setData(payload) on a successful search, add: ──
  writeSearchContext(opps || [], qsToObj(qs))
- if (!stickyPromptDismissed) setShowStickyPrompt(true)
- 
+ if (!stickyPromptDismissed) setTimeout(() => setShowStickyPrompt(true), 8000)
+
  console.log('API Search successful:', {
  results: (opps?.length ?? 0),
  totalRecords: total,
@@ -3435,7 +3435,7 @@ useEffect(() => {
  // Save search to history
  saveSearchToHistory(qs.toString())
  writeSearchContext(opps || [], qsToObj(qs))
- if (!stickyPromptDismissed) setShowStickyPrompt(true)
+ if (!stickyPromptDismissed) setTimeout(() => setShowStickyPrompt(true), 8000)
  // NOTE: Do NOT show access modal here — guests are allowed to see results
  // The 20-minute timer handles the browse window limit separately
  }
@@ -4571,20 +4571,20 @@ const visibleSearchSummaryParts = useMemo(
  <>
  {visibleSearchSummaryParts.map((part, index) => {
    const dismissAction: (() => void) | null = (() => {
-     if (part.startsWith('Posted on/after')) return () => setPostedAfter('')
-     if (part.startsWith('Posted on/before')) return () => setPostedBefore('')
-     if (part.startsWith('Due on/after')) return () => setResponseDeadlineAfter('')
-     if (part.startsWith('Due on/before')) return () => setResponseDeadlineBefore('')
-     if (part.startsWith('Keyword:')) return () => setKeywords('')
-     if (part.startsWith('Set-aside:')) return () => setSelectedSetAsides([])
-     if (part.startsWith('State:')) return () => setSelectedStates([])
-     if (part.startsWith('NAICS:')) return () => setNaics('')
-     if (part.startsWith('PSC:')) return () => setClassificationCode('')
-     if (part.startsWith('Agency:')) return () => setAgency('')
-     if (part.startsWith('Type:')) return () => setProcurementType('')
-     if (part.startsWith('Solicitation #:')) return () => setSolicitationNumber('')
-     if (part.startsWith('Status:')) return () => setOpportunityStatus('')
-     if (part.startsWith('ZIP:')) return () => setPlaceOfPerformanceZip('')
+     if (part.startsWith('Posted on/after')) return () => { setPostedAfter(''); runSearchWithOverrides({ postedAfter: '' }) }
+     if (part.startsWith('Posted on/before')) return () => { setPostedBefore(''); runSearchWithOverrides({ postedBefore: '' }) }
+     if (part.startsWith('Due on/after')) return () => { setResponseDeadlineAfter(''); runSearchWithOverrides({ responseDeadlineFrom: '' }) }
+     if (part.startsWith('Due on/before')) return () => { setResponseDeadlineBefore(''); runSearchWithOverrides({ responseDeadlineTo: '', responseDeadline: '' }) }
+     if (part.startsWith('Keyword:')) return () => { setKeywords(''); runSearchWithOverrides({ keywords: '' }) }
+     if (part.startsWith('Set-aside:')) return () => { setSelectedSetAsides([]); runSearchWithOverrides({ setAside: '' }) }
+     if (part.startsWith('State:')) return () => { setSelectedStates([]); runSearchWithOverrides({ stateOfPerformance: '' }) }
+     if (part.startsWith('NAICS:')) return () => { setNaics(''); runSearchWithOverrides({ naics: '' }) }
+     if (part.startsWith('PSC:')) return () => { setClassificationCode(''); runSearchWithOverrides({ classificationCode: '' }) }
+     if (part.startsWith('Agency:')) return () => { setAgency(''); runSearchWithOverrides({ agency: '' }) }
+     if (part.startsWith('Type:')) return () => { setProcurementType(''); runSearchWithOverrides({ procurementType: '' }) }
+     if (part.startsWith('Solicitation #:')) return () => { setSolicitationNumber(''); runSearchWithOverrides({ solicitationNumber: '' }) }
+     if (part.startsWith('Status:')) return () => { setOpportunityStatus(''); runSearchWithOverrides({ opportunityStatus: '' }) }
+     if (part.startsWith('ZIP:')) return () => { setPlaceOfPerformanceZip(''); runSearchWithOverrides({ placeOfPerformanceZip: '' }) }
      return null
    })()
    return (
@@ -4850,20 +4850,20 @@ const visibleSearchSummaryParts = useMemo(
  </span>
  {visibleSearchSummaryParts.map((part, index) => {
  const dismissAction: (() => void) | null = (() => {
-   if (part.startsWith('Posted on/after')) return () => setPostedAfter('')
-   if (part.startsWith('Posted on/before')) return () => setPostedBefore('')
-   if (part.startsWith('Due on/after')) return () => setResponseDeadlineAfter('')
-   if (part.startsWith('Due on/before')) return () => setResponseDeadlineBefore('')
-   if (part.startsWith('Keyword:')) return () => setKeywords('')
-   if (part.startsWith('Set-aside:')) return () => setSelectedSetAsides([])
-   if (part.startsWith('State:')) return () => setSelectedStates([])
-   if (part.startsWith('NAICS:')) return () => setNaics('')
-   if (part.startsWith('PSC:')) return () => setClassificationCode('')
-   if (part.startsWith('Agency:')) return () => setAgency('')
-   if (part.startsWith('Type:')) return () => setProcurementType('')
-   if (part.startsWith('Solicitation #:')) return () => setSolicitationNumber('')
-   if (part.startsWith('Status:')) return () => setOpportunityStatus('')
-   if (part.startsWith('ZIP:')) return () => setPlaceOfPerformanceZip('')
+   if (part.startsWith('Posted on/after')) return () => { setPostedAfter(''); runSearchWithOverrides({ postedAfter: '' }) }
+   if (part.startsWith('Posted on/before')) return () => { setPostedBefore(''); runSearchWithOverrides({ postedBefore: '' }) }
+   if (part.startsWith('Due on/after')) return () => { setResponseDeadlineAfter(''); runSearchWithOverrides({ responseDeadlineFrom: '' }) }
+   if (part.startsWith('Due on/before')) return () => { setResponseDeadlineBefore(''); runSearchWithOverrides({ responseDeadlineTo: '', responseDeadline: '' }) }
+   if (part.startsWith('Keyword:')) return () => { setKeywords(''); runSearchWithOverrides({ keywords: '' }) }
+   if (part.startsWith('Set-aside:')) return () => { setSelectedSetAsides([]); runSearchWithOverrides({ setAside: '' }) }
+   if (part.startsWith('State:')) return () => { setSelectedStates([]); runSearchWithOverrides({ stateOfPerformance: '' }) }
+   if (part.startsWith('NAICS:')) return () => { setNaics(''); runSearchWithOverrides({ naics: '' }) }
+   if (part.startsWith('PSC:')) return () => { setClassificationCode(''); runSearchWithOverrides({ classificationCode: '' }) }
+   if (part.startsWith('Agency:')) return () => { setAgency(''); runSearchWithOverrides({ agency: '' }) }
+   if (part.startsWith('Type:')) return () => { setProcurementType(''); runSearchWithOverrides({ procurementType: '' }) }
+   if (part.startsWith('Solicitation #:')) return () => { setSolicitationNumber(''); runSearchWithOverrides({ solicitationNumber: '' }) }
+   if (part.startsWith('Status:')) return () => { setOpportunityStatus(''); runSearchWithOverrides({ opportunityStatus: '' }) }
+   if (part.startsWith('ZIP:')) return () => { setPlaceOfPerformanceZip(''); runSearchWithOverrides({ placeOfPerformanceZip: '' }) }
    return null
  })()
  return (
