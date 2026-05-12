@@ -8,7 +8,7 @@ import Image from 'next/image'
 import {
   Eye, EyeOff, ArrowRight, ArrowLeft, Loader2, Check, AlertCircle,
   Shield, Zap, Crown, X, Mail, CheckCircle2, XCircle, ShieldCheck,
-  Search, Bell, BarChart3, FileDown, Users, Lock,
+  Search, Bell, BarChart3, FileDown, Users, Lock, LogIn,
 } from 'lucide-react'
 
 // ─── Plan definitions ──────────────────────────────────────────────────────────
@@ -99,19 +99,19 @@ function Field({ label, required, hint, error, children }: {
 }) {
   return (
     <div>
-      <label className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
+      <label className="block text-base font-bold mb-1.5" style={{ color: '#1e293b' }}>
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
-        {hint && <span className="ml-1.5 font-normal text-xs" style={{ color: '#64748b' }}>{hint}</span>}
+        {hint && <span className="ml-1.5 font-normal text-sm" style={{ color: '#64748b' }}>{hint}</span>}
       </label>
       {children}
-      {error && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   )
 }
 
-const inp = 'w-full h-11 rounded-lg px-3.5 text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-orange-300 focus:border-orange-500'
-const inpStyle = { background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }
+const inp = 'w-full h-12 rounded-xl px-3.5 text-base font-medium outline-none transition-all focus:ring-2 focus:ring-orange-300 focus:border-orange-500'
+const inpStyle = { background: '#ffffff', color: '#0f172a', border: '2px solid #cbd5e1', fontFamily: '"Aptos", "Segoe UI", Inter, system-ui, -apple-system, sans-serif' }
 
 // ─── Left brand panel ──────────────────────────────────────────────────────────
 function BrandPanel() {
@@ -402,7 +402,7 @@ export default function SignUpClient() {
         <BrandPanel />
 
         {/* Right — form panel */}
-        <div className="flex-1 overflow-y-auto" style={{ background: '#ffffff' }}>
+        <div className="flex-1 overflow-y-auto" style={{ background: '#ffffff', fontFamily: '"Aptos", "Segoe UI", Inter, system-ui, -apple-system, sans-serif' }}>
           <div className="max-w-2xl mx-auto w-full px-6 sm:px-10 py-8">
 
             {/* Mobile logo (shown only when BrandPanel is hidden) */}
@@ -427,7 +427,7 @@ export default function SignUpClient() {
             <div className="mb-7">
               <h1 className="text-3xl font-black" style={{ color: '#0f172a' }}>Create your account</h1>
               <p className="mt-1.5 text-sm" style={{ color: '#64748b' }}>
-                Start your 7-day free trial — no credit card required.
+                Start your 7-day free trial.
               </p>
             </div>
 
@@ -445,8 +445,8 @@ export default function SignUpClient() {
               type="button"
               onClick={() => handleOAuth('google')}
               disabled={loading}
-              className="w-full h-11 flex items-center justify-center gap-3 rounded-xl text-sm font-semibold transition-all hover:shadow-md disabled:opacity-60 mb-5"
-              style={{ background: '#fff', color: '#1e293b', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+              className="w-full h-12 flex items-center justify-center gap-3 rounded-xl text-base font-semibold transition-all hover:shadow-md disabled:opacity-60 mb-5"
+              style={{ background: '#fff', color: '#1e293b', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -577,21 +577,24 @@ export default function SignUpClient() {
                 {trialCode && codeStatus && codeStatus !== 'validating' && !(codeStatus as any).valid && <p className="mt-1 text-[11px] text-red-500">{(codeStatus as any).reason || 'Invalid code — you can still sign up without it'}</p>}
               </Field>
 
-              <div className="pt-2">
+              <div className="pt-2 space-y-3">
                 <button
                   type="submit"
                   disabled={loading || passwordsMismatch}
-                  className="w-full h-12 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 16px rgba(249,115,22,0.3)' }}
+                  className="w-full rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 16px rgba(249,115,22,0.35)', height: '52px' }}
                 >
-                  Continue to Plan Selection <ArrowRight className="h-4 w-4" />
+                  Continue to Plan Selection <ArrowRight className="h-5 w-5" />
                 </button>
-              </div>
 
-              <p className="text-center text-xs pt-1" style={{ color: '#94a3b8' }}>
-                Already have an account?{' '}
-                <Link href="/login" className="font-bold" style={{ color: '#f97316' }}>Sign in</Link>
-              </p>
+                <Link
+                  href="/login"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-bold transition-all hover:opacity-90 active:scale-98"
+                  style={{ background: '#f8fafc', color: '#1e293b', border: '2px solid #cbd5e1', height: '48px' }}
+                >
+                  <LogIn className="h-4 w-4" /> Already have an account? Sign in
+                </Link>
+              </div>
             </form>
           </div>
         </div>

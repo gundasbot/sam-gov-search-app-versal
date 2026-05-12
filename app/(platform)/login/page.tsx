@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle, Mail, KeyRound, CheckCircle2 } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle, Mail, KeyRound, CheckCircle2, Lock, Sparkles, UserPlus } from 'lucide-react'
 
 type ErrorType = 'EMAIL_NOT_VERIFIED' | 'ACCOUNT_NOT_FOUND' | 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'TWO_FACTOR_REQUIRED' | 'GENERIC'
 
@@ -14,16 +14,6 @@ interface ErrorState {
   suggestion: string
 }
 
-function buildSupportHref(email: string, errorState: ErrorState): string {
-  const params = new URLSearchParams({
-    openContact: '1',
-    category: 'Account & Access',
-    email,
-    subject: `Login access issue (${errorState.type})`,
-    message: `${errorState.message} ${errorState.suggestion}`,
-  })
-  return `/support?${params.toString()}`
-}
 
 function parseError(error: string): ErrorState {
   const e = error.toLowerCase()
@@ -32,15 +22,15 @@ function parseError(error: string): ErrorState {
   if (e.includes('not found') || e === 'account not found') {
     return {
       type: 'ACCOUNT_NOT_FOUND',
-      message: 'No account found with that email address.',
-      suggestion: 'Double-check your email or create a free account to get started.',
+      message: 'No account found for that email.',
+      suggestion: 'Double-check the spelling, or create a free account to get started.',
     }
   }
   if (e.includes('not verified') || e === 'email_not_verified') {
     return {
       type: 'EMAIL_NOT_VERIFIED',
-      message: "Your email address hasn't been verified yet.",
-      suggestion: 'Check your inbox for a verification email, or request a new one below.',
+      message: 'Please verify your email before signing in.',
+      suggestion: "We sent a verification link to your inbox — check spam if it's missing.",
     }
   }
   if (e.includes('password_login_not_enabled') || e.includes('password login not enabled')) {
@@ -97,8 +87,8 @@ function parseError(error: string): ErrorState {
   if (e.includes('credentialssignin') || (e.includes('invalid') && !e.includes('code')) || e.includes('credentials') || e.includes('password')) {
     return {
       type: 'INVALID_CREDENTIALS',
-      message: 'The password you entered is incorrect.',
-      suggestion: 'Try again, reset your password, or use the Code tab for a one-time sign-in.',
+      message: 'Sorry, that password isn\'t right.',
+      suggestion: 'Try again, or reset your password if you\'ve forgotten it.',
     }
   }
   if (e.includes('oauthaccountnotlinked')) {
@@ -118,15 +108,15 @@ function parseError(error: string): ErrorState {
   if (e.includes('accessdenied') || e.includes('suspended')) {
     return {
       type: 'SUSPENDED',
-      message: 'Access to this account is currently restricted.',
-      suggestion: 'Contact support@precisegovcon.com to restore access.',
+      message: 'Your account access is currently restricted.',
+      suggestion: 'Email support@precisegovcon.com to restore access.',
     }
   }
 
   return {
     type: 'GENERIC',
-    message: 'Incorrect email or password.',
-    suggestion: 'Double-check your credentials and try again, or reset your password below.',
+    message: 'Sorry, we couldn\'t sign you in.',
+    suggestion: 'Check your email and password, then try again.',
   }
 }
 
@@ -136,103 +126,79 @@ function ErrorBlock({
   onResendOrOTC,
   resendLoading,
   resendSent,
-  supportHref,
 }: {
   errorState: ErrorState
   email: string
   onResendOrOTC: () => void
   resendLoading: boolean
   resendSent: boolean
-  supportHref: string
 }) {
-  const isSevere = errorState.type === 'SUSPENDED'
-  const containerStyle = isSevere
-    ? { background: '#fff1f2', border: '1.5px solid #fca5a5' }
-    : { background: '#fffbeb', border: '1.5px solid #fcd34d' }
-  const iconColor = isSevere ? '#dc2626' : '#d97706'
-  const titleColor = isSevere ? '#7f1d1d' : '#78350f'
-  const bodyColor = isSevere ? '#9f1239' : '#92400e'
-
   return (
-    <div className="mt-4 rounded-2xl p-4" style={containerStyle}>
-      <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: iconColor }} />
+    <div className="rounded-xl p-3.5" style={{ background: '#fffbeb', border: '1.5px solid #fcd34d' }}>
+      <div className="flex items-start gap-2.5">
+        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#d97706' }} />
         <div className="flex-1 min-w-0">
-          <p className="text-base font-black" style={{ color: titleColor }}>
+          <p className="text-sm font-bold leading-snug" style={{ color: '#78350f' }}>
             {errorState.message}
           </p>
-          <p className="mt-0.5 text-sm leading-relaxed font-medium" style={{ color: bodyColor }}>
+          <p className="mt-0.5 text-xs leading-relaxed" style={{ color: '#92400e' }}>
             {errorState.suggestion}
           </p>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        {(errorState.type === 'INVALID_CREDENTIALS' || errorState.type === 'GENERIC') && (
+          <>
+            <Link
+              href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90"
+              style={{ background: '#d97706', color: '#ffffff' }}
+            >
+              <KeyRound className="h-3 w-3" /> Reset my password
+            </Link>
+            <button
+              type="button"
+              onClick={onResendOrOTC}
+              disabled={resendLoading || resendSent}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: '#ffffff', color: '#78350f', border: '1.5px solid #fcd34d' }}
+            >
+              {resendLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+              {resendSent ? '✓ Code sent!' : 'Sign in with a code instead'}
+            </button>
+          </>
+        )}
+
         {errorState.type === 'EMAIL_NOT_VERIFIED' && (
           <>
             <button
               type="button"
               onClick={onResendOrOTC}
               disabled={resendLoading || resendSent}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: '#d97706', color: '#ffffff' }}
             >
-              {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+              {resendLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
               {resendSent ? '✓ Email sent!' : 'Resend verification email'}
             </button>
             <Link
               href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90"
               style={{ background: '#ffffff', color: '#78350f', border: '1.5px solid #fcd34d' }}
             >
-              <KeyRound className="h-3.5 w-3.5" />
-              Reset password
+              <KeyRound className="h-3 w-3" /> Reset password
             </Link>
-          </>
-        )}
-
-        {(errorState.type === 'INVALID_CREDENTIALS' || errorState.type === 'GENERIC') && (
-          <>
-            <Link
-              href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
-              style={{ background: '#d97706', color: '#ffffff' }}
-            >
-              <KeyRound className="h-3.5 w-3.5" />
-              Reset password
-            </Link>
-            <button
-              type="button"
-              onClick={onResendOrOTC}
-              disabled={resendLoading || resendSent}
-              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: '#ffffff', color: '#78350f', border: '1.5px solid #fcd34d' }}
-            >
-              {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-              {resendSent ? '✓ Code sent!' : 'Send a sign-in code instead'}
-            </button>
           </>
         )}
 
         {errorState.type === 'ACCOUNT_NOT_FOUND' && (
           <Link
             href="/signup"
-            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #f97316, #f59e0b)', color: '#ffffff' }}
           >
-            <ArrowRight className="h-3.5 w-3.5" />
-            Create a free account
-          </Link>
-        )}
-
-        {errorState.type === 'SUSPENDED' && (
-          <Link
-            href={supportHref}
-            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold transition-all hover:-translate-y-0.5"
-            style={{ background: '#dc2626', color: '#ffffff' }}
-          >
-            <Mail className="h-3.5 w-3.5" />
-            Contact support
+            <ArrowRight className="h-3 w-3" /> Create a free account
           </Link>
         )}
       </div>
@@ -558,38 +524,30 @@ function SignInContent() {
         </div>
 
         {/* ── RIGHT: Form panel ── */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-10 py-8" style={{ background: '#ffffff' }}>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-10 py-8" style={{ background: '#ffffff', fontFamily: '"Aptos", "Segoe UI", Inter, system-ui, -apple-system, sans-serif' }}>
           <div className="w-full max-w-md">
 
           <div className="mb-7">
-            <h2 className="text-2xl font-black" style={{ color: '#0f172a' }}>Sign in to your account</h2>
-            <p className="mt-1 text-sm" style={{ color: '#64748b' }}>
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-bold hover:underline" style={{ color: '#f97316' }}>Start your free trial</Link>
-            </p>
+            <h2 className="text-3xl font-black mb-1" style={{ color: '#0f172a' }}>Sign in to your account</h2>
+            <p className="text-base mb-3" style={{ color: '#64748b' }}>Don&apos;t have an account?</p>
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black transition-all hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #f97316, #f59e0b)', color: '#ffffff', boxShadow: '0 2px 10px rgba(249,115,22,0.3)' }}
+            >
+              <UserPlus className="h-4 w-4" /> Start your free trial
+            </Link>
           </div>
 
           <div suppressHydrationWarning>
-
-            {/* Error */}
-            {errorState && !(authMode === 'otp' && otpSent) && !magicLinkSent && (
-              <ErrorBlock
-                errorState={errorState}
-                email={email}
-                onResendOrOTC={handleResendOrOTC}
-                resendLoading={resendLoading}
-                resendSent={resendSent}
-                supportHref={buildSupportHref(email, errorState)}
-              />
-            )}
 
             {/* Google */}
             <button
               type="button"
               onClick={handleGoogleOAuth}
               disabled={loading}
-              className="mt-4 h-11 w-full inline-flex items-center justify-center gap-3 rounded-lg text-sm font-semibold transition-all hover:bg-gray-50 disabled:opacity-60"
-              style={{ background: '#fff', color: '#1e293b', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+              className="mt-4 h-12 w-full inline-flex items-center justify-center gap-3 rounded-xl text-base font-semibold transition-all hover:bg-gray-50 disabled:opacity-60"
+              style={{ background: '#fff', color: '#1e293b', border: '1.5px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -607,30 +565,30 @@ function SignInContent() {
             </div>
 
             {/* Auth mode tabs */}
-            <div className="flex rounded-lg p-1 mb-5" style={{ background: '#f1f5f9' }}>
+            <div className="flex rounded-xl p-1 mb-5" style={{ background: '#f1f5f9' }}>
               <button
                 type="button"
                 onClick={() => { setAuthMode('password'); setErrorState(null); setOtpCode(''); setOtpSent(false); setOtpTimeRemaining(0); setMagicLinkSent(false) }}
-                className="flex-1 rounded-md py-2 text-sm font-semibold transition-all"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all"
                 style={{
                   background: authMode === 'password' ? '#ffffff' : 'transparent',
                   color: authMode === 'password' ? '#0f172a' : '#64748b',
-                  boxShadow: authMode === 'password' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  boxShadow: authMode === 'password' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
                 }}
               >
-                Password
+                <Lock className="h-3.5 w-3.5" /> Password
               </button>
               <button
                 type="button"
                 onClick={() => { setAuthMode('otp'); setErrorState(null); setPassword(''); setOtpEmail(email); setOtpSent(false); setOtpCode(''); setMagicLinkSent(false) }}
-                className="flex-1 rounded-md py-2 text-sm font-semibold transition-all"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all"
                 style={{
                   background: authMode === 'otp' ? '#ffffff' : 'transparent',
                   color: authMode === 'otp' ? '#0f172a' : '#64748b',
-                  boxShadow: authMode === 'otp' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  boxShadow: authMode === 'otp' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
                 }}
               >
-                Code / Magic Link
+                <Sparkles className="h-3.5 w-3.5" /> Code / Magic Link
               </button>
             </div>
 
@@ -638,36 +596,39 @@ function SignInContent() {
             {authMode === 'password' && (
               <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
+                  <label htmlFor="email" className="block text-base font-bold mb-1.5" style={{ color: '#1e293b' }}>
                     Email
                   </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    required
-                    className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                    style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#94a3b8' }} />
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      required
+                      className="h-12 w-full rounded-xl pl-10 pr-4 text-base outline-none transition-all focus:ring-2 focus:ring-orange-200"
+                      style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #cbd5e1' }}
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="password" className="text-sm font-semibold" style={{ color: '#374151' }}>
+                    <label htmlFor="password" className="text-base font-bold" style={{ color: '#1e293b' }}>
                       Password
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => window.location.href = `/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                      className="text-xs font-semibold transition-colors hover:text-orange-600"
-                      style={{ color: '#f97316', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    <Link
+                      href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90"
+                      style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa' }}
                     >
-                      Forgot password?
-                    </button>
+                      <KeyRound className="h-3 w-3" /> Forgot password?
+                    </Link>
                   </div>
                   <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#94a3b8' }} />
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -675,16 +636,16 @@ function SignInContent() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
                       required
-                      className="h-11 w-full rounded-lg px-4 pr-11 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                      style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
+                      className="h-12 w-full rounded-xl pl-10 pr-11 text-base outline-none transition-all focus:ring-2 focus:ring-orange-200"
+                      style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #cbd5e1' }}
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2"
                       style={{ color: '#94a3b8' }}
                       onClick={() => setShowPassword((v) => !v)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                     </button>
                   </div>
                 </div>
@@ -692,7 +653,7 @@ function SignInContent() {
                 {errorState?.type === 'TWO_FACTOR_REQUIRED' && (
                   <>
                     <div>
-                      <label htmlFor="two-factor-code" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
+                      <label htmlFor="two-factor-code" className="block text-base font-bold mb-1.5" style={{ color: '#1e293b' }}>
                         Authenticator Code
                       </label>
                       <input
@@ -703,13 +664,13 @@ function SignInContent() {
                         value={twoFactorToken}
                         onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="123456"
-                        className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                        style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
+                        className="h-12 w-full rounded-xl px-4 text-base outline-none transition-all focus:ring-2 focus:ring-orange-200"
+                        style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #cbd5e1' }}
                       />
                     </div>
                     <div>
-                      <label htmlFor="two-factor-backup" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
-                        Backup Code <span className="font-normal text-xs" style={{ color: '#94a3b8' }}>(optional)</span>
+                      <label htmlFor="two-factor-backup" className="block text-base font-bold mb-1.5" style={{ color: '#1e293b' }}>
+                        Backup Code <span className="font-normal text-sm" style={{ color: '#94a3b8' }}>(optional)</span>
                       </label>
                       <input
                         id="two-factor-backup"
@@ -717,8 +678,8 @@ function SignInContent() {
                         value={twoFactorBackupCode}
                         onChange={(e) => setTwoFactorBackupCode(e.target.value.replace(/\s+/g, ''))}
                         placeholder="8-digit backup code"
-                        className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                        style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
+                        className="h-12 w-full rounded-xl px-4 text-base outline-none transition-all focus:ring-2 focus:ring-orange-200"
+                        style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #cbd5e1' }}
                       />
                     </div>
                   </>
@@ -727,12 +688,12 @@ function SignInContent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="h-11 w-full inline-flex items-center justify-center gap-2 rounded-lg text-sm font-bold transition-all hover:opacity-90 disabled:opacity-60 mt-2"
-                  style={{ background: '#f97316', color: '#fff', boxShadow: '0 2px 8px rgba(249,115,22,0.3)' }}
+                  className="h-13 w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-black transition-all hover:opacity-90 active:scale-98 disabled:opacity-60 mt-2"
+                  style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 14px rgba(249,115,22,0.4)', height: '52px' }}
                 >
                   {loading
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <>{errorState?.type === 'TWO_FACTOR_REQUIRED' ? 'Verify & Sign In' : 'Sign In'} <ArrowRight className="h-4 w-4" /></>}
+                    ? <Loader2 className="h-5 w-5 animate-spin" />
+                    : <>{errorState?.type === 'TWO_FACTOR_REQUIRED' ? 'Verify & Sign In' : 'Sign In'} <ArrowRight className="h-5 w-5" /></>}
                 </button>
               </form>
             )}
@@ -741,19 +702,22 @@ function SignInContent() {
             {authMode === 'otp' && (
               <form onSubmit={(e) => { e.preventDefault(); handleVerifyOTP() }} className="space-y-4" suppressHydrationWarning>
                 <div>
-                  <label htmlFor="otp-email" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
+                  <label htmlFor="otp-email" className="block text-base font-bold mb-1.5" style={{ color: '#1e293b' }}>
                     Email
                   </label>
-                  <input
-                    id="otp-email"
-                    type="email"
-                    value={otpEmail}
-                    onChange={(e) => { setOtpEmail(e.target.value); setOtpSent(false); setMagicLinkSent(false); setErrorState(null) }}
-                    placeholder="you@company.com"
-                    disabled={otpSent || magicLinkSent}
-                    className="h-11 w-full rounded-lg px-4 text-sm outline-none transition-all focus:ring-2 focus:ring-orange-200 disabled:opacity-60"
-                    style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #94a3b8' }}
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: '#94a3b8' }} />
+                    <input
+                      id="otp-email"
+                      type="email"
+                      value={otpEmail}
+                      onChange={(e) => { setOtpEmail(e.target.value); setOtpSent(false); setMagicLinkSent(false); setErrorState(null) }}
+                      placeholder="you@company.com"
+                      disabled={otpSent || magicLinkSent}
+                      className="h-12 w-full rounded-xl pl-10 pr-4 text-base outline-none transition-all focus:ring-2 focus:ring-orange-200 disabled:opacity-60"
+                      style={{ background: '#ffffff', color: '#0f172a', border: '2px solid #cbd5e1' }}
+                    />
+                  </div>
                 </div>
 
                 {magicLinkSent ? (
@@ -841,7 +805,7 @@ function SignInContent() {
                       <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>Enter the 6-digit code from your inbox</p>
                     </div>
                     <div>
-                      <label htmlFor="otp-code" className="block text-sm font-bold mb-1.5" style={{ color: '#1e293b' }}>
+                      <label htmlFor="otp-code" className="block text-base font-bold mb-1.5" style={{ color: '#1e293b' }}>
                         6-Digit Code
                       </label>
                       <input
@@ -852,47 +816,53 @@ function SignInContent() {
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                         placeholder="000000"
-                        className="h-14 w-full rounded-lg px-4 text-3xl font-mono text-center outline-none transition-all focus:ring-2 focus:ring-orange-200"
-                        style={{ background: '#f8fafc', color: '#0f172a', border: '1.5px solid #e2e8f0', letterSpacing: '12px' }}
+                        className="h-16 w-full rounded-xl px-4 text-4xl font-mono text-center outline-none transition-all focus:ring-2 focus:ring-orange-200"
+                        style={{ background: '#f8fafc', color: '#0f172a', border: '2px solid #cbd5e1', letterSpacing: '14px' }}
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={loading || otpCode.length !== 6}
-                      className="h-11 w-full inline-flex items-center justify-center gap-2 rounded-lg text-sm font-bold transition-all hover:opacity-90 disabled:opacity-60"
-                      style={{ background: '#f97316', color: '#fff', boxShadow: '0 2px 8px rgba(249,115,22,0.3)' }}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-base font-black transition-all hover:opacity-90 active:scale-98 disabled:opacity-60"
+                      style={{ background: '#f97316', color: '#fff', boxShadow: '0 4px 14px rgba(249,115,22,0.4)', height: '52px' }}
                     >
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify & Sign In <ArrowRight className="h-4 w-4" /></>}
+                      {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Verify & Sign In <ArrowRight className="h-5 w-5" /></>}
                     </button>
                     <button
                       type="button"
                       onClick={async () => { setOtpCode(''); setOtpTimeRemaining(0); setOtpSent(false); await handleSendOTP() }}
                       disabled={otpSending}
-                      className="h-10 w-full inline-flex items-center justify-center gap-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-60"
-                      style={{ background: '#f1f5f9', color: '#1e293b', border: '2px solid #94a3b8' }}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-60"
+                      style={{ background: '#f1f5f9', color: '#1e293b', border: '2px solid #cbd5e1', height: '44px' }}
                     >
-                      {otpSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Mail className="h-3.5 w-3.5" /> Resend code</>}
+                      {otpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Mail className="h-4 w-4" /> Resend code</>}
                     </button>
                   </>
                 )}
               </form>
             )}
 
-            {/* Footer helpers */}
-            <div className="mt-6 pt-5 flex gap-3" style={{ borderTop: '1px solid #e2e8f0' }}>
+            {/* Error — shown below the active form */}
+            {errorState && !(authMode === 'otp' && otpSent) && !magicLinkSent && (
+              <div className="mt-4">
+                <ErrorBlock
+                  errorState={errorState}
+                  email={email}
+                  onResendOrOTC={handleResendOrOTC}
+                  resendLoading={resendLoading}
+                  resendSent={resendSent}
+                />
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="mt-6 pt-5" style={{ borderTop: '1px solid #e2e8f0' }}>
               <Link
                 href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-                className="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition-all hover:opacity-90"
-                style={{ background: '#1d4ed8', color: '#ffffff' }}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-3 text-base font-bold transition-all hover:opacity-90 active:scale-98"
+                style={{ background: '#1e40af', color: '#ffffff', height: '52px', boxShadow: '0 2px 8px rgba(30,64,175,0.25)' }}
               >
-                Reset Password
-              </Link>
-              <Link
-                href="/support?category=Account%20%26%20Access"
-                className="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold transition-all hover:opacity-90"
-                style={{ background: '#334155', color: '#ffffff' }}
-              >
-                Contact Support
+                <KeyRound className="h-5 w-5" /> Forgot your password? Reset it here
               </Link>
             </div>
           </div>
