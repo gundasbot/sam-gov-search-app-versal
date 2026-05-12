@@ -3899,18 +3899,8 @@ ${filteredResults.map(opp => ` <opportunity>
  })
  }
 
- // ── ALWAYS filter by status if selected ──
- if (!opportunityStatus.trim() || opportunityStatus.toLowerCase() === 'active') {
- // When status=active: ALSO drop past-deadline opportunities.
- // SAM.gov status=active means"not archived", NOT"deadline in future".
- // Opportunities with no responseDeadLine are kept (open-ended contracts).
- const now = Date.now()
- arr = arr.filter(o => {
- if (!o.responseDeadLine) return true
- return new Date(o.responseDeadLine).getTime() >= now
- })
- } else {
- // User selected a specific non-active status (archived, cancelled, etc.)
+ // ── Filter by status only when a specific non-active status is selected ──
+ if (opportunityStatus.trim() && opportunityStatus.toLowerCase() !== 'active') {
  arr = arr.filter(o => {
  const oppActive = (o.active || '').toString().toLowerCase()
  const oppStatus = (o.status || '').toLowerCase()
