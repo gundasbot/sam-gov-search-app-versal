@@ -10,7 +10,7 @@ import {
   LogOut, LogIn, Menu, X, ChevronDown, CreditCard, Search, Award,
   TrendingUp, Briefcase, ExternalLink, LayoutDashboard,
   LineChart, Zap, Sparkles, Building, User, Loader2, Mail, Bell,
-  FileText, ShieldCheck, Settings, UserRound, Bookmark, BookUser,
+  FileText, ShieldCheck, Settings, UserRound, Bookmark, BookUser, Heart,
 } from 'lucide-react'
 import AccessControlModal from './AccessControlModal'
 import ThemeToggle from './ThemeToggle'
@@ -373,6 +373,15 @@ export default function Header() {
               </div>
               {isAuthed ? (
                 <>
+                  {/* My Favorites shortcut */}
+                  <Link
+                    href="/dashboard/saved-opportunities"
+                    prefetch={false}
+                    title="My Favorites"
+                    className="relative inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white shadow-sm hover:border-rose-400 hover:text-rose-500 transition-colors text-slate-500 shrink-0"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </Link>
                   <div className="relative" ref={userMenuRef}>
                     <button
                       type="button"

@@ -8,7 +8,7 @@ import { useSession } from"next-auth/react";
 import {
  FileText, Building2, Target, MapPin, Loader2, HelpCircle, X, Save, Bell,
  Settings, Tag, Layers, Users, MessageSquare, ExternalLink, Shield, Check,
- Bookmark, Clock, Calendar, Hash, Copy, ArrowUpRight, Phone, AlertTriangle,
+ Bookmark, Heart, Clock, Calendar, Hash, Copy, ArrowUpRight, Phone, AlertTriangle,
  ChevronUp, ChevronDown, Search, StopCircle, RefreshCw, CheckCircle,
  Filter, SlidersHorizontal, List, Grid, AlertCircle, Plus, BarChart3,
  TrendingUp, Sparkles, BarChart2, Download,
@@ -4288,24 +4288,6 @@ const visibleSearchSummaryParts = useMemo(
    </span>
  </p>
  </div>
- <div className="flex items-center gap-2 flex-wrap">
- <Link
- href="/alerts/manage-searches"
- className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-black shadow-md transition-colors"
- style={{ fontSize: "15px" }}
- >
- <Bookmark className="h-4 w-4" />
- See your saved searches
- </Link>
- <Link
- href="/alerts/manage-alerts"
- className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black shadow-md transition-colors"
- style={{ fontSize: "15px" }}
- >
- <Bell className="h-4 w-4" />
- See your saved alerts
- </Link>
- </div>
  </div>
 
  {/* ── KEYWORD SEARCH BAR ── */}
@@ -4897,10 +4879,11 @@ const visibleSearchSummaryParts = useMemo(
  if (!requireAccess('Save Opportunities')) return;
  toggleSaved(opp.noticeId || String(globalIndex), opp);
  }}
- className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 ${saved[opp.noticeId || String(globalIndex)] ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-orange-400 hover:text-orange-500'}`}
+ title={saved[opp.noticeId || String(globalIndex)] ? 'Remove from favorites' : 'Add to favorites'}
+ className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-150 active:scale-95 ${saved[opp.noticeId || String(globalIndex)] ? 'bg-rose-500 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-rose-400 hover:text-rose-500'}`}
  >
- <Bookmark className={`h-4 w-4 ${saved[opp.noticeId || String(globalIndex)] ? 'fill-current' : ''}`} />
- {saved[opp.noticeId || String(globalIndex)] ? 'Saved ✓' : 'Save'}
+ <Heart className={`h-4 w-4 ${saved[opp.noticeId || String(globalIndex)] ? 'fill-current' : ''}`} />
+ {saved[opp.noticeId || String(globalIndex)] ? '♥ Favorited' : 'Favorite'}
  </button>
  </div>
  {/* Highlight badges */}
@@ -4955,56 +4938,29 @@ const visibleSearchSummaryParts = useMemo(
  </div>
  )}
  </div>
- {/* Actions: Save Search (left) and Create Alert (right) */}
- <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2 flex-wrap">
+ {/* Actions row */}
+ <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
    <button
-     onClick={(e) => {
-       e.stopPropagation();
-       handleOpenSaveModal && handleOpenSaveModal('save');
-     }}
-     className="px-5 py-2.5 rounded-lg font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow transition-colors"
-     style={{ minWidth: 140 }}
-     aria-label="Save this search"
+     className="font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors text-sm"
+     onClick={(e) => { e.stopPropagation(); setSelectedOpp(opp); }}
    >
-     <Bookmark className="h-4 w-4 inline-block mr-1 -mt-0.5" /> Save Search
+     Quick view
    </button>
-
-   <div className="flex items-center gap-2 flex-1 justify-center">
-     <button
-       className="font-bold text-[#166534] underline underline-offset-2 hover:text-[#14532d] transition-colors"
-       style={{ fontSize: "16px" }}
-       onClick={(e) => { e.stopPropagation(); setSelectedOpp(opp); }}
-     >
-       Preview
+   {opp.uiLink && (
+     <a href={opp.uiLink} target="_blank" rel="noopener noreferrer"
+       onClick={(e) => e.stopPropagation()}
+       className="font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors text-sm">
+       View on SAM.gov <ArrowUpRight className="h-3.5 w-3.5"/>
+     </a>
+   )}
+   {copiedId === opp.noticeId ? (
+     <span className="text-xs text-green-600 font-semibold ml-auto">Copied!</span>
+   ) : (
+     <button onClick={(e) => { e.stopPropagation(); copyText(opp.noticeId || ''); }}
+       className="ml-auto font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors text-xs">
+       <Copy className="h-3 w-3"/>Copy ID
      </button>
-     {opp.uiLink && (
-       <a href={opp.uiLink} target="_blank" rel="noopener noreferrer"
-         onClick={(e) => e.stopPropagation()}
-         className="font-bold text-gray-500 flex items-center gap-1 hover:text-[#166534] transition-colors" style={{ fontSize: "16px" }}>
-         SAM.gov <ArrowUpRight className="h-3.5 w-3.5"/>
-       </a>
-     )}
-     {copiedId === opp.noticeId ? (
-       <span className="text-xs text-green-600 font-semibold">Copied!</span>
-     ) : (
-       <button onClick={(e) => { e.stopPropagation(); copyText(opp.noticeId || ''); }}
-         className="font-bold text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors" style={{ fontSize: "16px" }}>
-         <Copy className="h-3 w-3"/>Copy ID
-       </button>
-     )}
-   </div>
-
-   <button
-     onClick={(e) => {
-       e.stopPropagation();
-       handleOpenSaveModal && handleOpenSaveModal('alert');
-     }}
-     className="px-5 py-2.5 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 shadow transition-colors"
-     style={{ minWidth: 140 }}
-     aria-label="Create alert from this search"
-   >
-     <Bell className="h-4 w-4 inline-block mr-1 -mt-0.5" /> Create Alert
-   </button>
+   )}
  </div>
  </div>
  );

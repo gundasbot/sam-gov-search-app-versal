@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import {
-  X, Bookmark, ArrowUpRight, Building2, MapPin, Phone,
+  X, Heart, ArrowUpRight, Building2, MapPin, Phone,
   Mail, FileText, Calendar, Tag, Shield, Clock, Hash,
 } from "lucide-react"
 
@@ -98,17 +98,17 @@ export default function OpportunityDetailDrawer({ opp, isSaved, onToggleSaved, o
       >
         {/* ── Action bar ── */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 flex-shrink-0">
-          {/* Save / Saved button */}
+          {/* Favorite / Favorited button */}
           <button
             onClick={() => onToggleSaved(id, opp)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold text-sm transition-all duration-150 active:scale-95 ${
               isSaved
-                ? "bg-orange-500 text-white"
-                : "bg-white text-gray-700 border border-gray-300 hover:border-orange-400 hover:text-orange-500"
+                ? "bg-rose-500 text-white"
+                : "bg-white text-gray-700 border border-gray-300 hover:border-rose-400 hover:text-rose-500"
             }`}
           >
-            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-            {isSaved ? "Saved ✓" : "Save"}
+            <Heart className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
+            {isSaved ? "Favorited ♥" : "Favorite"}
           </button>
 
           {/* Open SAM.gov */}
