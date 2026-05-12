@@ -1398,279 +1398,140 @@ function OverviewTab({ profile, plan, currentPlanDetails, usage, bids, setActive
   ].filter(Boolean).length
   const profileCompletenessPct = Math.round((profileCompleteness / 6) * 100)
 
-  return (
-    <div className="pg-account-content space-y-6">
+  const sectionFolders = [
+    { tab: 'profile' as TabType,   icon: User,           color: G.profile,   title: 'Profile',             desc: 'Edit name, contact info, company details, and social links' },
+    { tab: 'billing' as TabType,   icon: CreditCard,     color: G.billing,   title: 'Billing & Payments',  desc: 'Manage subscription, payment methods, invoices, and renewals' },
+    { tab: 'bids' as TabType,      icon: Gavel,          color: G.bids,      title: 'Bids & Pursuits',     desc: 'Track active bids, submitted proposals, and award history' },
+    { tab: 'support' as TabType,   icon: HeadphonesIcon, color: G.support,   title: 'Customer Support',    desc: 'Submit tickets, get technical help, and contact our team' },
+    { tab: 'settings' as TabType,  icon: Settings,       color: G.settings,  title: 'Login & Security',    desc: 'Change password, two-factor authentication, and notifications' },
+    { tab: 'overview' as TabType,  icon: Activity,       color: G.overview,  title: 'Usage & Plan',        desc: 'View search usage, export limits, and your current plan' },
+  ]
 
-      {/* 4 stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: s.color.bg }}>
-                <s.icon size={20} color="white" strokeWidth={2} />
+  return (
+    <div className="pg-account-content space-y-7">
+
+      {/* Amazon-style section grid */}
+      <div>
+        <h2 className="text-xl font-black text-slate-800 mb-4">Your Account</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sectionFolders.map(s => (
+            <button
+              key={s.tab}
+              type="button"
+              onClick={() => setActiveTab(s.tab)}
+              className="group flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+            >
+              <div
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
+                style={{ background: s.color.soft, border: `1.5px solid ${s.color.softBorder}` }}
+              >
+                <s.icon size={22} style={{ color: s.color.hex }} />
               </div>
-              <ArrowUpRight size={14} color="#cbd5e1" />
-            </div>
-            <p className="text-3xl font-black text-slate-900">{s.value}</p>
-            <p className="text-sm font-semibold text-slate-600 mt-0.5">{s.label}</p>
-          </div>
-        ))}
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="text-base font-bold text-slate-900 group-hover:text-slate-700">{s.title}</p>
+                <p className="mt-0.5 text-sm leading-snug text-slate-500">{s.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        {/* Profile + quick actions */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-          <CardHeader icon={User} title="Profile" gradient={G.profile.bg}>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all hover:opacity-90"
-              style={{ color: '#ffffff', background: G.profile.hex }}
-            >
-              Edit Profile <ChevronRight size={14} />
-            </button>
-          </CardHeader>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">First Name</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800">{profile.first_name || 'Not set'}</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Last Name</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800">{profile.last_name || 'Not set'}</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Email Address</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800 flex items-center gap-1.5 min-w-0">
-                <Mail size={13} color={G.profile.hex} className="shrink-0" />
-                <span className="truncate">{profile.email || 'Not set'}</span>
-                {profile.email_verified && <CheckCircle2 size={13} color="#10b981" className="shrink-0" />}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Phone Number</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                <Phone size={13} color={G.profile.hex} className="shrink-0" />
-                <span>{profile.phone || 'Not set'}</span>
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:col-span-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Social Media</p>
-              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {socialPlatforms.map(platform => {
-                  const hasValue = Boolean(platform.value)
-                  return (
-                    <a
-                      key={platform.label}
-                      href={hasValue ? platform.value : platform.loginUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition-colors"
-                    >
-                      <span className="flex items-center gap-2 min-w-0">
-                        <platform.icon size={14} color={G.profile.hex} className="shrink-0" />
-                        <span className="font-semibold text-slate-700 truncate">{platform.label}</span>
-                      </span>
-                      <span className="text-xs font-bold" style={{ color: G.profile.hex }}>
-                        {hasValue ? 'Open' : 'Add'}
-                      </span>
-                    </a>
-                  )
-                })}
-                {!socialPlatforms.some(p => Boolean(p.value)) && socialMediaValue && (
-                  <a
-                    href={socialMediaValue}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="sm:col-span-2 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50 transition-colors"
-                  >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <MessageSquare size={14} color={G.profile.hex} className="shrink-0" />
-                      <span className="font-semibold text-slate-700 truncate">Other Social Profile</span>
-                    </span>
-                    <span className="text-xs font-bold" style={{ color: G.profile.hex }}>Open</span>
-                  </a>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:col-span-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Company</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                <Building2 size={13} color={G.profile.hex} className="shrink-0" />
-                <span>{profile.company || 'Not set'}</span>
-                {profile.title && <span className="text-slate-500 font-medium">· {profile.title}</span>}
-              </p>
-            </div>
-          </div>
-
-          {/* Quick actions */}
-          <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              {
-                label: 'Edit Profile',
-                desc: 'Update contact info, company details, and account identity.',
-                tab: 'profile',
-                icon: User,
-                color: G.profile,
-              },
-              {
-                label: 'View Billing',
-                desc: 'Manage plan, payment methods, invoices, and renewals.',
-                tab: 'billing',
-                icon: CreditCard,
-                color: G.billing,
-              },
-              {
-                label: 'Track Bids',
-                desc: 'Review active pursuits, status changes, and win progress.',
-                tab: 'bids',
-                icon: Gavel,
-                color: G.bids,
-              },
-              {
-                label: 'Get Support',
-                desc: 'Open account help, technical support, and guidance requests.',
-                tab: 'support',
-                icon: HeadphonesIcon,
-                color: G.support,
-              },
-            ].map(a => (
-              <button
-                key={a.tab}
-                onClick={() => setActiveTab(a.tab as TabType)}
-                className="group rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md"
-                style={{
-                  borderColor: a.color.softBorder,
-                  background: `linear-gradient(145deg, #ffffff 0%, ${a.color.soft} 100%)`,
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm" style={{ background: a.color.bg }}>
-                    <a.icon size={18} color="white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-black leading-tight" style={{ color: 'var(--color-text-primary)', fontSize: '1.1rem' }}>{a.label}</p>
-                    <p className="mt-1 leading-relaxed" style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', fontWeight: 700 }}>{a.desc}</p>
-                  </div>
-                  <ChevronRight size={16} color={a.color.hex} className="mt-1 shrink-0 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Plan + Usage */}
-        <div className="space-y-5">
+        {/* Plan card */}
+        <div className="lg:col-span-1">
           {currentPlanDetails ? (
-            <div className="rounded-2xl p-5 text-white shadow-lg" style={{ background: currentPlanDetails.bg }}>
+            <div className="rounded-xl p-5 text-white shadow-md h-full flex flex-col" style={{ background: currentPlanDetails.bg }}>
               <div className="flex items-center gap-2 mb-3">
-                <currentPlanDetails.icon size={20} color="white" />
-                <span className="font-black text-lg">{currentPlanDetails.name}</span>
+                <currentPlanDetails.icon size={18} color="white" />
+                <span className="font-black">{currentPlanDetails.name}</span>
                 <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
                   {plan?.status === 'trialing' ? 'Trialing' : 'Active'}
                 </span>
               </div>
-              <p className="text-sm font-black mb-3" style={{ color: 'rgba(255,255,255,0.98)' }}>
-                Your plan offers the following:
-              </p>
-              <ul className="space-y-1.5 mb-4">
-                {currentPlanDetails.features.map((f: string, i: number) => (
+              <ul className="space-y-1.5 mb-5 flex-1">
+                {currentPlanDetails.features.slice(0, 5).map((f: string, i: number) => (
                   <li key={i} className="text-sm flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.9)' }}>
-                    <Check size={13} color="white" strokeWidth={3} /> {f}
+                    <Check size={12} color="white" strokeWidth={3} /> {f}
                   </li>
                 ))}
               </ul>
               <button
                 onClick={() => setActiveTab('billing')}
-                className="w-full py-2 rounded-xl text-white text-sm font-bold transition-opacity hover:opacity-80"
+                className="w-full py-2 rounded-lg text-white text-sm font-bold transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(255,255,255,0.2)' }}
               >
                 Manage Plan →
               </button>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 text-center shadow-sm">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-                <CreditCard size={24} color="#94a3b8" />
+            <div className="rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm h-full flex flex-col items-center justify-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                <CreditCard size={22} color="#94a3b8" />
               </div>
-              <p className="font-bold text-slate-900">No Active Plan</p>
-              <p className="text-sm text-slate-500 mt-1">Upgrade to unlock full access</p>
+              <div>
+                <p className="font-bold text-slate-900">No Active Plan</p>
+                <p className="text-sm text-slate-500 mt-0.5">Upgrade to unlock full access</p>
+              </div>
               <button
                 onClick={() => setActiveTab('billing')}
-                className="mt-3 px-4 py-2 text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity"
+                className="px-4 py-2 text-white text-sm font-bold rounded-lg hover:opacity-90 transition-opacity"
                 style={{ background: G.billing.bg }}
               >
                 View Plans
               </button>
             </div>
           )}
+        </div>
 
-          {usage?.available && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-sm">
-                <Activity size={15} color={G.overview.hex} /> Usage This Month
-              </h3>
-              <div className="space-y-4">
-                {[
-                  { label: 'Searches', current: usage.searches, limit: usage.limits?.searches ?? -1, color: G.overview.hex },
-                  { label: 'Exports',  current: usage.exports,  limit: usage.limits?.exports ?? -1,  color: G.profile.hex },
-                  { label: 'Saved',    current: usage.savedOpportunities, limit: usage.limits?.savedOpportunities ?? -1, color: G.billing.hex },
-                ].map(item => {
-                  const pct = item.limit === -1 ? null : Math.min((item.current / item.limit) * 100, 100)
-                  return (
-                    <div key={item.label}>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs font-semibold text-slate-500">{item.label}</span>
-                        <span className="text-xs font-bold text-slate-900">
-                          {item.current}{item.limit !== -1 ? ` / ${item.limit}` : ''}
-                        </span>
-                      </div>
-                      {pct !== null && (
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: item.color }} />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        {/* Usage bars */}
+        {usage?.available && (
+          <div className="lg:col-span-1 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-sm">
-              <Target size={15} color={G.profile.hex} /> Account Snapshot
+              <Activity size={14} color={G.overview.hex} /> Usage This Month
             </h3>
-            <div className="space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Profile Completion</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">{profileCompletenessPct}% complete</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Plan Status</p>
-                <p className="mt-1 text-sm font-bold text-slate-900 capitalize">{plan?.status || 'inactive'}</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                <button
-                  onClick={() => setActiveTab('profile')}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Complete Profile
-                </button>
-                <button
-                  onClick={() => setActiveTab('billing')}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Billing Settings
-                </button>
-              </div>
+            <div className="space-y-4">
+              {[
+                { label: 'Searches', current: usage.searches, limit: usage.limits?.searches ?? -1, color: G.overview.hex },
+                { label: 'Exports',  current: usage.exports,  limit: usage.limits?.exports ?? -1,  color: G.profile.hex },
+                { label: 'Saved',    current: usage.savedOpportunities, limit: usage.limits?.savedOpportunities ?? -1, color: G.billing.hex },
+              ].map(item => {
+                const pct = item.limit === -1 ? null : Math.min((item.current / item.limit) * 100, 100)
+                return (
+                  <div key={item.label}>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-xs font-semibold text-slate-500">{item.label}</span>
+                      <span className="text-xs font-bold text-slate-900">
+                        {item.current}{item.limit !== -1 ? ` / ${item.limit}` : ''}
+                      </span>
+                    </div>
+                    {pct !== null && (
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: item.color }} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
+          </div>
+        )}
+
+        {/* Activity stats */}
+        <div className="lg:col-span-1 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-sm">
+            <Target size={14} color={G.profile.hex} /> Activity Summary
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {statCards.map(s => (
+              <div key={s.label} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ background: s.color.bg }}>
+                  <s.icon size={16} color="white" strokeWidth={2} />
+                </div>
+                <p className="text-2xl font-black text-slate-900">{s.value}</p>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">{s.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -3252,182 +3113,187 @@ function BillingTab({ plan, currentPlanDetails, paymentMethods, invoices, billin
         </div>
       </div>
 
-      {/* Payment methods */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <CardHeader icon={CreditCard} title="Payment Methods" gradient={G.overview.bg}>
+      {/* Wallet */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: G.billing.bg }}>
+              <CreditCard size={18} color="white" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">Wallet</h2>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => setShowAddCard(prev => !prev)}
-              className="px-4 py-2 text-white! text-sm font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center gap-1.5"
-              style={{ background: G.billing.bg, color: '#fff' }}
+              className="px-3 py-1.5 text-white text-sm font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1.5"
+              style={{ background: G.billing.bg }}
             >
-              <Plus size={14} color="#fff" /> {showAddCard ? 'Hide Add Card' : 'Add Card'}
+              <Plus size={13} /> {showAddCard ? 'Cancel' : 'Add Card'}
             </button>
             <button
               onClick={managePaymentMethod}
-              className="px-4 py-2 text-sm font-bold rounded-xl hover:opacity-90 transition-opacity border border-slate-200 text-slate-700"
+              className="px-3 py-1.5 text-sm font-bold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
             >
               Manage in Stripe ↗
             </button>
           </div>
-        </CardHeader>
+        </div>
 
         {showAddCard && (
-          <AddCardInline onCardAdded={onCardAdded} onClose={() => setShowAddCard(false)} profile={profile} />
+          <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <AddCardInline onCardAdded={onCardAdded} onClose={() => setShowAddCard(false)} profile={profile} />
+          </div>
         )}
 
         {paymentMethods.length > 0 ? (
           <>
-          <div id="saved-cards-list" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {paymentMethods.map((m: PaymentMethod) => (
-              <div
-                key={m.id}
-                className="flex flex-col p-4 rounded-xl border"
-                style={m.isDefault ? { borderColor: G.overview.softBorder, background: G.overview.soft } : { borderColor: '#f1f5f9', background: '#fafafa' }}
-              >
-                {/* Card identity row */}
-                <div className="flex items-start gap-3 mb-3">
+          <div id="saved-cards-list" className="flex flex-col lg:flex-row min-h-[320px]">
+            {/* Left: card list */}
+            <div className="lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 overflow-y-auto">
+              {paymentMethods.map((m: PaymentMethod) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSelectedCheckoutCardId(selectedCheckoutCardId === m.id ? null : m.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors"
+                  style={selectedCheckoutCardId === m.id ? { background: '#eff6ff', borderLeft: '3px solid #3b82f6' } : {}}
+                >
                   <CardBrandBadge brand={m.brand} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="font-semibold text-slate-900 text-sm capitalize">{m.brand} •••• {m.last4}</p>
-                      {m.funding && m.funding !== 'unknown' && (
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-black uppercase tracking-wide text-white!"
-                          style={{
-                            color: '#fff',
-                            background:
-                              m.funding === 'debit' ? '#b45309' :
-                              m.funding === 'prepaid' ? '#6d28d9' :
-                              '#1d4ed8',
-                          }}
-                        >{m.funding}</span>
-                      )}
-                      {m.isDefault && (
-                        <span className="inline-flex items-center gap-1 text-xs font-black px-2 py-0.5 rounded text-white!" style={{ background: '#1d4ed8', color: '#fff' }}>
-                          <CheckCircle2 size={11} /> Default
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs font-semibold text-slate-500 mt-0.5">Expires {m.expMonth}/{m.expYear}</p>
+                    <p className="text-sm font-semibold text-slate-900 capitalize">{m.brand} •••• {m.last4}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{m.nickname || `Expires ${m.expMonth}/${m.expYear}`}</p>
                   </div>
-                </div>
-
-                {/* Nickname */}
-                {editingCardId === m.id ? (
-                  <div className="mb-3 flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={nicknameDraft}
-                      onChange={e => setNicknameDraft(e.target.value)}
-                      placeholder="Card nickname"
-                      className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 flex-1 min-w-0"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => saveCardNickname(m.id)}
-                      disabled={savingNickname}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-50 shrink-0"
-                      style={{ background: G.billing.bg }}
-                    >
-                      {savingNickname ? 'Saving…' : 'Save'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setEditingCardId(null); setNicknameDraft('') }}
-                      disabled={savingNickname}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 text-slate-600 disabled:opacity-50 shrink-0"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mb-3 flex items-center gap-2">
-                    {m.nickname
-                      ? <p className="text-xs font-semibold text-slate-700 truncate flex-1">{m.nickname}</p>
-                      : <p className="text-xs font-semibold text-slate-400 flex-1">No nickname</p>}
-                    <button
-                      type="button"
-                      onClick={() => { setEditingCardId(m.id); setNicknameDraft(m.nickname || '') }}
-                      className="text-xs font-bold text-blue-700 hover:text-blue-900 shrink-0"
-                    >
-                      {m.nickname ? 'Edit' : 'Add name'}
-                    </button>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="mt-auto flex flex-wrap gap-1.5">
-                  {/* Select / deselect */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCheckoutCardId(selectedCheckoutCardId === m.id ? null : m.id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-black text-white! hover:opacity-90 transition-opacity"
-                    style={{ background: selectedCheckoutCardId === m.id ? '#0f766e' : '#475569', color: '#fff' }}
-                  >
-                    {selectedCheckoutCardId === m.id ? 'Selected ✓' : 'Select'}
-                  </button>
-                  {/* Checkout */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCheckoutCardId(m.id)
-                      document.getElementById('billing-plan-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-black text-white! hover:opacity-90 transition-opacity"
-                    style={{ background: '#059669', color: '#fff' }}
-                  >
-                    Checkout
-                  </button>
-                  {/* Set Default */}
-                  {!m.isDefault && (
-                    <button
-                      type="button"
-                      onClick={() => handleSetDefault(m.id)}
-                      disabled={settingDefaultId === m.id}
-                      className="px-3 py-1.5 rounded-lg text-xs font-black text-white! hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
-                      style={{ background: '#1d4ed8', color: '#fff' }}
-                    >
-                      {settingDefaultId === m.id
-                        ? <><Loader2 size={11} className="animate-spin" /> Setting…</>
-                        : 'Set Default'}
-                    </button>
+                  {m.isDefault && (
+                    <span className="text-[11px] font-black px-1.5 py-0.5 rounded" style={{ background: '#1d4ed8', color: '#fff' }}>
+                      Default
+                    </span>
                   )}
-                  {/* Remove */}
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCard(m.id)}
-                    disabled={deletingId === m.id}
-                    className="px-3 py-1.5 rounded-lg text-xs font-black text-white! hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
-                    style={{ background: '#dc2626', color: '#fff' }}
-                  >
-                    {deletingId === m.id
-                      ? <><Loader2 size={11} className="animate-spin" /> Removing…</>
-                      : 'Remove'}
-                  </button>
+                </button>
+              ))}
+              {/* Add payment method row */}
+              <button
+                type="button"
+                onClick={() => setShowAddCard(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors border-t border-dashed border-slate-200"
+              >
+                <div className="w-10 h-7 rounded border-2 border-dashed border-slate-300 flex items-center justify-center">
+                  <Plus size={14} color="#94a3b8" />
                 </div>
-              </div>
-            ))}
+                Add a payment method
+              </button>
+            </div>
+
+            {/* Right: selected card detail */}
+            <div className="flex-1 p-6">
+              {(() => {
+                const m = paymentMethods.find((pm: PaymentMethod) => pm.id === selectedCheckoutCardId)
+                if (!m) return (
+                  <div className="h-full flex flex-col items-center justify-center text-center gap-3 py-10">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                      <CreditCard size={28} color="#94a3b8" />
+                    </div>
+                    <p className="font-semibold text-slate-500 text-sm">Select a card to manage it</p>
+                  </div>
+                )
+                return (
+                  <div className="max-w-sm">
+                    {/* Visual card */}
+                    <div
+                      className="rounded-xl p-5 mb-5 text-white"
+                      style={{ background: 'linear-gradient(135deg, #1e40af 0%, #1d4ed8 60%, #2563eb 100%)', boxShadow: '0 8px 24px rgba(37,99,235,0.35)', minHeight: 140 }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <CardBrandBadge brand={m.brand} />
+                        {m.isDefault && (
+                          <span className="text-[11px] font-black px-2 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.2)' }}>Default</span>
+                        )}
+                      </div>
+                      <p className="text-xl font-black tracking-widest mt-2">•••• •••• •••• {m.last4}</p>
+                      <div className="flex items-center justify-between mt-3">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide opacity-70">Expires</p>
+                          <p className="text-sm font-bold">{m.expMonth}/{m.expYear}</p>
+                        </div>
+                        <p className="text-sm font-bold capitalize opacity-80">{m.funding || 'credit'}</p>
+                      </div>
+                    </div>
+
+                    {/* Card name / nickname */}
+                    <p className="text-base font-bold text-slate-900 mb-1 capitalize">{m.brand} Card ending in {m.last4}</p>
+                    {editingCardId === m.id ? (
+                      <div className="mb-4 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={nicknameDraft}
+                          onChange={e => setNicknameDraft(e.target.value)}
+                          placeholder="Card nickname"
+                          className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700"
+                        />
+                        <button type="button" onClick={() => saveCardNickname(m.id)} disabled={savingNickname}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-50" style={{ background: G.billing.bg }}>
+                          {savingNickname ? 'Saving…' : 'Save'}
+                        </button>
+                        <button type="button" onClick={() => { setEditingCardId(null); setNicknameDraft('') }}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 text-slate-600">
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mb-4 flex items-center gap-2">
+                        <p className="text-xs text-slate-500 flex-1">{m.nickname || 'No nickname'}</p>
+                        <button type="button" onClick={() => { setEditingCardId(m.id); setNicknameDraft(m.nickname || '') }}
+                          className="text-xs font-bold text-blue-600 hover:text-blue-800">
+                          {m.nickname ? 'Edit' : 'Add name'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button"
+                        onClick={() => { document.getElementById('billing-plan-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity"
+                        style={{ background: '#059669' }}>
+                        Use for Checkout
+                      </button>
+                      {!m.isDefault && (
+                        <button type="button" onClick={() => handleSetDefault(m.id)} disabled={settingDefaultId === m.id}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
+                          style={{ background: '#1d4ed8' }}>
+                          {settingDefaultId === m.id ? <><Loader2 size={11} className="animate-spin" /> Setting…</> : 'Set Default'}
+                        </button>
+                      )}
+                      <button type="button" onClick={() => handleDeleteCard(m.id)} disabled={deletingId === m.id}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
+                        style={{ background: '#dc2626' }}>
+                        {deletingId === m.id ? <><Loader2 size={11} className="animate-spin" /> Removing…</> : 'Remove'}
+                      </button>
+                    </div>
+                    {cardActionError && (
+                      <p className="mt-2 text-xs font-semibold text-red-600 flex items-center gap-1">
+                        <AlertCircle size={12} /> {cardActionError}
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
           </div>
-          {cardActionError && (
-            <p className="mt-3 text-xs font-semibold text-red-600 flex items-center gap-1">
-              <AlertCircle size={12} /> {cardActionError}
-            </p>
-          )}
           </>
         ) : (
-          <div className="text-center py-8">
+          <div className="text-center py-12">
             <p className="text-slate-400 text-sm mb-3">No payment methods on file</p>
             <button
               onClick={() => setShowAddCard(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white! hover:opacity-90 transition-opacity"
-              style={{ background: G.billing.bg, color: '#fff' }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 transition-opacity"
+              style={{ background: G.billing.bg }}
             >
-              <Plus size={14} color="#fff" /> Add Your First Card
+              <Plus size={14} /> Add Your First Card
             </button>
           </div>
         )}
       </div>
+
 
       {/* Invoice history */}
       {visibleInvoices.length > 0 && (
