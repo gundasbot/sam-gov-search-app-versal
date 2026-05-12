@@ -255,67 +255,53 @@ export default function FeedPersonalizationPage() {
   }
 
   return (
-    <div className="aptos-page w-full min-h-screen bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+    <div className="aptos-page w-full min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
       <style dangerouslySetInnerHTML={{ __html: aptosFontStyle }} />
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white border-b border-slate-700 dark:border-slate-800">
-        <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <p className="text-orange-400 text-sm font-bold uppercase tracking-wide">{greeting}, {firstName(session)}</p>
-              <h1 className="text-4xl sm:text-5xl font-black mt-3 flex items-center gap-3">
-                <span>{emoji}</span>
-                <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 bg-clip-text text-transparent">Preferences</span>
-              </h1>
-              <p className="text-xl text-slate-300 mt-3 max-w-3xl leading-relaxed">
-                Customize your opportunity feed to match your business, location, and expertise
-              </p>
-            </div>
+      {/* Compact page header */}
+      <div className="border-b" style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+        <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{greeting}, {firstName(session)}</p>
+            <h1 className="text-2xl font-black text-slate-900 mt-0.5">{emoji} Preferences</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Customize your feed · changes auto-save</p>
           </div>
-
-          {/* Save Status */}
-          <div className="mt-5 flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-sm font-bold text-emerald-700">
+              {selectedSetAsides.length} set-asides · {(prefs.naicsCodes || []).length} NAICS · {selectedStates.length} states
+            </div>
             {saved && (
-              <div className="inline-flex items-center gap-2 rounded-lg bg-green-500/20 border border-green-500/50 px-4 py-2 text-sm font-semibold text-green-400">
-                <Check className="h-4 w-4" />
-                Saved
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-green-100 border border-green-300 px-3 py-1.5 text-sm font-semibold text-green-800">
+                <Check className="h-3.5 w-3.5" /> Saved
               </div>
             )}
             {saving && (
-              <div className="inline-flex items-center gap-2 rounded-lg bg-blue-500/20 border border-blue-500/50 px-4 py-2 text-sm font-semibold text-blue-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 border border-blue-200 px-3 py-1.5 text-sm font-semibold text-blue-700">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Content - Exact same width as header */}
-      <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-8">
-        <div className="space-y-12">
+      <div className="mx-auto w-full max-w-480 px-3 sm:px-4 lg:px-6 xl:px-8 py-6">
+        <div className="space-y-8">
 
           {/* Guided setup */}
-          <section className="rounded-2xl border-2 border-blue-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+          <section className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">Quick setup guide</h2>
-                <p className="text-base text-slate-600 mt-2">
-                  We auto-save changes, and we save one final time before continuing to your dashboard.
-                </p>
-              </div>
-              <div className="rounded-lg bg-emerald-50 border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-700">
-                {selectedSetAsides.length} set-asides · {(prefs.naicsCodes || []).length} NAICS · {selectedStates.length} states
+                <h2 className="text-base font-black text-slate-900">Quick setup guide</h2>
+                <p className="text-sm text-slate-600 mt-0.5">We auto-save changes, and save one final time before continuing.</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 '1) Select set-asides',
                 '2) Add NAICS + service keywords',
                 '3) Pick locations and continue',
               ].map(step => (
-                <div key={step} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900">
+                <div key={step} className="rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-bold text-blue-900">
                   {step}
                 </div>
               ))}
@@ -324,48 +310,48 @@ export default function FeedPersonalizationPage() {
 
           {/* Set-Asides Section */}
           <section>
-            <div className="mb-8">
-              <h2 className="text-3xl font-black text-slate-900 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Business Classification</h2>
-              <p className="text-lg text-slate-600 mt-2">What business classifications apply to your company?</p>
+            <div className="mb-4">
+              <h2 className="text-xl font-black text-orange-600">Business Classification</h2>
+              <p className="text-sm text-slate-600 mt-1">What business classifications apply to your company?</p>
             </div>
 
-            <div className="mb-5 flex flex-wrap items-center gap-3">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => updatePrefs({ setAsides: DEFAULT_SET_ASIDES })}
-                className="rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold px-4 py-2 text-sm"
+                className="rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 py-1.5 text-sm"
               >
                 Select all set-asides
               </button>
               <button
                 type="button"
                 onClick={() => updatePrefs({ setAsides: [] })}
-                className="rounded-lg border-2 border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold px-4 py-2 text-sm"
+                className="rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold px-3 py-1.5 text-sm"
               >
                 Clear set-asides
               </button>
-              <span className="text-sm font-bold text-slate-700">Selected: {selectedSetAsides.length}</span>
+              <span className="text-sm font-semibold text-slate-600">Selected: {selectedSetAsides.length}</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {SET_ASIDE_CODES.filter(code => code.value).map(code => {
                 const isSelected = selectedSetAsides.includes(code.value)
                 return (
                   <button
                     key={code.value}
                     onClick={() => toggleSetAside(code.value)}
-                    className={`relative rounded-lg border-2 p-4 text-left transition-all ${
+                    className={`relative rounded-lg border-2 p-3 text-left transition-all ${
                       isSelected
-                        ? 'border-orange-400 bg-orange-50 shadow-sm'
-                        : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-slate-50'
+                        ? 'border-orange-500 bg-orange-600 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-900">{code.label}</p>
-                        <p className="text-sm text-slate-600 mt-1">{code.value}</p>
+                        <p className={`font-bold text-sm leading-snug ${isSelected ? 'text-white' : 'text-slate-900'}`}>{code.label}</p>
+                        <p className={`text-xs mt-0.5 font-semibold ${isSelected ? 'text-orange-100' : 'text-slate-500'}`}>{code.value}</p>
                       </div>
-                      {isSelected && <Check className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />}
+                      {isSelected && <Check className="h-4 w-4 text-white shrink-0 mt-0.5" />}
                     </div>
                   </button>
                 )
@@ -374,15 +360,15 @@ export default function FeedPersonalizationPage() {
           </section>
 
           {/* NAICS Codes Section */}
-          <section className="rounded-2xl border-2 border-orange-200 bg-white p-6 sm:p-8 shadow-sm">
-            <div className="mb-8">
-              <h2 className="text-3xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">NAICS + Services Focus</h2>
-              <p className="text-lg text-slate-700 mt-2">
-                Step 2: Enter NAICS codes and service descriptions so matching opportunities are prioritized correctly.
+          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-xl font-black text-orange-600">NAICS + Services Focus</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Enter NAICS codes and service descriptions so matching opportunities are prioritized correctly.
               </p>
             </div>
 
-            <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-4 mb-8">
+            <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 mb-5">
               <p className="text-base font-black text-orange-900 mb-3">Services / keywords</p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
@@ -440,7 +426,7 @@ export default function FeedPersonalizationPage() {
               </div>
             </div>
 
-            <div className="mb-5 flex flex-wrap items-center gap-3">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -463,8 +449,8 @@ export default function FeedPersonalizationPage() {
 
             {/* Trending NAICS Codes */}
             {!naicsSearch && (
-              <div className="mb-10">
-                <p className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">🔥 Popular Industries</p>
+              <div className="mb-5">
+                <p className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">🔥 Popular Industries</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {trendingNaics.map(code => {
                     const isSelected = (prefs.naicsCodes || []).includes(code.code)
@@ -480,16 +466,16 @@ export default function FeedPersonalizationPage() {
                         }
                         className={`text-left p-3 rounded-lg border-2 transition-all text-sm ${
                           isSelected
-                            ? 'border-orange-400 bg-orange-50 shadow-sm'
-                            : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
+                            ? 'border-orange-500 bg-orange-600 shadow-sm'
+                            : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-900">{code.code}</p>
-                            <p className="text-slate-700 font-semibold text-xs mt-1 line-clamp-2">{code.title}</p>
+                            <p className={`font-bold text-sm ${isSelected ? 'text-white' : 'text-slate-900'}`}>{code.code}</p>
+                            <p className={`font-semibold text-xs mt-1 line-clamp-2 ${isSelected ? 'text-orange-100' : 'text-slate-700'}`}>{code.title}</p>
                           </div>
-                          {isSelected && <Check className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />}
+                          {isSelected && <Check className="h-4 w-4 text-white shrink-0 mt-0.5" />}
                         </div>
                       </button>
                     )
@@ -499,7 +485,7 @@ export default function FeedPersonalizationPage() {
             )}
 
             {/* Search Input */}
-            <div className="mb-8">
+            <div className="mb-5">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-orange-500" />
                 <input
@@ -527,7 +513,7 @@ export default function FeedPersonalizationPage() {
 
             {/* Selected Codes */}
             {(prefs.naicsCodes || []).length > 0 && (
-              <div className="mb-8 pb-8 border-b border-slate-200">
+              <div className="mb-5 pb-5 border-b border-slate-200">
                 <p className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4">
                   ✓ Selected ({prefs.naicsCodes!.length})
                 </p>
@@ -577,19 +563,19 @@ export default function FeedPersonalizationPage() {
                       }
                       className={`text-left p-4 rounded-lg border-2 transition-all ${
                         isSelected
-                          ? 'border-orange-400 bg-orange-50 shadow-sm'
-                          : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50'
+                          ? 'border-orange-500 bg-orange-600 shadow-sm'
+                          : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-bold text-slate-900">{code.code}</p>
-                            {isSelected && <Check className="h-4 w-4 text-orange-600 flex-shrink-0" />}
+                            <p className={`font-bold ${isSelected ? 'text-white' : 'text-slate-900'}`}>{code.code}</p>
+                            {isSelected && <Check className="h-4 w-4 text-white shrink-0" />}
                           </div>
-                          <p className="text-slate-800 font-semibold text-sm mt-1">{code.title}</p>
+                          <p className={`font-semibold text-sm mt-1 ${isSelected ? 'text-orange-100' : 'text-slate-800'}`}>{code.title}</p>
                           {code.description && (
-                            <p className="text-xs text-slate-600 mt-2 line-clamp-2">{code.description}</p>
+                            <p className={`text-xs mt-2 line-clamp-2 ${isSelected ? 'text-orange-200' : 'text-slate-600'}`}>{code.description}</p>
                           )}
                         </div>
                       </div>
@@ -604,7 +590,7 @@ export default function FeedPersonalizationPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             {/* States */}
             <section>
-              <h2 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent mb-8">Geographic Focus</h2>
+              <h2 className="text-xl font-black text-blue-600 mb-4">Geographic Focus</h2>
               <div className="mb-5 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
@@ -644,7 +630,7 @@ export default function FeedPersonalizationPage() {
 
             {/* Contract Size */}
             <section>
-              <h2 className="text-3xl font-black bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent mb-8">Contract Size Range</h2>
+              <h2 className="text-xl font-black text-green-600 mb-4">Contract Size Range</h2>
               <button
                 type="button"
                 onClick={() => updatePrefs({ contractSizeMin: undefined, contractSizeMax: undefined })}

@@ -444,10 +444,30 @@ export default function Header() {
               </div>{/* end desktop auth */}
             </div>{/* end flex-1 nav+auth */}
 
+            {/* Mobile auth — outside hidden lg:flex so visible below lg */}
+            {!isAuthed && (
+              <div className="flex lg:hidden items-center gap-1.5 ml-2 flex-shrink-0">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-black text-white shadow-sm"
+                  style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)' }}
+                >
+                  Sign Up
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-black text-white shadow-sm"
+                  style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
+                >
+                  Login
+                </Link>
+              </div>
+            )}
+
             {/* Hamburger — visible below lg */}
             <button type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(v => !v); setServicesOpen(false) }}
-              className="lg:hidden ml-auto p-2 rounded-xl flex-shrink-0 transition-colors" style={{ color: 'var(--color-text-primary)' }}
+              className="lg:hidden ml-1 p-2 rounded-xl flex-shrink-0 transition-colors" style={{ color: 'var(--color-text-primary)' }}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
             >
