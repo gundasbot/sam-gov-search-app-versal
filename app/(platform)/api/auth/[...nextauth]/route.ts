@@ -272,15 +272,12 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (!user) {
-          await alertLoginError({ stage: 'account_not_found', email })
           throw new Error('Account not found')
         }
         if (!user.email_verified) {
-          await alertLoginError({ stage: 'email_not_verified', email, userId: user.id })
           throw new Error('Email not verified. Please check your inbox.')
         }
         if (!user.password_hash) {
-          await alertLoginError({ stage: 'password_login_not_enabled', email, userId: user.id })
           throw new Error('Password login not enabled for this account')
         }
         if (user.is_suspended) {
@@ -292,7 +289,6 @@ export const authOptions: NextAuthOptions = {
         const bcrypt = await import('bcryptjs')
         const ok = await bcrypt.compare(password, user.password_hash)
         if (!ok) {
-          await alertLoginError({ stage: 'invalid_password', email, userId: user.id })
           throw new Error('Invalid password')
         }
 
