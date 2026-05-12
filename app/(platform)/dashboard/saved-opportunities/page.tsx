@@ -133,7 +133,7 @@ function SavedOpportunitiesContent() {
   }, [items])
 
   return (
-    <main className="min-h-screen bg-green-100">
+    <main className="min-h-screen" style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
       <div className="max-w-480 mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
         <section className="pt-6 mb-6">
           <WorkspaceNavRow active="saved-opportunities" count={items.length} />

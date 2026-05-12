@@ -1185,10 +1185,8 @@ function ManageAlertsContent() {
     return parts.join(' · ')
   }
 
-  const bg = undefined
-
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: bg }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-surface)' }}>
       <div className="text-slate-900 text-center">
         <div className="animate-spin h-12 w-12 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-4" />
         <p className="text-lg">Loading…</p>
@@ -1218,7 +1216,7 @@ function ManageAlertsContent() {
 
 
   return (
-    <div className="min-h-screen manage-alerts-page bg-[#dfeaff]">
+    <div className="min-h-screen manage-alerts-page" style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
 
       {/* Toast */}
       {toast && (
@@ -1865,7 +1863,7 @@ function ManageAlertsContent() {
 export default function ManageAlertsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#d1d5db' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-surface)' }}>
         <div className="animate-spin h-12 w-12 border-4 border-orange-500 border-t-transparent rounded-full" />
       </div>
     }>

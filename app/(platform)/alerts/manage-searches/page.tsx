@@ -707,7 +707,7 @@ function ManageSearchesContent() {
   const labelCls = 'block text-base font-black text-blue-950 mb-1.5 uppercase tracking-wide'
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#dbeafe' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-surface)' }}>
       <div className="text-slate-900 text-center">
         <div className="animate-spin h-12 w-12 border-4 border-teal-500 border-t-transparent rounded-full mx-auto mb-4" />
         <p className="text-lg font-semibold">Loading saved searches…</p>
@@ -717,7 +717,7 @@ function ManageSearchesContent() {
 
   return (
 
-    <div style={{ background: '#dbeafe' }} className="min-h-screen manage-searches-page">
+    <div style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} className="min-h-screen manage-searches-page">
 
       {/* Toast notification */}
       {toast && (
@@ -1571,7 +1571,7 @@ function ManageSearchesContent() {
 export default function ManageSearchesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#dbeafe' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-surface)' }}>
         <div className="animate-spin h-12 w-12 border-4 border-teal-500 border-t-transparent rounded-full" />
       </div>
     }>

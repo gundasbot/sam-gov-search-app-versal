@@ -465,8 +465,8 @@ function ContactsContent() {
 
   return (
     <div
-      className="contacts-page min-h-screen bg-blue-50 text-slate-800 font-semibold"
-      style={{ fontFamily: 'Aptos, Calibri, "Segoe UI", "Trebuchet MS", Arial, sans-serif' }}
+      className="contacts-page min-h-screen font-semibold"
+      style={{ background: 'var(--color-surface)', color: 'var(--color-text-primary)', fontFamily: 'Aptos, Calibri, "Segoe UI", "Trebuchet MS", Arial, sans-serif' }}
     >
       {toast && <Toast msg={toast.msg} type={toast.type} />}
       {shareContact && <ShareModal contact={shareContact} onClose={() => setShareContact(null)} />}

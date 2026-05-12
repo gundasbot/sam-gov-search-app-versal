@@ -4,13 +4,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import {
   LogOut, LogIn, Menu, X, ChevronDown, CreditCard, Search, Award,
   TrendingUp, Briefcase, ExternalLink, LayoutDashboard,
   LineChart, Zap, Sparkles, Building, User, Loader2, Mail, Bell,
-  FileText, ShieldCheck, Settings, UserRound, Bookmark,
+  FileText, ShieldCheck, Settings, UserRound, Bookmark, BookUser,
 } from 'lucide-react'
 import AccessControlModal from './AccessControlModal'
 import ThemeToggle from './ThemeToggle'
@@ -233,6 +233,7 @@ export default function Header() {
                           { href: '/alerts/manage-searches', label: 'Manage Saved Searches', icon: <Search className="w-4.5 h-4.5" />, tone: 'orange' as const },
                           { href: '/alerts/manage-alerts', label: 'Manage Saved Alerts', icon: <Bell className="w-4.5 h-4.5" />, tone: 'slate' as const },
                           { href: '/dashboard/saved-opportunities', label: 'Manage Saved Opportunities', icon: <Bookmark className="w-4.5 h-4.5" />, tone: 'green' as const },
+                          { href: '/contacts', label: 'Manage Recipients', icon: <BookUser className="w-4.5 h-4.5" />, tone: 'indigo' as const },
                         ].map((item) => (
                           <Link
                             key={item.href}
@@ -244,7 +245,9 @@ export default function Header() {
                                 ? 'text-white bg-orange-600 hover:bg-orange-700'
                                 : item.tone === 'slate'
                                   ? 'text-white bg-slate-700 hover:bg-slate-800'
-                                  : 'text-white bg-emerald-600 hover:bg-emerald-700'
+                                  : item.tone === 'indigo'
+                                    ? 'text-white bg-indigo-600 hover:bg-indigo-700'
+                                    : 'text-white bg-emerald-600 hover:bg-emerald-700'
                             }`}
                           >
                             <span className="text-white">{item.icon}</span>
@@ -409,7 +412,7 @@ export default function Header() {
                         <div className="border-t border-slate-100 px-2 py-2">
                           <button
                             type="button"
-                            onClick={async () => { setShowUserMenu(false); await signOut({ redirect: false }); window.location.replace('/login') }}
+                            onClick={() => { setShowUserMenu(false); window.location.href = '/api/force-signout' }}
                             className="w-full flex items-center gap-3 px-4 py-3 text-base font-bold text-red-600 rounded-xl hover:bg-red-50 transition-colors"
                           >
                             <LogOut className="w-5 h-5 flex-shrink-0" /> Sign Out
@@ -508,6 +511,7 @@ export default function Header() {
                   { href: '/alerts/manage-searches', label: 'Manage Saved Searches', icon: <Search className="w-4.5 h-4.5" />, tone: 'orange' as const },
                   { href: '/alerts/manage-alerts', label: 'Manage Saved Alerts', icon: <Bell className="w-4.5 h-4.5" />, tone: 'slate' as const },
                   { href: '/dashboard/saved-opportunities', label: 'Manage Saved Opportunities', icon: <Bookmark className="w-4.5 h-4.5" />, tone: 'green' as const },
+                  { href: '/contacts', label: 'Manage Recipients', icon: <BookUser className="w-4.5 h-4.5" />, tone: 'indigo' as const },
                 ].map(({ href, label, icon, tone }) => {
                   const active = pathname === href
                   return (
@@ -522,12 +526,16 @@ export default function Header() {
                             ? 'bg-orange-600 text-white shadow-sm'
                             : tone === 'slate'
                               ? 'bg-slate-700 text-white shadow-sm'
-                              : 'bg-emerald-600 text-white shadow-sm'
+                              : tone === 'indigo'
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : 'bg-emerald-600 text-white shadow-sm'
                           : tone === 'orange'
                             ? 'text-white bg-orange-600 hover:bg-orange-700'
                             : tone === 'slate'
                               ? 'text-white bg-slate-700 hover:bg-slate-800'
-                              : 'text-white bg-emerald-600 hover:bg-emerald-700'
+                              : tone === 'indigo'
+                                ? 'text-white bg-indigo-600 hover:bg-indigo-700'
+                                : 'text-white bg-emerald-600 hover:bg-emerald-700'
                       }`}
                     >
                       {icon}
@@ -571,7 +579,7 @@ export default function Header() {
                 <p className="text-xs text-slate-500">Signed in as</p>
                 <p className="text-sm font-bold text-slate-900 truncate">{session?.user?.email}</p>
               </div>
-              <button type="button" onClick={async () => { setMobileMenuOpen(false); await signOut({ redirect: false }); window.location.replace('/login') }} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 transition-colors text-white font-black text-sm border-none"><LogOut className="w-4 h-4" />Sign Out</button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); window.location.href = '/api/force-signout' }} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 transition-colors text-white font-black text-sm border-none"><LogOut className="w-4 h-4" />Sign Out</button>
             </div>
           ) : (
             <div className="border-t border-slate-200 pt-4 space-y-2">
