@@ -115,7 +115,7 @@ interface SearchFilters {
   state: string
   postedFrom: string
   postedTo: string
-  procurementType: string
+  procurementTypes: string[]
   setAside: string
   limit: number
 }
@@ -177,13 +177,25 @@ export default function SAMSearchTool({ demoMode = false }: SAMSearchToolProps =
   // Less gloomy UI option (still "pro")
   const uiMode = 'midnight'
 
+  const NOTICE_TYPE_OPTIONS = [
+    { value: 'o', label: 'Solicitation', group: 'solicitation' },
+    { value: 'k', label: 'Combined Synopsis/Solicitation', group: 'solicitation' },
+    { value: 'p', label: 'Pre-solicitation', group: 'solicitation' },
+    { value: 'r', label: 'Sources Sought', group: 'solicitation' },
+    { value: 'a', label: 'Award Notice', group: 'award' },
+    { value: 's', label: 'Special Notice', group: 'other' },
+    { value: 'u', label: 'Justification (J&A)', group: 'other' },
+    { value: 'g', label: 'Sale of Surplus Property', group: 'other' },
+    { value: 'i', label: 'Intent to Bundle (DoD)', group: 'other' },
+  ]
+
   const [filters, setFilters] = useState<SearchFilters>({
     keywords: '',
     naicsCode: '',
     state: '',
     postedFrom: '',
     postedTo: '',
-    procurementType: 'o',
+    procurementTypes: ['o', 'k', 'p', 'r'],
     setAside: '',
     limit: 25,
   })
@@ -210,7 +222,7 @@ const currentSearchParamsForModal = useMemo(() => {
   const naics = filters.naicsCode || undefined
   const state = filters.state || undefined
   const setAside = filters.setAside || undefined
-  const procurementType = filters.procurementType || undefined
+  const procurementType = filters.procurementTypes.length > 0 ? filters.procurementTypes.join(',') : undefined
   const postedAfter = filters.postedFrom || undefined
   const postedBefore = filters.postedTo || undefined
 
@@ -311,6 +323,14 @@ const currentSearchParamsForModal = useMemo(() => {
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
+  const toggleProcurementType = (code: string) => {
+    setFilters((prev) => {
+      const current = prev.procurementTypes
+      const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code]
+      return { ...prev, procurementTypes: next.length ? next : [code] }
+    })
+  }
+
   const exportToCSV = (rows: Opportunity[]) => {
     const headers = [
       'Title',
@@ -369,7 +389,7 @@ const currentSearchParamsForModal = useMemo(() => {
 
       params.append('postedFrom', fromDate)
       params.append('postedTo', toDate)
-      if (filters.procurementType) params.append('ptype', filters.procurementType)
+      if (filters.procurementTypes.length > 0) params.append('ptype', filters.procurementTypes.join(','))
       // Make "All Set-Asides" (empty string) actually work for open competition
       if (filters.setAside && filters.setAside !== '') {
         params.append('typeOfSetAside', filters.setAside)
@@ -821,8 +841,74 @@ const currentSearchParamsForModal = useMemo(() => {
             </div>
           </div>
 
+          {/* Notice Type multi-select */}
+          <div className="mt-4 pt-4 border-t border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <label className="text-sm font-semibold text-slate-300">
+                Notice Types
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setFilters((p) => ({ ...p, procurementTypes: ['o', 'k', 'p', 'r'] }))}
+                  className="px-2.5 py-1 rounded text-xs font-semibold bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/40 transition-all"
+                >
+                  Active Solicitations
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilters((p) => ({ ...p, procurementTypes: ['a'] }))}
+                  className="px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 transition-all"
+                >
+                  Awards Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFilters((p) => ({
+                      ...p,
+                      procurementTypes: NOTICE_TYPE_OPTIONS.map((t) => t.value),
+                    }))
+                  }
+                  className="px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 transition-all"
+                >
+                  All Types
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2.5">
+              {NOTICE_TYPE_OPTIONS.map(({ value, label, group }) => {
+                const checked = filters.procurementTypes.includes(value)
+                return (
+                  <label
+                    key={value}
+                    className="flex items-center gap-2 text-sm cursor-pointer select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleProcurementType(value)}
+                      className="h-4 w-4 rounded accent-emerald-500"
+                    />
+                    <span
+                      className={
+                        group === 'award'
+                          ? 'text-amber-300'
+                          : group === 'solicitation'
+                          ? 'text-emerald-300'
+                          : 'text-slate-400'
+                      }
+                    >
+                      {label}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
           <div
-            className={`flex flex-wrap gap-4 items-center justify-between pt-6 ${
+            className={`flex flex-wrap gap-4 items-center justify-between pt-6 mt-4 ${
               'border-t border-slate-800'
             }`}
           >
