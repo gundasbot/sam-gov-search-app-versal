@@ -19,6 +19,13 @@ import { BRAND_CONFIG } from '@/lib/brand-config'
 type NavItem = { label: string; href: string; icon?: React.ReactNode }
 type ServiceItem = { label: string; href: string; description: string; icon: React.ReactNode; badge?: string; color: string }
 
+function getGreeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function Header() {
   const { wordmark } = BRAND_CONFIG
   const pathname = usePathname() || '/'
@@ -610,8 +617,9 @@ export default function Header() {
           {isAuthed ? (
             <div className="border-t border-slate-200 pt-4 space-y-1">
               <div className="px-4 py-2">
-                <p className="text-xs text-slate-500">Signed in as</p>
-                <p className="text-sm font-bold text-slate-900 truncate">{session?.user?.email}</p>
+                <p className="text-base font-black text-slate-900">
+                  {getGreeting()}, {session?.user?.name?.split(' ')[0] || 'there'}!
+                </p>
               </div>
               <button type="button" onClick={() => { setMobileMenuOpen(false); window.location.href = '/api/force-signout' }} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 transition-colors text-white font-black text-sm border-none"><LogOut className="w-4 h-4" />Sign Out</button>
             </div>
