@@ -158,7 +158,7 @@ export default function Header() {
             <div className="flex flex-col justify-center gap-0.5 flex-shrink-0 w-max">
               <Link
                 href="/"
-                className="group flex items-center gap-0 py-0 transition-all overflow-hidden rounded-md w-full"
+                className="group flex items-center gap-0 py-0 transition-all overflow-hidden rounded-none w-full"
                 aria-label="Go to homepage"
                 prefetch={false}
                 onClick={() => { setServicesOpen(false); setMobileMenuOpen(false) }}
