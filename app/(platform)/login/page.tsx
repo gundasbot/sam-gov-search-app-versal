@@ -215,11 +215,11 @@ function SignInContent() {
   const router = useRouter()
   const { status } = useSession()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/home'
+  const callbackUrl = searchParams.get('callbackUrl') || '/search'
   const errorParam = searchParams.get('error') || ''
   const safeCallbackUrl = callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')
     ? callbackUrl
-    : '/dashboard'
+    : '/search'
   const emailParam = searchParams.get('email') || ''
 
   const [email, setEmail] = useState(emailParam)

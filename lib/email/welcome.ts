@@ -224,26 +224,6 @@ function getWelcomeEmailHtml(firstName: string, trialDays = 7): string {
             </td>
           </tr>
 
-          <!-- VOSB callout -->
-          <tr>
-            <td style="padding:0 32px 28px;background-color:#ffffff;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="background:linear-gradient(135deg,#0f172a,#1e3a5f);border-radius:12px;">
-                <tr>
-                  <td style="padding:20px 22px;text-align:center;">
-                    <p style="margin:0 0 6px;color:#f8fafc;font-size:16px;font-weight:800;">
-                      &#127482;&#127480; Built for small businesses — by a small business
-                    </p>
-                    <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.65;font-weight:500;">
-                      Precise GovCon is a Minority-Owned, Veteran-Owned Small Business based in Richmond, Virginia.
-                      We understand the contracting landscape because we operate in it every day.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
           <!-- Support box -->
           <tr>
             <td style="padding:0 32px 28px;background-color:#ffffff;">
@@ -286,7 +266,7 @@ function getWelcomeEmailHtml(firstName: string, trialDays = 7): string {
                 &copy; ${new Date().getFullYear()} ${brand.name} &mdash; All rights reserved.
               </p>
               <p style="margin:0 0 10px;color:#64748b;font-size:12px;font-weight:500;">
-                Minority-Owned &middot; Veteran-Owned Small Business &middot; Richmond, Virginia
+                Richmond, Virginia
               </p>
               <p style="margin:0 0 8px;font-size:12px;">
                 <a href="${MARKETING_URL}/privacy" style="color:#64748b;text-decoration:none;margin:0 6px;">Privacy Policy</a>
@@ -371,7 +351,7 @@ Account → Billing to keep it going.
 
 ${'─'.repeat(60)}
 © ${new Date().getFullYear()} ${brand.name}
-Minority-Owned · Veteran-Owned Small Business · Richmond, Virginia
+Richmond, Virginia
 
 Privacy: ${MARKETING_URL}/privacy
 Terms:   ${MARKETING_URL}/terms
