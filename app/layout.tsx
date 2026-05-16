@@ -143,8 +143,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     })();
   `}} />
         <ClientLayout>{children}</ClientLayout>
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="//code.tidio.co/ic6mmxomfp1yedsly6mtd4m2bjmrhcp3.js" async />
       </body>
     </html>
   )

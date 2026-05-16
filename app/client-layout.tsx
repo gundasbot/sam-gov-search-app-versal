@@ -12,6 +12,13 @@ import { useEffect } from 'react'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
+    const s = document.createElement('script')
+    s.src = '//code.tidio.co/ic6mmxomfp1yedsly6mtd4m2bjmrhcp3.js'
+    s.async = true
+    document.body.appendChild(s)
+  }, [])
+
+  useEffect(() => {
     // Force light theme everywhere to avoid dark-mode overrides conflicting with pill/text colors.
     const resolved: 'light' = 'light'
     document.documentElement.setAttribute('data-theme', resolved)
