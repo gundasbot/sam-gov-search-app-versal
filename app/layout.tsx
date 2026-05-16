@@ -1,6 +1,7 @@
 //app/layout.tsx
 
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import ClientLayout from './client-layout'
 import './globals.css'
 import { Manrope, Sora, Inter } from 'next/font/google'
@@ -142,6 +143,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     })();
   `}} />
         <ClientLayout>{children}</ClientLayout>
+        <Script
+          src="//code.tidio.co/ic6mmxomfp1yedsly6mtd4m2bjmrhcp3.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )
