@@ -5,12 +5,17 @@ import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { 
+import {
   Mail, Building, Phone, User, MessageSquare, Send, Loader2, CheckCircle,
-  FileText, Award, ShieldCheck, Zap, TrendingUp, Search as SearchIcon, Calendar
+  FileText, Award, ShieldCheck, Zap, TrendingUp, Search as SearchIcon, Calendar,
+  MessageCircle, LifeBuoy
 } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
+
+declare global {
+  interface Window { tidioChatApi?: { open: () => void } }
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -245,6 +250,21 @@ function ContactPageContent() {
   return (
     <div className="min-h-screen bg-linear-to-br from-cyan-50 via-white to-emerald-50 py-12 px-4 text-slate-900">
       <div className="max-w-480 mx-auto">
+
+        {/* Existing customer callout */}
+        <div className="mb-8 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3.5">
+          <div className="flex items-center gap-2.5 text-sm text-amber-800">
+            <LifeBuoy className="h-4 w-4 shrink-0" />
+            <span><strong>Already a customer?</strong> For billing, account access, or technical issues use our Support Center for faster help.</span>
+          </div>
+          <Link
+            href="/support"
+            className="shrink-0 rounded-lg bg-amber-100 border border-amber-300 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-200 transition-colors"
+          >
+            Go to Support →
+          </Link>
+        </div>
+
         {/* Dynamic Header based on service */}
         <div className="mb-10">
           <div className="flex items-center justify-center mb-4">
@@ -453,33 +473,44 @@ function ContactPageContent() {
               </a>
             </div>
 
-            {/* Need Help Right Away */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900 mb-4">Need Help Right Away?</h3>
-              <div className="space-y-3">
-                <p className="text-slate-700 text-sm font-semibold">
-                  Our team is here to help. Reach out directly:
-                </p>
+            {/* Live Chat */}
+            <div className="bg-gradient-to-br from-emerald-600 to-cyan-600 rounded-2xl p-6 text-white shadow-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <MessageCircle className="h-6 w-6 shrink-0" />
+                <h3 className="text-lg font-bold">Chat with Us Now</h3>
+              </div>
+              <p className="text-sm text-white/85 mb-4">
+                Get instant answers from our AI assistant — available 24/7.
+              </p>
+              <button
+                type="button"
+                onClick={() => window.tidioChatApi?.open()}
+                className="w-full inline-flex items-center justify-center gap-2 bg-white text-emerald-700 font-bold px-5 py-2.5 rounded-lg hover:bg-emerald-50 transition-colors"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Start Live Chat
+              </button>
+            </div>
 
+            {/* Need Help Right Away */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-slate-900 mb-3">Contact Directly</h3>
+              <div className="space-y-3">
                 <a
                   href="mailto:support@precisegovcon.com"
-                  className="flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors font-bold"
+                  className="flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors font-bold text-sm"
                 >
-                  <Mail className="h-5 w-5" />
+                  <Mail className="h-4 w-4" />
                   support@precisegovcon.com
                 </a>
-
                 <a
                   href="tel:804-404-6005"
-                  className="flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors font-bold"
+                  className="flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors font-bold text-sm"
                 >
-                  <Phone className="h-5 w-5" />
+                  <Phone className="h-4 w-4" />
                   (804) 404-6005
                 </a>
-
-                <p className="text-sm text-slate-600 mt-4 font-semibold">
-                  We typically respond within 1 business day.
-                </p>
+                <p className="text-xs text-slate-500 pt-1">Mon–Fri 9am–5pm ET · Response within 1 business day.</p>
               </div>
             </div>
           </div>
