@@ -453,9 +453,12 @@ export default function Header() {
               </div>{/* end desktop auth */}
             </div>{/* end flex-1 nav+auth */}
 
+            {/* Mobile spacer — pushes auth buttons + hamburger to the right in both authed and unauthed states */}
+            <div className="flex-1 lg:hidden" />
+
             {/* Mobile auth — outside hidden lg:flex so visible below lg */}
             {!isAuthed && (
-              <div className="flex lg:hidden items-center gap-1.5 ml-2 flex-shrink-0">
+              <div className="flex lg:hidden items-center gap-1.5 shrink-0">
                 <Link
                   href="/signup"
                   className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-black text-white shadow-sm"
