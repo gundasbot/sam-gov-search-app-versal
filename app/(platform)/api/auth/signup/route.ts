@@ -22,6 +22,7 @@ import Stripe from 'stripe'
 export const runtime = 'nodejs'
 
 const SIGNUP_ERROR_ALERT_EMAIL = process.env.SIGNUP_ERROR_ALERT_EMAIL || 'admin@precisegovcon.com'
+const SIGNUP_NOTIFY_EMAIL = 'signups@precisegovcon.com'
 
 function getStripeClient(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY
@@ -252,6 +253,47 @@ export async function POST(req: Request) {
         error: welcomeErr,
       })
     }
+
+    // Notify team of new signup
+    sendEmail({
+      to: SIGNUP_NOTIFY_EMAIL,
+      subject: `New Signup: ${first_name} ${last_name} (${email})`,
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#0f172a;max-width:600px;">
+          <h2 style="margin:0 0 16px;color:#059669;">New Account Created</h2>
+          <table style="border-collapse:collapse;width:100%;">
+            ${[
+              ['Name',     `${first_name} ${last_name}`.trim() || '—'],
+              ['Email',    email],
+              ['Phone',    phone || '—'],
+              ['Company',  company || '—'],
+              ['Job Title',job_title || '—'],
+              ['Plan Tier',pendingTier],
+              ['Billing',  pendingInterval],
+              ['Offer Code', validatedCode?.code || '—'],
+              ['Signed Up', new Date().toUTCString()],
+            ].map(([label, value]) =>
+              `<tr>
+                <td style="padding:8px 10px;border:1px solid #e5e7eb;font-weight:700;background:#f8fafc;white-space:nowrap;">${label}</td>
+                <td style="padding:8px 10px;border:1px solid #e5e7eb;">${escapeHtml(value)}</td>
+              </tr>`
+            ).join('')}
+          </table>
+        </div>
+      `,
+      text: [
+        'New Account Created',
+        `Name: ${first_name} ${last_name}`.trim(),
+        `Email: ${email}`,
+        `Phone: ${phone || '—'}`,
+        `Company: ${company || '—'}`,
+        `Job Title: ${job_title || '—'}`,
+        `Plan Tier: ${pendingTier}`,
+        `Billing: ${pendingInterval}`,
+        `Offer Code: ${validatedCode?.code || '—'}`,
+        `Signed Up: ${new Date().toUTCString()}`,
+      ].join('\n'),
+    }).catch(() => null) // fire-and-forget
 
     // Notify admin portal: stop cold outreach to this contact and mark as converted.
     const adminUrl = process.env.ADMIN_PORTAL_URL || process.env.NEXT_PUBLIC_ADMIN_URL || ''
