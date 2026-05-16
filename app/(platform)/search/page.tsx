@@ -4299,7 +4299,8 @@ const visibleSearchSummaryParts = useMemo(
  )}
 
  {/* ── HOW TO USE GUIDE ─────────────────────────────────────────── */}
- <div className="rounded-2xl overflow-hidden shadow-sm"style={{ border: '1px solid #bbf0d0' }}>
+ {/* order-last on mobile so search card appears first; sm:order-none restores desktop order */}
+ <div className="order-last sm:order-none rounded-2xl overflow-hidden shadow-sm"style={{ border: '1px solid #bbf0d0' }}>
  <div className="px-5 py-4 flex items-center gap-3"style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"style={{ background: 'rgba(255,255,255,0.25)' }}>
  <HelpCircle className="h-5 w-5"style={{ color: '#ffffff' }} />
@@ -4347,7 +4348,7 @@ const visibleSearchSummaryParts = useMemo(
  </div>
 
  {/* ── MAIN SEARCH CARD ─────────────────────────────────────────── */}
- <div ref={searchCardRef} className="search-card bg-white rounded-2xl border-2 border-[#166534] shadow-lg overflow-hidden">
+ <div ref={searchCardRef} className="search-card order-first sm:order-none bg-white rounded-2xl border-2 border-[#166534] shadow-lg overflow-hidden">
 
  {/* Header bar */}
  <div className="px-6 pt-5 pb-4 border-b border-gray-100">
