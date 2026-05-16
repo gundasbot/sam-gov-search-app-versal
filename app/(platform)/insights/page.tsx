@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   TrendingUp,
@@ -312,6 +312,7 @@ function Donut({ series }: { series: { name: string; count: number }[] }) {
 ───────────────────────────────────────────── */
 export default function InsightsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { status: sessionStatus } = useSession();
   const isAuthenticated = sessionStatus === 'authenticated';
   const isGuest = sessionStatus === 'unauthenticated';
@@ -918,7 +919,7 @@ export default function InsightsPage() {
                     Sign up free
                   </button>
                   <button
-                    onClick={() => router.push('/login')}
+                    onClick={() => router.push(`/login?callbackUrl=${encodeURIComponent(pathname ?? '/insights')}`)}
                     className="inline-flex min-h-[50px] items-center justify-center rounded-xl border-2 border-indigo-300 bg-white px-6 py-3 text-base sm:text-lg font-extrabold text-indigo-900 hover:bg-indigo-100 transition whitespace-nowrap"
                   >
                     Log in
@@ -961,7 +962,7 @@ export default function InsightsPage() {
                         Sign up free
                       </button>
                       <button
-                        onClick={() => router.push('/login')}
+                        onClick={() => router.push(`/login?callbackUrl=${encodeURIComponent(pathname ?? '/insights')}`)}
                         className="inline-flex min-h-[48px] items-center justify-center rounded-xl border-2 border-indigo-300 bg-white px-6 py-2.5 text-base font-extrabold text-indigo-900 hover:bg-indigo-100 transition whitespace-nowrap"
                       >
                         Log in

@@ -1771,13 +1771,13 @@ function QuickDateLookup({
  {/* Header row: title on left, Save/Alert buttons on right */}
  <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
  <div>
- <h3 style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
+ <h3 style={{ fontFamily: 'var(--font-ui), system-ui, sans-serif' }} className="text-xl sm:text-2xl font-bold text-blue-900 uppercase tracking-wide leading-none">
  Quick Solicitations Lookup
  </h3>
- <p className="text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters</p>
+ <p className="hidden sm:block text-sm text-blue-700 font-semibold mt-0.5">Fast search with date quick-fills — refine further with Advanced Filters</p>
  </div>
- {/* Save Search + Create Alert */}
- <div className="flex items-center gap-3 flex-wrap mt-2 mb-4">
+ {/* Save Search + Create Alert — desktop only; action row below has these buttons for all sizes */}
+ <div className="hidden sm:flex items-center gap-3 flex-wrap mt-2 mb-4">
    <button
      onClick={onSaveSearch}
      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 shadow-md transition-all"

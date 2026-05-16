@@ -359,7 +359,7 @@ export default function Header() {
                     <span>Sign Up Free</span>
                   </Link>
                   <Link
-                    href="/login"
+                    href={`/login?callbackUrl=${encodeURIComponent(redirectTo)}`}
                     className="inline-flex items-center gap-2 rounded-xl px-7 py-2.5 text-base font-black shadow-md transition-all hover:scale-[1.02] hover:shadow-lg"
                     style={{ background: 'linear-gradient(135deg,#10b981,#047857)', color: '#ffffff' }}
                   >
@@ -441,7 +441,7 @@ export default function Header() {
                     <span>Sign Up</span>
                   </Link>
                   <Link
-                    href="/login"
+                    href={`/login?callbackUrl=${encodeURIComponent(redirectTo)}`}
                     className="inline-flex lg:hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white shadow-md transition-all hover:scale-[1.02]"
                     style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
                   >
@@ -464,7 +464,7 @@ export default function Header() {
                   Sign Up
                 </Link>
                 <Link
-                  href="/login"
+                  href={`/login?callbackUrl=${encodeURIComponent(redirectTo)}`}
                   className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-black text-white shadow-sm"
                   style={{ background: 'linear-gradient(135deg,#10b981,#047857)' }}
                 >
@@ -495,9 +495,11 @@ export default function Header() {
         }`}
         onClick={() => setMobileMenuOpen(false)}
       >
-        {/* Drawer panel — stop propagation so clicks inside don't close */}
+        {/* Drawer panel — slides in from the right */}
         <div
-          className="h-full overflow-y-auto px-4 sm:px-6 py-5 max-w-lg mx-auto bg-white border border-slate-200 rounded-2xl"
+          className={`absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto px-4 sm:px-6 py-5 bg-white border-l border-slate-200 shadow-2xl transition-transform duration-300 ${
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
           onClick={e => e.stopPropagation()}
         >
           {/* Drawer header */}

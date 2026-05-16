@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     const last_name  = String(body.last_name  || body.lastName  || '').trim()
     const phone      = String(body.phone      || '').trim() || undefined
     const company    = String(body.company    || '').trim() || undefined
-    const job_title  = String(body.jobTitle   || body.job_title || body.title || body.role || '').trim() || undefined
+    const job_title  = String(body.jobTitle   || body.job_title || body.title || '').trim() || undefined
     const trialCode  = String(body.trialCode  || body.trial_code || body.code || '').toUpperCase().trim() || undefined
 
     const pendingTier     = normalizeTier(body.selectedPlanTier || body.plan)

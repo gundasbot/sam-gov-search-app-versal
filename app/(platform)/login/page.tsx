@@ -574,26 +574,27 @@ function SignInContent() {
               <button
                 type="button"
                 onClick={() => { setAuthMode('password'); setErrorState(null); setOtpCode(''); setOtpSent(false); setOtpTimeRemaining(0); setMagicLinkSent(false) }}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all min-w-0"
                 style={{
                   background: authMode === 'password' ? '#ffffff' : 'transparent',
                   color: authMode === 'password' ? TEXT_DARK : TEXT_MUTED,
                   boxShadow: authMode === 'password' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
                 }}
               >
-                <Lock className="h-3.5 w-3.5" /> Password
+                <Lock className="h-3.5 w-3.5 shrink-0" /> Password
               </button>
               <button
                 type="button"
                 onClick={() => { setAuthMode('otp'); setErrorState(null); setPassword(''); setOtpEmail(email); setOtpSent(false); setOtpCode(''); setMagicLinkSent(false) }}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all min-w-0"
                 style={{
                   background: authMode === 'otp' ? '#ffffff' : 'transparent',
                   color: authMode === 'otp' ? TEXT_DARK : TEXT_MUTED,
                   boxShadow: authMode === 'otp' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
                 }}
               >
-                <Sparkles className="h-3.5 w-3.5" /> Code / Magic Link
+                <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Code / Magic Link</span>
               </button>
             </div>
 
