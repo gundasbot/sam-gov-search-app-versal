@@ -48,11 +48,11 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://js.stripe.com https://cdn.jsdelivr.net https://assets.calendly.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://js.stripe.com https://cdn.jsdelivr.net https://assets.calendly.com https://code.tidio.co https://*.tidio.co",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://assets.calendly.com",
               "font-src 'self' https://fonts.gstatic.com https://assets.calendly.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.sam.gov https://api.stripe.com https://accounts.google.com https://*.anthropic.com https://calendly.com https://*.calendly.com wss:",
+              "connect-src 'self' https://api.sam.gov https://api.stripe.com https://accounts.google.com https://*.anthropic.com https://calendly.com https://*.calendly.com https://*.tidio.co wss: wss://*.tidio.co",
               "frame-src https://js.stripe.com https://hooks.stripe.com https://accounts.google.com https://calendly.com https://*.calendly.com",
               "worker-src 'self' blob:",
             ].join('; '),
